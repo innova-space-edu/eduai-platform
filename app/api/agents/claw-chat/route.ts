@@ -4,8 +4,16 @@
 
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { runCoreCycle } from "@/lib/superagent/superagent-core";
-import type { CoreMessage } from "@/lib/superagent/superagent-core";
+import {
+  buildCoreSystemPrompt,
+  canStreamCoreAI,
+  coreGatewayCapability,
+  coreTokenBudget,
+  detectCoreAITask,
+  runCoreCycle,
+} from "@/lib/superagent/superagent-core";
+import type { CoreContext, CoreMessage } from "@/lib/superagent/superagent-core";
+import { streamAIText, type GatewayMessage } from "@/lib/ai/gateway";
 import { getEnabledTools } from "@/lib/superagent/tool-registry";
 import { EDUAI_PAGES, searchEduAIPages } from "@/lib/superagent/eduai-map";
 import { getEduAIPlatformKnowledgeContext } from "@/lib/eduai/platform-knowledge";
@@ -31,7 +39,7 @@ function normalizeHistory(history: unknown, message: string): CoreMessage[] {
   const safeHistory = Array.isArray(history)
     ? history
         .filter((m): m is { role: string; content: string } => m && typeof m.role === "string" && typeof m.content === "string")
-        .slice(-16)
+        .slice(-10)
         .map((m): CoreMessage => ({ role: m.role === "assistant" ? "assistant" : "user", content: m.content }))
     : [];
 
@@ -183,7 +191,7 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-    const { message, history = [], userName, pageContext, requestedTool } = await req.json();
+    const { message, history = [], userName, pageContext, requestedTool, stream = false } = await req.json();
     const cleanMessage = String(message || "").trim();
 
     if (!cleanMessage) return NextResponse.json({ error: "Mensaje vacío" }, { status: 400 });
@@ -195,27 +203,108 @@ export async function POST(req: NextRequest) {
     const displayName = typeof userName === "string" && userName.trim() && userName.trim().toLowerCase() !== "usuario" ? userName.trim().slice(0, 100) : undefined;
     const platformKnowledge = await getEduAIPlatformKnowledgeContext(supabase, cleanMessage, messages);
 
+    const coreContext: CoreContext = {
+      currentPage: inferredPath,
+      subject: inferredTopic,
+      examTitle: context.pageTitle,
+      studentCourse: context.selectedSubtopic,
+      userId: user.id,
+      pageMode: `${buildClawConversationMode(context.mode)}${displayName ? ` Nombre visible del usuario: ${displayName}.` : ""}${platformKnowledge ? `\n${platformKnowledge}` : ""}`,
+      availableActions: context.availableActions,
+      requestedTool:
+        typeof requestedTool === "string"
+          ? requestedTool.slice(0, 100)
+          : undefined,
+    };
+
+    if (stream === true && canStreamCoreAI(cleanMessage, coreContext)) {
+      const task = detectCoreAITask(cleanMessage);
+      const aiMessages: GatewayMessage[] = [
+        { role: "system", content: buildCoreSystemPrompt(coreContext) },
+        ...messages
+          .filter((item) => item.role !== "system")
+          .map((item) => ({ role: item.role, content: item.content } as GatewayMessage)),
+      ];
+
+      const source = await streamAIText({
+        messages: aiMessages,
+        maxOutputTokens: coreTokenBudget(task, true),
+        preferredProvider: task === "general" ? "groq" : undefined,
+        fallbackToDefault: true,
+        lite: task === "general",
+        fastPath: true,
+        context: {
+          userId: user.id,
+          module: "claw-chat-stream",
+          reusePolicy: "never",
+          visibility: "private",
+        },
+        supabase,
+      });
+
+      const reader = source.getReader();
+      const decoder = new TextDecoder();
+      const encoder = new TextEncoder();
+
+      const body = new ReadableStream<Uint8Array>({
+        async start(controller) {
+          let full = "";
+          try {
+            while (true) {
+              const { value, done } = await reader.read();
+              if (done) break;
+              const delta = decoder.decode(value, { stream: true });
+              if (!delta) continue;
+              full += delta;
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta })}\n\n`));
+            }
+
+            const tail = decoder.decode();
+            if (tail) {
+              full += tail;
+              controller.enqueue(encoder.encode(`data: ${JSON.stringify({ delta: tail })}\n\n`));
+            }
+
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              done: true,
+              suggestions: buildSuggestions(full, cleanMessage),
+              task,
+            })}\n\n`));
+            controller.close();
+          } catch (error) {
+            controller.enqueue(encoder.encode(`data: ${JSON.stringify({
+              error: error instanceof Error ? error.message : "La respuesta se interrumpió.",
+            })}\n\n`));
+            controller.close();
+          } finally {
+            reader.releaseLock();
+          }
+        },
+        cancel() {
+          void reader.cancel();
+        },
+      });
+
+      return new Response(body, {
+        headers: {
+          "Content-Type": "text/event-stream; charset=utf-8",
+          "Cache-Control": "no-cache, no-store, no-transform",
+          "Connection": "keep-alive",
+          "X-Accel-Buffering": "no",
+        },
+      });
+    }
+
     const result = await runCoreCycle(
       messages,
-      {
-        currentPage: inferredPath,
-        subject: inferredTopic,
-        examTitle: context.pageTitle,
-        studentCourse: context.selectedSubtopic,
-        userId: user.id,
-        pageMode: `${buildClawConversationMode(context.mode)}${displayName ? ` Nombre visible del usuario: ${displayName}.` : ""}${platformKnowledge ? `\n${platformKnowledge}` : ""}`,
-        availableActions: context.availableActions,
-        requestedTool:
-          typeof requestedTool === "string"
-            ? requestedTool.slice(0, 100)
-            : undefined,
-      },
+      coreContext,
       req.nextUrl.origin,
       { headers: req.headers },
       {
         supabase,
         userId: user.id,
         module: "claw-chat",
+        latencyMode: "fast",
       },
     );
 

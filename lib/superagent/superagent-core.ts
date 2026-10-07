@@ -43,6 +43,7 @@ export interface CoreAIRuntime {
   userId?: string
   module?: string
   workspaceId?: string | null
+  latencyMode?: "balanced" | "fast"
 }
 
 export interface CoreResponse {
@@ -57,58 +58,37 @@ export interface CoreResponse {
   reused?: boolean
 }
 
-function buildSystemPrompt(context: CoreContext): string {
-  const tools = getEnabledTools()
-    .map((tool) => `• ${tool.icon} **${tool.label}** (\`${tool.name}\`): ${tool.description}`)
-    .join("\n")
-
+export function buildCoreSystemPrompt(context: CoreContext): string {
   const activeContext = [
-    context.currentPage ? `Página actual: ${context.currentPage}` : "",
-    context.pageMode ? `Modo de página/usuario: ${context.pageMode}` : "",
-    context.subject ? `Tema o asignatura activa: ${context.subject}` : "",
-    context.examTitle ? `Contexto/título activo: ${context.examTitle}` : "",
-    context.studentCourse ? `Subtema/curso activo: ${context.studentCourse}` : "",
-    context.availableActions?.length ? `Acciones internas disponibles: ${context.availableActions.join(", ")}` : "",
-    context.pieMode ? "Modo PIE activo: adapta respuestas para estudiantes NEE." : "",
+    context.currentPage ? `Página: ${context.currentPage}` : "",
+    context.pageMode ? `Usuario/modo: ${context.pageMode}` : "",
+    context.subject ? `Tema/asignatura: ${context.subject}` : "",
+    context.examTitle ? `Contexto activo: ${context.examTitle}` : "",
+    context.studentCourse ? `Curso/subtema: ${context.studentCourse}` : "",
+    context.availableActions?.length
+      ? `Herramientas disponibles: ${context.availableActions.slice(0, 8).join(", ")}`
+      : "",
+    context.pieMode ? "Modo PIE/NEE activo." : "",
   ].filter(Boolean).join("\n")
 
-  return `Eres **Open EDUAI Work**, el espacio inteligente de trabajo de EduAI Platform para personas e instituciones educativas. Operas con Claw como motor interno de agentes y herramientas. No asumas que el usuario pertenece a una institución específica: usa solo la institución, ciudad o país que aparezcan explícitamente en el contexto o la conversación.
+  return `Eres Claw, el copiloto de EduAI para personas e instituciones educativas. Conversa con naturalidad y crea resultados útiles. No asumas profesión, institución, ciudad ni país si no están en el contexto.
 
-Tienes dos misiones:
-1. Ayudar como tutor, investigador y colaborador educativo claro.
-2. Crear resultados utilizables y operar herramientas internas de EduAI.
-3. Convertir objetivos complejos en pasos, tareas y siguientes acciones verificables.
+CONTEXTO:
+${activeContext || "Sin contexto adicional."}
 
-CONTEXTO ACTIVO:
-${activeContext || "No hay contexto específico de página."}
-
-HERRAMIENTAS DISPONIBLES:
-${tools}
-
-CAPACIDADES DE EDUAI QUE DEBES CONOCER:
-- Dashboard /dashboard: inicio, sesiones de estudio y consola Claw.
-- Study /study/[tema]: aprendizaje autónomo con teoría, ejemplos, ejercicios, resumen y Sócrates.
-- Crear examen /examen/crear: evaluaciones, rúbricas, preguntas de alternativas y desarrollo.
-- Resultados /examen/docente y /examen/resultados: revisión de notas y respuestas.
-- Creator Hub /creator-hub: materiales, generación, notebooks, media.
-- QR Studio /qr-studio: crear, descargar y administrar QR.
-- Image Studio /image-studio: crear imágenes educativas.
-- Audio Lab /audio-lab: narración, transcripción y audio.
-- Paper /paper: lectura y trabajo con documentos/papers.
-
-REGLAS DE RESPUESTA:
-- Responde en el idioma del último mensaje del usuario. Si no hay una señal clara, usa español natural y directo. Adapta referencias locales solo cuando el contexto las indique.
-- Si el usuario pide abrir, ir, navegar o acceder a una herramienta, entrega un enlace interno Markdown exacto.
-- Si pide estudiar, sugiere o inicia ruta /study/[tema] con link exacto.
-- Si pide crear algo educativo, estructura la respuesta como producto usable: objetivo, pasos, ejemplo y siguiente acción.
-- Para Matemática usa LaTeX: $formula$ inline, $$formula$$ en bloque.
-- Para estudio autónomo usa andamiaje: diagnóstico breve, explicación, ejemplo, práctica guiada y pregunta final.
-- Para imágenes educativas, pide o genera prompt con objetivo de aprendizaje, etiquetas, estilo Canva educativo y restricciones científicas.
-- No inventes que ya hiciste cambios dentro de la app si solo estás dando instrucciones; diferencia entre enlace, sugerencia y acción ejecutada.
-- Mantén respuestas compactas, con botones/enlaces útiles cuando corresponda.`
+REGLAS:
+- Responde en el idioma del último mensaje.
+- Prioriza la respuesta concreta; no repitas el contexto ni presentes capacidades que no se pidieron.
+- En conversación cotidiana responde breve (2–6 oraciones). Amplía sólo cuando la tarea lo requiera.
+- Si falta un dato imprescindible, pregunta sólo uno.
+- Para matemática usa LaTeX.
+- Si entregas un producto educativo, hazlo directamente utilizable.
+- Si mencionas una ruta interna, usa enlace Markdown exacto.
+- No afirmes que ejecutaste una acción si sólo estás explicando.
+- Las herramientas son operadas por el router de EduAI antes de llegar a esta conversación; no inventes ejecuciones.
+- Mantén formato limpio y evita introducciones largas.`
 }
-
-function detectAITask(message: string): CoreTaskType {
+export function detectCoreAITask(message: string): CoreTaskType {
   const m = message.toLowerCase()
   if (/código|code|typescript|react|bug|función|api/.test(m)) return "coding"
   if (/analiza|razona|deduce|compara|demuestra|planifica/.test(m)) return "reasoning"
@@ -116,10 +96,19 @@ function detectAITask(message: string): CoreTaskType {
   return "general"
 }
 
-function gatewayCapability(task: CoreTaskType): "text" | "code" | "long_context" {
+export function coreGatewayCapability(task: CoreTaskType): "text" | "code" | "long_context" {
   if (task === "coding") return "code"
   if (task === "long_context") return "long_context"
   return "text"
+}
+
+
+export function coreTokenBudget(task: CoreTaskType, fast = false) {
+  if (!fast) return task === "long_context" ? 4000 : 2200
+  if (task === "long_context") return 2600
+  if (task === "coding") return 1800
+  if (task === "reasoning") return 1400
+  return 900
 }
 
 function extractToolArgs(toolName: ToolName, message: string): Record<string, unknown> {
@@ -251,6 +240,13 @@ function trySafeInternalAction(userText: string, context: CoreContext, t0: numbe
   return null
 }
 
+
+export function canStreamCoreAI(userText: string, context: CoreContext = {}) {
+  if (context.requestedTool) return false
+  if (trySafeInternalAction(userText, context, Date.now())) return false
+  return !detectToolFromMessage(userText)
+}
+
 export async function runCoreCycle(
   messages: CoreMessage[],
   context: CoreContext = {},
@@ -303,8 +299,8 @@ export async function runCoreCycle(
     }
   }
 
-  const systemPrompt = buildSystemPrompt(context)
-  const task = detectAITask(userText)
+  const systemPrompt = buildCoreSystemPrompt(context)
+  const task = detectCoreAITask(userText)
   const aiMessages: GatewayMessage[] = [
     { role: "system", content: systemPrompt },
     ...messages
@@ -315,14 +311,18 @@ export async function runCoreCycle(
   const effectiveUserId = aiRuntime.userId || context.userId
   const result = await runAIText({
     messages: aiMessages,
-    capability: gatewayCapability(task),
-    maxOutputTokens: task === "long_context" ? 4000 : 2200,
+    capability: coreGatewayCapability(task),
+    maxOutputTokens: coreTokenBudget(task, aiRuntime.latencyMode === "fast"),
+    preferredProvider: aiRuntime.latencyMode === "fast" && task === "general" ? "groq" : undefined,
+    fallbackToDefault: aiRuntime.latencyMode === "fast",
+    lite: aiRuntime.latencyMode === "fast" && task === "general",
+    fastPath: aiRuntime.latencyMode === "fast",
     context: effectiveUserId
       ? {
           userId: effectiveUserId,
           workspaceId: aiRuntime.workspaceId || null,
           module: aiRuntime.module || "claw",
-          reusePolicy: "exact_private",
+          reusePolicy: aiRuntime.latencyMode === "fast" ? "never" : "exact_private",
           visibility: "private",
         }
       : undefined,
