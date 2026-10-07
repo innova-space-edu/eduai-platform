@@ -841,17 +841,16 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
                 buttonClassName="h-9 w-9 lg:h-10 lg:w-10 min-[2048px]:h-11 min-[2048px]:w-11"
                 onConversationTurn={sendVoiceConversation}
               />
+              <button
+                type="button"
+                onClick={() => send()}
+                disabled={loading || voiceState !== "idle" || !input.trim()}
+                className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-blue-600 px-3 text-[11px] font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 lg:h-10 lg:px-4 lg:text-xs min-[2048px]:h-11 min-[2048px]:px-5 min-[2048px]:text-sm"
+              >
+                {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                <span className="hidden lg:inline">Enviar</span>
+              </button>
             </div>
-
-            <button
-              type="button"
-              onClick={() => send()}
-              disabled={loading || voiceState !== "idle" || !input.trim()}
-              className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-blue-600 px-3 text-[11px] font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 lg:h-10 lg:px-4 lg:text-xs min-[2048px]:h-11 min-[2048px]:px-5 min-[2048px]:text-sm"
-            >
-              {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-              <span className="hidden lg:inline">Enviar</span>
-            </button>
           </div>
         </div>
       </div>
