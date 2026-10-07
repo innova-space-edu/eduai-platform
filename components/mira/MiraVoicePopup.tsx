@@ -81,6 +81,15 @@ function speechVoice(lang: LanguageCode) {
     || voices.find((voice) => voice.lang.toLowerCase().startsWith(lang))
 }
 
+function plainSpeechText(text: string) {
+  return text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
+    .replace(/[#*_\x60>~]/g, "")
+    .replace(/\s*\n+\s*/g, ". ")
+    .replace(/\s{2,}/g, " ")
+    .trim()
+}
+
 function browserSpeak(text: string, lang: LanguageCode, onEnd: () => void) {
   if (!("speechSynthesis" in window)) {
     onEnd()
@@ -88,7 +97,7 @@ function browserSpeak(text: string, lang: LanguageCode, onEnd: () => void) {
   }
 
   window.speechSynthesis.cancel()
-  const utterance = new SpeechSynthesisUtterance(text)
+  const utterance = new SpeechSynthesisUtterance(plainSpeechText(text))
   utterance.lang = LANGUAGE_META[lang].speech
   utterance.rate = 1
   utterance.pitch = 1
