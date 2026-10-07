@@ -47,11 +47,15 @@ for (const [label, text] of [
   ["voice exact translation reuse", 'mode === "translate" ? "exact_private" : "never"'],
 ]) requireText(voice, text, label)
 
-for (const [label, text] of [
-  ["MIRA agent card", 'id: "mira"'],
-  ["MIRA route", 'href: "/mira"'],
-  ["MIRA active", 'ctaLabel: "Hablar con MIRA"'],
-]) requireText(agents, text, label)
+for (const hiddenText of [
+  'id: "mira"',
+  'href: "/mira"',
+  'ctaLabel: "Hablar con MIRA"',
+]) {
+  if (agents.includes(hiddenText)) {
+    throw new Error(`[test-mira] MIRA debe permanecer oculta del catálogo de Agentes: ${hiddenText}`)
+  }
+}
 
 const clientAndPage = `${client}\n${page}`
 if (/NEXT_PUBLIC_(GEMINI|GOOGLE|GROQ|OPENROUTER|SUPABASE_SERVICE_ROLE)/i.test(clientAndPage)) {
