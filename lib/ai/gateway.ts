@@ -51,10 +51,17 @@ export type GatewayResult<T = string> = {
   latencyMs: number
 }
 
-function providerOrder(capability: AICapability, preferred?: AIProviderId | null): AIProviderId[] {
-  if (preferred) return [preferred]
+function providerOrder(
+  capability: AICapability,
+  preferred?: AIProviderId | null,
+  fallbackToDefault = false,
+): AIProviderId[] {
   const envName = envNameForCapability(capability)
-  return providerOrderFor(capability, process.env[envName])
+  const defaults = providerOrderFor(capability, process.env[envName])
+  if (!preferred) return defaults
+  return fallbackToDefault
+    ? [preferred, ...defaults.filter((provider) => provider !== preferred)]
+    : [preferred]
 }
 
 async function assertAccess(input: {
@@ -236,7 +243,9 @@ export async function runAIText(input: {
   capability?: Extract<AICapability, "text" | "code" | "vision" | "long_context" | "research">
   maxOutputTokens?: number
   preferredProvider?: AIProviderId | null
+  fallbackToDefault?: boolean
   lite?: boolean
+  fastPath?: boolean
   context?: AIRequestContext
   supabase?: SupabaseClient | null
 }): Promise<GatewayResult<string>> {
@@ -262,12 +271,14 @@ export async function runAIText(input: {
     scopeKey: input.context?.workspaceId || input.context?.userId || null,
   })
 
-  const reusable = await lookupReuse({
-    supabase: input.supabase,
-    context: input.context,
-    capability,
-    fingerprint,
-  })
+  const reusable = input.fastPath
+    ? null
+    : await lookupReuse({
+        supabase: input.supabase,
+        context: input.context,
+        capability,
+        fingerprint,
+      })
 
   if (reusable && typeof reusable.result.text === "string") {
     const requestId = input.supabase && input.context?.userId
@@ -312,7 +323,7 @@ export async function runAIText(input: {
   }
 
   let requestId: string | null = null
-  if (input.supabase && input.context?.userId) {
+  if (!input.fastPath && input.supabase && input.context?.userId) {
     requestId = await recordGenerationStart({
       supabase: input.supabase,
       userId: input.context.userId,
@@ -326,19 +337,21 @@ export async function runAIText(input: {
   }
 
   const errors: string[] = []
-  for (const provider of providerOrder(capability, input.preferredProvider)) {
+  for (const provider of providerOrder(capability, input.preferredProvider, input.fallbackToDefault)) {
     if (Date.now() >= deadlineAt - 3_000) {
       errors.push("gateway: presupuesto de tiempo agotado antes de intentar otro proveedor")
       break
     }
 
     try {
-      await assertAccess({
-        supabase: input.supabase,
-        context: input.context,
-        capability,
-        provider,
-      })
+      if (!input.fastPath) {
+        await assertAccess({
+          supabase: input.supabase,
+          context: input.context,
+          capability,
+          provider,
+        })
+      }
 
       const result = await executeTextProvider({
         provider,
@@ -354,7 +367,7 @@ export async function runAIText(input: {
         continue
       }
 
-      if (input.supabase && input.context?.userId) {
+      if (!input.fastPath && input.supabase && input.context?.userId) {
         await saveReusableGeneration({
           supabase: input.supabase,
           userId: input.context.userId,
@@ -394,7 +407,7 @@ export async function runAIText(input: {
     }
   }
 
-  if (input.supabase) {
+  if (!input.fastPath && input.supabase) {
     await finishGenerationRequest({
       supabase: input.supabase,
       requestId,
@@ -659,19 +672,32 @@ export async function streamAIText(input: {
   maxOutputTokens?: number
   lite?: boolean
   preferredProvider?: AIProviderId | null
+  fallbackToDefault?: boolean
+  fastPath?: boolean
   context?: AIRequestContext
   supabase?: SupabaseClient | null
 }): Promise<ReadableStream<Uint8Array>> {
   const errors: string[] = []
 
-  for (const provider of providerOrder("text", input.preferredProvider)) {
+  if (input.fastPath) {
+    await assertAccess({
+      supabase: input.supabase,
+      context: input.context,
+      capability: "text",
+      provider: input.preferredProvider,
+    })
+  }
+
+  for (const provider of providerOrder("text", input.preferredProvider, input.fallbackToDefault)) {
     try {
-      await assertAccess({
-        supabase: input.supabase,
-        context: input.context,
-        capability: "text",
-        provider,
-      })
+      if (!input.fastPath) {
+        await assertAccess({
+          supabase: input.supabase,
+          context: input.context,
+          capability: "text",
+          provider,
+        })
+      }
 
       if (provider === "google" && hasGoogleAI("text")) {
         const selected = await providerRuntimeModel({

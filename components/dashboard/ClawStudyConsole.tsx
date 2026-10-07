@@ -296,6 +296,62 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
     setLoading(value)
   }
 
+  const updateLastAssistantMessage = (content: string) => {
+    const current = [...messagesRef.current]
+    const lastIndex = current.length - 1
+    if (lastIndex >= 0 && current[lastIndex]?.role === "assistant") {
+      current[lastIndex] = { role: "assistant", content }
+    } else {
+      current.push({ role: "assistant", content })
+    }
+    replaceChatMessages(current)
+  }
+
+  const consumeClawStream = async (response: Response) => {
+    if (!response.body) throw new Error("No se recibió el flujo de respuesta.")
+
+    appendChatMessage({ role: "assistant", content: "" })
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ""
+    let full = ""
+
+    const handleEvent = (block: string) => {
+      const dataLine = block
+        .split("\n")
+        .find((line) => line.startsWith("data:"))
+      if (!dataLine) return
+
+      const payload = JSON.parse(dataLine.slice(5).trim())
+      if (typeof payload.delta === "string" && payload.delta) {
+        full += payload.delta
+        updateLastAssistantMessage(full)
+      }
+      if (Array.isArray(payload.suggestions)) {
+        setSuggestions(payload.suggestions)
+      }
+      if (payload.error) throw new Error(String(payload.error))
+    }
+
+    try {
+      while (true) {
+        const { value, done } = await reader.read()
+        if (done) break
+        buffer += decoder.decode(value, { stream: true })
+        const blocks = buffer.split("\n\n")
+        buffer = blocks.pop() || ""
+        for (const block of blocks) handleEvent(block)
+      }
+
+      buffer += decoder.decode()
+      if (buffer.trim()) handleEvent(buffer)
+      if (!full.trim()) updateLastAssistantMessage("Listo.")
+      return full.trim() || "Listo."
+    } finally {
+      reader.releaseLock()
+    }
+  }
+
   const waitForChatIdle = async () => {
     const deadline = Date.now() + 45_000
     while (loadingRef.current && Date.now() < deadline) {
@@ -323,7 +379,8 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: text,
-          history: nextMessages.slice(-14),
+          history: nextMessages.slice(-10),
+          stream: !requestedToolName,
           pageContext: {
             pathname: "/dashboard",
             pageTitle: "Conversación principal con Claw",
@@ -339,11 +396,24 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
           requestedTool: requestedToolName,
         }),
       })
-      const data = await response.json()
-      if (!response.ok) throw new Error(data?.error || "No se pudo responder")
 
-      appendChatMessage({ role: "assistant", content: data.reply || "Listo." })
-      setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : [])
+      if (!response.ok) {
+        const contentType = response.headers.get("content-type") || ""
+        if (contentType.includes("application/json")) {
+          const data = await response.json()
+          throw new Error(data?.error || "No se pudo responder")
+        }
+        throw new Error((await response.text()) || "No se pudo responder")
+      }
+
+      const contentType = response.headers.get("content-type") || ""
+      if (contentType.includes("text/event-stream")) {
+        await consumeClawStream(response)
+      } else {
+        const data = await response.json()
+        appendChatMessage({ role: "assistant", content: data.reply || "Listo." })
+        setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : [])
+      }
     } catch (error) {
       appendChatMessage({
         role: "assistant",
@@ -378,7 +448,7 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: text,
-          history: nextMessages.slice(-14),
+          history: nextMessages.slice(-10),
           pageContext: {
             pathname: "/dashboard",
             pageTitle: "Conversación principal con Claw",
