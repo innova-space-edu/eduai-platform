@@ -142,6 +142,7 @@ export default function MiraVoicePopup({
   const autoContinueRef = useRef(true)
   const muteOutputRef = useRef(false)
   const historyRef = useRef<HistoryItem[]>([])
+  const generationRef = useRef(0)
   const beginListeningRef = useRef<() => Promise<void>>(async () => {})
   const musicWasPlayingRef = useRef(false)
 
@@ -198,6 +199,7 @@ export default function MiraVoicePopup({
   }, [resumeAfterSpeech])
 
   const processAudio = useCallback(async (blob: Blob) => {
+    const generation = generationRef.current
     if (blob.size < 900) {
       setPhase("idle")
       if (autoContinueRef.current) window.setTimeout(() => void beginListeningRef.current(), 220)
@@ -223,7 +225,7 @@ export default function MiraVoicePopup({
       })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || "No se pudo procesar el audio.")
-      if (!openRef.current) return
+      if (!openRef.current || generation !== generationRef.current) return
 
       const sourceCode: LanguageCode = data.sourceCode === "en" ? "en" : "es"
       setDetectedLanguage(sourceCode)
@@ -234,7 +236,7 @@ export default function MiraVoicePopup({
 
       if (onConversationTurn) {
         responseText = String(await onConversationTurn(String(data.original || data.transcript || "").trim(), sourceCode) || "").trim()
-        if (!openRef.current) return
+        if (!openRef.current || generation !== generationRef.current) return
         targetCode = sourceCode
         targetLanguage = `${assistantLabel} · ${LANGUAGE_META[targetCode].label}`
       }
@@ -403,6 +405,7 @@ export default function MiraVoicePopup({
   }, [music.setPlaying, stopEverything])
 
   const resetConversation = useCallback(() => {
+    generationRef.current += 1
     stopEverything()
     historyRef.current = []
     setTurns([])
@@ -424,6 +427,7 @@ export default function MiraVoicePopup({
   }
 
   function openVoice() {
+    generationRef.current += 1
     musicWasPlayingRef.current = music.playing
     if (music.playing) music.setPlaying(false)
     openRef.current = true
@@ -436,6 +440,7 @@ export default function MiraVoicePopup({
   }
 
   function closeVoice() {
+    generationRef.current += 1
     openRef.current = false
     setOpen(false)
     setPhase("idle")
