@@ -8,6 +8,7 @@ import { runCoreCycle } from "@/lib/superagent/superagent-core";
 import type { CoreMessage } from "@/lib/superagent/superagent-core";
 import { getEnabledTools } from "@/lib/superagent/tool-registry";
 import { EDUAI_PAGES, searchEduAIPages } from "@/lib/superagent/eduai-map";
+import { getEduAIPlatformKnowledgeContext } from "@/lib/eduai/platform-knowledge";
 
 type RouteSuggestion = { label: string; href: string; emoji: string };
 
@@ -131,10 +132,10 @@ function buildClawConversationMode(mode?: string) {
   const isAdmin = normalized.includes("admin");
 
   if (isTeacher) {
-    return `${isAdmin ? "administrador y docente" : "docente"}; PRIORIDAD: trabaja como copiloto profesional del profesor, no como tutor de estudiante. Responde primero a la necesidad concreta y conserva continuidad con el contexto ya entregado. Puedes conversar con naturalidad, pero ante tareas pedagógicas debes convertir la solicitud en un resultado utilizable. Flujos prioritarios: planificación de clases, actividades, evaluaciones, rúbricas, retroalimentación, adaptación PIE/NEE, materiales, análisis de resultados y navegación por herramientas EduAI. Si falta un dato que cambie materialmente el producto (por ejemplo curso, asignatura, tema o duración), formula una sola pregunta breve y específica; no hagas cuestionarios largos. Si el dato ya está en el contexto o historial, no lo vuelvas a pedir. Para Chile, usa lenguaje docente y estructura compatible con trabajo escolar; cuando el usuario solicite OA o referencias MINEDUC, no inventes códigos ni descriptores que no estén disponibles. Diferencia claramente entre borrador, sugerencia y acción ejecutada. No empujes herramientas cuando una respuesta directa sea suficiente. Usa formato limpio, breve y accionable, y termina con un siguiente paso concreto solo cuando aporte valor.`;
+    return `${isAdmin ? "usuario con permisos administrativos" : "usuario educativo"}; PRIORIDAD: trabaja como copiloto profesional y cercano, sin asumir que la persona es docente ni que pertenece a un colegio específico. Responde siempre en el idioma del último mensaje del usuario; si cambia a inglés, responde en inglés, y si vuelve al español, vuelve al español. Responde primero a la necesidad concreta y conserva continuidad con el contexto ya entregado. Puedes conversar con naturalidad y, cuando haya una tarea educativa, conviértela en un resultado utilizable. Flujos prioritarios: planificación, actividades, evaluaciones, rúbricas, retroalimentación, adaptación PIE/NEE, materiales, investigación, análisis de resultados, gestión y navegación por herramientas EduAI. Si falta un dato que cambie materialmente el resultado (por ejemplo nivel, curso, asignatura, tema, institución o duración), formula una sola pregunta breve y específica; no hagas cuestionarios largos. Si el dato ya está en el contexto o historial, no lo vuelvas a pedir. No asumas institución, ciudad o país. Si el usuario pide OA o referencias MINEDUC, usa el contexto chileno disponible y no inventes códigos ni descriptores; para otras instituciones o países, adapta el lenguaje a lo que el usuario indique. Diferencia claramente entre borrador, sugerencia y acción ejecutada. No empujes herramientas cuando una respuesta directa sea suficiente. Usa formato limpio, breve y accionable, y termina con un siguiente paso concreto solo cuando aporte valor.`;
   }
 
-  return "usuario; conversación natural y cercana. Responde primero a lo que la persona dice. No conviertas saludos ni charla casual en una sesión de estudio y no empujes herramientas si no las piden. Usa formato limpio y fácil de leer.";
+  return "usuario; conversación natural y cercana. No asumas profesión, institución, ciudad ni país. Responde siempre en el idioma del último mensaje del usuario; si cambia a inglés, responde en inglés, y si vuelve al español, vuelve al español. Responde primero a lo que la persona dice. No conviertas saludos ni charla casual en una sesión de estudio y no empujes herramientas si no las piden. Usa formato limpio y fácil de leer.";
 }
 
 export async function GET() {
@@ -165,7 +166,7 @@ export async function GET() {
       }));
 
     return NextResponse.json({
-      audience: "teacher",
+      audience: "education",
       tools,
       pages,
       syncedAt: new Date().toISOString(),
@@ -191,7 +192,8 @@ export async function POST(req: NextRequest) {
     const inferredPath = context.pathname || inferPathnameFromReferrer(req) || "floating-claw";
     const inferredTopic = context.subject || context.selectedTopic || inferTopicFromPath(inferredPath);
     const messages = normalizeHistory(history, cleanMessage);
-    const displayName = typeof userName === "string" ? userName.slice(0, 100) : undefined;
+    const displayName = typeof userName === "string" && userName.trim() && userName.trim().toLowerCase() !== "usuario" ? userName.trim().slice(0, 100) : undefined;
+    const platformKnowledge = await getEduAIPlatformKnowledgeContext(supabase, cleanMessage, messages);
 
     const result = await runCoreCycle(
       messages,
@@ -201,7 +203,7 @@ export async function POST(req: NextRequest) {
         examTitle: context.pageTitle,
         studentCourse: context.selectedSubtopic,
         userId: user.id,
-        pageMode: `${buildClawConversationMode(context.mode)}${displayName ? ` Nombre visible del usuario: ${displayName}.` : ""}`,
+        pageMode: `${buildClawConversationMode(context.mode)}${displayName ? ` Nombre visible del usuario: ${displayName}.` : ""}${platformKnowledge ? `\n${platformKnowledge}` : ""}`,
         availableActions: context.availableActions,
         requestedTool:
           typeof requestedTool === "string"

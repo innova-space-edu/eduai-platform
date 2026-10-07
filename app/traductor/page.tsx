@@ -1,6 +1,7 @@
 "use client"
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
+import MiraVoicePopup from "@/components/mira/MiraVoicePopup"
 import { ArrowLeft, Send, Upload, FileText, X, Loader2, Globe, ChevronDown, Languages } from "lucide-react"
 
 // ─── Languages ────────────────────────────────────────────────────────────────
@@ -206,8 +207,8 @@ function FileUploadArea({
   )
 }
 
-// ─── Poly Avatar ──────────────────────────────────────────────────────────────
-function PolyAvatar({ size = 30 }: { size?: number }) {
+// ─── MIRA Avatar ──────────────────────────────────────────────────────────────
+function MiraAvatar({ size = 30 }: { size?: number }) {
   return (
     <div
       className="flex-shrink-0 rounded-xl flex items-center justify-center text-white font-bold"
@@ -324,10 +325,10 @@ export default function TraductorPage() {
             <ArrowLeft size={15} />
           </Link>
 
-          <PolyAvatar size={36} />
+          <MiraAvatar size={36} />
 
           <div className="flex-1 min-w-0">
-            <h1 className="font-bold text-sm">Poly · Traductor</h1>
+            <h1 className="font-bold text-sm">MIRA · Traductor</h1>
             <p className="text-xs text-muted2">
               {selectedLang.flag} {idiomaTarget} · {IDIOMAS.length} idiomas disponibles
             </p>
@@ -413,7 +414,7 @@ export default function TraductorPage() {
               >
                 🌐
               </div>
-              <h2 className="font-bold text-main text-lg mb-2">Hola, soy Poly</h2>
+              <h2 className="font-bold text-main text-lg mb-2">Hola, soy MIRA</h2>
               <p className="text-sub text-sm max-w-sm leading-relaxed mb-2">
                 Soy tu compañero de idiomas. Puedo traducir, explicar gramática, hablar de cultura y
                 conversar sobre la vida en cualquiera de los <strong className="text-main">{IDIOMAS.length} idiomas</strong> que conozco.
@@ -442,7 +443,7 @@ export default function TraductorPage() {
           {/* Messages */}
           {messages.map((msg, i) => (
             <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "gap-3 items-start"}`}>
-              {msg.role === "assistant" && <PolyAvatar size={30} />}
+              {msg.role === "assistant" && <MiraAvatar size={30} />}
 
               <div className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                 msg.role === "user"
@@ -475,7 +476,7 @@ export default function TraductorPage() {
           {/* Typing dots */}
           {loading && (
             <div className="flex gap-3 items-start">
-              <PolyAvatar size={30} />
+              <MiraAvatar size={30} />
               <div className="rounded-2xl rounded-tl-sm px-4 py-3 bg-card-soft-theme border border-soft">
                 <div className="flex gap-1.5 items-center py-0.5">
                   {[0,150,300].map(d => (
@@ -527,6 +528,13 @@ export default function TraductorPage() {
               rows={1}
               style={{ minHeight: 44, maxHeight: 140, resize: "none" }}
               className="flex-1 rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main placeholder:text-muted2 focus:outline-none focus:border-cyan-500/50 disabled:opacity-40 leading-normal"
+            />
+            <MiraVoicePopup
+              defaultMode="conversation"
+              defaultLanguage="auto"
+              contextLabel="Traduce o conversa sin salir del chat"
+              buttonTitle="Hablar con MIRA"
+              buttonClassName="h-11 w-11 rounded-2xl"
             />
             <button
               onClick={() => send(input)}

@@ -54,7 +54,7 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-main">
             Edu<span style={{ color: "var(--accent-blue)" }}>AI</span>
           </h1>
-          <p className="text-muted2 text-sm mt-1">Tu tutor personal con IA</p>
+          <p className="text-muted2 text-sm mt-1">Tu espacio educativo con IA</p>
         </div>
 
         <div className="rounded-2xl p-6 border"
