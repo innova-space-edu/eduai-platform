@@ -90,6 +90,82 @@ function plainSpeechText(text: string) {
     .trim()
 }
 
+function writeAscii(view: DataView, offset: number, value: string) {
+  for (let index = 0; index < value.length; index += 1) {
+    view.setUint8(offset + index, value.charCodeAt(index))
+  }
+}
+
+function encodePcm16Wav(samples: Float32Array, sampleRate: number) {
+  const bytesPerSample = 2
+  const dataLength = samples.length * bytesPerSample
+  const buffer = new ArrayBuffer(44 + dataLength)
+  const view = new DataView(buffer)
+
+  writeAscii(view, 0, "RIFF")
+  view.setUint32(4, 36 + dataLength, true)
+  writeAscii(view, 8, "WAVE")
+  writeAscii(view, 12, "fmt ")
+  view.setUint32(16, 16, true)
+  view.setUint16(20, 1, true)
+  view.setUint16(22, 1, true)
+  view.setUint32(24, sampleRate, true)
+  view.setUint32(28, sampleRate * bytesPerSample, true)
+  view.setUint16(32, bytesPerSample, true)
+  view.setUint16(34, 16, true)
+  writeAscii(view, 36, "data")
+  view.setUint32(40, dataLength, true)
+
+  let offset = 44
+  for (let index = 0; index < samples.length; index += 1) {
+    const sample = Math.max(-1, Math.min(1, samples[index]))
+    view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true)
+    offset += bytesPerSample
+  }
+
+  return new Blob([buffer], { type: "audio/wav" })
+}
+
+async function normalizeVoiceBlob(blob: Blob): Promise<Blob> {
+  if (blob.type.includes("wav")) return blob
+
+  const AudioContextClass = window.AudioContext
+    || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+  if (!AudioContextClass) return blob
+
+  const context = new AudioContextClass()
+  try {
+    const encoded = await blob.arrayBuffer()
+    const decoded = await context.decodeAudioData(encoded.slice(0))
+    if (!decoded.length || !decoded.sampleRate) return blob
+
+    const targetRate = 16000
+    const targetLength = Math.max(1, Math.round(decoded.length * targetRate / decoded.sampleRate))
+    const output = new Float32Array(targetLength)
+    const channels = Array.from({ length: decoded.numberOfChannels }, (_, index) => decoded.getChannelData(index))
+
+    for (let index = 0; index < targetLength; index += 1) {
+      const sourcePosition = index * decoded.sampleRate / targetRate
+      const leftIndex = Math.min(decoded.length - 1, Math.floor(sourcePosition))
+      const rightIndex = Math.min(decoded.length - 1, leftIndex + 1)
+      const fraction = sourcePosition - leftIndex
+
+      let sample = 0
+      for (const channel of channels) {
+        sample += channel[leftIndex] + (channel[rightIndex] - channel[leftIndex]) * fraction
+      }
+      output[index] = sample / Math.max(1, channels.length)
+    }
+
+    return encodePcm16Wav(output, targetRate)
+  } catch (cause) {
+    console.warn("[MIRA voice] No se pudo normalizar a WAV; se usará el contenedor original.", cause)
+    return blob
+  } finally {
+    void context.close().catch(() => undefined)
+  }
+}
+
 function browserSpeak(text: string, lang: LanguageCode, onEnd: () => void) {
   if (!("speechSynthesis" in window)) {
     onEnd()
@@ -210,9 +286,18 @@ export default function MiraVoicePopup({
     setError("")
 
     try {
+      const uploadBlob = await normalizeVoiceBlob(blob)
+      if (!openRef.current || generation !== generationRef.current) return
+
       const formData = new FormData()
-      const extension = blob.type.includes("ogg") ? "ogg" : blob.type.includes("mp4") ? "m4a" : "webm"
-      formData.append("audio", blob, `mira-turn.${extension}`)
+      const extension = uploadBlob.type.includes("wav")
+        ? "wav"
+        : uploadBlob.type.includes("ogg")
+          ? "ogg"
+          : uploadBlob.type.includes("mp4")
+            ? "m4a"
+            : "webm"
+      formData.append("audio", uploadBlob, `mira-turn.${extension}`)
       formData.append("mode", onConversationTurn ? "transcribe" : mode)
       formData.append("language", language)
       if (!onConversationTurn && mode === "conversation" && historyRef.current.length) {
@@ -375,7 +460,7 @@ export default function MiraVoicePopup({
         void processAudio(blob)
       }
 
-      recorder.start(160)
+      recorder.start()
       setPhase("listening")
       monitorSilence(stream)
       maxRecordingTimerRef.current = setTimeout(stopRecording, 30000)

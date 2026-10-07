@@ -71,6 +71,81 @@ function parseHistory(value: FormDataEntryValue | null): HistoryItem[] {
   }
 }
 
+function normalizedAudioFormat(audio: File) {
+  const rawMime = String(audio.type || "").split(";")[0].trim().toLowerCase()
+  const rawName = String(audio.name || "").toLowerCase()
+
+  if (rawMime === "audio/wav" || rawMime === "audio/x-wav" || rawName.endsWith(".wav")) {
+    return { mime: "audio/wav", extension: "wav" }
+  }
+  if (rawMime === "audio/mpeg" || rawName.endsWith(".mp3")) {
+    return { mime: "audio/mpeg", extension: "mp3" }
+  }
+  if (rawMime === "audio/mp4" || rawMime === "audio/x-m4a" || rawName.endsWith(".m4a") || rawName.endsWith(".mp4")) {
+    return { mime: "audio/mp4", extension: "m4a" }
+  }
+  if (rawMime === "audio/ogg" || rawName.endsWith(".ogg")) {
+    return { mime: "audio/ogg", extension: "ogg" }
+  }
+  return { mime: "audio/webm", extension: "webm" }
+}
+
+async function transcribeAudio(audio: File, languagePreference: LanguagePreference) {
+  const key = process.env.GROQ_API_KEY
+  if (!key) throw Object.assign(new Error("GROQ_API_KEY no configurada"), { status: 503 })
+
+  const format = normalizedAudioFormat(audio)
+  const bytes = await audio.arrayBuffer()
+  const cleanBlob = new Blob([bytes], { type: format.mime })
+  const body = new FormData()
+  body.append("file", cleanBlob, `mira-turn.${format.extension}`)
+  body.append("model", "whisper-large-v3-turbo")
+  body.append("response_format", "verbose_json")
+  body.append("temperature", "0")
+  if (languagePreference !== "auto") body.append("language", languagePreference)
+
+  const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${key}` },
+    body,
+    signal: AbortSignal.timeout(30_000),
+  })
+
+  const raw = await response.text()
+  let payload: any = {}
+  try {
+    payload = raw ? JSON.parse(raw) : {}
+  } catch {
+    payload = {}
+  }
+
+  if (!response.ok) {
+    const providerError = payload?.error || {}
+    const code = String(providerError.code || "")
+    const providerMessage = String(providerError.message || raw || `Groq Whisper respondió ${response.status}`)
+
+    console.error("[MIRA voice STT]", {
+      status: response.status,
+      code,
+      size: audio.size,
+      incomingType: audio.type,
+      normalizedType: format.mime,
+      extension: format.extension,
+    })
+
+    if (code === "invalid_media_file" || /valid media file|invalid media/i.test(providerMessage)) {
+      throw Object.assign(
+        new Error("No pude leer la grabación del micrófono. Vuelve a hablar; MIRA normalizará el audio automáticamente."),
+        { status: 422, code: "invalid_media_file" },
+      )
+    }
+
+    throw Object.assign(new Error(providerMessage), { status: response.status, code })
+  }
+
+  return payload
+}
+
 function conversationPrompt(language: LanguageCode) {
   if (language === "en") {
     return `You are MIRA, EduAI's live voice conversation assistant.
@@ -110,16 +185,7 @@ export async function POST(req: Request) {
     if (audio.size === 0) return Response.json({ error: "La grabación está vacía." }, { status: 400 })
     if (audio.size > MAX_AUDIO_BYTES) return Response.json({ error: "La grabación es demasiado grande." }, { status: 413 })
 
-    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
-    const transcriptionInput: any = {
-      file: audio as any,
-      model: "whisper-large-v3-turbo",
-      response_format: "verbose_json",
-      temperature: 0,
-    }
-    if (languagePreference !== "auto") transcriptionInput.language = languagePreference
-
-    const transcription = await groq.audio.transcriptions.create(transcriptionInput) as any
+    const transcription = await transcribeAudio(audio, languagePreference)
     const original = String(transcription.text || "").trim().slice(0, 1800)
     if (!original) return Response.json({ error: "No pude reconocer lo que dijiste." }, { status: 422 })
 
