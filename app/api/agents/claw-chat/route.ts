@@ -17,12 +17,22 @@ import { streamAIText, type GatewayMessage } from "@/lib/ai/gateway";
 import { getEnabledTools } from "@/lib/superagent/tool-registry";
 import { EDUAI_PAGES, searchEduAIPages } from "@/lib/superagent/eduai-map";
 import { getEduAIPlatformKnowledgeContext } from "@/lib/eduai/platform-knowledge";
+import { normalizeChatText } from "@/lib/text/normalize-chat-text";
 
 type RouteSuggestion = { label: string; href: string; emoji: string };
 
 function pageSuggestion(key: string): RouteSuggestion | null {
   const page = EDUAI_PAGES.find((item) => item.key === key);
   return page ? { label: page.label, href: page.href, emoji: page.emoji } : null;
+}
+
+type ClawAttachment = {
+  id?: string
+  name?: string
+  mimeType?: string
+  kind?: string
+  text?: string
+  warnings?: string[]
 }
 
 type PageContext = {
@@ -97,6 +107,37 @@ function buildSuggestions(reply: string, message: string, toolUsed?: string) {
   if (route && !suggestions.some((item) => item.href === route.href)) suggestions.unshift(route);
 
   return suggestions.slice(0, 4);
+}
+
+function safeAttachments(value: unknown): ClawAttachment[] {
+  if (!Array.isArray(value)) return []
+  let remaining = 90_000
+  const result: ClawAttachment[] = []
+
+  for (const raw of value.slice(0, 6)) {
+    if (!raw || typeof raw !== "object" || remaining <= 0) continue
+    const item = raw as Record<string, unknown>
+    const name = typeof item.name === "string" ? item.name.slice(0, 180) : "Archivo"
+    const text = typeof item.text === "string" ? normalizeChatText(item.text).slice(0, remaining) : ""
+    if (!text) continue
+    remaining -= text.length
+    result.push({
+      id: typeof item.id === "string" ? item.id.slice(0, 100) : undefined,
+      name,
+      mimeType: typeof item.mimeType === "string" ? item.mimeType.slice(0, 120) : undefined,
+      kind: typeof item.kind === "string" ? item.kind.slice(0, 60) : undefined,
+      text,
+      warnings: Array.isArray(item.warnings) ? item.warnings.map(String).slice(0, 5) : undefined,
+    })
+  }
+  return result
+}
+
+function attachmentContext(items: ClawAttachment[]) {
+  return items.map((item, index) => {
+    const warnings = item.warnings?.length ? `\nAdvertencias de extracción: ${item.warnings.join(" | ")}` : ""
+    return `[ARCHIVO ${index + 1}: ${item.name || "Archivo"} · ${item.kind || item.mimeType || "documento"}]\n${item.text || ""}${warnings}`
+  }).join("\n\n---\n\n")
 }
 
 function safePageContext(value: unknown): PageContext {
@@ -191,7 +232,7 @@ export async function POST(req: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 });
 
-    const { message, history = [], userName, pageContext, requestedTool, stream = false } = await req.json();
+    const { message, history = [], userName, pageContext, requestedTool, stream = false, attachments } = await req.json();
     const cleanMessage = String(message || "").trim();
 
     if (!cleanMessage) return NextResponse.json({ error: "Mensaje vacío" }, { status: 400 });
@@ -202,6 +243,8 @@ export async function POST(req: NextRequest) {
     const messages = normalizeHistory(history, cleanMessage);
     const displayName = typeof userName === "string" && userName.trim() && userName.trim().toLowerCase() !== "usuario" ? userName.trim().slice(0, 100) : undefined;
     const platformKnowledge = await getEduAIPlatformKnowledgeContext(supabase, cleanMessage, messages);
+    const safeFiles = safeAttachments(attachments);
+    const sourceContext = attachmentContext(safeFiles);
 
     const coreContext: CoreContext = {
       currentPage: inferredPath,
@@ -211,6 +254,7 @@ export async function POST(req: NextRequest) {
       userId: user.id,
       pageMode: `${buildClawConversationMode(context.mode)}${displayName ? ` Nombre visible del usuario: ${displayName}.` : ""}${platformKnowledge ? `\n${platformKnowledge}` : ""}`,
       availableActions: context.availableActions,
+      sourceContext: sourceContext || undefined,
       requestedTool:
         typeof requestedTool === "string"
           ? requestedTool.slice(0, 100)
@@ -308,9 +352,11 @@ export async function POST(req: NextRequest) {
       },
     );
 
+    const cleanReply = normalizeChatText(result.text)
+
     return NextResponse.json({
-      reply: result.text,
-      suggestions: buildSuggestions(result.text, cleanMessage, result.toolUsed),
+      reply: cleanReply,
+      suggestions: buildSuggestions(cleanReply, cleanMessage, result.toolUsed),
       provider: result.provider,
       model: result.model,
       latencyMs: result.latencyMs,

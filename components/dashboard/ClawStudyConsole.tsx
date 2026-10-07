@@ -3,18 +3,25 @@
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import MiraVoicePopup from "@/components/mira/MiraVoicePopup"
+import MathRenderer from "@/components/ui/MathRenderer"
+import { normalizeChatText } from "@/lib/text/normalize-chat-text"
 import {
   ArrowRight,
   Bot,
   BookOpen,
+  Check,
+  Copy,
   FileQuestion,
+  FileText,
   ImageIcon,
   Loader2,
   Mic,
+  Paperclip,
   PenLine,
   Plus,
   Send,
   Sparkles,
+  X,
 } from "lucide-react"
 
 type Role = "user" | "assistant"
@@ -36,6 +43,16 @@ type CapabilityPage = {
   group: string
 }
 type VoiceState = "idle" | "recording" | "transcribing"
+type ChatAttachment = {
+  id: string
+  name: string
+  mimeType: string
+  kind: string
+  size: number
+  text: string
+  chars: number
+  warnings: string[]
+}
 
 type Props = {
   displayName?: string
@@ -43,6 +60,8 @@ type Props = {
 }
 
 const MAX_RECORDING_SECONDS = 90
+const MAX_CHAT_ATTACHMENTS = 6
+const CHAT_FILE_ACCEPT = ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.csv,.json,.jpg,.jpeg,.png,.webp,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation,image/jpeg,image/png,image/webp"
 
 const CREATE_ACTIONS = [
   {
@@ -83,85 +102,13 @@ const CREATE_ACTIONS = [
   },
 ]
 
-function renderInlineContent(text: string) {
-  const parts = text.split(/(\[[^\]]+\]\([^)]+\)|\*\*[^*]+\*\*|\*[^*\n]+\*|`[^`]+`)/g)
-
-  return parts.map((part, index) => {
-    const link = part.match(/^\[([^\]]+)\]\(([^)]+)\)$/)
-    if (link) {
-      const href = link[2]
-      if (href.startsWith("/")) {
-        return (
-          <Link
-            key={index}
-            href={href}
-            className="inline-flex items-center gap-1 rounded-lg bg-violet-100 px-2 py-0.5 text-xs font-bold text-violet-700 hover:bg-violet-200 min-[2048px]:text-sm"
-          >
-            {link[1]} <ArrowRight size={11} />
-          </Link>
-        )
-      }
-      return (
-        <a key={index} href={href} target="_blank" rel="noreferrer" className="font-semibold text-blue-700 underline underline-offset-2">
-          {link[1]}
-        </a>
-      )
-    }
-
-    const bold = part.match(/^\*\*([^*]+)\*\*$/)
-    if (bold) return <strong key={index} className="font-semibold text-main">{bold[1]}</strong>
-
-    const italic = part.match(/^\*([^*\n]+)\*$/)
-    if (italic) return <em key={index}>{italic[1]}</em>
-
-    const code = part.match(/^`([^`]+)`$/)
-    if (code) return <code key={index} className="rounded-md bg-black/5 px-1.5 py-0.5 text-[0.92em]">{code[1]}</code>
-
-    return <span key={index}>{part.replace(/\*\*/g, "").replace(/__/g, "")}</span>
-  })
-}
-
 function renderContent(text: string) {
-  const lines = String(text || "").replace(/\r/g, "").split("\n")
-
+  const clean = normalizeChatText(text)
   return (
-    <div className="space-y-1.5 lg:space-y-2 min-[2048px]:space-y-2.5">
-      {lines.map((line, index) => {
-        const trimmed = line.trim()
-        if (!trimmed) return <div key={`space-${index}`} className="h-1" />
-
-        const heading = trimmed.match(/^#{1,4}\s+(.+)$/)
-        if (heading) {
-          return (
-            <p key={index} className="pt-1 font-bold text-main">
-              {renderInlineContent(heading[1])}
-            </p>
-          )
-        }
-
-        const bullet = trimmed.match(/^[-*•]\s+(.+)$/)
-        if (bullet) {
-          return (
-            <div key={index} className="flex items-start gap-2">
-              <span className="mt-[1px] shrink-0 text-blue-600">•</span>
-              <span className="min-w-0">{renderInlineContent(bullet[1])}</span>
-            </div>
-          )
-        }
-
-        const numbered = trimmed.match(/^(\d+)[.)]\s+(.+)$/)
-        if (numbered) {
-          return (
-            <div key={index} className="flex items-start gap-2">
-              <span className="shrink-0 font-semibold text-blue-700">{numbered[1]}.</span>
-              <span className="min-w-0">{renderInlineContent(numbered[2])}</span>
-            </div>
-          )
-        }
-
-        return <p key={index}>{renderInlineContent(line)}</p>
-      })}
-    </div>
+    <MathRenderer
+      content={clean}
+      className="min-w-0 [&_p:last-child]:mb-0 [&_table]:text-[12px] lg:[&_table]:text-[13px] [&_h1:first-child]:mt-0 [&_h2:first-child]:mt-0 [&_h3:first-child]:mt-0"
+    />
   )
 }
 
@@ -221,7 +168,12 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
   const [capabilityPages, setCapabilityPages] = useState<CapabilityPage[]>([])
   const [capabilitiesError, setCapabilitiesError] = useState("")
   const [selectedTool, setSelectedTool] = useState<CapabilityTool | null>(null)
+  const [attachments, setAttachments] = useState<ChatAttachment[]>([])
+  const [uploadingFiles, setUploadingFiles] = useState(false)
+  const [attachmentError, setAttachmentError] = useState("")
+  const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const transcriptRef = useRef<HTMLDivElement>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null)
   const mediaStreamRef = useRef<MediaStream | null>(null)
@@ -279,6 +231,69 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
       mediaStreamRef.current?.getTracks().forEach((track) => track.stop())
     }
   }, [])
+
+  const attachFiles = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const chosen = Array.from(event.target.files || [])
+    event.target.value = ""
+    if (!chosen.length) return
+
+    const availableSlots = Math.max(0, MAX_CHAT_ATTACHMENTS - attachments.length)
+    if (!availableSlots) {
+      setAttachmentError(`Puedes mantener hasta ${MAX_CHAT_ATTACHMENTS} archivos activos a la vez.`)
+      return
+    }
+
+    const files = chosen.slice(0, availableSlots)
+    setUploadingFiles(true)
+    setAttachmentError("")
+
+    try {
+      for (const file of files) {
+        if (file.size > 30 * 1024 * 1024) {
+          setAttachmentError(`${file.name}: supera el máximo de 30 MB.`)
+          continue
+        }
+
+        const formData = new FormData()
+        formData.append("file", file)
+        const response = await fetch("/api/agents/claw-files", {
+          method: "POST",
+          body: formData,
+        })
+        const data = await response.json().catch(() => ({}))
+        if (!response.ok) {
+          setAttachmentError(`${file.name}: ${data?.error || "no se pudo procesar"}`)
+          continue
+        }
+
+        const attachment: ChatAttachment = {
+          id: String(data.id || `${Date.now()}-${file.name}`),
+          name: String(data.name || file.name),
+          mimeType: String(data.mimeType || file.type || "application/octet-stream"),
+          kind: String(data.kind || "document"),
+          size: Number(data.size || file.size),
+          text: String(data.text || ""),
+          chars: Number(data.chars || String(data.text || "").length),
+          warnings: Array.isArray(data.warnings) ? data.warnings.map(String) : [],
+        }
+        setAttachments((current) => [...current, attachment].slice(0, MAX_CHAT_ATTACHMENTS))
+      }
+    } catch (error) {
+      setAttachmentError(error instanceof Error ? error.message : "No se pudieron procesar los archivos.")
+    } finally {
+      setUploadingFiles(false)
+      inputRef.current?.focus()
+    }
+  }
+
+  const activeAttachmentPayload = attachments.map(({ id, name, mimeType, kind, text, warnings }) => ({
+    id,
+    name,
+    mimeType,
+    kind,
+    text,
+    warnings,
+  }))
 
   const replaceChatMessages = (nextMessages: Message[]) => {
     messagesRef.current = nextMessages
@@ -361,8 +376,9 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
   }
 
   const send = async (override?: string) => {
-    const text = String(override ?? input).trim()
-    if (!text || loadingRef.current || voiceState === "recording") return
+    const typed = String(override ?? input).trim()
+    const text = typed || (attachments.length ? "Analiza los archivos adjuntos y resume la información principal." : "")
+    if (!text || loadingRef.current || voiceState === "recording" || uploadingFiles) return
 
     const requestedToolName = selectedTool?.name
     setInput("")
@@ -380,6 +396,7 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
         body: JSON.stringify({
           message: text,
           history: nextMessages.slice(-10),
+          attachments: activeAttachmentPayload,
           stream: !requestedToolName,
           pageContext: {
             pathname: "/dashboard",
@@ -449,6 +466,7 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
         body: JSON.stringify({
           message: text,
           history: nextMessages.slice(-10),
+          attachments: activeAttachmentPayload,
           pageContext: {
             pathname: "/dashboard",
             pageTitle: "Conversación principal con Claw",
@@ -627,6 +645,33 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
     setTimeout(() => inputRef.current?.focus(), 60)
   }
 
+  const copyAssistantMessage = async (content: string, index: number) => {
+    const clean = normalizeChatText(content)
+    if (!clean) return
+
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(clean)
+      } else {
+        const textarea = document.createElement("textarea")
+        textarea.value = clean
+        textarea.setAttribute("readonly", "")
+        textarea.style.position = "fixed"
+        textarea.style.opacity = "0"
+        document.body.appendChild(textarea)
+        textarea.select()
+        document.execCommand("copy")
+        textarea.remove()
+      }
+      setCopiedMessageIndex(index)
+      window.setTimeout(() => {
+        setCopiedMessageIndex((current) => current === index ? null : current)
+      }, 1600)
+    } catch {
+      setCopiedMessageIndex(null)
+    }
+  }
+
   return (
     <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-soft bg-card-theme shadow-sm animate-fade-in lg:rounded-[1.75rem] min-[2048px]:rounded-[2.25rem]">
       <div className="flex shrink-0 items-start justify-between gap-2 border-b border-soft px-3 py-3 lg:gap-4 lg:px-5 lg:py-4 min-[2048px]:px-8 min-[2048px]:py-5">
@@ -692,12 +737,23 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
           {messages.map((message, index) => (
             <div key={`${message.role}-${index}`} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
               <div
-                className={`max-w-[94%] rounded-2xl px-3 py-2.5 text-[13px] leading-5 shadow-sm lg:max-w-[86%] lg:rounded-3xl lg:px-4 lg:py-3 lg:text-sm lg:leading-6 min-[2048px]:max-w-[80%] min-[2048px]:px-5 min-[2048px]:py-4 min-[2048px]:text-base min-[2048px]:leading-7 ${
+                className={`group relative max-w-[94%] rounded-2xl px-3 py-2.5 text-[13px] leading-5 shadow-sm lg:max-w-[86%] lg:rounded-3xl lg:px-4 lg:py-3 lg:text-sm lg:leading-6 min-[2048px]:max-w-[80%] min-[2048px]:px-5 min-[2048px]:py-4 min-[2048px]:text-base min-[2048px]:leading-7 ${
                   message.role === "user"
                     ? "rounded-br-md bg-blue-600 text-white lg:rounded-br-lg"
-                    : "rounded-bl-md border border-soft bg-card-soft-theme text-main lg:rounded-bl-lg"
+                    : "rounded-bl-md border border-soft bg-card-soft-theme pr-10 text-main lg:rounded-bl-lg lg:pr-11"
                 }`}
               >
+                {message.role === "assistant" && message.content.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => void copyAssistantMessage(message.content, index)}
+                    className="absolute right-2 top-2 inline-flex h-7 w-7 items-center justify-center bg-transparent text-muted2 opacity-70 transition hover:text-blue-600 focus-visible:opacity-100 focus-visible:outline-none lg:opacity-0 lg:group-hover:opacity-100"
+                    aria-label="Copiar respuesta"
+                    title={copiedMessageIndex === index ? "Copiado" : "Copiar respuesta"}
+                  >
+                    {copiedMessageIndex === index ? <Check size={15} /> : <Copy size={15} />}
+                  </button>
+                )}
                 {message.role === "assistant" ? renderContent(message.content) : <p className="whitespace-pre-wrap">{message.content}</p>}
               </div>
             </div>
@@ -841,6 +897,40 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
               </button>
             </div>
           )}
+          {(attachments.length > 0 || uploadingFiles || attachmentError) && (
+            <div className="mx-2 mt-1 flex flex-wrap items-center gap-1.5">
+              {attachments.map((file) => (
+                <div
+                  key={file.id}
+                  className="inline-flex max-w-[260px] items-center gap-1.5 rounded-xl border border-blue-200 bg-blue-50 px-2 py-1.5 text-[10px] text-blue-800 lg:text-[11px]"
+                  title={file.warnings?.length ? file.warnings.join(" · ") : `${file.chars.toLocaleString()} caracteres extraídos`}
+                >
+                  <FileText size={13} className="shrink-0" />
+                  <span className="min-w-0 truncate font-semibold">{file.name}</span>
+                  <span className="shrink-0 text-[9px] text-blue-500">
+                    {file.chars >= 1000 ? `${(file.chars / 1000).toFixed(1)}k` : file.chars} car.
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setAttachments((current) => current.filter((item) => item.id !== file.id))}
+                    className="ml-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full hover:bg-blue-100"
+                    aria-label={`Quitar ${file.name}`}
+                    title="Quitar archivo"
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+              ))}
+              {uploadingFiles && (
+                <span className="inline-flex items-center gap-1 rounded-xl border border-violet-200 bg-violet-50 px-2 py-1.5 text-[10px] font-semibold text-violet-700">
+                  <Loader2 size={12} className="animate-spin" /> Extrayendo información…
+                </span>
+              )}
+              {attachmentError && (
+                <span className="max-w-full truncate text-[10px] text-red-500" title={attachmentError}>{attachmentError}</span>
+              )}
+            </div>
+          )}
           <textarea
             ref={inputRef}
             value={input}
@@ -860,7 +950,9 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
                 ? "Te escucho… pulsa el micrófono otra vez para terminar."
                 : voiceState === "transcribing"
                   ? "Transcribiendo tu grabación con alta precisión…"
-                  : "Describe lo que necesitas: planificar, crear, investigar, revisar, adaptar un material o hacer una consulta..."
+                  : attachments.length
+                    ? "Escribe qué quieres hacer con los archivos adjuntos…"
+                    : "Describe lo que necesitas: planificar, crear, investigar, revisar, adaptar un material o hacer una consulta..."
             }
             className="min-h-[52px] max-h-28 w-full resize-none overflow-y-auto bg-transparent px-2.5 py-2 text-[13px] text-main outline-none placeholder:text-muted2 lg:min-h-[64px] lg:max-h-32 lg:px-3 lg:text-sm min-[2048px]:min-h-[76px] min-[2048px]:max-h-40 min-[2048px]:px-4 min-[2048px]:py-3 min-[2048px]:text-base"
             disabled={loading || voiceState === "transcribing"}
@@ -884,6 +976,25 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
                 title="Acciones, contexto educativo y herramientas"
               >
                 <Plus size={19} className="min-[2048px]:h-5 min-[2048px]:w-5" />
+              </button>
+
+              <input
+                ref={fileInputRef}
+                type="file"
+                multiple
+                accept={CHAT_FILE_ACCEPT}
+                className="hidden"
+                onChange={attachFiles}
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingFiles || loading || attachments.length >= MAX_CHAT_ATTACHMENTS}
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-transparent text-muted2 transition hover:bg-blue-50 hover:text-blue-600 disabled:cursor-not-allowed disabled:opacity-40 lg:h-10 lg:w-10 min-[2048px]:h-11 min-[2048px]:w-11"
+                aria-label="Adjuntar archivo"
+                title="Adjuntar PDF, Word, Excel, PowerPoint o imagen"
+              >
+                {uploadingFiles ? <Loader2 size={18} className="animate-spin" /> : <Paperclip size={19} />}
               </button>
 
               <button

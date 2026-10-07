@@ -467,12 +467,12 @@ function IconButton({
   );
 }
 
-function PlayButton({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
+function PlayButton({ size = "md" }: { size?: "xs" | "sm" | "md" | "lg" }) {
   const music = useEduAIMusic();
   const embedTrack = isEmbedTrack(music.currentTrack);
   const cls =
-    size === "lg" ? "h-11 w-11" : size === "sm" ? "h-8 w-8" : "h-10 w-10";
-  const iconCls = size === "lg" ? "h-5 w-5" : "h-4 w-4";
+    size === "lg" ? "h-11 w-11" : size === "sm" ? "h-8 w-8" : size === "xs" ? "h-7 w-7" : "h-10 w-10";
+  const iconCls = size === "lg" ? "h-5 w-5" : size === "xs" ? "h-3 w-3" : "h-4 w-4";
   return (
     <button
       type="button"
@@ -1898,20 +1898,20 @@ function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
 
   if (collapsed) {
     return (
-      <div className="fixed bottom-20 right-5 z-50 flex items-center gap-1 rounded-full border border-cyan-300/25 bg-[#06080d]/95 p-1.5 text-white shadow-2xl shadow-cyan-950/30 backdrop-blur-xl">
+      <div className="fixed bottom-20 right-5 z-50 flex items-center gap-0.5 rounded-full border border-cyan-300/25 bg-[#06080d]/95 p-1 text-white shadow-xl shadow-cyan-950/25 backdrop-blur-xl">
         <button
           type="button"
           onClick={() => setCollapsed(false)}
-          className="flex items-center gap-2 rounded-full px-2 py-1 text-left hover:bg-white/10"
+          className="flex items-center gap-1.5 rounded-full px-1.5 py-0.5 text-left hover:bg-white/10"
           title="Restaurar reproductor"
           aria-label="Restaurar reproductor de música"
         >
           <Cover track={music.currentTrack} size="xs" />
-          <span className="hidden max-w-[150px] truncate text-[11px] font-black sm:block">
+          <span className="hidden max-w-[112px] truncate text-[10px] font-black sm:block">
             {music.currentTrack.title}
           </span>
         </button>
-        <PlayButton size="sm" />
+        <PlayButton size="xs" />
       </div>
     );
   }
