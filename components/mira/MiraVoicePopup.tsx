@@ -234,6 +234,7 @@ export default function MiraVoicePopup({
 
       if (onConversationTurn) {
         responseText = String(await onConversationTurn(String(data.original || data.transcript || "").trim(), sourceCode) || "").trim()
+        if (!openRef.current) return
         targetCode = sourceCode
         targetLanguage = `${assistantLabel} · ${LANGUAGE_META[targetCode].label}`
       }
@@ -391,7 +392,15 @@ export default function MiraVoicePopup({
     beginListeningRef.current = beginListening
   }, [beginListening])
 
-  useEffect(() => () => stopEverything(), [stopEverything])
+  useEffect(() => {
+    return () => {
+      stopEverything()
+      if (musicWasPlayingRef.current) {
+        music.setPlaying(true)
+        musicWasPlayingRef.current = false
+      }
+    }
+  }, [music.setPlaying, stopEverything])
 
   const resetConversation = useCallback(() => {
     stopEverything()
