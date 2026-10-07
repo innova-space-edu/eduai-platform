@@ -19,9 +19,6 @@ function replaceRequired(oldText, newText, label) {
 const clawImport = 'import ClawStudyConsole from "@/components/dashboard/ClawStudyConsole"'
 const legacyImport = 'import LegacyAccessOnboarding from "@/components/access/LegacyAccessOnboarding"'
 
-// El build ejecuta este parche más de una vez y otros parches pueden insertar
-// imports entre ClawStudyConsole y LegacyAccessOnboarding. La idempotencia debe
-// comprobar el import por sí mismo, no una pareja de líneas contiguas.
 {
   let seenLegacyImport = false
   const lines = source.split("\n")
@@ -43,11 +40,13 @@ const legacyImport = 'import LegacyAccessOnboarding from "@/components/access/Le
   }
 }
 
-replaceRequired(
-  '  const [loaded, setLoaded] = useState(false)\n  const [isAdmin, setIsAdmin] = useState(false)',
-  '  const [loaded, setLoaded] = useState(false)\n  const [isAdmin, setIsAdmin] = useState(false)\n  const [legacyAccessRequired, setLegacyAccessRequired] = useState(false)',
-  "estado principal del dashboard",
-)
+const legacyState = '  const [legacyAccessRequired, setLegacyAccessRequired] = useState(false)'
+if (!source.includes(legacyState)) {
+  const adminState = '  const [isAdmin, setIsAdmin] = useState(false)'
+  if (!source.includes(adminState)) throw new Error("[legacy-access] No se encontró estado isAdmin del dashboard")
+  source = source.replace(adminState, `${adminState}\n${legacyState}`)
+  changed = true
+}
 
 const adminBlock = `      const { data: adminData } = await supabase
         .from("admin_emails")
@@ -58,8 +57,6 @@ const adminBlock = `      const { data: adminData } = await supabase
 
 const adminWithAccess = `${adminBlock}
 
-      // Las cuentas creadas antes del nuevo sistema +18 no tienen aún fila de acceso.
-      // Si la consulta falla por red/esquema, no bloqueamos el dashboard.
       const { data: accessProfile, error: accessProfileError } = await supabase
         .from("eduai_user_access")
         .select("user_id")

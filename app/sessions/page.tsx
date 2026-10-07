@@ -1,17 +1,17 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import MathRenderer from "@/components/ui/MathRenderer"
+import { BarChart3, Flame, Zap } from "lucide-react"
 
 interface Session {
   id: string
   topic: string
   created_at: string
   score?: number
-  messages_count?: number
   status?: string
   study_mode?: string
   correct_answers?: number
@@ -23,6 +23,15 @@ interface ChatMessage {
   role: "ai" | "user"
   content: string
 }
+
+const LEVELS = [
+  { name: "Principiante", min: 0, max: 100 },
+  { name: "Aprendiz", min: 100, max: 500 },
+  { name: "Practicante", min: 500, max: 1200 },
+  { name: "Avanzado", min: 1200, max: 2500 },
+  { name: "Experto", min: 2500, max: 5000 },
+  { name: "Maestro", min: 5000, max: 99999 },
+]
 
 // ── Modal de conversación ──────────────────────────────────────────────────────
 function ConversationModal({
@@ -84,7 +93,7 @@ function ConversationModal({
       <div className="flex gap-3 px-4 py-3 border-b border-soft bg-card-theme overflow-x-auto">
         {[
           { label: "Modo", value: session.study_mode || "normal" },
-          { label: "Mensajes", value: session.messages_count?.toString() || "—" },
+          { label: "Mensajes", value: loading ? "…" : String(messages.length) },
           { label: "Correctas", value: session.correct_answers !== undefined ? `${session.correct_answers}/${session.total_questions}` : "—" },
           { label: "Estado", value: session.status === "completed" ? "✓ Completada" : "En progreso" },
         ].map(stat => (
@@ -162,25 +171,126 @@ function ConversationModal({
 export default function SessionsPage() {
   const [sessions, setSessions]     = useState<Session[]>([])
   const [loading, setLoading]       = useState(true)
+  const [syncing, setSyncing]       = useState(false)
+  const [syncError, setSyncError]   = useState("")
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
+  const [summary, setSummary] = useState<{ total: number; completed: number; avgScore: number | null }>({
+    total: 0,
+    completed: 0,
+    avgScore: null,
+  })
+  const [progressSummary, setProgressSummary] = useState<{ xp: number; streakDays: number }>({
+    xp: 0,
+    streakDays: 0,
+  })
   const [search, setSearch]         = useState("")
   const [activeSession, setActive]  = useState<Session | null>(null)
-  const router   = useRouter()
-  const supabase = createClient()
+  const router = useRouter()
+  const supabaseRef = useRef(createClient())
+
+  const loadSessions = useCallback(async (initial = false) => {
+    if (initial) setLoading(true)
+    else setSyncing(true)
+    setSyncError("")
+
+    try {
+      const response = await fetch("/api/sessions", {
+        method: "GET",
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+      })
+
+      if (response.status === 401) {
+        router.push("/login")
+        return
+      }
+
+      const payload = await response.json()
+      if (!response.ok) throw new Error(payload?.error || "No se pudieron cargar las sesiones.")
+
+      const nextSessions = Array.isArray(payload.sessions) ? payload.sessions : []
+      setSessions(nextSessions)
+      setSummary({
+        total: Number(payload.summary?.total ?? nextSessions.length),
+        completed: Number(payload.summary?.completed ?? 0),
+        avgScore: typeof payload.summary?.avgScore === "number" ? payload.summary.avgScore : null,
+      })
+      setProgressSummary({
+        xp: Number(payload.progress?.xp ?? 0),
+        streakDays: Number(payload.progress?.streakDays ?? 0),
+      })
+      setLastSyncedAt(typeof payload.syncedAt === "string" ? payload.syncedAt : new Date().toISOString())
+    } catch (error) {
+      setSyncError(error instanceof Error ? error.message : "No se pudieron sincronizar las sesiones.")
+    } finally {
+      setLoading(false)
+      setSyncing(false)
+    }
+  }, [router])
 
   useEffect(() => {
+    const supabase = supabaseRef.current
+    let channel: ReturnType<typeof supabase.channel> | null = null
+    let cancelled = false
+
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push("/login"); return }
-      const { data } = await supabase
-        .from("study_sessions")
-        .select("id, topic, created_at, score, messages_count, status, study_mode, correct_answers, total_questions")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-      if (data) setSessions(data)
-      setLoading(false)
+      if (!user) {
+        router.push("/login")
+        return
+      }
+
+      await loadSessions(true)
+      if (cancelled) return
+
+      channel = supabase
+        .channel(`study-sessions:${user.id}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "study_sessions",
+            filter: `user_id=eq.${user.id}`,
+          },
+          () => {
+            void loadSessions(false)
+          },
+        )
+        .on(
+          "postgres_changes",
+          {
+            event: "UPDATE",
+            schema: "public",
+            table: "profiles",
+            filter: `id=eq.${user.id}`,
+          },
+          () => {
+            void loadSessions(false)
+          },
+        )
+        .subscribe()
     }
-    init()
-  }, [])
+
+    const refreshWhenVisible = () => {
+      if (document.visibilityState === "visible") void loadSessions(false)
+    }
+
+    const refreshOnFocus = () => {
+      void loadSessions(false)
+    }
+
+    void init()
+    document.addEventListener("visibilitychange", refreshWhenVisible)
+    window.addEventListener("focus", refreshOnFocus)
+
+    return () => {
+      cancelled = true
+      document.removeEventListener("visibilitychange", refreshWhenVisible)
+      window.removeEventListener("focus", refreshOnFocus)
+      if (channel) void supabase.removeChannel(channel)
+    }
+  }, [loadSessions, router])
 
   const filtered = sessions.filter(s =>
     s.topic.toLowerCase().includes(search.toLowerCase())
@@ -206,10 +316,16 @@ export default function SessionsPage() {
     return acc
   }, {} as Record<string, Session[]>)
 
-  const totalCompleted = sessions.filter(s => s.status === "completed").length
-  const avgScore = sessions.filter(s => s.score).length > 0
-    ? Math.round(sessions.filter(s => s.score).reduce((a, s) => a + (s.score || 0), 0) / sessions.filter(s => s.score).length)
-    : null
+  const totalCompleted = summary.completed
+  const avgScore = summary.avgScore
+  const xp = progressSummary.xp
+  const streak = progressSummary.streakDays
+  const currentLevel = [...LEVELS].reverse().find((item) => xp >= item.min) || LEVELS[0]
+  const currentLevelIndex = LEVELS.findIndex((item) => item.name === currentLevel.name)
+  const nextLevel = LEVELS[currentLevelIndex + 1]
+  const levelProgress = nextLevel
+    ? Math.min(((xp - currentLevel.min) / (nextLevel.min - currentLevel.min)) * 100, 100)
+    : 100
 
   return (
     <>
@@ -236,7 +352,12 @@ export default function SessionsPage() {
             </div>
             <div className="flex-1">
               <h1 className="text-main font-semibold text-sm">Mis Sesiones</h1>
-              <p className="text-muted2 text-xs">{sessions.length} sesiones guardadas</p>
+              <p className="text-muted2 text-xs">
+                {summary.total} sesiones guardadas
+                <span className="ml-1">
+                  {syncing ? "· sincronizando…" : lastSyncedAt ? "· sincronizado" : ""}
+                </span>
+              </p>
             </div>
             <Link
               href="/dashboard"
@@ -257,10 +378,75 @@ export default function SessionsPage() {
             className="w-full bg-card-theme border border-soft rounded-xl px-4 py-2.5 text-main text-sm placeholder-gray-400 focus:outline-none focus:border-blue-500/50"
           />
 
-          {/* Stats */}
+          {syncError && (
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+              <span>{syncError}</span>
+              <button
+                type="button"
+                onClick={() => void loadSessions(false)}
+                className="shrink-0 rounded-lg border border-amber-300 bg-white px-3 py-1.5 font-semibold hover:bg-amber-100"
+              >
+                Reintentar
+              </button>
+            </div>
+          )}
+
+          <section className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-muted2">Tu progreso</p>
+                <p className="mt-1 text-xs text-muted2">Nivel, XP y racha asociados a tus sesiones.</p>
+              </div>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              {[
+                { label: "Nivel", value: currentLevel.name, icon: BarChart3, color: "#2563eb" },
+                { label: "XP Total", value: String(xp), icon: Zap, color: "#d97706" },
+                { label: "Racha", value: `${streak}d`, icon: Flame, color: "#ea580c" },
+              ].map((stat) => {
+                const Icon = stat.icon
+                return (
+                  <div
+                    key={stat.label}
+                    className="rounded-2xl border p-4"
+                    style={{ background: `${stat.color}0c`, borderColor: `${stat.color}20` }}
+                  >
+                    <div className="mb-2 flex items-center gap-2">
+                      <div
+                        className="flex h-8 w-8 items-center justify-center rounded-xl"
+                        style={{ background: `${stat.color}12`, border: `1px solid ${stat.color}24` }}
+                      >
+                        <Icon size={15} style={{ color: stat.color }} />
+                      </div>
+                      <p className="text-[11px] font-semibold uppercase tracking-wide text-muted2">{stat.label}</p>
+                    </div>
+                    <p className="text-2xl font-bold leading-tight text-main">{stat.value}</p>
+                  </div>
+                )
+              })}
+            </div>
+
+            <div className="rounded-2xl border border-soft bg-card-theme p-4">
+              <div className="mb-3 flex items-end justify-between gap-3">
+                <div>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted2">Siguiente nivel</p>
+                  <p className="mt-1 text-sm font-bold text-main">{nextLevel?.name || "Maestro"}</p>
+                </div>
+                <span className="text-[11px] tabular-nums text-muted2">
+                  {xp}/{nextLevel?.min || currentLevel.max} XP
+                </span>
+              </div>
+              <div className="xp-bar-track">
+                <div className="xp-bar-fill" style={{ width: `${levelProgress}%` }} />
+              </div>
+            </div>
+          </section>
+
+          {/* Estadísticas de sesiones */}
           <div className="grid grid-cols-3 gap-3">
             <div className="bg-card-theme border border-soft rounded-xl p-3 text-center">
-              <p className="text-2xl font-bold text-blue-400">{sessions.length}</p>
+              <p className="text-2xl font-bold text-blue-400">{summary.total}</p>
               <p className="text-muted2 text-xs mt-0.5">Total sesiones</p>
             </div>
             <div className="bg-card-theme border border-soft rounded-xl p-3 text-center">
@@ -322,12 +508,6 @@ export default function SessionsPage() {
                       </p>
                       <div className="flex items-center gap-2 mt-0.5">
                         <span className="text-muted2 text-xs">{formatTime(s.created_at)}</span>
-                        {s.messages_count && s.messages_count > 0 && (
-                          <>
-                            <span className="text-muted2">·</span>
-                            <span className="text-muted2 text-xs">{s.messages_count} mensajes</span>
-                          </>
-                        )}
                         {s.study_mode && s.study_mode !== "normal" && (
                           <>
                             <span className="text-muted2">·</span>
