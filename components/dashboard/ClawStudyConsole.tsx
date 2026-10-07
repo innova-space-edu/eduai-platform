@@ -201,14 +201,14 @@ function formatRecordingTime(seconds: number) {
   return `${mins}:${String(secs).padStart(2, "0")}`
 }
 
-export default function ClawStudyConsole({ displayName = "Docente", isAdmin = false }: Props) {
+export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = false }: Props) {
   const [input, setInput] = useState("")
   const [teacherCourse, setTeacherCourse] = useState("")
   const [teacherSubject, setTeacherSubject] = useState("")
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      content: `Hola ${displayName} 👋 Soy Claw, tu asistente de trabajo docente en EduAI. Puedo ayudarte a planificar clases, crear actividades y evaluaciones, construir rúbricas, adaptar materiales para PIE, preparar recursos y revisar ideas. Si falta un dato importante, te preguntaré solo lo necesario para poder avanzar. ¿Qué necesitas preparar hoy?`,
+      content: "Hola, me alegra verte de nuevo. Podemos planificar, crear, investigar, revisar materiales, preparar evaluaciones, organizar ideas o simplemente conversar. Cuéntame qué necesitas y avanzamos desde ahí.",
     },
   ])
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
@@ -238,8 +238,8 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
     ].filter(Boolean)
 
     const base = isAdmin
-      ? "Modo docente + administración activo. Claw prioriza tareas pedagógicas y puede usar herramientas EduAI cuando corresponda."
-      : "Modo docente activo. Claw trabaja como copiloto pedagógico: conversa, pregunta lo mínimo necesario y transforma tus indicaciones en material utilizable."
+      ? "Modo trabajo + administración activo. Claw puede ayudarte con tareas educativas, creación, gestión y herramientas EduAI cuando corresponda."
+      : "Espacio de trabajo activo. Claw conversa, crea, organiza, revisa y usa herramientas EduAI cuando realmente aportan valor."
 
     return contextBits.length ? `${base} · ${contextBits.join(" · ")}` : base
   }, [isAdmin, teacherCourse, teacherSubject])
@@ -565,7 +565,7 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
             <Bot size={18} className="min-[2048px]:h-6 min-[2048px]:w-6" />
           </div>
           <div className="min-w-0">
-            <h1 className="truncate text-sm font-black text-main lg:text-lg min-[2048px]:text-xl">Claw — Copiloto Docente EduAI</h1>
+            <h1 className="truncate text-sm font-black text-main lg:text-lg min-[2048px]:text-xl">Claw — Copiloto EduAI</h1>
             <p className="mt-0.5 hidden text-xs leading-relaxed text-muted2 lg:block min-[2048px]:text-sm">
               Planifica, crea, adapta, revisa y continúa el trabajo desde una sola conversación.
             </p>
@@ -593,7 +593,7 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
                   <p className="text-xs font-black text-main lg:text-sm">¿Qué quieres hacer?</p>
                   <p className="mt-0.5 text-[10px] text-muted2 lg:text-[11px]">Elige una tarea y completa el tema o material en el cuadro de mensaje.</p>
                 </div>
-                <span className="rounded-full bg-blue-50 px-2 py-1 text-[9px] font-bold text-blue-700 lg:text-[10px]">Docente</span>
+                <span className="rounded-full bg-blue-50 px-2 py-1 text-[9px] font-bold text-blue-700 lg:text-[10px]">EduAI</span>
               </div>
               <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
                 {CREATE_ACTIONS.map((action) => {
@@ -660,7 +660,7 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
       <div className="relative shrink-0 border-t border-soft bg-card-theme px-2 py-2 lg:px-5 lg:py-4 min-[2048px]:px-8 min-[2048px]:py-5">
         {toolsOpen && (
           <div className="absolute bottom-[calc(100%-4px)] left-2 z-30 w-[min(340px,calc(100vw-76px))] overflow-hidden rounded-2xl border border-soft bg-card-theme p-2 shadow-2xl lg:left-6 lg:w-[380px] lg:rounded-3xl min-[2048px]:w-[440px] min-[2048px]:p-3">
-            <div className="px-2 pb-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-muted2 lg:text-[11px] min-[2048px]:text-xs">Contexto docente</div>
+            <div className="px-2 pb-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-muted2 lg:text-[11px] min-[2048px]:text-xs">Contexto educativo</div>
             <div className="grid grid-cols-2 gap-1.5 px-1 pb-2">
               <input
                 value={teacherCourse}
@@ -679,7 +679,7 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
               Opcional. Claw usará este contexto durante la conversación y evitará volver a preguntarlo.
             </p>
 
-            <div className="border-t border-soft px-2 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-muted2 lg:text-[11px] min-[2048px]:text-xs">Acciones docentes</div>
+            <div className="border-t border-soft px-2 pb-1 pt-2 text-[10px] font-bold uppercase tracking-wider text-muted2 lg:text-[11px] min-[2048px]:text-xs">Acciones rápidas</div>
             <div className="grid gap-1">
               {CREATE_ACTIONS.map((action) => {
                 const Icon = action.icon
@@ -790,7 +790,7 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
                 ? "Te escucho… pulsa el micrófono otra vez para terminar."
                 : voiceState === "transcribing"
                   ? "Transcribiendo tu grabación con alta precisión…"
-                  : "Describe lo que necesitas: clase, actividad, evaluación, rúbrica, adaptación PIE, material o una consulta docente..."
+                  : "Describe lo que necesitas: planificar, crear, investigar, revisar, adaptar un material o hacer una consulta..."
             }
             className="min-h-[52px] max-h-28 w-full resize-none overflow-y-auto bg-transparent px-2.5 py-2 text-[13px] text-main outline-none placeholder:text-muted2 lg:min-h-[64px] lg:max-h-32 lg:px-3 lg:text-sm min-[2048px]:min-h-[76px] min-[2048px]:max-h-40 min-[2048px]:px-4 min-[2048px]:py-3 min-[2048px]:text-base"
             disabled={loading || voiceState === "transcribing"}
@@ -810,8 +810,8 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
                     ? "rotate-45 border-blue-200 bg-blue-50 text-blue-700"
                     : "border-soft bg-card-theme text-main hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
                 }`}
-                aria-label="Abrir acciones y contexto docente"
-                title="Acciones docentes, contexto y herramientas"
+                aria-label="Abrir acciones, contexto y herramientas"
+                title="Acciones, contexto educativo y herramientas"
               >
                 <Plus size={19} className="min-[2048px]:h-5 min-[2048px]:w-5" />
               </button>

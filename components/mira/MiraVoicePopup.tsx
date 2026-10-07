@@ -352,7 +352,7 @@ export default function MiraVoicePopup({
 
       playResponse(responseText, targetCode)
     } catch (cause) {
-      if (!openRef.current) return
+      if (!openRef.current || generation !== generationRef.current) return
       setError(cause instanceof Error ? cause.message : "No se pudo procesar la conversación.")
       setPhase("error")
     }
@@ -415,6 +415,7 @@ export default function MiraVoicePopup({
   const beginListening = useCallback(async () => {
     if (!openRef.current || phase === "requesting" || phase === "processing") return
 
+    const generation = generationRef.current
     stopEverything()
     setError("")
     setPhase("requesting")
@@ -433,7 +434,7 @@ export default function MiraVoicePopup({
         },
       })
 
-      if (!openRef.current) {
+      if (!openRef.current || generation !== generationRef.current) {
         stream.getTracks().forEach((track) => track.stop())
         return
       }

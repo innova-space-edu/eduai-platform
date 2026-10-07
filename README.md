@@ -60,9 +60,9 @@ El objetivo es que el usuario pueda pasar de una idea a un producto educativo ut
 
 ---
 
-# Claw — Copiloto Docente EDUAI
+# Claw — Copiloto EDUAI
 
-La primera experiencia principal de **ChatClaw** está orientada a **docentes**.
+La experiencia principal de **ChatClaw** está orientada a trabajo educativo general: puede acompañar a docentes, equipos de apoyo, gestión, estudiantes autorizados y otros usuarios de instituciones educativas sin asumir una institución específica.
 
 El componente principal se encuentra en:
 
