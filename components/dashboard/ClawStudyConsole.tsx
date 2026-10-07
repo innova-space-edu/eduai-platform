@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
+import MiraVoicePopup from "@/components/mira/MiraVoicePopup"
 import {
   ArrowRight,
   Bot,
@@ -325,6 +326,62 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
           content: error instanceof Error ? `No pude completar la acción: ${error.message}` : "No pude completar la acción.",
         },
       ])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const sendVoiceConversation = async (transcript: string, detectedLanguage: "es" | "en"): Promise<string> => {
+    const text = String(transcript || "").trim()
+    if (!text) throw new Error("No pude reconocer palabras claras.")
+    if (loading || voiceState === "recording") throw new Error("Espera a que termine la respuesta anterior.")
+
+    setInput("")
+    setSelectedTool(null)
+    setToolsOpen(false)
+    setSuggestions([])
+
+    const nextMessages: Message[] = [...messages, { role: "user", content: text }]
+    setMessages(nextMessages)
+    setLoading(true)
+
+    try {
+      const response = await fetch("/api/agents/claw-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          history: nextMessages.slice(-14),
+          pageContext: {
+            pathname: "/dashboard",
+            pageTitle: "Conversación principal con Claw",
+            mode: isAdmin ? "admin_teacher_voice" : "teacher_voice",
+            subject: teacherSubject || undefined,
+            selectedSubtopic: teacherCourse || undefined,
+            selectedTopic: detectedLanguage === "en" ? "voice-language-en" : "voice-language-es",
+            availableActions: [
+              ...capabilityTools.map((tool) => tool.name),
+              "navigate_to_page",
+            ],
+          },
+          userName: displayName,
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) throw new Error(data?.error || "No se pudo responder")
+
+      const reply = String(data.reply || "Listo.").trim()
+      setMessages((prev) => [...prev, { role: "assistant", content: reply }])
+      setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : [])
+      return reply
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "No pude completar la acción."
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: `No pude completar la acción: ${message}` },
+      ])
+      throw error
     } finally {
       setLoading(false)
     }
@@ -772,6 +829,18 @@ export default function ClawStudyConsole({ displayName = "Docente", isAdmin = fa
                   {voiceError}
                 </span>
               )}
+            </div>
+
+            <div className="flex shrink-0 items-center gap-1.5">
+              <MiraVoicePopup
+                conversationOnly
+                defaultLanguage="auto"
+                assistantLabel="Claw"
+                contextLabel="MIRA voz · conectada a este chat"
+                buttonTitle="Conversar por voz y transcribir al chat"
+                buttonClassName="h-9 w-9 lg:h-10 lg:w-10 min-[2048px]:h-11 min-[2048px]:w-11"
+                onConversationTurn={sendVoiceConversation}
+              />
             </div>
 
             <button
