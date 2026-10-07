@@ -102,7 +102,7 @@ function patchLogin() {
             logoClassName="h-20 w-20"
             nameClassName="text-3xl font-bold tracking-tight text-main"
           />
-          <p className="mt-2 text-sm text-muted2">Tu tutor personal con IA</p>
+          <p className="mt-2 text-sm text-muted2">Tu espacio educativo con IA</p>
         </div>
 
         <div className="rounded-2xl p-6 border"`,

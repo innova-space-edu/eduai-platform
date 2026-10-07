@@ -193,7 +193,7 @@ export async function POST(req: NextRequest) {
     const inferredTopic = context.subject || context.selectedTopic || inferTopicFromPath(inferredPath);
     const messages = normalizeHistory(history, cleanMessage);
     const displayName = typeof userName === "string" && userName.trim() && userName.trim().toLowerCase() !== "usuario" ? userName.trim().slice(0, 100) : undefined;
-    const platformKnowledge = await getEduAIPlatformKnowledgeContext(supabase, cleanMessage);
+    const platformKnowledge = await getEduAIPlatformKnowledgeContext(supabase, cleanMessage, messages);
 
     const result = await runCoreCycle(
       messages,
