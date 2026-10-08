@@ -12,6 +12,7 @@ import {
   LibraryBig,
   LogOut,
   MessageCircle,
+  MessageSquareWarning,
   Music2,
   QrCode,
   ShieldCheck,
@@ -187,7 +188,7 @@ export default function Dashboard() {
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted2 lg:text-xs min-[2048px]:text-[13px]">EduAI</p>
               <p className="hidden text-xs text-sub lg:block min-[2048px]:text-sm">Claw es tu espacio principal de trabajo en EduAI</p>
             </div>
-            <div className="flex items-center gap-1.5 lg:gap-3 min-[2048px]:gap-4">
+            <div className="flex items-center gap-2 lg:gap-2.5 min-[2048px]:gap-3">
               <Link
                 href="/biblioteca"
                 className="group flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition-all hover:-translate-y-0.5 lg:rounded-xl lg:px-3 lg:text-xs min-[2048px]:px-4 min-[2048px]:py-2 min-[2048px]:text-sm"
@@ -199,6 +200,35 @@ export default function Dashboard() {
               >
                 <LibraryBig size={14} className="transition-transform group-hover:scale-110" />
                 <span className="hidden lg:inline">Biblioteca</span>
+              </Link>
+              <Link
+                href="/music"
+                data-eduai-header-action="music"
+                className="group flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition-all hover:-translate-y-0.5 lg:rounded-xl lg:px-3 lg:text-xs min-[2048px]:px-4 min-[2048px]:py-2 min-[2048px]:text-sm"
+                style={{
+                  background: "rgba(16,185,129,0.08)",
+                  borderColor: "rgba(16,185,129,0.20)",
+                  color: "#047857",
+                }}
+                title="Abrir EduAI Music"
+              >
+                <Music2 size={14} className="transition-transform group-hover:scale-110" />
+                <span className="hidden lg:inline">Música</span>
+              </Link>
+              <Link
+                href="/soporte"
+                data-eduai-header-action="report"
+                className="group flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition-all hover:-translate-y-0.5 lg:rounded-xl lg:px-3 lg:text-xs min-[2048px]:px-4 min-[2048px]:py-2 min-[2048px]:text-sm"
+                style={{
+                  background: "rgba(37,99,235,0.07)",
+                  borderColor: "rgba(37,99,235,0.18)",
+                  color: "#2563eb",
+                }}
+                title="Reportar una falla"
+              >
+                <MessageSquareWarning size={14} className="transition-transform group-hover:scale-110" />
+                <span className="hidden xl:inline">Reportar una falla</span>
+                <span className="hidden lg:inline xl:hidden">Reporte</span>
               </Link>
               <span className="hidden text-sm text-sub lg:inline min-[2048px]:text-[15px]">{displayName}</span>
             </div>

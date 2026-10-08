@@ -392,8 +392,9 @@ export default function SuperAgentButton() {
     }
   };
 
-  // Hide completely on exam taking page and on the dedicated music workspace.
-  if (pathname?.startsWith("/examen/p/") || pathname?.startsWith("/music")) return null;
+  // El dashboard ya tiene Claw integrado y acciones superiores propias.
+  // Evitamos duplicar chatbot, reproductor mini y FAB flotantes en esta vista.
+  if (pathname === "/dashboard" || pathname?.startsWith("/examen/p/") || pathname?.startsWith("/music")) return null;
 
   return (
     <div className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2">

@@ -37,7 +37,14 @@ if (!dashboardSource.includes('href="/repositorio"')) {
                 <span className="hidden sm:inline">Nube EduAI</span>
               </Link>`
 
-  dashboardSource = dashboardSource.replace(match[0], `${match[0]}${repositoryLink}`)
+  const reportActionPattern = /(\s+<Link\n\s+href="\/soporte"[\s\S]*?data-eduai-header-action="report"[\s\S]*?<\/Link>)/
+  const reportMatch = dashboardSource.match(reportActionPattern)
+
+  if (reportMatch) {
+    dashboardSource = dashboardSource.replace(reportMatch[0], `${reportMatch[0]}${repositoryLink}`)
+  } else {
+    dashboardSource = dashboardSource.replace(match[0], `${match[0]}${repositoryLink}`)
+  }
   dashboardChanged = true
 }
 

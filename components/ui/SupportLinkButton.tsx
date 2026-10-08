@@ -16,7 +16,7 @@ const HIDDEN_PREFIXES = [
 
 export default function SupportLinkButton() {
   const pathname = usePathname()
-  if (HIDDEN_PREFIXES.some(prefix => pathname?.startsWith(prefix))) return null
+  if (pathname === "/dashboard" || HIDDEN_PREFIXES.some(prefix => pathname?.startsWith(prefix))) return null
 
   return (
     <Link
