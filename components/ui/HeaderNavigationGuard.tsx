@@ -33,6 +33,24 @@ function findLibraryAction() {
   return visibleTopAction(nodes)
 }
 
+function findRepositoryAction() {
+  const nodes = Array.from(document.querySelectorAll<HTMLElement>("a, button")).filter(node => {
+    const text = normalizedText(node.textContent)
+    const href = node instanceof HTMLAnchorElement ? node.getAttribute("href") || "" : ""
+    return href === "/repositorio" || text.includes("nube eduai")
+  })
+  return visibleTopAction(nodes)
+}
+
+function findReportAction() {
+  const nodes = Array.from(document.querySelectorAll<HTMLElement>("a, button")).filter(node => {
+    const text = normalizedText(node.textContent)
+    const href = node instanceof HTMLAnchorElement ? node.getAttribute("href") || "" : ""
+    return node.dataset.eduaiHeaderAction === "report" || href === "/soporte" || text.includes("reportar una falla")
+  })
+  return visibleTopAction(nodes)
+}
+
 function findAccessCodesAction() {
   const nodes = Array.from(document.querySelectorAll<HTMLElement>("a, button")).filter(node => {
     const text = normalizedText(node.textContent)
@@ -107,10 +125,11 @@ function keepLibraryAndAccessCodesTogether() {
 
   normalizeMovedAction(accessCodes)
 
-  // “Códigos de acceso” queda inmediatamente después de Biblioteca, aunque
-  // originalmente haya sido renderizado como botón flotante en otro contenedor.
-  if (library.nextElementSibling !== accessCodes) {
-    library.insertAdjacentElement("afterend", accessCodes)
+  // En el dashboard se respetan primero las acciones primarias:
+  // Biblioteca → Música → Reporte → Nube. Códigos de acceso se coloca después.
+  const anchor = findRepositoryAction() || findReportAction() || library
+  if (anchor.nextElementSibling !== accessCodes) {
+    anchor.insertAdjacentElement("afterend", accessCodes)
   }
 
   // Mantiene todos los accesos superiores ordenados y sin superposición.
@@ -120,7 +139,7 @@ function keepLibraryAndAccessCodesTogether() {
   row.style.overflowX = "auto"
   row.style.overflowY = "hidden"
   row.style.maxWidth = "100%"
-  row.style.gap = row.style.gap || "0.5rem"
+  row.style.gap = row.style.gap || "0.625rem"
   row.style.scrollbarWidth = "none"
 
   Array.from(row.children).forEach(child => {
