@@ -146,6 +146,7 @@ const FAVORITES_RECOVERY_VERSION = "eduai_music_favorites_recovered_v1";
 const FAVORITES_BACKUP_KEY = "eduai_music_favorites_backup_v1";
 const FAVORITES_CLOUD_TABLE = "eduai_music_favorites";
 const FAVORITES_IMPORT_PREFIX = "eduai_music_favorites_imported_v1_";
+const FAVORITES_LEGACY_OWNER_KEY = "eduai_music_favorites_legacy_owner_v1";
 const FAVORITES_PENDING_PREFIX = "eduai_music_favorites_pending_v1_";
 const MUSIC_STORAGE_BUCKET = "multimedia-projects";
 const MUSIC_LIBRARY_FOLDER = "music-library";
@@ -444,15 +445,15 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const favoriteCloudUserRef = useRef<string | null>(null);
   const favoriteCloudFlushingRef = useRef(false);
   const favoriteLocalRevisionRef = useRef(0);
-  const favoriteSyncStartedRef = useRef(false);
   const [favoriteSyncStatus, setFavoriteSyncStatus] = useState<"local" | "syncing" | "synced">("local");
 
   const flushFavoriteChanges = useCallback(async (userId: string) => {
     if (favoriteCloudFlushingRef.current) return false;
     favoriteCloudFlushingRef.current = true;
     try {
-      let pending = readPending(userId);
-      while (pending.length) {
+      while (true) {
+        const pending = readPending(userId);
+        if (!pending.length) break;
         const change = pending[0];
         const request = change.op === "add"
           ? supabase.from(FAVORITES_CLOUD_TABLE).upsert({
@@ -463,8 +464,12 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
               .eq("user_id", userId).eq("track_id", change.trackId);
         const { error } = await request;
         if (error) return false;
-        pending = pending.slice(1);
-        localStorage.setItem(pendingKey(userId), JSON.stringify(pending));
+        // No perder un nuevo clic que se haya encolado durante la petición.
+        const latest = readPending(userId);
+        if (latest[0]?.trackId === change.trackId && latest[0]?.op === change.op) {
+          latest.shift();
+          localStorage.setItem(pendingKey(userId), JSON.stringify(latest));
+        }
       }
       return true;
     } catch { return false; }
@@ -650,6 +655,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       const userId = auth.user?.id;
       if (!userId) { setFavoriteSyncStatus("local"); return; }
       favoriteCloudUserRef.current = userId;
+      const revisionAtStart = favoriteLocalRevisionRef.current;
 
       const { data: remote, error } = await supabase
         .from(FAVORITES_CLOUD_TABLE).select("track_id,track").eq("user_id", userId).limit(2000);
@@ -658,7 +664,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       const importKey = `${FAVORITES_IMPORT_PREFIX}${userId}`;
       const local = safeReadState();
       const imported = localStorage.getItem(importKey) === "1";
-      if (!imported) {
+      const existingLegacyOwner = localStorage.getItem(FAVORITES_LEGACY_OWNER_KEY);
+      // La biblioteca local anterior no identificaba al propietario:
+      // solo puede importarse a la primera cuenta asociada a este navegador.
+      if (!imported && (!existingLegacyOwner || existingLegacyOwner === userId)) {
         const storedIds = local.likedTrackIds || [];
         const storedTracks = new Map((local.likedTracks || []).map((track) => [track.id, track]));
         const rows = storedIds
@@ -671,6 +680,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           if (importError) { setFavoriteSyncStatus("local"); return; }
         }
         localStorage.setItem(importKey, "1");
+        if (!existingLegacyOwner) localStorage.setItem(FAVORITES_LEGACY_OWNER_KEY, userId);
+      } else if (!imported && existingLegacyOwner !== userId) {
+        // No transferir canciones privadas de una cuenta a otra.
+        localStorage.setItem(importKey, "1");
       }
 
       if (!(await flushFavoriteChanges(userId))) {
@@ -682,11 +695,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       if (refreshError) { setFavoriteSyncStatus("local"); return; }
 
       // Si hubo clics durante la carga, no sustituir el estado más reciente.
-      const latestRevision = favoriteLocalRevisionRef.current;
       const remoteRows = saved || [];
-      if (favoriteSyncStartedRef.current && latestRevision !== 0) {
-        // Las acciones locales tienen prioridad; una próxima sincronización
-        // actualizará el resto del catálogo sin interrumpir al usuario.
+      if (favoriteLocalRevisionRef.current !== revisionAtStart) {
+        // Un clic mientras se cargaba la biblioteca tiene prioridad
+        // sobre los resultados anteriores de la nube.
         setFavoriteSyncStatus("synced");
         return;
       }
@@ -696,7 +708,6 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       setLikedTrackIds(ids);
       setLikedTrackSnapshots(tracks);
       setFavoriteSyncStatus("synced");
-      favoriteSyncStartedRef.current = true;
     } catch {
       setFavoriteSyncStatus("local");
     }
