@@ -4,6 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import MiraVoicePopup from "@/components/mira/MiraVoicePopup"
 import MathRenderer from "@/components/ui/MathRenderer"
+import { createClient } from "@/lib/supabase/client"
+import { uploadPdfResumable } from "@/lib/papers/resumable-upload"
 import { normalizeChatText } from "@/lib/text/normalize-chat-text"
 import {
   ArrowRight,
@@ -49,8 +51,8 @@ type ChatAttachment = {
   mimeType: string
   kind: string
   size: number
-  text: string
   chars: number
+  chunkCount: number
   warnings: string[]
 }
 
@@ -169,6 +171,7 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
   const [capabilitiesError, setCapabilitiesError] = useState("")
   const [selectedTool, setSelectedTool] = useState<CapabilityTool | null>(null)
   const [attachments, setAttachments] = useState<ChatAttachment[]>([])
+  const supabase = useMemo(() => createClient(), [])
   const [uploadingFiles, setUploadingFiles] = useState(false)
   const [attachmentError, setAttachmentError] = useState("")
   const [copiedMessageIndex, setCopiedMessageIndex] = useState<number | null>(null)
@@ -232,6 +235,34 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
     }
   }, [])
 
+  const findExistingPaperPdf = async (file: File) => {
+    // Documentos procesados anteriormente por Chat Paper no se vuelven a subir
+    // ni a procesar. El SHA-256 únicamente se compara dentro de esta cuenta.
+    if (!globalThis.crypto?.subtle) return null
+    const { data: auth } = await supabase.auth.getUser()
+    if (!auth.user) return null
+    const bytes = await file.arrayBuffer()
+    const digest = await crypto.subtle.digest("SHA-256", bytes)
+    const sha = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2,"0")).join("")
+    const { data: existing, error } = await supabase
+      .from("paper_documents")
+      .select("id")
+      .eq("user_id", auth.user.id)
+      .eq("source_file_sha256", sha)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle()
+    if (error || !existing?.id) return null
+    const { count, error: countError } = await supabase.from("paper_chunks")
+      .select("*", { count: "exact", head: true })
+      .eq("document_id", existing.id).eq("user_id", auth.user.id)
+    if (countError || !count) return null
+    return {
+      id: existing.id, name: file.name, kind: "paper", mimeType: "application/pdf",
+      size: file.size, chars: 0, chunkCount: count, warnings: [],
+    }
+  }
+
   const attachFiles = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const chosen = Array.from(event.target.files || [])
     event.target.value = ""
@@ -254,26 +285,79 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
           continue
         }
 
-        const formData = new FormData()
-        formData.append("file", file)
-        const response = await fetch("/api/agents/claw-files", {
-          method: "POST",
-          body: formData,
-        })
-        const data = await response.json().catch(() => ({}))
-        if (!response.ok) {
-          setAttachmentError(`${file.name}: ${data?.error || "no se pudo procesar"}`)
-          continue
+        let data: Record<string, any>
+        if (/\.pdf$/i.test(file.name)) {
+          const cached = await findExistingPaperPdf(file)
+          if (cached) {
+            data = cached
+          } else {
+          // Mismo pipeline de Chat Paper: Storage privado → PDF Inspector →
+          // paper_documents/paper_chunks. No devolvemos el texto al navegador.
+          const prepared = await fetch("/api/agents/paper/extract", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              action: "prepare-upload", filename: file.name,
+              mimeType: "application/pdf", size: file.size,
+            }),
+          })
+          const upload = await prepared.json()
+          if (!prepared.ok) throw new Error(upload?.error || "No se pudo preparar el PDF.")
+          if (file.size >= 6 * 1024 * 1024) {
+            await uploadPdfResumable({
+              supabase, bucket: upload.bucket, objectName: upload.filePath,
+              file, onProgress: () => undefined,
+            })
+          } else {
+            const { error } = await supabase.storage.from(upload.bucket)
+              .uploadToSignedUrl(upload.filePath, upload.token, file, {
+                contentType: "application/pdf",
+              })
+            if (error) throw new Error(error.message)
+          }
+          const processed = await fetch("/api/agents/paper/extract", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              bucket: upload.bucket, filePath: upload.filePath,
+              filename: file.name, compactForClaw: true,
+            }),
+          })
+          const result = await processed.json()
+          if (!processed.ok || !result.documentId) {
+            throw new Error(result?.error || "No se pudo indexar el PDF.")
+          }
+          data = {
+            id: result.documentId,
+            name: file.name,
+            kind: "paper",
+            mimeType: "application/pdf",
+            size: file.size,
+            chars: 0,
+            chunkCount: Number(result.chunkCount || 0),
+            warnings: [],
+          }
+          }
+        } else {
+          const formData = new FormData()
+          formData.append("file", file)
+          const response = await fetch("/api/agents/claw-files", {
+            method: "POST", body: formData,
+          })
+          data = await response.json()
+          if (!response.ok) {
+            throw new Error(data?.error || "No se pudo procesar.")
+          }
         }
 
         const attachment: ChatAttachment = {
-          id: String(data.id || `${Date.now()}-${file.name}`),
+          id: String(data.id),
           name: String(data.name || file.name),
           mimeType: String(data.mimeType || file.type || "application/octet-stream"),
           kind: String(data.kind || "document"),
           size: Number(data.size || file.size),
-          text: String(data.text || ""),
-          chars: Number(data.chars || String(data.text || "").length),
+          chars: Number(data.chars || 0),
+          chunkCount: Number(data.chunkCount || 0),
           warnings: Array.isArray(data.warnings) ? data.warnings.map(String) : [],
         }
         setAttachments((current) => [...current, attachment].slice(0, MAX_CHAT_ATTACHMENTS))
@@ -286,13 +370,8 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
     }
   }
 
-  const activeAttachmentPayload = attachments.map(({ id, name, mimeType, kind, text, warnings }) => ({
-    id,
-    name,
-    mimeType,
-    kind,
-    text,
-    warnings,
+  const activeAttachmentPayload = attachments.map(({ id, name, kind }) => ({
+    id, name, kind,
   }))
 
   const replaceChatMessages = (nextMessages: Message[]) => {
@@ -908,7 +987,7 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
                   <FileText size={13} className="shrink-0" />
                   <span className="min-w-0 truncate font-semibold">{file.name}</span>
                   <span className="shrink-0 text-[9px] text-blue-500">
-                    {file.chars >= 1000 ? `${(file.chars / 1000).toFixed(1)}k` : file.chars} car.
+                    {file.chunkCount} frag.
                   </span>
                   <button
                     type="button"
