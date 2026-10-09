@@ -478,20 +478,36 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const queueFavoriteChange = useCallback((change: PendingFavoriteChange) => {
     favoriteLocalRevisionRef.current += 1;
-    const userId = favoriteCloudUserRef.current;
-    if (!userId || typeof window === "undefined") return;
-    try {
-      const pending = readPending(userId);
-      pending.push(change);
-      localStorage.setItem(pendingKey(userId), JSON.stringify(pending));
-      setFavoriteSyncStatus("syncing");
-      void flushFavoriteChanges(userId).then((success) => {
-        setFavoriteSyncStatus(success ? "synced" : "local");
-      });
-    } catch {
-      setFavoriteSyncStatus("local");
+    if (typeof window === "undefined") return;
+    const persistChange = (userId: string) => {
+      try {
+        const pending = readPending(userId);
+        pending.push(change);
+        localStorage.setItem(pendingKey(userId), JSON.stringify(pending));
+        setFavoriteSyncStatus("syncing");
+        void flushFavoriteChanges(userId).then((success) => {
+          setFavoriteSyncStatus(success ? "synced" : "local");
+        });
+      } catch {
+        setFavoriteSyncStatus("local");
+      }
+    };
+
+    const knownUser = favoriteCloudUserRef.current;
+    if (knownUser) {
+      persistChange(knownUser);
+    } else {
+      // Guardar cambios durante la primera autenticación sin perder el clic.
+      void supabase.auth.getUser().then(({ data }) => {
+        if (data.user) {
+          favoriteCloudUserRef.current = data.user.id;
+          persistChange(data.user.id);
+        } else {
+          setFavoriteSyncStatus("local");
+        }
+      }).catch(() => setFavoriteSyncStatus("local"));
     }
-  }, [flushFavoriteChanges]);
+  }, [flushFavoriteChanges, supabase]);
 
   const refreshUploadedAudios = useCallback(async () => {
     setAudioUploadLoading(true);
@@ -699,7 +715,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       if (favoriteLocalRevisionRef.current !== revisionAtStart) {
         // Un clic mientras se cargaba la biblioteca tiene prioridad
         // sobre los resultados anteriores de la nube.
-        setFavoriteSyncStatus("synced");
+        setFavoriteSyncStatus(readPending(userId).length ? "syncing" : "synced");
         return;
       }
       const ids = unique(remoteRows.map((row) => row.track_id).filter(Boolean));

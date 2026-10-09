@@ -2332,7 +2332,12 @@ function NeonTrackTable({ tracks }: { tracks: EduMusicTrack[] }) {
   const music = useEduAIMusic();
 
   return (
-    <div className="min-h-0 overflow-y-auto pr-1">
+    <div
+      className="min-h-0 max-h-[min(40vh,350px)] overflow-y-auto overscroll-contain pr-1 [scrollbar-color:#25f4ff33_transparent] [scrollbar-width:thin]"
+      role="region"
+      aria-label="Lista desplazable de canciones"
+      tabIndex={0}
+    >
       <div className="neon-track-header grid grid-cols-[34px_minmax(0,1.4fr)_minmax(90px,.8fr)_minmax(90px,.8fr)_58px_38px] items-center gap-2 px-2 pb-1 text-[8px] font-black uppercase tracking-[.16em] text-slate-500">
         <span>#</span>
         <span>Título</span>
@@ -2342,7 +2347,7 @@ function NeonTrackTable({ tracks }: { tracks: EduMusicTrack[] }) {
         <span />
       </div>
       <div className="space-y-0.5">
-        {tracks.slice(0, 8).map((track, index) => {
+        {tracks.map((track, index) => {
           const active = music.currentTrack.id === track.id;
           return (
             <div
@@ -2522,8 +2527,10 @@ function NeonMain({
       ? tracks.slice(0, 48)
       : music.view === "home"
         ? recentTracks
-        : tracks.slice(0, 10);
-  const tableTracks = tracks.slice(0, 10);
+        : music.view === "liked"
+          ? tracks
+          : tracks.slice(0, 10);
+  const tableTracks = music.view === "liked" ? tracks : tracks.slice(0, 10);
   const catalogScrollerRef = useRef<HTMLDivElement>(null);
   const catalogPausedRef = useRef(false);
   const catalogKey = catalogTracks.map((track) => track.id).join("|");
@@ -2758,18 +2765,46 @@ function NeonMain({
                     {music.view === "search" ? "Catálogo de resultados" : music.view === "home" ? "Escuchado recientemente" : viewTitle}
                   </h2>
                   <p className="text-[9px] text-slate-500">
-                    {catalogTracks.length
-                      ? music.view === "search"
-                        ? `${tracks.length} resultados · desliza para explorar`
-                        : `${catalogTracks.length} pistas visibles`
-                      : "Explora una fuente para comenzar."}
+                    {music.view === "liked"
+                      ? `${tracks.length} canciones guardadas · desliza hacia abajo para ver todas`
+                      : catalogTracks.length
+                        ? music.view === "search"
+                          ? `${tracks.length} resultados · desliza para explorar`
+                          : `${catalogTracks.length} pistas visibles`
+                        : "Explora una fuente para comenzar."}
                   </p>
                 </div>
-                <span className="text-[9px] font-black uppercase tracking-[.14em] text-cyan-300">{sourceLabel(music.currentTrack.source)}</span>
+                {music.view === "liked" ? (
+                  <span
+                    className="shrink-0 text-[9px] font-bold text-cyan-300"
+                    aria-live="polite"
+                    title={music.favoriteSyncStatus === "synced" ? "Los favoritos están vinculados a tu cuenta" : "Esperando sincronización con la cuenta"}
+                  >
+                    {music.favoriteSyncStatus === "synced"
+                      ? "✓ Guardados en tu cuenta"
+                      : music.favoriteSyncStatus === "syncing"
+                        ? "Sincronizando favoritos…"
+                        : "Solo en este dispositivo"}
+                  </span>
+                ) : (
+                  <span className="text-[9px] font-black uppercase tracking-[.14em] text-cyan-300">{sourceLabel(music.currentTrack.source)}</span>
+                )}
               </div>
 
               {catalogTracks.length > 0 && (
                 <div className="neon-catalog-surface rounded-2xl p-2.5">
+                  {music.view === "liked" ? (
+                    <div
+                      className="grid max-h-[min(36vh,340px)] grid-cols-2 gap-3 overflow-y-auto overscroll-contain pr-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 [scrollbar-color:#25f4ff55_transparent] [scrollbar-width:thin]"
+                      role="region"
+                      tabIndex={0}
+                      aria-label="Favoritos guardados, desplázate hacia abajo para ver más canciones"
+                    >
+                      {catalogTracks.map((track) => (
+                        <NeonRecentCard key={track.id} track={track} tracks={tracks} />
+                      ))}
+                    </div>
+                  ) : (
                   <div
                     ref={catalogScrollerRef}
                     className="neon-catalog flex gap-3 overflow-x-auto pb-1"
@@ -2789,6 +2824,7 @@ function NeonMain({
                       </div>
                     ))}
                   </div>
+                  )}
                 </div>
               )}
             </div>
