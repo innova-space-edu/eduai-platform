@@ -105,42 +105,6 @@ Devuelve Markdown limpio y legible:
   }
 }
 
-async function parsePdf(buffer: Buffer) {
-  const warnings: string[] = []
-  let text = ""
-
-  try {
-    const pdfModule: any = await import("pdf-parse")
-    const PDFParseCtor = pdfModule.PDFParse
-
-    if (typeof PDFParseCtor === "function") {
-      const parser: any = new PDFParseCtor({ data: new Uint8Array(buffer) })
-      try {
-        const result = await parser.getText()
-        text = String(result?.text || result || "")
-      } finally {
-        if (typeof parser.destroy === "function") await parser.destroy().catch(() => undefined)
-      }
-    } else if (typeof pdfModule.default === "function") {
-      const result = await pdfModule.default(buffer)
-      text = String(result?.text || "")
-    }
-  } catch (error) {
-    warnings.push(`Extracción PDF local incompleta: ${error instanceof Error ? error.message : "error"}`)
-  }
-
-  if (buffer.byteLength <= MAX_VISUAL_BYTES) {
-    const visual = await extractVisualInformation(
-      [{ bytes: buffer, mimeType: "application/pdf", label: "PDF completo" }],
-      "Analiza este PDF como material adjunto de una conversación educativa.",
-    )
-    if (visual.warning) warnings.push(visual.warning)
-    if (visual.text) text = [text.trim(), "ANÁLISIS VISUAL Y CONTENIDO DEL PDF", visual.text].filter(Boolean).join("\n\n")
-  }
-
-  return { text: text.slice(0, MAX_EXTRACTED_CHARS), warnings, kind: "pdf" }
-}
-
 async function parseDocx(buffer: Buffer) {
   const warnings: string[] = []
   const mammothModule: any = await import("mammoth")
@@ -308,9 +272,7 @@ export async function POST(req: Request) {
 
     let result: { text: string; warnings: string[]; kind: string }
 
-    if (false) {
-      result = await parsePdf(buffer)
-    } else if (ext === "docx" || mimeType.includes("wordprocessingml")) {
+    if (ext === "docx" || mimeType.includes("wordprocessingml")) {
       result = await parseDocx(buffer)
     } else if (ext === "xlsx" || ext === "xls" || mimeType.includes("spreadsheet") || mimeType.includes("excel")) {
       result = await parseWorkbook(buffer)
