@@ -2333,12 +2333,12 @@ function NeonTrackTable({ tracks }: { tracks: EduMusicTrack[] }) {
 
   return (
     <div
-      className="min-h-0 max-h-[min(40vh,350px)] overflow-y-auto overscroll-contain pr-1 [scrollbar-color:#25f4ff33_transparent] [scrollbar-width:thin]"
+      className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-color:#25f4ff55_transparent] [scrollbar-width:thin]"
       role="region"
       aria-label="Lista desplazable de canciones"
       tabIndex={0}
     >
-      <div className="neon-track-header grid grid-cols-[34px_minmax(0,1.4fr)_minmax(90px,.8fr)_minmax(90px,.8fr)_58px_38px] items-center gap-2 px-2 pb-1 text-[8px] font-black uppercase tracking-[.16em] text-slate-500">
+      <div className="neon-track-header sticky top-0 z-10 grid grid-cols-[34px_minmax(0,1.4fr)_minmax(90px,.8fr)_minmax(90px,.8fr)_58px_38px] bg-[#03101c]/95 backdrop-blur-sm" items-center gap-2 px-2 pb-1 text-[8px] font-black uppercase tracking-[.16em] text-slate-500">
         <span>#</span>
         <span>Título</span>
         <span>Artista</span>
@@ -2805,7 +2805,7 @@ function NeonMain({
                       ))}
                     </div>
                   ) : (
-                  <div
+                    <div
                     ref={catalogScrollerRef}
                     className="neon-catalog flex gap-3 overflow-x-auto pb-1"
                     onPointerEnter={() => { catalogPausedRef.current = true; }}
@@ -2823,14 +2823,14 @@ function NeonMain({
                         <NeonRecentCard track={track} tracks={tracks} />
                       </div>
                     ))}
-                  </div>
+                    </div>
                   )}
                 </div>
               )}
             </div>
 
-            <div className="min-h-0 flex-1">
-              <div className="mb-1.5 flex items-center justify-between">
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="mb-1.5 flex shrink-0 items-center justify-between">
                 <h2 className="text-[13px] font-black text-white">{music.view === "home" ? "Canciones para ti" : "Canciones"}</h2>
                 <span className="text-[9px] font-bold text-cyan-300/85">{tableTracks.length} resultados</span>
               </div>
