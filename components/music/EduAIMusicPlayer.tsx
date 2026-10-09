@@ -147,6 +147,17 @@ function CyberStaticBackdrop() {
   return <div className="cyber-static-backdrop" aria-hidden="true" />;
 }
 
+// Movimiento medio sin redibujar ni separar artificialmente la imagen original.
+// La copia enmascarada conserva la misma alineación y tamaño que el fondo.
+function CyberDjParallax({ active }: { active: boolean }) {
+  return (
+    <div className={cn("cyber-dj-scene", active && "is-playing")} aria-hidden="true">
+      <div className="cyber-dj-aura" />
+      <div className="cyber-dj-parallax" />
+    </div>
+  );
+}
+
 function RhythmPentagonField({
   active,
   currentTime,
@@ -3315,6 +3326,7 @@ export default function EduAIMusicPlayer({
   return (
     <div className="eduai-music-cyber relative h-screen min-h-[560px] overflow-hidden bg-[#05070a] text-white md:min-h-[680px]">
       <CyberStaticBackdrop />
+      <CyberDjParallax active={music.playing} />
       <MusicBackContour active={music.playing} currentTime={music.currentTime} />
       <RhythmPentagonField active={music.playing} currentTime={music.currentTime} />
       <style jsx global>{`
@@ -3418,6 +3430,64 @@ export default function EduAIMusicPlayer({
           background:
             radial-gradient(circle at 50% 38%, transparent 0 42%, rgba(0,0,0,.07) 72%, rgba(0,0,0,.18) 100%),
             linear-gradient(90deg, rgba(0,0,0,.05), transparent 18%, transparent 82%, rgba(0,0,0,.05));
+        }
+
+        /* DJ: parallax medio (±3 px), aura neón lenta y sin cambios de layout.
+           Se usa la MISMA imagen y posición que el fondo; la máscara separa
+           visualmente la silueta sin modificar ni redibujar los assets. */
+        .cyber-dj-scene {
+          position: absolute;
+          inset: 0;
+          z-index: 1;
+          overflow: hidden;
+          pointer-events: none;
+          contain: paint;
+        }
+        .cyber-dj-parallax {
+          position: absolute;
+          inset: 0;
+          background: url("/music/eduai-music-ui-background.png") center / cover no-repeat;
+          -webkit-mask-image: radial-gradient(ellipse 17% 22% at 76% 17%, #000 53%, rgba(0,0,0,.8) 73%, transparent 100%);
+          mask-image: radial-gradient(ellipse 17% 22% at 76% 17%, #000 53%, rgba(0,0,0,.8) 73%, transparent 100%);
+          opacity: .9;
+          transform: translate3d(0, 0, 0);
+          animation: cyber-dj-float 14s ease-in-out infinite;
+          will-change: transform;
+        }
+        .cyber-dj-aura {
+          position: absolute;
+          inset: 0;
+          background:
+            radial-gradient(ellipse 14% 18% at 76% 14%, rgba(37,244,255,.20), transparent 95%),
+            radial-gradient(ellipse 12% 17% at 82% 26%, rgba(155,108,255,.18), transparent 95%);
+          opacity: .35;
+          animation: cyber-dj-aura 8s ease-in-out infinite;
+          will-change: opacity;
+        }
+        .cyber-dj-scene.is-playing .cyber-dj-parallax {
+          animation-duration: 9s;
+        }
+        .cyber-dj-scene.is-playing .cyber-dj-aura {
+          opacity: .58;
+          animation-duration: 5s;
+        }
+        @keyframes cyber-dj-float {
+          0%, 100% { transform: translate3d(-1px, 1px, 0); }
+          50% { transform: translate3d(2px, -2px, 0); }
+        }
+        @keyframes cyber-dj-aura {
+          0%, 100% { opacity: .28; }
+          50% { opacity: .52; }
+        }
+        .cyber-dj-scene.is-playing .cyber-dj-aura {
+          animation-name: cyber-dj-aura-playing;
+        }
+        @keyframes cyber-dj-aura-playing {
+          0%, 100% { opacity: .4; }
+          50% { opacity: .67; }
+        }
+        @media (max-width: 767px) {
+          .cyber-dj-scene { display: none; }
         }
         .music-back-contour {
           position: absolute;
@@ -4271,6 +4341,8 @@ export default function EduAIMusicPlayer({
           }
         }
         @media (prefers-reduced-motion: reduce) {
+          .cyber-dj-parallax,
+          .cyber-dj-aura,
           .rhythm-pentagon,
           .cyber-hero-rings,
           .cyber-hero-streak,
