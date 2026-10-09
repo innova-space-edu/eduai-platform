@@ -68,6 +68,9 @@ jobs:
       - name: TypeScript
         run: npx tsc --noEmit
 
+      - name: Claw document indexing
+        run: npx tsx scripts/test-claw-document-indexing.ts
+
       - name: Brain AI shadow routing
         run: npx tsx scripts/test-brain-ai.ts
 

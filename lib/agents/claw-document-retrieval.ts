@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import type { createClient } from "@/lib/supabase/server";
 
 type Supabase = Awaited<ReturnType<typeof createClient>>;
 export type IndexedAttachment = { id: string; name: string; kind: string };
