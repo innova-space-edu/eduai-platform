@@ -2,6 +2,7 @@ import { randomUUID } from "crypto"
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { createClient } from "@/lib/supabase/server"
 import { normalizeChatText } from "@/lib/text/normalize-chat-text"
+import { STORAGE_BUCKET, ensurePaperProcessed } from "@/lib/papers/extraction"
 
 export const runtime = "nodejs"
 export const maxDuration = 120
@@ -286,9 +287,28 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(await file.arrayBuffer())
     const mimeType = String(file.type || "").toLowerCase()
 
+    // Reuse ChatPaper indexing; do not send the whole PDF back to the browser.
+    if (ext === "pdf" || mimeType === "application/pdf") {
+      const filePath = `${user.id}/${randomUUID()}-${name.replace(/[^a-zA-Z0-9._-]/g, "-").slice(0,100)}`
+      const { error: uploadError } = await supabase.storage
+        .from(STORAGE_BUCKET).upload(filePath, buffer, { contentType: "application/pdf", upsert: false })
+      if (uploadError) return Response.json({ error: `No se pudo guardar en Paper: ${uploadError.message}` }, { status: 500 })
+      const paper = await ensurePaperProcessed({
+        supabase, userId: user.id, bucket: STORAGE_BUCKET, filePath, filename: name,
+      })
+      if (!paper.documentId || !paper.chunks?.length) {
+        return Response.json({ error: "El PDF se guardó, pero no fue posible indexar sus fragmentos." }, { status: 422 })
+      }
+      return Response.json({
+        id: randomUUID(), name, mimeType: "application/pdf", size: file.size,
+        kind: "paper-reference", filePath, documentId: paper.documentId,
+        text: "", chars: 0, pages: paper.pageCount, chunks: paper.chunks.length, warnings: [],
+      })
+    }
+
     let result: { text: string; warnings: string[]; kind: string }
 
-    if (ext === "pdf" || mimeType === "application/pdf") {
+    if (false) {
       result = await parsePdf(buffer)
     } else if (ext === "docx" || mimeType.includes("wordprocessingml")) {
       result = await parseDocx(buffer)
