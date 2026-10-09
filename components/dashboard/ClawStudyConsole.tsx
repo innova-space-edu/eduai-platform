@@ -52,6 +52,8 @@ type ChatAttachment = {
   text: string
   chars: number
   warnings: string[]
+  filePath?: string
+  documentId?: string
 }
 
 type Props = {
@@ -275,6 +277,8 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
           text: String(data.text || ""),
           chars: Number(data.chars || String(data.text || "").length),
           warnings: Array.isArray(data.warnings) ? data.warnings.map(String) : [],
+          filePath: typeof data.filePath === "string" ? data.filePath : undefined,
+          documentId: typeof data.documentId === "string" ? data.documentId : undefined,
         }
         setAttachments((current) => [...current, attachment].slice(0, MAX_CHAT_ATTACHMENTS))
       }
@@ -286,13 +290,15 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
     }
   }
 
-  const activeAttachmentPayload = attachments.map(({ id, name, mimeType, kind, text, warnings }) => ({
+  const activeAttachmentPayload = attachments.map(({ id, name, mimeType, kind, text, warnings, filePath, documentId }) => ({
     id,
     name,
     mimeType,
     kind,
-    text,
+    text: kind === "paper-reference" ? "" : text.slice(0, 12000),
     warnings,
+    filePath,
+    documentId,
   }))
 
   const replaceChatMessages = (nextMessages: Message[]) => {

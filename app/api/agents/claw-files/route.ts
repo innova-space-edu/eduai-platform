@@ -2,6 +2,7 @@ import { randomUUID } from "crypto"
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { createClient } from "@/lib/supabase/server"
 import { normalizeChatText } from "@/lib/text/normalize-chat-text"
+import { STORAGE_BUCKET, ensurePaperProcessed } from "@/lib/papers/extraction"
 
 export const runtime = "nodejs"
 export const maxDuration = 120
@@ -102,42 +103,6 @@ Devuelve Markdown limpio y legible:
       warning: `No se pudo completar el análisis visual: ${error instanceof Error ? error.message : "error desconocido"}`,
     }
   }
-}
-
-async function parsePdf(buffer: Buffer) {
-  const warnings: string[] = []
-  let text = ""
-
-  try {
-    const pdfModule: any = await import("pdf-parse")
-    const PDFParseCtor = pdfModule.PDFParse
-
-    if (typeof PDFParseCtor === "function") {
-      const parser: any = new PDFParseCtor({ data: new Uint8Array(buffer) })
-      try {
-        const result = await parser.getText()
-        text = String(result?.text || result || "")
-      } finally {
-        if (typeof parser.destroy === "function") await parser.destroy().catch(() => undefined)
-      }
-    } else if (typeof pdfModule.default === "function") {
-      const result = await pdfModule.default(buffer)
-      text = String(result?.text || "")
-    }
-  } catch (error) {
-    warnings.push(`Extracción PDF local incompleta: ${error instanceof Error ? error.message : "error"}`)
-  }
-
-  if (buffer.byteLength <= MAX_VISUAL_BYTES) {
-    const visual = await extractVisualInformation(
-      [{ bytes: buffer, mimeType: "application/pdf", label: "PDF completo" }],
-      "Analiza este PDF como material adjunto de una conversación educativa.",
-    )
-    if (visual.warning) warnings.push(visual.warning)
-    if (visual.text) text = [text.trim(), "ANÁLISIS VISUAL Y CONTENIDO DEL PDF", visual.text].filter(Boolean).join("\n\n")
-  }
-
-  return { text: text.slice(0, MAX_EXTRACTED_CHARS), warnings, kind: "pdf" }
 }
 
 async function parseDocx(buffer: Buffer) {
@@ -286,11 +251,28 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(await file.arrayBuffer())
     const mimeType = String(file.type || "").toLowerCase()
 
+    // Reuse ChatPaper indexing; do not send the whole PDF back to the browser.
+    if (ext === "pdf" || mimeType === "application/pdf") {
+      const filePath = `${user.id}/${randomUUID()}-${name.replace(/[^a-zA-Z0-9._-]/g, "-").slice(0,100)}`
+      const { error: uploadError } = await supabase.storage
+        .from(STORAGE_BUCKET).upload(filePath, buffer, { contentType: "application/pdf", upsert: false })
+      if (uploadError) return Response.json({ error: `No se pudo guardar en Paper: ${uploadError.message}` }, { status: 500 })
+      const paper = await ensurePaperProcessed({
+        supabase, userId: user.id, bucket: STORAGE_BUCKET, filePath, filename: name,
+      })
+      if (!paper.documentId || !paper.chunks?.length) {
+        return Response.json({ error: "El PDF se guardó, pero no fue posible indexar sus fragmentos." }, { status: 422 })
+      }
+      return Response.json({
+        id: randomUUID(), name, mimeType: "application/pdf", size: file.size,
+        kind: "paper-reference", filePath, documentId: paper.documentId,
+        text: "", chars: 0, pages: paper.pageCount, chunks: paper.chunks.length, warnings: [],
+      })
+    }
+
     let result: { text: string; warnings: string[]; kind: string }
 
-    if (ext === "pdf" || mimeType === "application/pdf") {
-      result = await parsePdf(buffer)
-    } else if (ext === "docx" || mimeType.includes("wordprocessingml")) {
+    if (ext === "docx" || mimeType.includes("wordprocessingml")) {
       result = await parseDocx(buffer)
     } else if (ext === "xlsx" || ext === "xls" || mimeType.includes("spreadsheet") || mimeType.includes("excel")) {
       result = await parseWorkbook(buffer)
