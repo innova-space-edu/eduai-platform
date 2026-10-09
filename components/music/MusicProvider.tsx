@@ -101,6 +101,7 @@ type MusicContextValue = {
   baseTracks: EduMusicTrack[];
   allTracks: EduMusicTrack[];
   liked: Set<string>;
+  favoriteSyncStatus: "local" | "syncing" | "synced";
   createOpen: boolean;
   setCreateOpen: (value: boolean | ((prev: boolean) => boolean)) => void;
   newPlaylistName: string;
@@ -141,6 +142,12 @@ declare global {
 }
 
 const STORAGE_KEY = "eduai_music_player_v60";
+const FAVORITES_RECOVERY_VERSION = "eduai_music_favorites_recovered_v1";
+const FAVORITES_BACKUP_KEY = "eduai_music_favorites_backup_v1";
+const FAVORITES_CLOUD_TABLE = "eduai_music_favorites";
+const FAVORITES_IMPORT_PREFIX = "eduai_music_favorites_imported_v1_";
+const FAVORITES_LEGACY_OWNER_KEY = "eduai_music_favorites_legacy_owner_v1";
+const FAVORITES_PENDING_PREFIX = "eduai_music_favorites_pending_v1_";
 const MUSIC_STORAGE_BUCKET = "multimedia-projects";
 const MUSIC_LIBRARY_FOLDER = "music-library";
 const EMPTY_MUSIC_TRACK: EduMusicTrack = {
@@ -161,14 +168,105 @@ const MusicContext = createContext<MusicContextValue | null>(null);
 let youtubeApiPromise: Promise<void> | null = null;
 let hlsScriptPromise: Promise<void> | null = null;
 
-function safeReadState(): StoredState {
-  if (typeof window === "undefined") return {};
+function parseStoredState(value: string | null): StoredState {
+  if (!value) return {};
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
+    const result = JSON.parse(value);
+    return result && typeof result === "object" && !Array.isArray(result) ? result as StoredState : {};
   } catch {
     return {};
   }
 }
+
+function safeFavoriteTrack(track: unknown): EduMusicTrack | null {
+  if (!track || typeof track !== "object") return null;
+  const value = track as Partial<EduMusicTrack>;
+  if (typeof value.id !== "string" || !value.id || typeof value.title !== "string") return null;
+  return {
+    ...value,
+    id: value.id,
+    title: value.title,
+    artist: typeof value.artist === "string" ? value.artist : "Artista desconocido",
+    album: typeof value.album === "string" ? value.album : "Canción guardada",
+    mood: value.mood || "creative",
+    duration: typeof value.duration === "string" ? value.duration : "--:--",
+    src: typeof value.src === "string" ? value.src : "",
+    cover: typeof value.cover === "string" ? value.cover : "",
+    tags: Array.isArray(value.tags) ? value.tags.filter((tag): tag is string => typeof tag === "string") : [],
+  } as EduMusicTrack;
+}
+
+function fallbackFavoriteTrack(id: string): EduMusicTrack {
+  // Canciones antiguas podían guardar solo el ID, sin título ni metadatos.
+  // Reconstruimos el enlace y portada sin inventar el nombre del video.
+  const match = /^youtube-([A-Za-z0-9_-]{11})$/.exec(id);
+  const videoId = match?.[1];
+  return {
+    id, title: videoId ? "Vídeo guardado de YouTube" : "Canción guardada",
+    artist: "Metadatos no disponibles", album: "Favorito recuperado",
+    mood: "creative", duration: "--:--", src: "",
+    cover: videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : "linear-gradient(135deg,#06121f,#43145f)",
+    artworkUrl: videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : undefined,
+    videoThumbnail: videoId ? `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg` : undefined,
+    youtubeVideoId: videoId,
+    externalUrl: videoId ? `https://www.youtube.com/watch?v=${videoId}` : undefined,
+    source: videoId ? "youtube" : "external", tags: ["favorito", "recuperado"],
+  };
+}
+
+function safeReadState(): StoredState {
+  if (typeof window === "undefined") return {};
+  const storage = window.localStorage;
+  const current = parseStoredState(storage.getItem(STORAGE_KEY));
+  if (storage.getItem(FAVORITES_RECOVERY_VERSION) === "1") return current;
+
+  // El cambio de versiones no debe ocultar favoritos guardados previamente.
+  const prior: StoredState[] = [parseStoredState(storage.getItem(FAVORITES_BACKUP_KEY)), current];
+  for (let index = 0; index < storage.length; index += 1) {
+    const key = storage.key(index);
+    if (key?.startsWith("eduai_music_player_v") && key !== STORAGE_KEY) {
+      prior.push(parseStoredState(storage.getItem(key)));
+    }
+  }
+
+  const ids = unique(prior.flatMap((state) => [
+    ...(Array.isArray(state.likedTrackIds) ? state.likedTrackIds.filter((id): id is string => typeof id === "string") : []),
+    ...(Array.isArray(state.likedTracks) ? state.likedTracks.map((track) => track?.id).filter((id): id is string => typeof id === "string") : []),
+  ]));
+  const tracks = new Map<string, EduMusicTrack>();
+  for (const state of prior) {
+    for (const track of [...(state.onlineTracks || []), ...(state.likedTracks || [])]) {
+      const safe = safeFavoriteTrack(track);
+      if (safe && ids.includes(safe.id)) tracks.set(safe.id, sanitizeStoredTrack(safe));
+    }
+  }
+  const recovered = {
+    ...current,
+    likedTrackIds: ids,
+    likedTracks: ids.map((id) => tracks.get(id) || fallbackFavoriteTrack(id)),
+  };
+  // Archivo de respaldo local: nunca borrar favoritos antiguos para migrarlos.
+  try {
+    storage.setItem(FAVORITES_BACKUP_KEY, JSON.stringify({
+      likedTrackIds: recovered.likedTrackIds,
+      likedTracks: recovered.likedTracks,
+    }));
+    storage.setItem(FAVORITES_RECOVERY_VERSION, "1");
+  } catch {}
+  return recovered;
+}
+
+type PendingFavoriteChange = { op: "add" | "remove"; trackId: string; track?: EduMusicTrack };
+
+function pendingKey(userId: string) { return `${FAVORITES_PENDING_PREFIX}${userId}`; }
+function readPending(userId: string): PendingFavoriteChange[] {
+  try {
+    const raw = JSON.parse(localStorage.getItem(pendingKey(userId)) || "[]");
+    return Array.isArray(raw) ? raw.filter((x): x is PendingFavoriteChange =>
+      x?.trackId && (x.op === "add" || x.op === "remove")) : [];
+  } catch { return []; }
+}
+
 
 function unique(ids: string[]) {
   return Array.from(new Set(ids.filter(Boolean)));
@@ -344,6 +442,72 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const [currentTime, setCurrentTime] = useState(0);
   const [durationSeconds, setDurationSeconds] = useState(0);
   const supabase = useMemo(() => createClient(), []);
+  const favoriteCloudUserRef = useRef<string | null>(null);
+  const favoriteCloudFlushingRef = useRef(false);
+  const favoriteLocalRevisionRef = useRef(0);
+  const [favoriteSyncStatus, setFavoriteSyncStatus] = useState<"local" | "syncing" | "synced">("local");
+
+  const flushFavoriteChanges = useCallback(async (userId: string) => {
+    if (favoriteCloudFlushingRef.current) return false;
+    favoriteCloudFlushingRef.current = true;
+    try {
+      while (true) {
+        const pending = readPending(userId);
+        if (!pending.length) break;
+        const change = pending[0];
+        const request = change.op === "add"
+          ? supabase.from(FAVORITES_CLOUD_TABLE).upsert({
+              user_id: userId, track_id: change.trackId,
+              track: change.track || fallbackFavoriteTrack(change.trackId),
+            }, { onConflict: "user_id,track_id" })
+          : supabase.from(FAVORITES_CLOUD_TABLE).delete()
+              .eq("user_id", userId).eq("track_id", change.trackId);
+        const { error } = await request;
+        if (error) return false;
+        // No perder un nuevo clic que se haya encolado durante la petición.
+        const latest = readPending(userId);
+        if (latest[0]?.trackId === change.trackId && latest[0]?.op === change.op) {
+          latest.shift();
+          localStorage.setItem(pendingKey(userId), JSON.stringify(latest));
+        }
+      }
+      return true;
+    } catch { return false; }
+    finally { favoriteCloudFlushingRef.current = false; }
+  }, [supabase]);
+
+  const queueFavoriteChange = useCallback((change: PendingFavoriteChange) => {
+    favoriteLocalRevisionRef.current += 1;
+    if (typeof window === "undefined") return;
+    const persistChange = (userId: string) => {
+      try {
+        const pending = readPending(userId);
+        pending.push(change);
+        localStorage.setItem(pendingKey(userId), JSON.stringify(pending));
+        setFavoriteSyncStatus("syncing");
+        void flushFavoriteChanges(userId).then((success) => {
+          setFavoriteSyncStatus(success ? "synced" : "local");
+        });
+      } catch {
+        setFavoriteSyncStatus("local");
+      }
+    };
+
+    const knownUser = favoriteCloudUserRef.current;
+    if (knownUser) {
+      persistChange(knownUser);
+    } else {
+      // Guardar cambios durante la primera autenticación sin perder el clic.
+      void supabase.auth.getUser().then(({ data }) => {
+        if (data.user) {
+          favoriteCloudUserRef.current = data.user.id;
+          persistChange(data.user.id);
+        } else {
+          setFavoriteSyncStatus("local");
+        }
+      }).catch(() => setFavoriteSyncStatus("local"));
+    }
+  }, [flushFavoriteChanges, supabase]);
 
   const refreshUploadedAudios = useCallback(async () => {
     setAudioUploadLoading(true);
@@ -438,11 +602,12 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       ...onlineTracks,
       ...uploadedTracks,
     ].forEach((track) => {
-      if (track.source === "youtube" && track.youtubeVideoId && failedYouTubeIds.includes(track.youtubeVideoId)) return;
+      // Fallar en reproducción nunca debe borrar una canción marcada como favorita.
+      if (track.source === "youtube" && track.youtubeVideoId && failedYouTubeIds.includes(track.youtubeVideoId) && !likedTrackIds.includes(track.id)) return;
       byId.set(track.id, track);
     });
     return Array.from(byId.values());
-  }, [failedYouTubeIds, likedTrackSnapshots, onlineTracks, uploadedTracks]);
+  }, [failedYouTubeIds, likedTrackIds, likedTrackSnapshots, onlineTracks, uploadedTracks]);
 
   const radioTracks = useMemo(
     () => allTracks.filter((track) => track.source === "radio"),
@@ -461,14 +626,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     if (stored.playlistId) setSelectedPlaylistId(stored.playlistId);
     if (stored.likedTrackIds) setLikedTrackIds(stored.likedTrackIds);
     if (stored.likedTracks?.length) {
-      setLikedTrackSnapshots(stored.likedTracks.map(sanitizeStoredTrack).slice(0, 200));
+      setLikedTrackSnapshots(stored.likedTracks.map(sanitizeStoredTrack).slice(0, 2000));
     } else if (stored.likedTrackIds?.length && stored.onlineTracks?.length) {
       const likedIds = new Set(stored.likedTrackIds);
       setLikedTrackSnapshots(
         stored.onlineTracks
           .map(sanitizeStoredTrack)
           .filter((track) => likedIds.has(track.id))
-          .slice(0, 200),
+          .slice(0, 2000),
       );
     }
     if (stored.userPlaylists) setUserPlaylists(stored.userPlaylists);
@@ -494,6 +659,89 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     if (stored.hasActiveSession) setHasActiveSession(true);
     setHydrated(true);
   }, []);
+
+  // Migra una sola vez la biblioteca local anterior y, después, utiliza la
+  // copia privada por usuario en Supabase. Si la tabla aún no existe,
+  // conservamos intacta la copia local (sin sobrescribirla con una lista vacía).
+  const syncCloudFavorites = useCallback(async () => {
+    if (!hydrated || typeof window === "undefined") return;
+    setFavoriteSyncStatus("syncing");
+    try {
+      const { data: auth } = await supabase.auth.getUser();
+      const userId = auth.user?.id;
+      if (!userId) { setFavoriteSyncStatus("local"); return; }
+      favoriteCloudUserRef.current = userId;
+      const revisionAtStart = favoriteLocalRevisionRef.current;
+
+      const { data: remote, error } = await supabase
+        .from(FAVORITES_CLOUD_TABLE).select("track_id,track").eq("user_id", userId).limit(2000);
+      if (error) { setFavoriteSyncStatus("local"); return; }
+
+      const importKey = `${FAVORITES_IMPORT_PREFIX}${userId}`;
+      const local = safeReadState();
+      const imported = localStorage.getItem(importKey) === "1";
+      const existingLegacyOwner = localStorage.getItem(FAVORITES_LEGACY_OWNER_KEY);
+      // La biblioteca local anterior no identificaba al propietario:
+      // solo puede importarse a la primera cuenta asociada a este navegador.
+      if (!imported && (!existingLegacyOwner || existingLegacyOwner === userId)) {
+        const storedIds = local.likedTrackIds || [];
+        const storedTracks = new Map((local.likedTracks || []).map((track) => [track.id, track]));
+        const rows = storedIds
+          .filter((id) => typeof id === "string" && id)
+          .filter((id) => !remote?.some((row) => row.track_id === id))
+          .map((id) => ({ user_id: userId, track_id: id, track: storedTracks.get(id) || fallbackFavoriteTrack(id) }));
+        if (rows.length) {
+          const { error: importError } = await supabase.from(FAVORITES_CLOUD_TABLE)
+            .upsert(rows, { onConflict: "user_id,track_id" });
+          if (importError) { setFavoriteSyncStatus("local"); return; }
+        }
+        localStorage.setItem(importKey, "1");
+        if (!existingLegacyOwner) localStorage.setItem(FAVORITES_LEGACY_OWNER_KEY, userId);
+      } else if (!imported && existingLegacyOwner !== userId) {
+        // No transferir canciones privadas de una cuenta a otra.
+        localStorage.setItem(importKey, "1");
+      }
+
+      if (!(await flushFavoriteChanges(userId))) {
+        setFavoriteSyncStatus("local");
+        return;
+      }
+      const { data: saved, error: refreshError } = await supabase
+        .from(FAVORITES_CLOUD_TABLE).select("track_id,track").eq("user_id", userId).limit(2000);
+      if (refreshError) { setFavoriteSyncStatus("local"); return; }
+
+      // Si hubo clics durante la carga, no sustituir el estado más reciente.
+      const remoteRows = saved || [];
+      if (favoriteLocalRevisionRef.current !== revisionAtStart) {
+        // Un clic mientras se cargaba la biblioteca tiene prioridad
+        // sobre los resultados anteriores de la nube.
+        setFavoriteSyncStatus(readPending(userId).length ? "syncing" : "synced");
+        return;
+      }
+      const ids = unique(remoteRows.map((row) => row.track_id).filter(Boolean));
+      const tracks = remoteRows.map((row) =>
+        sanitizeStoredTrack(safeFavoriteTrack(row.track) || fallbackFavoriteTrack(row.track_id)));
+      setLikedTrackIds(ids);
+      setLikedTrackSnapshots(tracks);
+      setFavoriteSyncStatus("synced");
+    } catch {
+      setFavoriteSyncStatus("local");
+    }
+  }, [flushFavoriteChanges, hydrated, supabase]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    void syncCloudFavorites();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void syncCloudFavorites();
+    };
+    window.addEventListener("focus", onVisible);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", onVisible);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [hydrated, syncCloudFavorites]);
 
   const playlists = useMemo(() => {
     const likedPlaylist: EduMusicPlaylist = {
@@ -589,7 +837,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       playlistId: selectedPlaylistId,
       volume,
       likedTrackIds,
-      likedTracks: likedTrackSnapshots.slice(0, 200),
+      likedTracks: likedTrackSnapshots.slice(0, 2000),
       userPlaylists,
       onlineTracks: onlineTracks.slice(0, 60),
       onlineQuery,
@@ -602,7 +850,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       repeat,
       hasActiveSession,
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem(FAVORITES_BACKUP_KEY, JSON.stringify({
+        likedTrackIds, likedTracks: likedTrackSnapshots.slice(0, 2000),
+      }));
+    } catch (error) {
+      console.warn("[EDUAI Music] No se pudo guardar favoritos en navegador", error);
+    }
   }, [
     hydrated,
     currentId,
@@ -1127,16 +1382,19 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const toggleLike = useCallback((id: string) => {
     const alreadyLiked = likedTrackIds.includes(id);
-    const track = getTrack(id);
+    const track = getTrack(id) || fallbackFavoriteTrack(id);
     setLikedTrackIds((prev) =>
       alreadyLiked ? prev.filter((trackId) => trackId !== id) : unique([...prev, id]),
     );
-    if (alreadyLiked) {
-      setLikedTrackSnapshots((prev) => prev.filter((item) => item.id !== id));
-    } else if (track) {
-      setLikedTrackSnapshots((prev) => [track, ...prev.filter((item) => item.id !== id)].slice(0, 200));
-    }
-  }, [getTrack, likedTrackIds]);
+    setLikedTrackSnapshots((prev) =>
+      alreadyLiked ? prev.filter((item) => item.id !== id)
+        : [track, ...prev.filter((item) => item.id !== id)].slice(0, 2000),
+    );
+    queueFavoriteChange({
+      op: alreadyLiked ? "remove" : "add", trackId: id,
+      ...(!alreadyLiked ? { track } : {}),
+    });
+  }, [getTrack, likedTrackIds, queueFavoriteChange]);
 
   const createPlaylist = useCallback(() => {
     const name = newPlaylistName.trim();
@@ -1159,7 +1417,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const addToPlaylist = useCallback((playlistId: string, trackId: string) => {
     if (playlistId === "pl-liked") {
+      const track = getTrack(trackId) || fallbackFavoriteTrack(trackId);
       setLikedTrackIds((prev) => (prev.includes(trackId) ? prev : [...prev, trackId]));
+      setLikedTrackSnapshots((prev) => [track, ...prev.filter((item) => item.id !== trackId)].slice(0, 2000));
+      queueFavoriteChange({ op: "add", trackId, track });
       setPendingTrackId(null);
       return;
     }
@@ -1171,11 +1432,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       ),
     );
     setPendingTrackId(null);
-  }, []);
+  }, [getTrack, queueFavoriteChange]);
 
   const removeFromPlaylist = useCallback((playlistId: string, trackId: string) => {
     if (playlistId === "pl-liked") {
       setLikedTrackIds((prev) => prev.filter((id) => id !== trackId));
+      setLikedTrackSnapshots((prev) => prev.filter((item) => item.id !== trackId));
+      queueFavoriteChange({ op: "remove", trackId });
       return;
     }
     setUserPlaylists((prev) =>
@@ -1185,7 +1448,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           : playlist,
       ),
     );
-  }, []);
+  }, [queueFavoriteChange]);
 
   const deletePlaylist = useCallback(
     (playlistId: string) => {
@@ -1418,6 +1681,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     baseTracks,
     allTracks,
     liked,
+    favoriteSyncStatus,
     createOpen,
     setCreateOpen,
     newPlaylistName,
