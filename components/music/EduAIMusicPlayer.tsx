@@ -2338,7 +2338,7 @@ function NeonTrackTable({ tracks }: { tracks: EduMusicTrack[] }) {
       aria-label="Lista desplazable de canciones"
       tabIndex={0}
     >
-      <div className="neon-track-header sticky top-0 z-10 grid grid-cols-[34px_minmax(0,1.4fr)_minmax(90px,.8fr)_minmax(90px,.8fr)_58px_38px] bg-[#03101c]/95 backdrop-blur-sm" items-center gap-2 px-2 pb-1 text-[8px] font-black uppercase tracking-[.16em] text-slate-500">
+      <div className="neon-track-header sticky top-0 z-10 grid grid-cols-[34px_minmax(0,1.4fr)_minmax(90px,.8fr)_minmax(90px,.8fr)_58px_38px] items-center gap-2 bg-[#03101c]/95 px-2 pb-1 text-[8px] font-black uppercase tracking-[.16em] text-slate-500 backdrop-blur-sm">
         <span>#</span>
         <span>Título</span>
         <span>Artista</span>
