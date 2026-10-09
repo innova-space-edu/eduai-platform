@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { indexClawText } from "../lib/agents/claw-document-chunks";
 import { loadClawDocumentContext } from "../lib/agents/claw-document-retrieval";
 
+async function main() {
 const sample = Array.from({length:35},(_,i) =>
   `### Sección ${i+1}\n${(`La protección de datos requiere medidas y registros. Párrafo ${i+1}. `).repeat(28)}`).join("\n\n");
 const indexed = indexClawText(sample);
@@ -57,3 +58,5 @@ await assert.rejects(loadClawDocumentContext({
 }), /no está disponible para esta cuenta/);
 
 console.log("Claw document indexing: fragmentación, selección lexical, límite de contexto y aislamiento OK");
+}
+void main().catch((error) => { console.error(error); process.exitCode = 1 });
