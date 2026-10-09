@@ -54,22 +54,36 @@ export async function loadClawDocumentContext(params: {
   const blocks: string[] = [];
   for (const attachment of attachments.slice(0, 6)) {
     const isPaper = attachment.kind === "paper";
-    const docTable = isPaper ? "paper_documents" : "claw_documents";
-    const chunkTable = isPaper ? "paper_chunks" : "claw_document_chunks";
-    const { data: doc, error: docError } = await supabase.from(docTable)
-      .select(isPaper ? "id,title,summary,page_count" : "id,name,kind,chunk_count")
-      .eq("id",attachment.id).eq("user_id",userId).maybeSingle();
-    if (docError) throw new Error("No se pudo acceder al índice documental. Revisa la configuración de Supabase.");
-    if (!doc) throw new Error("El adjunto no está disponible para esta cuenta. Vuelve a adjuntarlo.");
-    const { data: rows, error: chunkError } = await supabase.from(chunkTable)
-      .select(isPaper ? "chunk_index,content,section_title,page_start,page_end,lexical_hint" : "chunk_index,content,section_title")
-      .eq("document_id",attachment.id).eq("user_id",userId)
-      .order("chunk_index",{ascending:true}).limit(500);
-    if (chunkError) throw new Error("No se pudieron consultar los fragmentos del archivo.");
-    const chunks = (rows || []) as DocumentChunk[];
-    const title = isPaper ? String(doc.title || attachment.name) : String(doc.name || attachment.name);
+    let title = attachment.name;
+    let overview = "";
+    let chunks: DocumentChunk[] = [];
+    if (isPaper) {
+      const { data: doc, error: docError } = await supabase.from("paper_documents")
+        .select("title,summary").eq("id", attachment.id).eq("user_id", userId).maybeSingle();
+      if (docError) throw new Error("No se pudo consultar el documento PDF.");
+      if (!doc) throw new Error("Este PDF no está disponible para esta cuenta. Vuelve a adjuntarlo.");
+      title = doc.title || attachment.name;
+      overview = doc.summary ? `Resumen de extracción: ${String(doc.summary).slice(0,550)}\n` : "";
+      const { data: found, error: chunkError } = await supabase.from("paper_chunks")
+        .select("chunk_index,content,section_title,page_start,page_end,lexical_hint")
+        .eq("document_id",attachment.id).eq("user_id",userId)
+        .order("chunk_index",{ascending:true}).limit(500);
+      if (chunkError) throw new Error("No se pudieron consultar los fragmentos del PDF.");
+      chunks = found || [];
+    } else {
+      const { data: doc, error: docError } = await supabase.from("claw_documents")
+        .select("name,kind").eq("id",attachment.id).eq("user_id",userId).maybeSingle();
+      if (docError) throw new Error("No se pudo acceder al índice de Claw en Supabase.");
+      if (!doc) throw new Error("Este adjunto no está disponible para tu cuenta. Vuelve a adjuntarlo.");
+      title = doc.name || attachment.name;
+      const { data: found, error: chunkError } = await supabase.from("claw_document_chunks")
+        .select("chunk_index,content,section_title")
+        .eq("document_id",attachment.id).eq("user_id",userId)
+        .order("chunk_index",{ascending:true}).limit(500);
+      if (chunkError) throw new Error("No se pudieron consultar los fragmentos del adjunto.");
+      chunks = found || [];
+    }
     const head = `ARCHIVO: ${title} [${isPaper ? "PDF Chat Paper" : "Documento Claw"}]`;
-    const overview = isPaper && doc.summary ? `Resumen de extracción: ${String(doc.summary).slice(0,550)}\n` : "";
     if (remaining < 650) break;
     const selected = chooseChunks(chunks, question);
     let block = head + "\n" + overview;
