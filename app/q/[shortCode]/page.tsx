@@ -2,13 +2,16 @@
 
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
+import { QrCollectionCards } from "@/components/qr/QrCollection"
+import type { QrCollectionLink } from "@/lib/qr/collection"
 
 type SharedResource = {
   title: string
   description: string | null
-  resource_type: "url" | "text" | "notebook" | "creator_project" | "asset"
+  resource_type: "url" | "text" | "notebook" | "creator_project" | "asset" | "collection"
   target_url: string | null
   text_content: string | null
+  link_items: QrCollectionLink[]
   notebook_id: string | null
   visibility: "public" | "authenticated"
   expires_at: string | null
@@ -50,6 +53,7 @@ export default function SharedQrResourcePage() {
                 </a>
               </div>
             )}
+            {resource.resource_type === "collection" && <QrCollectionCards links={resource.link_items ?? []} />}
             {resource.resource_type === "notebook" && resource.notebook_id && (
               <div className="mt-6">
                 <p className="text-muted2 text-sm">Este recurso corresponde a un cuaderno de Chat Paper y mantiene los permisos de acceso de EduAI.</p>
