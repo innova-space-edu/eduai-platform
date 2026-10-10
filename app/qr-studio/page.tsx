@@ -2,9 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { AlertCircle, CheckCircle2, Copy, Download, ExternalLink, Loader2, Plus, QrCode, RefreshCw, Trash2 } from "lucide-react"
+import { QrCollectionEditor } from "@/components/qr/QrCollection"
+import { validateCollectionLinks, type QrCollectionLink } from "@/lib/qr/collection"
+import { AlertCircle, CheckCircle2, Copy, Download, ExternalLink, Loader2, Plus, QrCode, RefreshCw, Trash2, Pencil } from "lucide-react"
 
-type ResourceType = "url" | "text" | "notebook"
+type ResourceType = "url" | "text" | "notebook" | "collection"
 type Visibility = "public" | "authenticated"
 
 type QrResource = {
@@ -19,6 +21,7 @@ type QrResource = {
   visibility: Visibility
   expires_at: string | null
   scan_count: number
+  link_items: QrCollectionLink[]
   created_at: string
 }
 
@@ -55,6 +58,8 @@ export default function QrStudioPage() {
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [targetUrl, setTargetUrl] = useState("")
+  const [collectionLinks, setCollectionLinks] = useState<QrCollectionLink[]>([])
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [textContent, setTextContent] = useState("")
   const [notebookId, setNotebookId] = useState("")
   const [notebookFromUrl, setNotebookFromUrl] = useState("")
@@ -96,10 +101,11 @@ export default function QrStudioPage() {
   const canSubmit = useMemo(() => {
     if (!title.trim()) return false
     if (resourceType === "url") return Boolean(targetUrl.trim())
+    if (resourceType === "collection") return validateCollectionLinks(collectionLinks).error === null
     if (resourceType === "text") return Boolean(textContent.trim())
     if (resourceType === "notebook") return Boolean(notebookId.trim())
     return false
-  }, [notebookId, resourceType, targetUrl, textContent, title])
+  }, [collectionLinks, notebookId, resourceType, targetUrl, textContent, title])
 
   const createResource = async () => {
     if (!canSubmit) return
@@ -108,11 +114,13 @@ export default function QrStudioPage() {
     setCreated(null)
     try {
       const response = await fetch("/api/qr", {
-        method: "POST",
+        method: editingId ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          id: editingId,
           title,
           description,
+          link_items: resourceType === "collection" ? collectionLinks : [],
           resource_type: resourceType,
           target_url: resourceType === "url" ? targetUrl : null,
           text_content: resourceType === "text" ? textContent : null,
@@ -124,6 +132,8 @@ export default function QrStudioPage() {
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || "No se pudo generar el QR")
       setCreated(data)
+      setEditingId(null)
+      setCollectionLinks([])
       setTitle("")
       setDescription("")
       setTargetUrl("")
@@ -136,6 +146,29 @@ export default function QrStudioPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const startEditing = (resource: QrResource) => {
+    if (resource.resource_type !== "collection") return
+    setEditingId(resource.id)
+    setResourceType("collection")
+    setTitle(resource.title)
+    setDescription(resource.description || "")
+    setCollectionLinks(resource.link_items || [])
+    setVisibility(resource.visibility)
+    setExpiresAt(resource.expires_at ? new Date(resource.expires_at).toLocaleString("sv-SE").replace(" ", "T").slice(0, 16) : "")
+    setCreated(null)
+    setError("")
+    window.scrollTo({ top: 0, behavior: "smooth" })
+  }
+
+  const cancelEditing = () => {
+    setEditingId(null)
+    setTitle("")
+    setDescription("")
+    setCollectionLinks([])
+    setExpiresAt("")
+    setError("")
   }
 
   const deleteResource = async (resource: QrResource) => {
@@ -186,16 +219,17 @@ export default function QrStudioPage() {
         <section className="rounded-3xl border border-soft p-5" style={{ background: "var(--bg-card-soft)" }}>
           <div className="flex items-center gap-2 mb-5">
             <Plus size={17} className="text-blue-400" />
-            <h2 className="text-main font-semibold">Crear nuevo QR</h2>
+            <h2 className="text-main font-semibold">{editingId ? "Editar colección (conserva el QR)" : "Crear nuevo QR"}</h2>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
             {([
               ["url", "🔗 Enlace"],
               ["text", "📝 Texto"],
               ["notebook", "📓 Chat Paper"],
+              ["collection", "🔗 Colección"],
             ] as Array<[ResourceType, string]>).map(([id, label]) => (
-              <button key={id} onClick={() => setResourceType(id)}
+              <button key={id} disabled={Boolean(editingId) && id !== "collection"} onClick={() => setResourceType(id)}
                 className="rounded-xl px-3 py-2.5 text-xs font-semibold border transition-all"
                 style={{
                   color: resourceType === id ? "var(--accent-blue)" : "var(--text-muted)",
@@ -217,6 +251,7 @@ export default function QrStudioPage() {
               <input value={targetUrl} onChange={(event) => setTargetUrl(event.target.value)} placeholder="https://..."
                 className="w-full rounded-xl border border-soft bg-transparent px-3 py-2.5 text-sm text-main outline-none" />
             )}
+            {resourceType === "collection" && <QrCollectionEditor links={collectionLinks} onChange={setCollectionLinks} />}
             {resourceType === "text" && (
               <textarea value={textContent} onChange={(event) => setTextContent(event.target.value)} placeholder="Contenido que se mostrará al escanear"
                 rows={7} className="w-full rounded-xl border border-soft bg-transparent px-3 py-2.5 text-sm text-main outline-none resize-y" />
@@ -242,8 +277,9 @@ export default function QrStudioPage() {
               className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white transition-all disabled:opacity-40 flex items-center justify-center gap-2"
               style={{ background: "linear-gradient(135deg,#2563eb,#7c3aed)" }}>
               {loading ? <Loader2 size={16} className="animate-spin" /> : <QrCode size={16} />}
-              Generar QR
+              {editingId ? "Guardar cambios (mismo QR)" : "Generar QR"}
             </button>
+            {editingId && <button type="button" onClick={cancelEditing} className="w-full rounded-xl border border-soft px-4 py-2 text-sm text-sub">Cancelar edición</button>}
           </div>
         </section>
 
@@ -320,6 +356,7 @@ export default function QrStudioPage() {
                         </p>
                       </div>
                       <div className="flex items-center gap-1">
+                        {resource.resource_type === "collection" && <button onClick={() => startEditing(resource)} className="p-1.5 rounded-lg text-blue-400 hover:text-blue-300" title="Editar enlaces sin cambiar el QR" aria-label="Editar colección"><Pencil size={13} /></button>}
                         <button onClick={() => copy(shareUrl)} className="p-1.5 rounded-lg text-muted2 hover:text-main" title="Copiar enlace"><Copy size={13} /></button>
                         <a href={`/api/qr/${resource.short_code}/download`} className="p-1.5 rounded-lg text-muted2 hover:text-main" title="Descargar PNG"><Download size={13} /></a>
                         <a href={shareUrl} target="_blank" rel="noreferrer" className="p-1.5 rounded-lg text-muted2 hover:text-main" title="Abrir"><ExternalLink size={13} /></a>

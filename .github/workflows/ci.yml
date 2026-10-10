@@ -65,6 +65,9 @@ jobs:
           grep -q "lyria-3.5" services/google-audio-gateway/song_gateway.py
           grep -q "gemini-3.8-flash-tts" services/google-audio-gateway/voice_gateway.py
 
+      - name: QR Studio collection tests
+        run: npx tsx scripts/test-qr-collections.ts
+
       - name: TypeScript
         run: npx tsc --noEmit
 

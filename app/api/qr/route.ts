@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createShortCode } from "@/lib/qr/short-code"
 import { buildQrImageUrl } from "@/lib/qr/quickchart"
+import { validateCollectionLinks } from "@/lib/qr/collection"
 
-type ResourceType = "url" | "text" | "notebook"
+type ResourceType = "url" | "text" | "notebook" | "collection"
 type Visibility = "public" | "authenticated"
 
-const ALLOWED_TYPES = new Set<ResourceType>(["url", "text", "notebook"])
+const ALLOWED_TYPES = new Set<ResourceType>(["url", "text", "notebook", "collection"])
 const ALLOWED_VISIBILITY = new Set<Visibility>(["public", "authenticated"])
 
 function publicBaseUrl(request: NextRequest): string {
@@ -22,7 +23,7 @@ async function uniqueShortCode(supabase: Awaited<ReturnType<typeof createClient>
   throw new Error("No se pudo crear un código único")
 }
 
-const QR_SELECT = "id, short_code, title, description, resource_type, target_url, text_content, notebook_id, visibility, expires_at, scan_count, created_at"
+const QR_SELECT = "id, short_code, title, description, resource_type, target_url, text_content, notebook_id, visibility, expires_at, scan_count, created_at, link_items"
 
 export async function GET() {
   const supabase = await createClient()
@@ -79,6 +80,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "URL inválida" }, { status: 400 })
     }
   }
+  const collection = resourceType === "collection" ? validateCollectionLinks(body.link_items) : { links: [], error: null }
+  if (collection.error) return NextResponse.json({ error: collection.error }, { status: 400 })
   if (resourceType === "text" && !textContent) return NextResponse.json({ error: "text_content requerido" }, { status: 400 })
   if (resourceType === "notebook" && !notebookId) return NextResponse.json({ error: "notebook_id requerido" }, { status: 400 })
 
@@ -101,6 +104,7 @@ export async function POST(request: NextRequest) {
       notebook_id: notebookId,
       visibility,
       expires_at: expiresAt,
+      link_items: collection.links,
     })
     .select(QR_SELECT)
     .single()
@@ -109,6 +113,51 @@ export async function POST(request: NextRequest) {
 
   const shareUrl = `${publicBaseUrl(request)}/q/${shortCode}`
   return NextResponse.json({ resource: data, share_url: shareUrl, qr_image_url: buildQrImageUrl(shareUrl) }, { status: 201 })
+}
+
+export async function PATCH(request: NextRequest) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+
+  const body = await request.json().catch(() => ({}))
+  const id = typeof body.id === "string" ? body.id.trim() : ""
+  const title = typeof body.title === "string" ? body.title.trim() : ""
+  const description = typeof body.description === "string" ? body.description.trim() : ""
+  const visibility = body.visibility as Visibility
+  const expiresAtRaw = typeof body.expires_at === "string" ? body.expires_at.trim() : ""
+  const collection = validateCollectionLinks(body.link_items)
+
+  if (!id || !title || title.length > 200 || description.length > 2000) {
+    return NextResponse.json({ error: "Título o identificador no válido" }, { status: 400 })
+  }
+  if (!ALLOWED_VISIBILITY.has(visibility)) {
+    return NextResponse.json({ error: "Visibilidad inválida" }, { status: 400 })
+  }
+  if (collection.error) return NextResponse.json({ error: collection.error }, { status: 400 })
+
+  let expiresAt: string | null = null
+  if (expiresAtRaw) {
+    const expires = new Date(expiresAtRaw)
+    if (Number.isNaN(expires.getTime()) || expires <= new Date()) {
+      return NextResponse.json({ error: "La fecha de vencimiento debe ser válida y futura" }, { status: 400 })
+    }
+    expiresAt = expires.toISOString()
+  }
+
+  const { data, error } = await supabase.from("qr_resources")
+    .update({ title, description: description || null, visibility, expires_at: expiresAt, link_items: collection.links })
+    .eq("id", id)
+    .eq("user_id", user.id)
+    .eq("resource_type", "collection")
+    .select(QR_SELECT)
+    .maybeSingle()
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (!data) return NextResponse.json({ error: "Colección no encontrada o sin permisos" }, { status: 404 })
+
+  const shareUrl = publicBaseUrl(request) + "/q/" + data.short_code
+  return NextResponse.json({ resource: data, share_url: shareUrl, qr_image_url: buildQrImageUrl(shareUrl) })
 }
 
 export async function DELETE(request: NextRequest) {
