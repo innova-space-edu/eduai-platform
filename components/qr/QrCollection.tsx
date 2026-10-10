@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { ArrowDown, ArrowUp, ExternalLink, FileText, Globe, Link2, Music2, PlayCircle, Plus, Trash2, Youtube } from "lucide-react"
-import { getQrLinkPreview, MAX_QR_COLLECTION_LINKS, type QrCollectionLink } from "@/lib/qr/collection"
+import { getQrLinkPreview, MAX_QR_COLLECTION_LINKS, validateCollectionLinks, type QrCollectionLink } from "@/lib/qr/collection"
 
 function Thumbnail({ url }: { url: string }) {
   const preview = getQrLinkPreview(url)
@@ -102,7 +102,7 @@ export function QrCollectionCards({ links }: { links: QrCollectionLink[] }) {
   const [playing, setPlaying] = useState<string | null>(null)
   return (
     <div className="space-y-3 mt-6">
-      {links.map((item) => {
+      {validateCollectionLinks(links).links.map((item) => {
         const preview = getQrLinkPreview(item.url)
         const openPlayer = playing === item.id && preview.videoId
         return (
