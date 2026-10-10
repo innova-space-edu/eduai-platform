@@ -50,16 +50,16 @@ export function getQrLinkPreview(value: string): QrLinkPreview {
   try {
     const url = new URL(value)
     const host = url.hostname.toLowerCase().replace(/^www\./, "")
-    if (host === "youtu.be" || host === "youtube.com" || host === "m.youtube.com" || host === "youtube-nocookie.com") {
+    if (host === "youtu.be" || host === "youtube.com" || host === "m.youtube.com" || host === "music.youtube.com" || host === "youtube-nocookie.com") {
       let id = host === "youtu.be" ? url.pathname.split("/")[1] : url.searchParams.get("v")
       if (!id) {
         const segments = url.pathname.split("/").filter(Boolean)
         if (["shorts", "live", "embed"].includes(segments[0])) id = segments[1]
       }
       if (id && /^[a-zA-Z0-9_-]{11}$/.test(id)) {
-        return { provider: "YouTube", kind: "youtube", videoId: id, thumbnail: "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg" }
+        return { provider: host === "music.youtube.com" ? "YouTube Music" : "YouTube", kind: "youtube", videoId: id, thumbnail: "https://i.ytimg.com/vi/" + id + "/hqdefault.jpg" }
       }
-      return { ...fallback, provider: "YouTube", kind: "youtube" }
+      return { ...fallback, provider: host === "music.youtube.com" ? "YouTube Music" : "YouTube", kind: "youtube" }
     }
     if (host === "spotify.com" || host === "open.spotify.com") return { ...fallback, provider: "Spotify", kind: "spotify" }
     if (host === "drive.google.com" || host === "docs.google.com") return { ...fallback, provider: "Google Drive", kind: "drive" }
