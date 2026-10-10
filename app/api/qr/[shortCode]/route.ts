@@ -9,7 +9,7 @@ export async function GET(_request: NextRequest, { params }: Params) {
 
   const { data: resource, error } = await supabase
     .from("qr_resources")
-    .select("id, short_code, title, description, resource_type, target_url, text_content, notebook_id, creator_project_id, asset_id, visibility, expires_at, scan_count, created_at")
+    .select("id, short_code, title, description, resource_type, target_url, text_content, notebook_id, creator_project_id, asset_id, visibility, expires_at, scan_count, created_at, link_items")
     .eq("short_code", shortCode.toUpperCase())
     .maybeSingle()
 
