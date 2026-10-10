@@ -75,7 +75,7 @@ export function QrCollectionEditor({ links, onChange }: { links: QrCollectionLin
               <Thumbnail url={item.url} />
               <div className="flex-1 min-w-0">
                 <p className="text-[11px] text-muted2 truncate">{getQrLinkPreview(item.url).provider} · Enlace {index + 1}</p>
-                <p className="text-xs text-sub break-all line-clamp-2" title={item.url}>{item.url}</p>
+                <input aria-label={"URL del enlace " + (index + 1)} value={item.url} onChange={(event) => update(item.id, { url: event.target.value })} maxLength={4096} title={item.url} className="w-full min-w-0 text-xs text-sub bg-transparent border-b border-soft outline-none" />
               </div>
               <div className="flex gap-0.5 shrink-0">
                 <button type="button" aria-label="Subir enlace" title="Subir" disabled={index === 0} onClick={() => move(index, -1)} className="p-1 text-muted2 disabled:opacity-20"><ArrowUp size={14} /></button>
