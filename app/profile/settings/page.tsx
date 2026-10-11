@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
+import { PrivacyPreferences, EMPTY_OPTIONAL_PRIVACY_CHOICES, PRIVACY_TERMS_VERSION, type OptionalPrivacyChoices } from "@/components/legal/PrivacyConsentPanel"
 
 export default function ProfileSettings() {
   const [user, setUser] = useState<any>(null)
@@ -15,6 +16,10 @@ export default function ProfileSettings() {
   const [confirmPassword, setConfirmPassword] = useState("")
   const [pwError, setPwError] = useState("")
   const [pwSaved, setPwSaved] = useState(false)
+  const [privacyChoices, setPrivacyChoices] = useState<OptionalPrivacyChoices>({ ...EMPTY_OPTIONAL_PRIVACY_CHOICES })
+  const [privacyMinor, setPrivacyMinor] = useState(false)
+  const [privacySaving, setPrivacySaving] = useState(false)
+  const [privacyStatus, setPrivacyStatus] = useState("")
   const router = useRouter()
   const supabase = createClient()
 
@@ -26,6 +31,22 @@ export default function ProfileSettings() {
       setName(user.user_metadata?.name || "")
       setEmail(user.email || "")
       setAvatar(user.user_metadata?.avatar_url || "")
+      const dob = String(user.user_metadata?.birth_date || "")
+      const d = new Date(`${dob}T00:00:00`)
+      const today = new Date()
+      setPrivacyMinor(!dob || Number.isNaN(d.getTime()) || d > new Date(today.getFullYear() - 18, today.getMonth(), today.getDate()))
+      const { data: existing, error: loadError } = await supabase.from("eduai_privacy_choices")
+        .select("ai_generation, ai_documents, ai_voice, optional_analytics")
+        .eq("user_id", user.id).maybeSingle()
+      if (loadError) setPrivacyStatus("Aún no se pudieron cargar tus permisos. Comprueba que la actualización de privacidad esté habilitada.")
+      if (existing) {
+        setPrivacyChoices({
+          ai_generation: existing.ai_generation === true,
+          ai_documents: existing.ai_documents === true,
+          ai_voice: existing.ai_voice === true,
+          optional_analytics: existing.optional_analytics === true,
+        })
+      }
     }
     init()
   }, [])
@@ -47,6 +68,19 @@ export default function ProfileSettings() {
     setNewPassword("")
     setConfirmPassword("")
     setTimeout(() => setPwSaved(false), 3000)
+  }
+
+  async function savePrivacyChoices() {
+    setPrivacyStatus("")
+    setPrivacySaving(true)
+    const { error } = await supabase.rpc("record_eduai_privacy_choices", {
+      p_policy_version: PRIVACY_TERMS_VERSION,
+      p_terms_acknowledged: true,
+      p_data_warning_acknowledged: true,
+      p_choices: privacyMinor ? EMPTY_OPTIONAL_PRIVACY_CHOICES : privacyChoices,
+    })
+    setPrivacySaving(false)
+    setPrivacyStatus(error ? "No fue posible registrar tus preferencias. Contacta soporte si continúa el problema." : "Preferencias actualizadas. Puedes revocar los permisos opcionales cuando lo necesites.")
   }
 
   const AVATARS = ["🧑‍🎓","👩‍🎓","🧑‍🏫","👩‍🏫","🧑‍💻","👩‍💻","🧑‍🔬","👩‍🔬","🦊","🐼","🦁","🐯","🌟","🚀","🎯","🏆"]
@@ -169,6 +203,18 @@ export default function ProfileSettings() {
             onMouseEnter={e => !e.currentTarget.disabled && (e.currentTarget.style.background = "#1d4ed8")}
             onMouseLeave={e => (e.currentTarget.style.background = "var(--accent-blue)")}>
             Cambiar contraseña
+          </button>
+        </div>
+
+        {/* Preferencias de tratamiento opcional */}
+        <div className="rounded-2xl p-5 border" style={{ background: "var(--bg-card)", borderColor: "var(--border-soft)" }}>
+          <h2 className="text-main font-medium text-sm mb-3">Privacidad y permisos de herramientas</h2>
+          <p className="mb-4 text-xs leading-5 text-sub">Consulta las finalidades y cambia tus permisos. Los tratamientos necesarios para mantener la cuenta se rigen por las condiciones del servicio y las bases legales aplicables.</p>
+          <PrivacyPreferences value={privacyChoices} onChange={setPrivacyChoices} minorRestricted={privacyMinor} />
+          {privacyStatus && <p className="mt-3 text-xs text-sub" role="status">{privacyStatus}</p>}
+          <button type="button" onClick={savePrivacyChoices} disabled={privacySaving || !user}
+            className="mt-4 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white disabled:opacity-40">
+            {privacySaving ? "Guardando..." : "Guardar preferencias y revocaciones"}
           </button>
         </div>
 
