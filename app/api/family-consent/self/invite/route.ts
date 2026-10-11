@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
    const expiry = new Date(Date.now()+7*86400000).toISOString()
    const {data:created,error:createError} = await db.from("family_authorization_requests")
      .insert({student_user_id:user.id,platform:PLATFORM,
-       institution_name: PLATFORM==="sello"?"Colegio Providencia":"Innova Space Edu SpA",
+       institution_name: "Innova Space Edu SpA",
        guardian_email:email,token_sha256:tokenHash,document_version:FAMILY_CONSENT_VERSION,
        status:"invited",expires_at:expiry,issued_by:user.id,
      }).select("id").single()
