@@ -24,7 +24,7 @@ export default function PrivacyPage() {
       eyebrow="Privacidad y datos personales"
       title="Política de privacidad de EduAI"
       summary="Esta política explica qué información puede tratar EduAI, para qué se utiliza, cómo se protege y qué derechos poseen estudiantes, docentes, apoderados y demás titulares de datos."
-      updatedAt="24 de julio de 2026"
+      updatedAt="11 de octubre de 2026"
       references={REFERENCES}
     >
       <h2>1. Responsable y contexto del tratamiento</h2>
@@ -59,6 +59,29 @@ export default function PrivacyPage() {
         <li>Obtener estadísticas internas, preferentemente agregadas o anonimizadas, para mejorar calidad, capacidad y seguridad.</li>
         <li>Cumplir obligaciones contractuales, educacionales y legales.</li>
       </ul>
+
+      <h3>3.1. Elecciones previas y por finalidad</h3>
+      <p>
+        La plataforma distingue las condiciones necesarias de cuenta, sesión,
+        seguridad, almacenamiento y servicio contratado, de los permisos
+        opcionales para modelos externos, análisis de archivos mediante IA,
+        funciones de voz y estadísticas no indispensables.
+        Estos permisos opcionales se presentan separados, desactivados
+        por defecto y pueden modificarse desde el perfil.
+      </p>
+      <p>
+        La publicación de trabajos, imágenes de estudiantes, tratamiento
+        especial de información sensible o clonación de voz exigen reglas
+        y autorizaciones independientes según corresponda.
+        La aceptación de términos no reemplaza la base legal de tratamiento
+        ni el consentimiento de representantes legales cuando sea exigible.
+      </p>
+      <p>
+        El usuario es informado de que los mensajes y archivos pueden
+        contener antecedentes personales que el agente no solicita.
+        Su reconocimiento no constituye autorización general ni libera
+        a la empresa de minimizar los datos y proteger la información.
+      </p>
 
       <h2>4. Datos de niños, niñas y adolescentes</h2>
       <p>
