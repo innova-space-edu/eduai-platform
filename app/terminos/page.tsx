@@ -13,6 +13,14 @@ export default function TermsPage() {
         Al utilizar EduAI, el usuario acepta estas condiciones y las políticas de privacidad, seguridad y gobernanza de IA. Cuando el acceso sea proporcionado por un establecimiento, también se aplicarán sus reglamentos, instrucciones y acuerdos institucionales.
       </p>
 
+      <h3>1.1. Finalidades y permisos diferenciados</h3>
+      <p>
+        EduAI informa, antes de registrar o autenticar una cuenta, el uso de perfiles,
+        contenidos, evaluaciones, archivos, herramientas, IA y soporte.
+        La aceptación de las condiciones necesarias no implica autorización para
+        funciones opcionales, que se presentan de forma separada y revocable.
+      </p>
+
       <h2>2. Uso educativo autorizado</h2>
       <p>
         EduAI debe utilizarse con fines educativos, creativos, administrativos o de investigación autorizados. El usuario es responsable de revisar la exactitud y pertinencia de los materiales generados antes de utilizarlos en evaluaciones, comunicaciones oficiales o decisiones relevantes.
