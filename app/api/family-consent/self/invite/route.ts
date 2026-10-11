@@ -11,7 +11,11 @@ export async function POST(req: NextRequest) {
    const auth = await sessionClient()
    const { data: { user }, error } = await auth.auth.getUser()
    if (error || !user) return privateResponse({ error: "Inicia sesión para solicitar la autorización familiar." }, 401)
-   const rawDOB = String(user.user_metadata?.birth_date || "")
+   const db = createFamilyAdminClient()
+   const { data: lockedAge, error: lockedError } = await db.from("family_age_status")
+     .select("declared_birth_date").eq("user_id",user.id).maybeSingle()
+   if (lockedError) return privateResponse({error:"No se pudo verificar la edad de la cuenta."},503)
+   const rawDOB = String(lockedAge?.declared_birth_date || "")
    const dob = new Date(rawDOB + "T00:00:00")
    const today = new Date()
    const minor = rawDOB && !Number.isNaN(dob.getTime()) &&
@@ -23,7 +27,6 @@ export async function POST(req: NextRequest) {
    if (!process.env.RESEND_API_KEY || !process.env.FAMILY_CONSENT_FROM_EMAIL) {
      return privateResponse({ error: "Envío pendiente: correo institucional no configurado." }, 503)
    }
-   const db = createFamilyAdminClient()
    const { data: previous, error: previousError } = await db.from("family_authorization_requests")
      .select("id,status,issued_at,expires_at,guardian_email")
      .eq("student_user_id",user.id).eq("platform",PLATFORM)
