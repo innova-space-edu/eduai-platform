@@ -20,6 +20,46 @@ async function invitation(token: unknown) {
 }
 
 // The invitation is a delivery capability, not proof of adult identity or legal authority.
+async function invitationForRevocation(token: unknown) {
+  if (!validToken(token)) return null
+  const db = createFamilyAdminClient()
+  const { data } = await db.from("family_authorization_requests")
+    .select("id,guardian_email,guardian_full_name,student_user_id,status,platform")
+    .eq("token_sha256", sha256(token)).eq("platform", PLATFORM).maybeSingle()
+  return data
+}
+
+// The same privately delivered link can be used to withdraw a decision later.
+// No token or credentials are persisted in browser storage.
+export async function DELETE(request: NextRequest) {
+  try {
+    const body = await request.json().catch(() => ({}))
+    const row = await invitationForRevocation(body.token)
+    const email = safeEmail(body.guardianEmail)
+    const name = safeText(body.signatureName, 180)
+    if (!row || !email || email !== row.guardian_email || !name ||
+        name.toLocaleLowerCase("es-CL") !== String(row.guardian_full_name || "").toLocaleLowerCase("es-CL") ||
+        body.confirmRevocation !== true) {
+      return privateResponse({ error: "Verifica el enlace privado, correo y nombre del firmante." }, 400)
+    }
+    if (row.status === "revoked") return privateResponse({ ok: true, status: "revoked" })
+    if (!["approved", "submitted"].includes(row.status)) return privateResponse({ error: "La autorización no admite revocación en ese estado." }, 409)
+    const db = createFamilyAdminClient()
+    const timestamp = new Date().toISOString()
+    const { error } = await db.from("family_authorization_requests")
+      .update({ status: "revoked", revoked_at: timestamp, updated_at: timestamp, decision_note: "Revocación por enlace privado y confirmación del firmante" })
+      .eq("id", row.id).eq("status", row.status)
+    if (error) return privateResponse({ error: "No se pudo tramitar la revocación." }, 503)
+    await db.from("family_authorization_events").insert({
+      request_id: row.id, event_type: "guardian_self_revocation",
+      evidence_json: { timestamp, method: "private_invitation_link_and_matching_signer" },
+    })
+    return privateResponse({ ok: true, status: "revoked", message: "Revocación registrada. Contacta al establecimiento si deseas modificar otras autorizaciones." })
+  } catch {
+    return privateResponse({ error: "No se pudo completar la revocación." }, 503)
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const data = await invitation(request.nextUrl.searchParams.get("token"))
