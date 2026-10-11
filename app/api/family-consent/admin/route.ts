@@ -99,13 +99,13 @@ export async function POST(request: NextRequest) {
           !["manual_institution", "qualified_eid_provider"].includes(verifiedMethod)) {
           return privateResponse({ error: "Requiere firma presentada y verificación documentada de identidad, vínculo y facultades." }, 400)
         }
-        const { error } = await db.from("family_authorization_requests").update({
+        const { data: updated, error } = await db.from("family_authorization_requests").update({
           status: "approved", identity_verified_at: new Date().toISOString(),
           legal_capacity_verified_at: new Date().toISOString(), verified_by: admin.id,
           verified_method: verifiedMethod, verified_evidence_ref: evidenceRef,
           reviewed_by: admin.id, reviewed_at: new Date().toISOString(), updated_at: new Date().toISOString(),
-        }).eq("id", record.id).eq("status", "submitted")
-        if (error) return privateResponse({ error: "No se pudo aprobar el formulario" }, 500)
+        }).eq("id", record.id).eq("status", "submitted").select("id").maybeSingle()
+        if (error || !updated) return privateResponse({ error: "La solicitud cambió de estado antes de aprobarla." }, 409)
       } else {
         if (action === "revoke" && record.status !== "approved") {
           return privateResponse({ error: "Solo una autorización aprobada puede revocarse." }, 400)
