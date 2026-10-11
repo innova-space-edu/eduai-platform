@@ -19,6 +19,7 @@ export default function ProfileSettings() {
   const [privacyChoices, setPrivacyChoices] = useState<OptionalPrivacyChoices>({ ...EMPTY_OPTIONAL_PRIVACY_CHOICES })
   const [privacyMinor, setPrivacyMinor] = useState(false)
   const [privacySaving, setPrivacySaving] = useState(false)
+  const [privacyAcknowledged, setPrivacyAcknowledged] = useState(false)
   const [privacyStatus, setPrivacyStatus] = useState("")
   const router = useRouter()
   const supabase = createClient()
@@ -36,10 +37,11 @@ export default function ProfileSettings() {
       const today = new Date()
       setPrivacyMinor(!dob || Number.isNaN(d.getTime()) || d > new Date(today.getFullYear() - 18, today.getMonth(), today.getDate()))
       const { data: existing, error: loadError } = await supabase.from("eduai_privacy_choices")
-        .select("ai_generation, ai_documents, ai_voice, optional_analytics")
+        .select("policy_version, terms_acknowledged_at, data_warning_acknowledged_at, ai_generation, ai_documents, ai_voice, optional_analytics")
         .eq("user_id", user.id).maybeSingle()
       if (loadError) setPrivacyStatus("Aún no se pudieron cargar tus permisos. Comprueba que la actualización de privacidad esté habilitada.")
       if (existing) {
+        setPrivacyAcknowledged(Boolean(existing.terms_acknowledged_at && existing.data_warning_acknowledged_at && existing.policy_version === PRIVACY_TERMS_VERSION))
         setPrivacyChoices({
           ai_generation: existing.ai_generation === true,
           ai_documents: existing.ai_documents === true,
@@ -71,6 +73,10 @@ export default function ProfileSettings() {
   }
 
   async function savePrivacyChoices() {
+    if (!privacyAcknowledged) {
+      setPrivacyStatus("Para cambiar permisos debes reconocer antes las condiciones actuales y la advertencia de privacidad en el inicio de sesión.")
+      return
+    }
     setPrivacyStatus("")
     setPrivacySaving(true)
     const { error } = await supabase.rpc("record_eduai_privacy_choices", {
@@ -212,7 +218,7 @@ export default function ProfileSettings() {
           <p className="mb-4 text-xs leading-5 text-sub">Consulta las finalidades y cambia tus permisos. Los tratamientos necesarios para mantener la cuenta se rigen por las condiciones del servicio y las bases legales aplicables.</p>
           <PrivacyPreferences value={privacyChoices} onChange={setPrivacyChoices} minorRestricted={privacyMinor} />
           {privacyStatus && <p className="mt-3 text-xs text-sub" role="status">{privacyStatus}</p>}
-          <button type="button" onClick={savePrivacyChoices} disabled={privacySaving || !user}
+          <button type="button" onClick={savePrivacyChoices} disabled={privacySaving || !user || !privacyAcknowledged}
             className="mt-4 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white disabled:opacity-40">
             {privacySaving ? "Guardando..." : "Guardar preferencias y revocaciones"}
           </button>
