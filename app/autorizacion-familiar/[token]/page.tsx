@@ -6,7 +6,7 @@ import { familyPurposes, FAMILY_CONSENT_VERSION } from "@/lib/family-consent/con
 
 const PLATFORM = "eduai" as const
 const purposes = familyPurposes(PLATFORM)
-type RequestInfo = { institutionName: string; expiresAt: string; documentVersion: string }
+type RequestInfo = { institutionName?: string; expiresAt?: string; documentVersion: string; status: string }
 
 export default function FamilyAuthorizationForm() {
   const params = useParams<{ token: string }>()
@@ -16,6 +16,8 @@ export default function FamilyAuthorizationForm() {
   const [error, setError] = useState("")
   const [sending, setSending] = useState(false)
   const [receipt, setReceipt] = useState("")
+  const [revoked, setRevoked] = useState(false)
+  const [revokeConfirm, setRevokeConfirm] = useState(false)
   const [guardianName, setGuardianName] = useState("")
   const [studentName, setStudentName] = useState("")
   const [guardianEmail, setGuardianEmail] = useState("")
@@ -72,6 +74,26 @@ export default function FamilyAuthorizationForm() {
     } finally { setSending(false) }
   }
 
+  async function withdraw(event: React.FormEvent) {
+    event.preventDefault()
+    setError("")
+    if (!revokeConfirm || !guardianEmail || !signatureName) {
+      setError("Para revocar, confirma tu correo, nombre de firma y voluntad expresa.")
+      return
+    }
+    setSending(true)
+    try {
+      const response = await fetch("/api/family-consent", {
+        method: "DELETE", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, guardianEmail, signatureName, confirmRevocation: true }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || "No se pudo retirar la autorización")
+      setRevoked(true)
+    } catch (err) { setError(err instanceof Error ? err.message : "Error de revocación") }
+    finally { setSending(false) }
+  }
+
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-8 text-slate-900">
       <div className="mx-auto max-w-3xl space-y-5">
@@ -82,14 +104,29 @@ export default function FamilyAuthorizationForm() {
         </header>
         {fetching ? <p role="status" className="rounded-xl bg-white p-5">Validando invitación…</p> : null}
         {error ? <p role="alert" className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">{error}</p> : null}
-        {receipt ? (
+        {revoked || requestInfo?.status === "revoked" ? (
+          <section className="rounded-2xl border bg-white p-6">
+            <h2 className="font-semibold">Autorizaciones retiradas</h2>
+            <p className="mt-2 text-sm">Se registró la revocación. El establecimiento recibirá la constancia de estado al revisar la solicitud. Solicita asistencia si hay otras cuentas o formularios vinculados.</p>
+          </section>
+        ) : receipt ? (
           <section className="space-y-3 rounded-2xl border border-emerald-200 bg-white p-6">
             <h2 className="font-semibold">Formulario firmado y recibido</h2>
             <p className="text-sm">Tu firma electrónica simple y tus elecciones quedaron presentadas. La institución debe verificar la identidad y las facultades legales antes de aprobarlas. Un enlace recibido o una firma escrita no acreditan por sí solos la representación legal.</p>
             <p className="break-all font-mono text-xs">Comprobante: {receipt}</p>
             <p className="text-xs">Puedes solicitar copia, consultar el estado o revocar autorizaciones a través del establecimiento y de contacto@innova-space-edu.cl.</p>
             <button type="button" onClick={() => window.print()} className="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white">Imprimir comprobante</button>
+            <button type="button" onClick={() => setRequestInfo({ documentVersion: FAMILY_CONSENT_VERSION, status: "submitted" })} className="ml-2 rounded-lg border px-4 py-2 text-sm">Revocar permisos</button>
           </section>
+        ) : requestInfo?.status === "submitted" || requestInfo?.status === "approved" ? (
+          <form onSubmit={withdraw} className="space-y-3 rounded-2xl border bg-white p-6">
+            <h2 className="font-semibold">Retirar autorizaciones presentadas</h2>
+            <p className="text-sm">Puedes retirar tus permisos mediante este mismo enlace privado. El cambio bloqueará las finalidades opcionales aprobadas; puede requerirse nueva verificación para futuras autorizaciones.</p>
+            <label className="block text-sm">Correo del firmante<input required type="email" value={guardianEmail} onChange={e=>setGuardianEmail(e.target.value)} className="mt-1 w-full rounded-lg border p-3" /></label>
+            <label className="block text-sm">Nombre completo utilizado en la firma<input required value={signatureName} onChange={e=>setSignatureName(e.target.value)} className="mt-1 w-full rounded-lg border p-3" /></label>
+            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={revokeConfirm} onChange={e=>setRevokeConfirm(e.target.checked)} />Confirmo que deseo revocar los permisos opcionales asociados a este formulario.</label>
+            <button disabled={sending || !revokeConfirm} className="rounded-xl bg-red-700 px-5 py-3 text-sm font-semibold text-white disabled:opacity-40">{sending ? "Revocando..." : "Revocar autorización"}</button>
+          </form>
         ) : requestInfo ? (
           <form onSubmit={submit} className="space-y-5">
             <section className="space-y-3 rounded-2xl border bg-white p-5">
