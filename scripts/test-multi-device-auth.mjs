@@ -34,7 +34,15 @@ if (offenders.length) {
 
 const login = readFileSync("app/(auth)/login/page.tsx", "utf8")
 if (!login.includes("signInWithPassword")) throw new Error("[multi-device-auth] El login por contraseña no está disponible")
-if (/signOut\s*\(/.test(login)) throw new Error("[multi-device-auth] El login no debe cerrar otras sesiones antes de iniciar")
+// Un fallo posterior al login puede revocar solo la sesión recién iniciada.
+// No se permite cerrar sesiones de otros equipos.
+const signInPosition = login.indexOf("signInWithPassword")
+for (const match of login.matchAll(/\.auth\.signOut\s*\(\s*([^)]*)\)/g)) {
+  const args = match[1]
+  if (match.index < signInPosition || !/\bscope\s*:\s*["']local["']/.test(args)) {
+    throw new Error("[multi-device-auth] La salida del login debe ser posterior a autenticar y de alcance local")
+  }
+}
 
 const client = readFileSync("lib/supabase/client.ts", "utf8")
 if (!client.includes("createBrowserClient")) throw new Error("[multi-device-auth] El cliente SSR/browser de Supabase no está configurado")
