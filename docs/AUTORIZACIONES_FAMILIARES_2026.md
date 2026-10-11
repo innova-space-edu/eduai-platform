@@ -83,3 +83,17 @@ Datos mínimos: ID de estudiante, correo del adulto, nombre declarado, vínculo 
 - Migración `supabase/migrations/20261011*_family_authorization_requests.sql`.
 
 **La implementación es una primera etapa. No representa firma electrónica avanzada ni validación automatizada de representación parental.** Hasta finalizar pruebas y auditoría, permanecer en PR sin desplegar.
+
+
+## Actualización de registro y acceso bloqueado para menores (11 de octubre de 2026)
+
+- Al registrarse, la persona informa su fecha de nacimiento. Si tiene menos de 18 años, se solicita el correo de un padre, madre o representante con facultades legales. La fecha declarada se copia a `public.family_age_status` al crear la cuenta y queda inaccesible para edición desde el cliente; la edad autodeclarada **no acredita identidad ni edad real**.
+- Se despliega la casilla de consentimiento por finalidades. Los adultos pueden registrar sus selecciones individuales vinculadas a su cuenta, con versión y eventos. Los menores no pueden autoconcederse las finalidades opcionales.
+- Después de confirmar una sesión de registro o iniciar sesión, el servidor prepara una invitación individual al correo proporcionado a través de Resend. Se requiere `RESEND_API_KEY` y `FAMILY_CONSENT_FROM_EMAIL` (dirección de un dominio verificado); **ninguno de esos valores está configurado en los proyectos Vercel revisados**. Sin configuración o con error del proveedor, se informa el fallo y el menor sigue bloqueado.
+- Si Supabase requiere confirmación de correo y no entrega sesión al registrarse, la invitación solo se tramitará cuando el estudiante complete la autenticación; no se afirma que fue enviada durante el registro.
+- La firma electrónica simple y la presentación de un cuestionario no desbloquean la cuenta. Se necesita `status=approved`, `document_version=family-2026-10-v1` y `decisions.platform_access=true`, tras verificación de identidad y representación por personal autorizado. `invited`, `submitted`, `rejected`, `expired`, `revoked` o `platform_access=false` mantienen el acceso restringido.
+- El control está preparado tras banderas de activación: `EDUAI_FAMILY_CONSENT_ENFORCE=true` y `SELLO_FAMILY_CONSENT_ENFORCE=true`. **No activar** hasta aplicar las migraciones, validar cuentas anteriores sin fecha de nacimiento, el envío y todas las API relevantes.
+- Las páginas públicas de información legal y cuestionario familiar deben seguir accesibles sin iniciar sesión; eso no da acceso a la aplicación ni a sus datos protegidos.
+- No hay FEA, ClaveÚnica ni proveedor estatal de identidad en este cambio; quedan pendientes de habilitación y revisión legal.
+- Verificar manualmente con datos sintéticos, antes de despliegue: (1) adulto acepta/rechaza cada permiso; (2) menor registrable pero bloqueado; (3) envío confirmado por proveedor; (4) enlace vencido; (5) firma presentada sin aprobación bloquea; (6) familiar autoriza plataforma, verificador aprueba y se permite entrar; (7) denegación de ingreso impide entrar aunque se haya firmado; (8) revocación vuelve a bloquear; (9) corrección de fecha en metadatos no evade la edad fijada; (10) rutas de API y archivos protegidos respetan el bloqueo.
+- Al finalizar pruebas, usar un único despliegue manual de vista previa por proyecto. Actualmente los previews automáticos de Vercel están deshabilitados por solicitud de reducir builds. No confundir una PR creada con una migración o autorización ya activa.
