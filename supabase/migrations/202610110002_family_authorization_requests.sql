@@ -18,6 +18,7 @@ create table if not exists public.family_authorization_requests (
   issued_at timestamptz not null default now(),
   submitted_at timestamptz,
   guardian_full_name text,
+  student_name_declared text,
   guardian_relationship text
     check (guardian_relationship in ('madre','padre','representante_legal','cuidador_personal')),
   guardian_declaration boolean not null default false,
@@ -29,6 +30,7 @@ create table if not exists public.family_authorization_requests (
   legal_capacity_verified_at timestamptz,
   verified_by uuid references auth.users(id),
   verified_evidence_ref text,
+  verified_method text check (verified_method in ('manual_institution','qualified_eid_provider')),
   reviewed_at timestamptz,
   reviewed_by uuid references auth.users(id),
   decision_note text,
