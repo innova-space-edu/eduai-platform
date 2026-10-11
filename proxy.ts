@@ -118,10 +118,10 @@ export async function proxy(request: NextRequest) {
       try {
         const db = createFamilyAdminClient()
         const { data, error } = await db.from("family_authorization_requests")
-          .select("id,status").eq("platform","eduai").eq("student_user_id",user.id)
+          .select("id,status,decisions,document_version").eq("platform","eduai").eq("student_user_id",user.id)
           .in("status", ["approved","revoked"]).order("updated_at", { ascending: false })
           .limit(1).maybeSingle()
-        if (error || !data || data.status !== "approved") {
+        if (error || !data || data.status !== "approved" || data.document_version !== "family-2026-10-v1" || data.decisions?.platform_access !== true) {
           if (pathname.startsWith("/api/")) return NextResponse.json(
             { error: "Autorización familiar pendiente de verificación" }, { status: 403 })
           const isAuthOrLegal = pathname === "/login" || pathname === "/register" ||
