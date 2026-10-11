@@ -131,7 +131,7 @@ export default function FamilyAuthorizationForm() {
           <form onSubmit={submit} className="space-y-5">
             <section className="space-y-3 rounded-2xl border bg-white p-5">
               <p className="text-xs text-slate-600">Institución: <strong>{requestInfo.institutionName}</strong> · Documento: {requestInfo.documentVersion}</p>
-              <p className="text-xs text-slate-600">Invitación válida hasta {new Date(requestInfo.expiresAt).toLocaleString("es-CL")}. El uso de ClaveÚnica no forma parte de este formulario: si una entidad habilitada permite tal autenticación en el futuro, se integrará por un canal independiente y autorizado.</p>
+              <p className="text-xs text-slate-600">Invitación válida hasta {requestInfo.expiresAt ? new Date(requestInfo.expiresAt).toLocaleString("es-CL") : "fecha informada en la invitación"}. El uso de ClaveÚnica no forma parte de este formulario: si una entidad habilitada permite tal autenticación en el futuro, se integrará por un canal independiente y autorizado.</p>
               <h2 className="font-semibold">1. Identificación y declaración del adulto</h2>
               <label className="block text-sm">Nombre completo del estudiante <input required maxLength={180} value={studentName} onChange={e => setStudentName(e.target.value)} className="mt-1 w-full rounded-lg border p-3" /></label>
               <label className="block text-sm">Nombre completo del adulto que firma <input required maxLength={180} value={guardianName} onChange={e => setGuardianName(e.target.value)} className="mt-1 w-full rounded-lg border p-3" /></label>
