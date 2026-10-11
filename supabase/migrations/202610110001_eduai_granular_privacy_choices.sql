@@ -99,8 +99,8 @@ begin
 
   -- La fecha es solo autodeclarada y NO demuestra edad ni representación;
   -- no permite habilitar capacidades opcionales de menores en este flujo.
-  select raw_user_meta_data ->> 'birth_date'
-    into v_birth_date from auth.users where id = v_user_id;
+  select declared_birth_date::text
+    into v_birth_date from public.family_age_status where user_id = v_user_id;
   if v_birth_date ~ '^\d{4}-\d{2}-\d{2}$' then
     begin
       v_is_minor := (v_birth_date::date > (current_date - interval '18 years')::date);
