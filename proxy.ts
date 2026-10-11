@@ -13,6 +13,7 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import { requiredPrivacyPermissionsForRoute } from "@/lib/privacy/consent-guard"
 import { createFamilyAdminClient } from "@/lib/family-consent/server"
+import { hasLegacyConsentGrace } from "@/lib/family-consent/transition"
 
 const PROTECTED_ROUTES = [
   "/dashboard", "/study", "/profile", "/admin",
@@ -106,7 +107,7 @@ export async function proxy(request: NextRequest) {
   // Family signature != verified parental authority; the institution must approve.
   // The flag stays OFF until all existing minor accounts have been offered a
   // suitable lawful onboarding or alternative route.
-  if (process.env.EDUAI_FAMILY_CONSENT_ENFORCE === "true" && user) {
+  if (process.env.EDUAI_FAMILY_CONSENT_ENFORCE === "true" && user && !hasLegacyConsentGrace(user.created_at)) {
     const { data: lockedAge, error: ageError } = await createFamilyAdminClient().from("family_age_status")
       .select("declared_birth_date").eq("user_id", user.id).maybeSingle()
     const dob = ageError ? "" : String(lockedAge?.declared_birth_date || "")
@@ -145,7 +146,7 @@ export async function proxy(request: NextRequest) {
 
   // Rollout flag: turn on only after deploying the RLS/RPC migration and reviewing all
   // affected routes. Until then, the consent UI must remain in draft, not production.
-  if (process.env.EDUAI_PRIVACY_ENFORCE_CHOICES === "true") {
+  if (process.env.EDUAI_PRIVACY_ENFORCE_CHOICES === "true" && (!user || !hasLegacyConsentGrace(user.created_at))) {
     const required = requiredPrivacyPermissionsForRoute(pathname, request.method)
     if (required.length > 0) {
       if (!user) return NextResponse.json({ error: "Debes iniciar sesión antes de usar herramientas de IA." }, { status: 401 })
