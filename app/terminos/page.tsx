@@ -6,7 +6,7 @@ export default function TermsPage() {
       eyebrow="Condiciones de utilización"
       title="Términos de uso de EduAI"
       summary="Establecen las reglas generales para acceder a la plataforma, utilizar sus agentes y gestionar contenidos educativos."
-      updatedAt="24 de julio de 2026"
+      updatedAt="11 de octubre de 2026"
     >
       <h2>1. Aceptación y alcance</h2>
       <p>
