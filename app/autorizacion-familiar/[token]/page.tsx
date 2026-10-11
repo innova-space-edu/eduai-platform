@@ -116,7 +116,7 @@ export default function FamilyAuthorizationForm() {
             <p className="break-all font-mono text-xs">Comprobante: {receipt}</p>
             <p className="text-xs">Puedes solicitar copia, consultar el estado o revocar autorizaciones a través del establecimiento y de contacto@innova-space-edu.cl.</p>
             <button type="button" onClick={() => window.print()} className="rounded-lg bg-slate-900 px-4 py-2 text-sm text-white">Imprimir comprobante</button>
-            <button type="button" onClick={() => setRequestInfo({ documentVersion: FAMILY_CONSENT_VERSION, status: "submitted" })} className="ml-2 rounded-lg border px-4 py-2 text-sm">Revocar permisos</button>
+            <button type="button" onClick={() => { setReceipt(""); setRequestInfo({ documentVersion: FAMILY_CONSENT_VERSION, status: "submitted" }) }} className="ml-2 rounded-lg border px-4 py-2 text-sm">Revocar permisos</button>
           </section>
         ) : requestInfo?.status === "submitted" || requestInfo?.status === "approved" ? (
           <form onSubmit={withdraw} className="space-y-3 rounded-2xl border bg-white p-6">
