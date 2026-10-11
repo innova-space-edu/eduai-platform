@@ -31,18 +31,19 @@ Las cuatro opciones iniciales son:
 - Tabla `eduai_privacy_choice_events` con historial de versiones, marcas de tiempo y cambios.
 - RPC `record_eduai_privacy_choices` autenticado, RLS de lectura por titular y escritura limitada a función.
 - Pantalla de configuración para consultar, revocar y modificar opciones.
+- Primer control técnico opcional en `proxy.ts` para ciertas rutas IA (`lib/privacy/consent-guard.ts`) activable solo con `EDUAI_PRIVACY_ENFORCE_CHOICES=true`. Está desactivado por defecto y su cobertura todavía no es exhaustiva.
 - Cuentas identificadas como menores por fecha autodeclarada: permisos opcionales bloqueados mientras no exista un proceso de autorización separado.
 
 ## 6. Pendientes imprescindibles antes de producción
 1. Aplicar migración en ambiente de prueba y comprobar RLS, RPC, reintentos, revocación e historial.
 2. Auditar **todas** las rutas de modelos, chat, imágenes, documentos, audio, editor, telemetría y proveedores.
-3. Bloquear del lado servidor las capacidades opcionales sin permiso vigente. La presencia de un checkbox no basta; los controles de UI son el primer paso.
+3. Habilitar y probar el control de rutas IA solo cuando el esquema, preferencias y proveedores estén listos; después cerrar la cobertura de **todas** las rutas, incluidos servicios de generación no enumerados, almacenamiento de adjuntos, voz, paneles y telemetría. La bandera actual no debe activarse sin inventario y pruebas completas.
 4. Definir sistema de identidad/edad y validación de representantes legalmente autorizados; los datos autodeclarados no permiten probar identidad ni edad.
 5. Diseñar transición de usuarios registrados antes de esta versión, incluyendo información y nueva selección. Si no hay elección verificable, las finalidades opcionales deben permanecer inactivas.
 6. Definir una base jurídica distinta para procesos necesarios; no abusar del consentimiento agrupado.
 7. Validar retención y eliminación de eventos de consentimiento sin perder prueba necesaria para reclamaciones.
 8. Evaluar incorporación al flujo institucional de cada colegio y sus acuerdos DPA.
-9. Probar despliegue, accesibilidad móvil, rechazo de permisos, recuperación y no interrupción injustificada del acceso básico.
+9. Probar despliegue, accesibilidad móvil, rechazo de permisos, recuperación y no interrupción injustificada del acceso básico. Revisar el efecto de las nuevas casillas en usuarios ya registrados y los que no tienen edad verificable.
 10. Documentar contrato/DPA real y términos de cada proveedor de IA.
 
 ## Referencias
