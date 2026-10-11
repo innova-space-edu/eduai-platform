@@ -41,6 +41,21 @@ export default function TermsPage() {
         Las salidas generadas por IA pueden ser incompletas o incorrectas. El usuario debe verificar hechos, fórmulas, referencias, lenguaje y adecuación pedagógica. EduAI no reemplaza el criterio profesional docente, la evaluación clínica, la asesoría jurídica ni otros servicios especializados.
       </p>
 
+      <h3>5.1. Contenido enviado a la inteligencia artificial</h3>
+      <p>
+        Los asistentes de EduAI están orientados a crear contenidos pedagógicos y responder consultas
+        de información. El usuario no debe introducir nombres completos de estudiantes, RUT, notas
+        identificables, diagnósticos, antecedentes de salud, información PIE/NEE ni otros datos
+        personales o sensibles en chats o archivos destinados a modelos externos. Para obtener
+        material educativo se recomienda utilizar ejemplos ficticios o información desidentificada.
+      </p>
+      <p>
+        Si un documento requiere tratamiento institucional de datos protegidos, debe utilizarse
+        únicamente un procedimiento o módulo expresamente autorizado y evaluado para esa finalidad;
+        no debe presumirse que el chat general sea un canal adecuado. La información de cuenta y
+        los archivos almacenados en EduAI se rigen además por su política de privacidad.
+      </p>
+
       <h2>6. Propiedad y licencias</h2>
       <p>
         El usuario conserva los derechos que posea sobre el contenido que aporta. Debe contar con autorización para cargar archivos de terceros. El software, marcas, interfaces y componentes propios de EduAI pertenecen a sus respectivos titulares y no pueden copiarse o redistribuirse fuera de las licencias aplicables.
