@@ -2,6 +2,7 @@
 export const FAMILY_CONSENT_VERSION = "family-2026-10-v1"
 
 export const EDUAI_FAMILY_PURPOSES = [
+  { key: "platform_access", title: "Ingreso del estudiante menor de edad", description: "Autorizar el acceso a las funciones básicas de la plataforma bajo supervisión del establecimiento; las opciones adicionales se deciden separadamente." },
   { key: "ai_text", title: "Asistentes IA y creación de material", description: "Generación y consulta pedagógica con proveedores de IA; no autoriza introducir datos sensibles ni expedientes nominativos." },
   { key: "ai_documents", title: "Documentos escolares en herramientas IA", description: "Procesar material educativo sin información personal innecesaria; no autoriza expedientes médicos o PIE/NEE." },
   { key: "ai_images", title: "Creación de imágenes mediante IA", description: "Enviar descripciones o material no identificable a proveedores externos para producir recursos." },
