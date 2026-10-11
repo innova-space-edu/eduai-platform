@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { useState } from "react"
 
 export const PRIVACY_TERMS_VERSION = "2026-10-11-v1"
 
@@ -97,8 +98,16 @@ export default function PrivacyConsentPanel({
   onAcknowledgedDataWarning,
   ...preferences
 }: PrivacyConsentPanelProps) {
+  const [expanded, setExpanded] = useState(false)
   return (
     <section className="space-y-4 rounded-2xl border border-soft bg-card-soft-theme p-4" aria-label="Condiciones y preferencias de privacidad">
+      <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-main">
+        <input type="checkbox" checked={expanded} onChange={e=>setExpanded(e.target.checked)} className="mt-1 h-4 w-4 accent-blue-600"/>
+        <span>Desplegar formulario de términos y consentimiento por finalidad
+          <span className="block text-xs font-normal text-sub">Al marcar esta casilla aparecerán todos los permisos. No se acepta nada automáticamente.</span>
+        </span>
+      </label>
+      {expanded && <>
       <div>
         <h3 className="text-sm font-bold text-main">Condiciones de uso y decisiones de privacidad</h3>
         <p className="mt-1 text-xs leading-5 text-sub">
@@ -125,6 +134,7 @@ export default function PrivacyConsentPanel({
         Los permisos opcionales podrán cambiarse en la configuración de cuenta. El consentimiento
         no sustituye otras bases legales ni las autorizaciones de responsables institucionales.
       </p>
+      </>}
     </section>
   )
 }
