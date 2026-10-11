@@ -64,6 +64,21 @@ export default function TermsPage() {
         los archivos almacenados en EduAI se rigen además por su política de privacidad.
       </p>
 
+      <h3>5.2. Información proporcionada sin solicitud de la IA</h3>
+      <p>
+        La plataforma advierte sobre datos protegidos como identificación de
+        estudiantes, calificaciones individuales, salud, discapacidad, datos
+        familiares y otros antecedentes de terceros. El usuario debe evitar
+        introducir estos datos si la función no los requiere.
+      </p>
+      <p>
+        Si el usuario los incorpora, incluso sin solicitud del agente,
+        el contenido podría ser procesado por el servicio que atienda la
+        petición. Conocer esta advertencia no es consentimiento general
+        ni renuncia de derechos. Innova mantiene sus deberes de seguridad
+        y el establecimiento conserva sus propias responsabilidades.
+      </p>
+
       <h2>6. Propiedad y licencias</h2>
       <p>
         El usuario conserva los derechos que posea sobre el contenido que aporta. Debe contar con autorización para cargar archivos de terceros. El software, marcas, interfaces y componentes propios de EduAI pertenecen a sus respectivos titulares y no pueden copiarse o redistribuirse fuera de las licencias aplicables.
