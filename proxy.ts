@@ -107,7 +107,9 @@ export async function proxy(request: NextRequest) {
   // The flag stays OFF until all existing minor accounts have been offered a
   // suitable lawful onboarding or alternative route.
   if (process.env.EDUAI_FAMILY_CONSENT_ENFORCE === "true" && user) {
-    const dob = String(user.user_metadata?.birth_date || "")
+    const { data: lockedAge, error: ageError } = await createFamilyAdminClient().from("family_age_status")
+      .select("declared_birth_date").eq("user_id", user.id).maybeSingle()
+    const dob = ageError ? "" : String(lockedAge?.declared_birth_date || "")
     const born = new Date(dob + "T00:00:00")
     const today = new Date()
     const minor = !dob || Number.isNaN(born.getTime()) ||
