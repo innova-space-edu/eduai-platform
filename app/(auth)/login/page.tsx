@@ -55,13 +55,13 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-app flex flex-col items-center justify-center px-4 relative overflow-hidden">
+    <main className="min-h-screen bg-app flex flex-col items-center justify-center px-4 py-8 relative overflow-x-hidden">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
         style={{ background: "radial-gradient(circle, rgba(37,99,235,0.07) 0%, transparent 70%)" }} />
       <div className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] rounded-full pointer-events-none"
         style={{ background: "radial-gradient(circle, rgba(124,58,237,0.05) 0%, transparent 70%)" }} />
 
-      <div className="w-full max-w-sm relative z-10 animate-fade-in-scale">
+      <div className="w-full max-w-xl relative z-10 animate-fade-in-scale">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4"
             style={{ background: "linear-gradient(135deg, #2563eb, #7c3aed)", boxShadow: "0 8px 32px rgba(37,99,235,0.28)" }}>
