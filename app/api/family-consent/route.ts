@@ -62,8 +62,16 @@ export async function DELETE(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const data = await invitation(request.nextUrl.searchParams.get("token"))
-    if (!data) return privateResponse({ error: "Invitación inválida, usada o vencida" }, 404)
+    const token = request.nextUrl.searchParams.get("token")
+    const data = await invitation(token)
+    if (!data) {
+      const previous = await invitationForRevocation(token)
+      if (previous && ["submitted","approved","revoked"].includes(previous.status)) {
+        return privateResponse({ platform: PLATFORM, documentVersion: FAMILY_CONSENT_VERSION,
+          status: previous.status, isRevocationAvailable: previous.status !== "revoked" })
+      }
+      return privateResponse({ error: "Invitación inválida o vencida" }, 404)
+    }
     return privateResponse({
       platform: PLATFORM,
       institutionName: data.institution_name,
