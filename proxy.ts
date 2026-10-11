@@ -11,6 +11,7 @@
 
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { requiredPrivacyPermissionsForRoute } from "@/lib/privacy/consent-guard"
 
 const PROTECTED_ROUTES = [
   "/dashboard", "/study", "/profile", "/admin",
@@ -105,6 +106,29 @@ export async function proxy(request: NextRequest) {
   const isSuperagentAPI = pathname.startsWith("/api/superagent/")
   const isCreatorAPI = pathname.startsWith("/api/creator/") || pathname === "/api/process-content"
   const isWhiteboardAPI = pathname.startsWith("/api/whiteboard/")
+
+  // Rollout flag: turn on only after deploying the RLS/RPC migration and reviewing all
+  // affected routes. Until then, the consent UI must remain in draft, not production.
+  if (process.env.EDUAI_PRIVACY_ENFORCE_CHOICES === "true") {
+    const required = requiredPrivacyPermissionsForRoute(pathname, request.method)
+    if (required.length > 0) {
+      if (!user) return NextResponse.json({ error: "Debes iniciar sesión antes de usar herramientas de IA." }, { status: 401 })
+
+      const { data: privacy, error: privacyError } = await supabase
+        .from("eduai_privacy_choices")
+        .select("ai_generation, ai_documents, ai_voice")
+        .eq("user_id", user.id)
+        .maybeSingle()
+
+      if (privacyError || !privacy || required.some(key => privacy[key] !== true)) {
+        return NextResponse.json({
+          error: "La función requiere una autorización opcional vigente.",
+          action: "Revisa y actualiza tus preferencias en Configuración del perfil.",
+          missing_permission: required.filter(key => privacy?.[key] !== true),
+        }, { status: 403, headers: { "Cache-Control": "no-store" } })
+      }
+    }
+  }
 
   if ((isCreatorAPI || isWhiteboardAPI) && !user) {
     return new NextResponse(
