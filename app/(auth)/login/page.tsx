@@ -6,12 +6,15 @@ import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
 import { Zap, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react"
 import LegalFooter from "@/components/legal/LegalFooter"
+import PrivacyConsentPanel, { EMPTY_OPTIONAL_PRIVACY_CHOICES, PRIVACY_TERMS_VERSION, type OptionalPrivacyChoices } from "@/components/legal/PrivacyConsentPanel"
 
 export default function LoginPage() {
   const [email, setEmail]                 = useState("")
   const [password, setPassword]           = useState("")
   const [showPass, setShowPass]           = useState(false)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [acknowledgedDataWarning, setAcknowledgedDataWarning] = useState(false)
+  const [optionalChoices, setOptionalChoices] = useState<OptionalPrivacyChoices>({ ...EMPTY_OPTIONAL_PRIVACY_CHOICES })
   const [error, setError]                 = useState("")
   const [loading, setLoading]             = useState(false)
   const router = useRouter()
@@ -20,16 +23,29 @@ export default function LoginPage() {
     e.preventDefault()
     setError("")
 
-    if (!acceptedTerms) {
-      setError("Debes aceptar los términos y condiciones de EduAI para continuar")
+    if (!acceptedTerms || !acknowledgedDataWarning) {
+      setError("Debes reconocer las condiciones necesarias y la advertencia sobre datos personales para continuar")
       return
     }
 
     setLoading(true)
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) { setError("Email o contraseña incorrectos"); setLoading(false) }
-    else router.push("/dashboard")
+    if (error) { setError("Email o contraseña incorrectos"); setLoading(false); return }
+
+    const { error: privacyError } = await supabase.rpc("record_eduai_privacy_choices", {
+      p_policy_version: PRIVACY_TERMS_VERSION,
+      p_terms_acknowledged: acceptedTerms,
+      p_data_warning_acknowledged: acknowledgedDataWarning,
+      p_choices: optionalChoices,
+    })
+    if (privacyError) {
+      await supabase.auth.signOut()
+      setError("No se pudieron registrar las preferencias de privacidad. Verifica tu fecha de nacimiento o intenta nuevamente.")
+      setLoading(false)
+      return
+    }
+    router.push("/dashboard")
   }
 
   const inputStyle = {
@@ -99,37 +115,17 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <label
-              htmlFor="accept-terms"
-              className="flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 transition-colors"
-              style={{
-                background: acceptedTerms ? "rgba(37,99,235,0.06)" : "var(--bg-card-soft)",
-                borderColor: acceptedTerms ? "rgba(37,99,235,0.32)" : "var(--border-soft)",
-              }}
-            >
-              <input
-                id="accept-terms"
-                type="checkbox"
-                checked={acceptedTerms}
-                onChange={event => {
-                  setAcceptedTerms(event.target.checked)
-                  if (event.target.checked && error.includes("términos")) setError("")
-                }}
-                className="mt-0.5 h-4 w-4 flex-shrink-0 cursor-pointer rounded border-gray-300 accent-blue-600"
-              />
-              <span className="text-xs leading-5 text-sub">
-                He leído y acepto los{" "}
-                <Link
-                  href="/terminos"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold text-blue-600 underline decoration-blue-300 underline-offset-2 hover:text-blue-700"
-                  onClick={event => event.stopPropagation()}
-                >
-                  términos y condiciones de EduAI
-                </Link>.
-              </span>
-            </label>
+            {/* La aceptación necesaria y los permisos opcionales se registran después de autenticar. */}
+            <PrivacyConsentPanel
+              acceptedTerms={acceptedTerms}
+              onAcceptedTerms={setAcceptedTerms}
+              acknowledgedDataWarning={acknowledgedDataWarning}
+              onAcknowledgedDataWarning={setAcknowledgedDataWarning}
+              value={optionalChoices}
+              onChange={setOptionalChoices}
+            />
+
+
 
             {error && (
               <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl border"
