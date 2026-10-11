@@ -2,8 +2,8 @@
 
 **Organización:** Innova Space Edu SpA  
 **Producto:** EduAI Platform  
-**Versión:** 1.0  
-**Fecha:** 24 de julio de 2026
+**Versión:** 1.1 (revisión de alcance IA propuesta)  
+**Fecha:** 11 de octubre de 2026
 
 ## 1. Propósito
 
@@ -129,6 +129,31 @@ No se adoptarán exclusivamente mediante IA:
 - No utilizar información identificable de estudiantes para entrenamiento externo sin base válida y autorización específica.
 - Documentar transferencias y subencargados.
 - Definir retención y eliminación por categoría de datos.
+
+## 8.1. Finalidad delimitada de las integraciones con modelos externos (declaración de diseño)
+
+EduAI integra modelos de IA como **herramientas auxiliares para la creación de contenido educativo y las consultas generales de información**. Entre sus finalidades previstas están: elaborar planificaciones, redactar materiales, explicar conceptos, generar propuestas de ejercicios, resumir materiales no sensibles y responder consultas.
+
+**No es finalidad de esos modelos** recopilar o analizar expedientes personales o sensibles, identificar o perfilar estudiantes, inferir condiciones de salud o discapacidad, evaluar a una persona por características protegidas ni adoptar decisiones individuales sobre su trayectoria académica. Los modelos tampoco deben usarse para entrenar/fine-tuning con datos identificables de estudiantes por defecto.
+
+### Diferenciar finalidad de tratamiento técnico
+
+- Esta declaración es la finalidad que debe orientar el diseño y el uso, **no prueba** que actualmente todos los prompts, historiales y adjuntos estén desidentificados.
+- Los módulos de chat, redacción y resumen pueden remitir al proveedor el texto ingresado por el usuario o extraído de archivos. Si contiene nombres, RUT, calificaciones o información sensible, puede haber tratamiento de esos datos aunque esa no sea la finalidad pedagógica.
+- Los datos que EduAI conserva para autenticación, roles, almacenamiento, exámenes y administración son tratamientos **diferentes** de la función generativa de IA; deben permanecer en el inventario de tratamientos y en los contratos correspondientes.
+- No declarar que proveedores externos no retienen ni utilizan entradas para entrenamiento sin documentación vigente, configuración concreta y evidencia contractual verificable.
+
+### Controles obligatorios por verificar antes de certificar el alcance
+
+1. Inventariar proveedor, modelo, endpoint, ruta, módulo, payload recibido, región, retención, condiciones de entrenamiento y subencargados.
+2. Prevenir el envío de campos de perfiles, nombres de menores, RUT, calificaciones individualizadas, PIE/NEE, salud y otros datos sensibles en solicitudes de generación general. Para documentos, validar categorías y revisar o desidentificar contenido antes de enviarlo.
+3. Verificar que los prompts y fragmentos del usuario no incorporen conversaciones o documentos de otras cuentas o instituciones.
+4. Probar los flujos de texto, imágenes, voz, documentos y agentes antes de declarar que no transmiten identificadores. Registrar resultados sin reproducir datos reales.
+5. Diseñar controles de rechazo, advertencia o derivación segura cuando se detecte información no pertinente. No considerar una simple instrucción al modelo como barrera suficiente.
+6. Definir en el DPA qué ocurre en tratamientos institucionales excepcionales y qué módulos pueden utilizarse con información protegida, si existe base de licitud y autorización documentada.
+7. Ante una exposición accidental, contener el flujo, documentar destinatario y alcance y activar el procedimiento de incidentes con el responsable institucional.
+
+Hasta cerrar esta verificación, la redacción pública correcta es **"los modelos no están destinados a tratar datos personales o sensibles"**, no **"ningún modelo puede recibir ni procesar datos personales"**.
 
 ## 9. Pruebas antes de producción
 
