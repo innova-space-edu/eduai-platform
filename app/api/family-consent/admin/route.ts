@@ -43,7 +43,13 @@ export async function POST(request: NextRequest) {
     const action = safeText(body.action, 20)
     const db = createFamilyAdminClient()
     if (action === "issue") {
-      const studentId = safeText(body.studentUserId, 40)
+      let studentId = safeText(body.studentUserId, 40)
+      const studentEmail = safeEmail(body.studentEmail)
+      if (!studentId && studentEmail) {
+        const { data: studentProfile } = await db.from("profiles")
+          .select("id").eq("email", studentEmail).maybeSingle()
+        studentId = studentProfile?.id || ""
+      }
       const guardianEmail = safeEmail(body.guardianEmail)
       const institutionName = safeText(body.institutionName, 140)
       const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
