@@ -86,6 +86,23 @@ export default function SecurityPage() {
         Los proveedores de nube, base de datos, IA y multimedia deben evaluarse según los datos que procesan, sus controles de acceso, retención, ubicación, respuesta a incidentes y condiciones contractuales. La existencia de un proveedor no reemplaza la responsabilidad de configurar correctamente la plataforma.
       </p>
 
+      <h3>8.1. Separación de datos institucionales y solicitudes a modelos IA</h3>
+      <p>
+        Los modelos externos están previstos como apoyo para generar materiales educativos y responder
+        consultas, no como herramientas para tratar deliberadamente expedientes personales o sensibles.
+        Esta finalidad no elimina el riesgo de que un mensaje, una imagen o un documento contenga
+        información identificable. Los flujos que comuniquen contenido a terceros deben evaluarse,
+        minimizar los datos transmitidos, comprobar los permisos del usuario y evitar que el contenido
+        de otro usuario o institución se incorpore a la solicitud.
+      </p>
+      <p>
+        Una advertencia o una instrucción en el prompt no constituye por sí sola una barrera técnica.
+        Deben verificarse, según el riesgo, controles de validación, desidentificación, permisos,
+        registros sin información excesiva, pruebas de filtración y procedimientos de incidente.
+        Los resultados de esas pruebas se conservan internamente y no se presume que todos los
+        controles estén operativos por su inclusión en esta política.
+      </p>
+
       <h2>9. Alcance de la Ley Marco de Ciberseguridad</h2>
       <p>
         La Ley N.º 21.663 establece obligaciones para las entidades comprendidas en su ámbito, incluyendo prestadores de servicios esenciales y operadores de importancia vital. La aplicación directa a Innova Space Edu SpA o a un establecimiento específico debe evaluarse jurídicamente según sus actividades y calificación. EduAI adopta sus principios de prevención y respuesta como referencia de buenas prácticas, sin afirmar automáticamente una calificación legal determinada.
