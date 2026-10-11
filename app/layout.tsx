@@ -13,6 +13,7 @@ import CreateExamMixedAI from "@/components/exam/CreateExamMixedAI"
 import ExamLatexAnswerFix from "@/components/exam/ExamLatexAnswerFix"
 import EduAIUsageTracker from "@/components/analytics/EduAIUsageTracker"
 import DashboardLegalFooter from "@/components/legal/DashboardLegalFooter"
+import LegacyConsentCountdown from "@/components/legal/LegacyConsentCountdown"
 
 export const metadata: Metadata = {
   title: "EduAI Platform",
@@ -42,6 +43,7 @@ export default function RootLayout({
           enableSystem={false}
         >
           <MusicProvider>
+            <LegacyConsentCountdown policyHref="/privacidad" />
             <EduAIUsageTracker />
             {children}
             <HeaderNavigationGuard />
