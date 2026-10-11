@@ -30,14 +30,19 @@ export default function LoginPage() {
 
     setLoading(true)
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data: signedIn, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) { setError("Email o contraseña incorrectos"); setLoading(false); return }
+    const birthFromAuth = String(signedIn.user?.user_metadata?.birth_date || "")
+    const born = new Date(birthFromAuth + "T00:00:00")
+    const today = new Date()
+    const minor = !birthFromAuth || Number.isNaN(born.getTime()) ||
+      born > new Date(today.getFullYear()-18,today.getMonth(),today.getDate())
 
     const { error: privacyError } = await supabase.rpc("record_eduai_privacy_choices", {
       p_policy_version: PRIVACY_TERMS_VERSION,
       p_terms_acknowledged: acceptedTerms,
       p_data_warning_acknowledged: acknowledgedDataWarning,
-      p_choices: optionalChoices,
+      p_choices: minor ? EMPTY_OPTIONAL_PRIVACY_CHOICES : optionalChoices,
     })
     if (privacyError) {
       await supabase.auth.signOut()
@@ -45,11 +50,6 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
-    const birthDate = String((await supabase.auth.getUser()).data.user?.user_metadata?.birth_date || "")
-    const parsedBirth = new Date(birthDate + "T00:00:00")
-    const now = new Date()
-    const minor = !birthDate || Number.isNaN(parsedBirth.getTime()) ||
-      parsedBirth > new Date(now.getFullYear()-18,now.getMonth(),now.getDate())
     if (minor) {
       const attempt = await fetch("/api/family-consent/self/invite",{method:"POST"}).catch(()=>null)
       // Even when email delivery is unavailable, never grant access without an approved form.
