@@ -7,6 +7,7 @@ import Link from "next/link"
 import { Zap, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react"
 import LegalFooter from "@/components/legal/LegalFooter"
 import PrivacyConsentPanel, { EMPTY_OPTIONAL_PRIVACY_CHOICES, PRIVACY_TERMS_VERSION, type OptionalPrivacyChoices } from "@/components/legal/PrivacyConsentPanel"
+import { hasLegacyConsentGrace } from "@/lib/family-consent/transition"
 
 export default function LoginPage() {
   const [email, setEmail]                 = useState("")
@@ -23,22 +24,26 @@ export default function LoginPage() {
     e.preventDefault()
     setError("")
 
-    if (!acceptedTerms || !acknowledgedDataWarning) {
-      setError("Debes reconocer las condiciones necesarias y la advertencia sobre datos personales para continuar")
-      return
-    }
-
     setLoading(true)
     const supabase = createClient()
     const { data: signedIn, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) { setError("Email o contraseña incorrectos"); setLoading(false); return }
+    // No imponer las nuevas condiciones antes del 15/11/2026 a cuentas preexistentes.
+    const legacyGrace = hasLegacyConsentGrace(signedIn.user?.created_at)
+    if (!legacyGrace && (!acceptedTerms || !acknowledgedDataWarning)) {
+      await supabase.auth.signOut()
+      setError("Para continuar debes revisar y reconocer las nuevas condiciones de privacidad.")
+      setLoading(false)
+      return
+    }
     const birthFromAuth = String(signedIn.user?.user_metadata?.birth_date || "")
     const born = new Date(birthFromAuth + "T00:00:00")
     const today = new Date()
     const minor = !birthFromAuth || Number.isNaN(born.getTime()) ||
       born > new Date(today.getFullYear()-18,today.getMonth(),today.getDate())
 
-    const { error: privacyError } = await supabase.rpc("record_eduai_privacy_choices", {
+    if (!legacyGrace) {
+      const { error: privacyError } = await supabase.rpc("record_eduai_privacy_choices", {
       p_policy_version: PRIVACY_TERMS_VERSION,
       p_terms_acknowledged: acceptedTerms,
       p_data_warning_acknowledged: acknowledgedDataWarning,
@@ -50,7 +55,8 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
-    if (minor) {
+    }
+    if (minor && !legacyGrace) {
       const attempt = await fetch("/api/family-consent/self/invite",{method:"POST"}).catch(()=>null)
       // Even when email delivery is unavailable, never grant access without an approved form.
       if (attempt?.ok) {
@@ -131,6 +137,7 @@ export default function LoginPage() {
             </div>
 
             {/* La aceptación necesaria y los permisos opcionales se registran después de autenticar. */}
+            <p className="text-xs text-muted2">Cuentas anteriores al 12 de octubre de 2026: puedes ingresar durante el plazo de transición sin completar este nuevo formulario. Para otras cuentas se exige el reconocimiento de condiciones.</p>
             <PrivacyConsentPanel
               acceptedTerms={acceptedTerms}
               onAcceptedTerms={setAcceptedTerms}
