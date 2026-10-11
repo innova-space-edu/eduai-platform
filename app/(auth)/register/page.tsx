@@ -33,6 +33,7 @@ export default function RegisterPage() {
   const [email,            setEmail]            = useState("")
   const [password,         setPassword]         = useState("")
   const [birthDate,        setBirthDate]        = useState("")
+  const [guardianEmail, setGuardianEmail] = useState("")
   const [accountType,      setAccountType]      = useState<AccountType>("teacher")
   const [acceptedTerms,    setAcceptedTerms]    = useState(false)
   const [acknowledgedDataWarning, setAcknowledgedDataWarning] = useState(false)
@@ -68,7 +69,7 @@ export default function RegisterPage() {
     if (Number.isNaN(parsedBirth.getTime()) || parsedBirth > new Date()) {
       setError("La fecha de nacimiento no es válida"); setLoading(false); return
     }
-    if (isUnder14(birthDate)) { setError("Las cuentas de menores de 14 años requieren un proceso institucional y de representantes legales verificados."); setLoading(false); return }
+    if (isUnder18(birthDate) && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(guardianEmail.trim())) { setError("Indica un correo válido del representante del menor."); setLoading(false); return }
     if (!acceptedTerms || !acknowledgedDataWarning) { setError("Debes reconocer las condiciones necesarias y la advertencia sobre datos personales."); setLoading(false); return }
     if (isUnder18(birthDate) && Object.values(optionalChoices).some(Boolean)) { setError("Los permisos opcionales de menores requieren validación separada."); setLoading(false); return }
 
@@ -79,6 +80,7 @@ export default function RegisterPage() {
         data: {
           name,
           birth_date: birthDate,
+          guardian_email: isUnder18(birthDate) ? guardianEmail.trim().toLowerCase() : null,
           account_type: accountType,
           country_code: "CL",
           terms_accepted: acceptedTerms,
@@ -134,7 +136,11 @@ export default function RegisterPage() {
     if (!signUpData.session) {
       router.push("/login?registered=1")
     } else {
-      router.push("/dashboard")
+      if (isUnder18(birthDate)) {
+        const invitation = await fetch("/api/family-consent/self/invite", {method:"POST"}).catch(() => null)
+        if (!invitation?.ok) setError("Cuenta creada, pero el envío familiar aún no pudo confirmarse. El acceso estará restringido.")
+        router.push("/autorizacion-pendiente")
+      } else router.push("/dashboard")
     }
     router.refresh()
   }
@@ -269,6 +275,14 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {restricted && <div className="rounded-xl border border-amber-500/30 p-3 space-y-2">
+              <p className="text-xs font-semibold text-main">Autorización obligatoria de representante para menores</p>
+              <label className="block text-xs text-sub">Correo electrónico del padre, madre o representante con facultades
+                <input type="email" required value={guardianEmail} onChange={e => setGuardianEmail(e.target.value)}
+                  placeholder="familia@correo.cl" className="mt-2 w-full rounded-lg border p-3 text-sm" />
+              </label>
+              <p className="text-xs text-sub">Se enviará un enlace individual. El menor no podrá ingresar antes de la firma y aprobación institucional.</p>
+            </div>}
             <PrivacyConsentPanel
               acceptedTerms={acceptedTerms}
               onAcceptedTerms={setAcceptedTerms}
