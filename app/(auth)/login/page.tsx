@@ -45,6 +45,21 @@ export default function LoginPage() {
       setLoading(false)
       return
     }
+    const birthDate = String((await supabase.auth.getUser()).data.user?.user_metadata?.birth_date || "")
+    const parsedBirth = new Date(birthDate + "T00:00:00")
+    const now = new Date()
+    const minor = !birthDate || Number.isNaN(parsedBirth.getTime()) ||
+      parsedBirth > new Date(now.getFullYear()-18,now.getMonth(),now.getDate())
+    if (minor) {
+      const attempt = await fetch("/api/family-consent/self/invite",{method:"POST"}).catch(()=>null)
+      // Even when email delivery is unavailable, never grant access without an approved form.
+      if (attempt?.ok) {
+        const result = await attempt.json().catch(()=>({}))
+        if (result.status === "approved") { router.push("/dashboard"); return }
+      }
+      router.push("/autorizacion-pendiente")
+      return
+    }
     router.push("/dashboard")
   }
 
