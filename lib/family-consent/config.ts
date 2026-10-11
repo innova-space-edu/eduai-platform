@@ -33,7 +33,7 @@ export function familyPurposes(platform: FamilyPlatform) {
   return platform === "eduai" ? EDUAI_FAMILY_PURPOSES : SELLO_FAMILY_PURPOSES
 }
 export function normalizeDecisions(platform: FamilyPlatform, input: unknown): Record<string, boolean> {
-  const known: string[] = familyPurposes(platform).map(item => item.key
+  const known: string[] = familyPurposes(platform).map(item => item.key)
   if (!input || typeof input !== "object" || Array.isArray(input)) throw new Error("Debes completar las decisiones por finalidad.")
   const supplied = input as Record<string, unknown>
   if (Object.keys(supplied).some(key => !known.includes(key))) throw new Error("El formulario incluye finalidades desconocidas.")
