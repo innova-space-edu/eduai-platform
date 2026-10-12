@@ -1,3 +1,4 @@
+import { VIDEO_STUDIO_MAINTENANCE, VIDEO_STUDIO_MAINTENANCE_RESPONSE } from "@/lib/video/maintenance"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { assertAICapabilityAllowed } from "@/lib/ai/access-policy"
@@ -15,6 +16,9 @@ const ALLOWED_AMOUNTS = new Set([5000, 10000, 20000, 50000])
 type PreferenceResponse = { id?: string }
 
 export async function POST(req: NextRequest) {
+  if (VIDEO_STUDIO_MAINTENANCE) {
+    return NextResponse.json(VIDEO_STUDIO_MAINTENANCE_RESPONSE, { status: 503, headers: { "Cache-Control": "no-store" } })
+  }
   try {
     const supabase = await createClient()
     const { data: { user }, error } = await supabase.auth.getUser()
