@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { isVoiceCloningAdmin } from "@/lib/audio/voice-admin"
 
 export const runtime = "nodejs"
 
@@ -7,6 +8,9 @@ export async function POST(req: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+  if (!(await isVoiceCloningAdmin(supabase, user))) {
+    return NextResponse.json({ error: "Clonación de voz reservada al administrador." }, { status: 403 })
+  }
 
   try {
     const body = await req.json().catch(() => ({}))
