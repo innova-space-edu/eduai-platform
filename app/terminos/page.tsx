@@ -6,11 +6,19 @@ export default function TermsPage() {
       eyebrow="Condiciones de utilización"
       title="Términos de uso de EduAI"
       summary="Establecen las reglas generales para acceder a la plataforma, utilizar sus agentes y gestionar contenidos educativos."
-      updatedAt="24 de julio de 2026"
+      updatedAt="11 de octubre de 2026"
     >
       <h2>1. Aceptación y alcance</h2>
       <p>
         Al utilizar EduAI, el usuario acepta estas condiciones y las políticas de privacidad, seguridad y gobernanza de IA. Cuando el acceso sea proporcionado por un establecimiento, también se aplicarán sus reglamentos, instrucciones y acuerdos institucionales.
+      </p>
+
+      <h3>1.1. Finalidades y permisos diferenciados</h3>
+      <p>
+        EduAI informa, antes de registrar o autenticar una cuenta, el uso de perfiles,
+        contenidos, evaluaciones, archivos, herramientas, IA y soporte.
+        La aceptación de las condiciones necesarias no implica autorización para
+        funciones opcionales, que se presentan de forma separada y revocable.
       </p>
 
       <h2>2. Uso educativo autorizado</h2>
@@ -39,6 +47,36 @@ export default function TermsPage() {
       <h2>5. Contenido e inteligencia artificial</h2>
       <p>
         Las salidas generadas por IA pueden ser incompletas o incorrectas. El usuario debe verificar hechos, fórmulas, referencias, lenguaje y adecuación pedagógica. EduAI no reemplaza el criterio profesional docente, la evaluación clínica, la asesoría jurídica ni otros servicios especializados.
+      </p>
+
+      <h3>5.1. Contenido enviado a la inteligencia artificial</h3>
+      <p>
+        Los asistentes de EduAI están orientados a crear contenidos pedagógicos y responder consultas
+        de información. El usuario no debe introducir nombres completos de estudiantes, RUT, notas
+        identificables, diagnósticos, antecedentes de salud, información PIE/NEE ni otros datos
+        personales o sensibles en chats o archivos destinados a modelos externos. Para obtener
+        material educativo se recomienda utilizar ejemplos ficticios o información desidentificada.
+      </p>
+      <p>
+        Si un documento requiere tratamiento institucional de datos protegidos, debe utilizarse
+        únicamente un procedimiento o módulo expresamente autorizado y evaluado para esa finalidad;
+        no debe presumirse que el chat general sea un canal adecuado. La información de cuenta y
+        los archivos almacenados en EduAI se rigen además por su política de privacidad.
+      </p>
+
+      <h3>5.2. Información proporcionada sin solicitud de la IA</h3>
+      <p>
+        La plataforma advierte sobre datos protegidos como identificación de
+        estudiantes, calificaciones individuales, salud, discapacidad, datos
+        familiares y otros antecedentes de terceros. El usuario debe evitar
+        introducir estos datos si la función no los requiere.
+      </p>
+      <p>
+        Si el usuario los incorpora, incluso sin solicitud del agente,
+        el contenido podría ser procesado por el servicio que atienda la
+        petición. Conocer esta advertencia no es consentimiento general
+        ni renuncia de derechos. Innova mantiene sus deberes de seguridad
+        y el establecimiento conserva sus propias responsabilidades.
       </p>
 
       <h2>6. Propiedad y licencias</h2>

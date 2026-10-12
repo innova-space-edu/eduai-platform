@@ -5,10 +5,19 @@ import { createClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import EduAIBrand from "@/components/branding/EduAIBrand"
+import PrivacyConsentPanel, { EMPTY_OPTIONAL_PRIVACY_CHOICES, PRIVACY_TERMS_VERSION, type OptionalPrivacyChoices } from "@/components/legal/PrivacyConsentPanel"
 import { User, Mail, Lock, Eye, EyeOff, AlertCircle, CalendarDays, GraduationCap } from "lucide-react"
 // EDUAI_ANIMATED_BRAND_V1
 
 type AccountType = "teacher" | "university_student" | "researcher" | "professional" | "other"
+
+function isUnder14(birthDate: string) {
+  if (!birthDate) return false
+  const date = new Date(`${birthDate}T00:00:00`)
+  if (Number.isNaN(date.getTime())) return false
+  const today = new Date()
+  return date > new Date(today.getFullYear() - 14, today.getMonth(), today.getDate())
+}
 
 function isUnder18(birthDate: string) {
   if (!birthDate) return false
@@ -24,8 +33,11 @@ export default function RegisterPage() {
   const [email,            setEmail]            = useState("")
   const [password,         setPassword]         = useState("")
   const [birthDate,        setBirthDate]        = useState("")
+  const [guardianEmail, setGuardianEmail] = useState("")
   const [accountType,      setAccountType]      = useState<AccountType>("teacher")
   const [acceptedTerms,    setAcceptedTerms]    = useState(false)
+  const [acknowledgedDataWarning, setAcknowledgedDataWarning] = useState(false)
+  const [optionalChoices, setOptionalChoices] = useState<OptionalPrivacyChoices>({ ...EMPTY_OPTIONAL_PRIVACY_CHOICES })
   const [showPass,         setShowPass]         = useState(false)
   const [error,            setError]            = useState("")
   const [loading,          setLoading]          = useState(false)
@@ -57,7 +69,9 @@ export default function RegisterPage() {
     if (Number.isNaN(parsedBirth.getTime()) || parsedBirth > new Date()) {
       setError("La fecha de nacimiento no es válida"); setLoading(false); return
     }
-    if (!acceptedTerms) { setError("Debes aceptar los términos y la política de privacidad"); setLoading(false); return }
+    if (isUnder18(birthDate) && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(guardianEmail.trim())) { setError("Indica un correo válido del representante del menor."); setLoading(false); return }
+    if (!acceptedTerms || !acknowledgedDataWarning) { setError("Debes reconocer las condiciones necesarias y la advertencia sobre datos personales."); setLoading(false); return }
+    if (isUnder18(birthDate) && Object.values(optionalChoices).some(Boolean)) { setError("Los permisos opcionales de menores requieren validación separada."); setLoading(false); return }
 
     const { data: signUpData, error } = await supabase.auth.signUp({
       email,
@@ -66,12 +80,15 @@ export default function RegisterPage() {
         data: {
           name,
           birth_date: birthDate,
+          guardian_email: isUnder18(birthDate) ? guardianEmail.trim().toLowerCase() : null,
           account_type: accountType,
           country_code: "CL",
-          terms_accepted: true,
-          terms_version: "2026-08",
-          privacy_accepted: true,
-          privacy_version: "2026-08",
+          terms_accepted: acceptedTerms,
+          terms_version: PRIVACY_TERMS_VERSION,
+          privacy_information_acknowledged: true,
+          privacy_version: PRIVACY_TERMS_VERSION,
+          data_warning_acknowledged: acknowledgedDataWarning,
+          optional_privacy_choices_requested: optionalChoices,
         },
       },
     })
@@ -93,18 +110,37 @@ export default function RegisterPage() {
           access_tier: isUnder18(birthDate) ? "restricted" : "standard",
           country_code: "CL",
           age_self_declared: true,
-          terms_version: "2026-08",
+          terms_version: PRIVACY_TERMS_VERSION,
           terms_accepted_at: new Date().toISOString(),
-          privacy_version: "2026-08",
+          privacy_version: PRIVACY_TERMS_VERSION,
           privacy_accepted_at: new Date().toISOString(),
         }, { onConflict: "user_id" })
+      }
+    }
+
+    if (signUpData.session) {
+      const { error: privacyError } = await supabase.rpc("record_eduai_privacy_choices", {
+        p_policy_version: PRIVACY_TERMS_VERSION,
+        p_terms_acknowledged: acceptedTerms,
+        p_data_warning_acknowledged: acknowledgedDataWarning,
+        p_choices: optionalChoices,
+      })
+      if (privacyError) {
+        await supabase.auth.signOut()
+        setError("La cuenta se creó, pero falta registrar las decisiones de privacidad. Inicia sesión y confirma los permisos.")
+        setLoading(false)
+        return
       }
     }
 
     if (!signUpData.session) {
       router.push("/login?registered=1")
     } else {
-      router.push("/dashboard")
+      if (isUnder18(birthDate)) {
+        const invitation = await fetch("/api/family-consent/self/invite", {method:"POST"}).catch(() => null)
+        if (!invitation?.ok) setError("Cuenta creada, pero el envío familiar aún no pudo confirmarse. El acceso estará restringido.")
+        router.push("/autorizacion-pendiente")
+      } else router.push("/dashboard")
     }
     router.refresh()
   }
@@ -239,13 +275,25 @@ export default function RegisterPage() {
               </div>
             </div>
 
-            <label className="flex items-start gap-3 cursor-pointer rounded-xl p-3 border" style={{ borderColor: "var(--border-soft)" }}>
-              <input type="checkbox" checked={acceptedTerms} onChange={e => setAcceptedTerms(e.target.checked)}
-                className="mt-0.5 h-4 w-4" />
-              <span className="text-xs text-muted2 leading-relaxed">
-                Confirmo que los datos ingresados son correctos y acepto los términos de uso y la política de privacidad de EduAI.
-              </span>
-            </label>
+            {restricted && <div className="rounded-xl border border-amber-500/30 p-3 space-y-2">
+              <p className="text-xs font-semibold text-main">Autorización obligatoria de representante para menores</p>
+              <label className="block text-xs text-sub">Correo electrónico del padre, madre o representante con facultades
+                <input type="email" required value={guardianEmail} onChange={e => setGuardianEmail(e.target.value)}
+                  placeholder="familia@correo.cl" className="mt-2 w-full rounded-lg border p-3 text-sm" />
+              </label>
+              <p className="text-xs text-sub">Se enviará un enlace individual. El menor no podrá ingresar antes de la firma y aprobación institucional.</p>
+            </div>}
+            <PrivacyConsentPanel
+              acceptedTerms={acceptedTerms}
+              onAcceptedTerms={setAcceptedTerms}
+              acknowledgedDataWarning={acknowledgedDataWarning}
+              onAcknowledgedDataWarning={setAcknowledgedDataWarning}
+              value={optionalChoices}
+              onChange={setOptionalChoices}
+              minorRestricted={restricted}
+            />
+
+
 
             {error && (
               <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl border"

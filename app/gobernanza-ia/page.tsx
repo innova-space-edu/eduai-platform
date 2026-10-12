@@ -53,6 +53,22 @@ export default function AiGovernancePage() {
         <li>Analizar métricas agregadas para calidad y seguridad.</li>
       </ul>
 
+      <h3>3.1. Finalidad declarada de los modelos externos</h3>
+      <p>
+        Los proveedores y modelos de inteligencia artificial incorporados se destinan a la generación
+        de contenido educativo, elaboración y adaptación de recursos, explicación de materias, síntesis
+        de textos no sensibles y respuesta a solicitudes de información. No se incorporan con la finalidad
+        de analizar datos personales o sensibles, elaborar perfiles individuales de estudiantes,
+        diagnosticar condiciones ni decidir sobre derechos o situaciones académicas particulares.
+      </p>
+      <p>
+        La plataforma puede recibir información identificable en mensajes o documentos aportados por
+        sus usuarios. Por ello, esta definición de finalidad es una regla de uso y diseño, no una
+        certificación de que todas las conexiones impidan automáticamente enviar datos personales.
+        Cada integración debe documentar el contenido enviado, la aplicación de minimización y las
+        condiciones del proveedor antes de permitir su operación con información institucional.
+      </p>
+
       <h2>4. Usos restringidos o prohibidos</h2>
       <ul>
         <li>Tomar medidas disciplinarias exclusivamente mediante IA.</li>

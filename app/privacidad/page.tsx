@@ -24,7 +24,7 @@ export default function PrivacyPage() {
       eyebrow="Privacidad y datos personales"
       title="Política de privacidad de EduAI"
       summary="Esta política explica qué información puede tratar EduAI, para qué se utiliza, cómo se protege y qué derechos poseen estudiantes, docentes, apoderados y demás titulares de datos."
-      updatedAt="24 de julio de 2026"
+      updatedAt="11 de octubre de 2026"
       references={REFERENCES}
     >
       <h2>1. Responsable y contexto del tratamiento</h2>
@@ -60,6 +60,29 @@ export default function PrivacyPage() {
         <li>Cumplir obligaciones contractuales, educacionales y legales.</li>
       </ul>
 
+      <h3>3.1. Elecciones previas y por finalidad</h3>
+      <p>
+        La plataforma distingue las condiciones necesarias de cuenta, sesión,
+        seguridad, almacenamiento y servicio contratado, de los permisos
+        opcionales para modelos externos, análisis de archivos mediante IA,
+        funciones de voz y estadísticas no indispensables.
+        Estos permisos opcionales se presentan separados, desactivados
+        por defecto y pueden modificarse desde el perfil.
+      </p>
+      <p>
+        La publicación de trabajos, imágenes de estudiantes, tratamiento
+        especial de información sensible o clonación de voz exigen reglas
+        y autorizaciones independientes según corresponda.
+        La aceptación de términos no reemplaza la base legal de tratamiento
+        ni el consentimiento de representantes legales cuando sea exigible.
+      </p>
+      <p>
+        El usuario es informado de que los mensajes y archivos pueden
+        contener antecedentes personales que el agente no solicita.
+        Su reconocimiento no constituye autorización general ni libera
+        a la empresa de minimizar los datos y proteger la información.
+      </p>
+
       <h2>4. Datos de niños, niñas y adolescentes</h2>
       <p>
         El tratamiento de información de menores debe respetar su interés superior, su autonomía progresiva y su derecho a recibir información comprensible. Los establecimientos, apoderados y responsables de la plataforma deben limitar el tratamiento a lo necesario para la finalidad educativa.
@@ -74,6 +97,29 @@ export default function PrivacyPage() {
       </p>
       <p>
         EduAI no debe utilizar notas, respuestas, datos sensibles o información identificable de menores para entrenar modelos externos salvo que exista una autorización válida, una finalidad informada y resguardos contractuales específicos. Siempre que sea posible, la información debe minimizarse, anonimizarse o seudonimizarse antes de enviarse a un servicio externo.
+      </p>
+
+      <h3>5.1. Finalidad de los modelos de inteligencia artificial</h3>
+      <p>
+        Los modelos externos integrados en EduAI tienen como finalidad prevista apoyar la creación de contenidos
+        educativos, explicar materias, redactar materiales pedagógicos, resumir información y responder consultas
+        generales. No están destinados a analizar expedientes personales, identificar o perfilar estudiantes,
+        inferir condiciones de salud o discapacidad, ni tomar decisiones individuales sobre sus derechos.
+      </p>
+      <p>
+        Esta delimitación describe la finalidad del servicio y no significa que las solicitudes estén libres
+        de datos personales. Una conversación, una instrucción o un archivo aportado por el usuario puede
+        contener nombres, RUT, información académica o antecedentes sensibles, incluso de manera accidental.
+        Cuando el contenido se envía a un proveedor de IA, ese proveedor puede procesar los datos incluidos
+        en la solicitud. La plataforma debe minimizar o desidentificar el contenido antes de su transmisión
+        cuando corresponda, limitar los destinatarios y comprobar las condiciones contractuales de cada proveedor.
+      </p>
+      <p>
+        Los datos utilizados para gestionar cuentas, accesos, evaluaciones y almacenamiento de archivos
+        constituyen tratamientos de la plataforma que deben informarse y protegerse por separado.
+        No se debe confundir la finalidad de los modelos de IA con la totalidad de los datos gestionados
+        por EduAI. Las integraciones y sus mecanismos de minimización se revisarán antes de afirmar que un
+        flujo concreto impide técnicamente el envío de información identificable.
       </p>
 
       <h2>6. Decisiones y revisión humana</h2>

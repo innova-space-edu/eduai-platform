@@ -191,3 +191,10 @@
   .prose { font-size: 0.95rem; }
   .prose h2 { font-size: 1.2rem; }
 }
+
+/* Desplazamiento fino dentro de Claw: el compositor permanece siempre visible. */
+[data-eduai-chat-scroll] { scrollbar-width: thin; scrollbar-color: rgba(148,163,184,.55) transparent; }
+[data-eduai-chat-scroll]::-webkit-scrollbar { width: 5px; }
+[data-eduai-chat-scroll]::-webkit-scrollbar-track { background: transparent; }
+[data-eduai-chat-scroll]::-webkit-scrollbar-thumb { background: rgba(148,163,184,.55); border-radius: 999px; }
+[data-eduai-chat-scroll]::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,.8); }

@@ -66,9 +66,9 @@ const adminWithAccess = `${adminBlock}
 replaceRequired(adminBlock, adminWithAccess, "consulta de administrador")
 
 const returnMarker = `  return (
-    <div className="flex h-[100dvh] overflow-hidden bg-app [--sidebar-closed:56px] [--sidebar-open:184px] lg:[--sidebar-closed:68px] lg:[--sidebar-open:220px] min-[2048px]:[--sidebar-closed:84px] min-[2048px]:[--sidebar-open:280px]">`
+    <div className="flex h-[calc(100dvh-var(--legacy-consent-banner-height,0px))] min-h-0 overflow-hidden bg-app [--sidebar-closed:56px] [--sidebar-open:184px] lg:[--sidebar-closed:68px] lg:[--sidebar-open:220px] min-[2048px]:[--sidebar-closed:84px] min-[2048px]:[--sidebar-open:280px]">`
 const returnReplacement = `  return (
-    <div className="flex h-[100dvh] overflow-hidden bg-app [--sidebar-closed:56px] [--sidebar-open:184px] lg:[--sidebar-closed:68px] lg:[--sidebar-open:220px] min-[2048px]:[--sidebar-closed:84px] min-[2048px]:[--sidebar-open:280px]">
+    <div className="flex h-[calc(100dvh-var(--legacy-consent-banner-height,0px))] min-h-0 overflow-hidden bg-app [--sidebar-closed:56px] [--sidebar-open:184px] lg:[--sidebar-closed:68px] lg:[--sidebar-open:220px] min-[2048px]:[--sidebar-closed:84px] min-[2048px]:[--sidebar-open:280px]">
       {user?.id && (
         <LegacyAccessOnboarding
           userId={user.id}

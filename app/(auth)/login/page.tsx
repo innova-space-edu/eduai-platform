@@ -6,12 +6,16 @@ import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
 import { Zap, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react"
 import LegalFooter from "@/components/legal/LegalFooter"
+import PrivacyConsentPanel, { EMPTY_OPTIONAL_PRIVACY_CHOICES, PRIVACY_TERMS_VERSION, type OptionalPrivacyChoices } from "@/components/legal/PrivacyConsentPanel"
+import { hasLegacyConsentGrace } from "@/lib/family-consent/transition"
 
 export default function LoginPage() {
   const [email, setEmail]                 = useState("")
   const [password, setPassword]           = useState("")
   const [showPass, setShowPass]           = useState(false)
   const [acceptedTerms, setAcceptedTerms] = useState(false)
+  const [acknowledgedDataWarning, setAcknowledgedDataWarning] = useState(false)
+  const [optionalChoices, setOptionalChoices] = useState<OptionalPrivacyChoices>({ ...EMPTY_OPTIONAL_PRIVACY_CHOICES })
   const [error, setError]                 = useState("")
   const [loading, setLoading]             = useState(false)
   const router = useRouter()
@@ -20,16 +24,49 @@ export default function LoginPage() {
     e.preventDefault()
     setError("")
 
-    if (!acceptedTerms) {
-      setError("Debes aceptar los términos y condiciones de EduAI para continuar")
-      return
-    }
-
     setLoading(true)
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) { setError("Email o contraseña incorrectos"); setLoading(false) }
-    else router.push("/dashboard")
+    const { data: signedIn, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) { setError("Email o contraseña incorrectos"); setLoading(false); return }
+    // No imponer las nuevas condiciones antes del 15/11/2026 a cuentas preexistentes.
+    const legacyGrace = hasLegacyConsentGrace(signedIn.user?.created_at)
+    if (!legacyGrace && (!acceptedTerms || !acknowledgedDataWarning)) {
+      await supabase.auth.signOut()
+      setError("Para continuar debes revisar y reconocer las nuevas condiciones de privacidad.")
+      setLoading(false)
+      return
+    }
+    const birthFromAuth = String(signedIn.user?.user_metadata?.birth_date || "")
+    const born = new Date(birthFromAuth + "T00:00:00")
+    const today = new Date()
+    const minor = !birthFromAuth || Number.isNaN(born.getTime()) ||
+      born > new Date(today.getFullYear()-18,today.getMonth(),today.getDate())
+
+    if (!legacyGrace) {
+      const { error: privacyError } = await supabase.rpc("record_eduai_privacy_choices", {
+      p_policy_version: PRIVACY_TERMS_VERSION,
+      p_terms_acknowledged: acceptedTerms,
+      p_data_warning_acknowledged: acknowledgedDataWarning,
+      p_choices: minor ? EMPTY_OPTIONAL_PRIVACY_CHOICES : optionalChoices,
+    })
+    if (privacyError) {
+      await supabase.auth.signOut()
+      setError("No se pudieron registrar las preferencias de privacidad. Verifica tu fecha de nacimiento o intenta nuevamente.")
+      setLoading(false)
+      return
+    }
+    }
+    if (minor && !legacyGrace) {
+      const attempt = await fetch("/api/family-consent/self/invite",{method:"POST"}).catch(()=>null)
+      // Even when email delivery is unavailable, never grant access without an approved form.
+      if (attempt?.ok) {
+        const result = await attempt.json().catch(()=>({}))
+        if (result.status === "approved") { router.push("/dashboard"); return }
+      }
+      router.push("/autorizacion-pendiente")
+      return
+    }
+    router.push("/dashboard")
   }
 
   const inputStyle = {
@@ -39,13 +76,13 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-app flex flex-col items-center justify-center px-4 relative overflow-hidden">
+    <main className="min-h-screen bg-app flex flex-col items-center justify-center px-4 py-8 relative overflow-x-hidden">
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full pointer-events-none"
         style={{ background: "radial-gradient(circle, rgba(37,99,235,0.07) 0%, transparent 70%)" }} />
       <div className="absolute bottom-1/4 left-1/3 w-[400px] h-[400px] rounded-full pointer-events-none"
         style={{ background: "radial-gradient(circle, rgba(124,58,237,0.05) 0%, transparent 70%)" }} />
 
-      <div className="w-full max-w-sm relative z-10 animate-fade-in-scale">
+      <div className="w-full max-w-xl relative z-10 animate-fade-in-scale">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4"
             style={{ background: "linear-gradient(135deg, #2563eb, #7c3aed)", boxShadow: "0 8px 32px rgba(37,99,235,0.28)" }}>
@@ -99,37 +136,18 @@ export default function LoginPage() {
               </div>
             </div>
 
-            <label
-              htmlFor="accept-terms"
-              className="flex cursor-pointer items-start gap-3 rounded-xl border px-3.5 py-3 transition-colors"
-              style={{
-                background: acceptedTerms ? "rgba(37,99,235,0.06)" : "var(--bg-card-soft)",
-                borderColor: acceptedTerms ? "rgba(37,99,235,0.32)" : "var(--border-soft)",
-              }}
-            >
-              <input
-                id="accept-terms"
-                type="checkbox"
-                checked={acceptedTerms}
-                onChange={event => {
-                  setAcceptedTerms(event.target.checked)
-                  if (event.target.checked && error.includes("términos")) setError("")
-                }}
-                className="mt-0.5 h-4 w-4 flex-shrink-0 cursor-pointer rounded border-gray-300 accent-blue-600"
-              />
-              <span className="text-xs leading-5 text-sub">
-                He leído y acepto los{" "}
-                <Link
-                  href="/terminos"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="font-semibold text-blue-600 underline decoration-blue-300 underline-offset-2 hover:text-blue-700"
-                  onClick={event => event.stopPropagation()}
-                >
-                  términos y condiciones de EduAI
-                </Link>.
-              </span>
-            </label>
+            {/* La aceptación necesaria y los permisos opcionales se registran después de autenticar. */}
+            <p className="text-xs text-muted2">Cuentas anteriores al 12 de octubre de 2026: puedes ingresar durante el plazo de transición sin completar este nuevo formulario. Para otras cuentas se exige el reconocimiento de condiciones.</p>
+            <PrivacyConsentPanel
+              acceptedTerms={acceptedTerms}
+              onAcceptedTerms={setAcceptedTerms}
+              acknowledgedDataWarning={acknowledgedDataWarning}
+              onAcknowledgedDataWarning={setAcknowledgedDataWarning}
+              value={optionalChoices}
+              onChange={setOptionalChoices}
+            />
+
+
 
             {error && (
               <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl border"

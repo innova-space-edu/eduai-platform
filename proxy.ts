@@ -11,6 +11,9 @@
 
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
+import { requiredPrivacyPermissionsForRoute } from "@/lib/privacy/consent-guard"
+import { createFamilyAdminClient } from "@/lib/family-consent/server"
+import { hasLegacyConsentGrace } from "@/lib/family-consent/transition"
 
 const PROTECTED_ROUTES = [
   "/dashboard", "/study", "/profile", "/admin",
@@ -101,10 +104,68 @@ export async function proxy(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
+  // Family signature != verified parental authority; the institution must approve.
+  // The flag stays OFF until all existing minor accounts have been offered a
+  // suitable lawful onboarding or alternative route.
+  if (process.env.EDUAI_FAMILY_CONSENT_ENFORCE === "true" && user && !hasLegacyConsentGrace(user.created_at)) {
+    const { data: lockedAge, error: ageError } = await createFamilyAdminClient().from("family_age_status")
+      .select("declared_birth_date").eq("user_id", user.id).maybeSingle()
+    const dob = ageError ? "" : String(lockedAge?.declared_birth_date || "")
+    const born = new Date(dob + "T00:00:00")
+    const today = new Date()
+    const minor = !dob || Number.isNaN(born.getTime()) ||
+      born > new Date(today.getFullYear() - 18, today.getMonth(), today.getDate())
+    const isFamilyPage = pathname.startsWith("/autorizacion-familiar") ||
+      pathname === "/autorizacion-pendiente" || pathname.startsWith("/api/family-consent")
+    if (minor && !isFamilyPage) {
+      try {
+        const db = createFamilyAdminClient()
+        const { data, error } = await db.from("family_authorization_requests")
+          .select("id,status,decisions,document_version").eq("platform","eduai").eq("student_user_id",user.id)
+          .in("status", ["approved","revoked"]).order("updated_at", { ascending: false })
+          .limit(1).maybeSingle()
+        if (error || !data || data.status !== "approved" || data.document_version !== "family-2026-10-v1" || data.decisions?.platform_access !== true) {
+          if (pathname.startsWith("/api/")) return NextResponse.json(
+            { error: "Autorización familiar pendiente de verificación" }, { status: 403 })
+          const isAuthOrLegal = pathname === "/login" || pathname === "/register" ||
+            pathname === "/privacidad" || pathname === "/terminos" ||
+            pathname === "/seguridad" || pathname === "/gobernanza-ia"
+          if (!isAuthOrLegal) return NextResponse.redirect(new URL("/autorizacion-pendiente", request.url))
+        }
+      } catch {
+        if (pathname.startsWith("/api/")) return NextResponse.json({ error: "No fue posible validar la autorización familiar" }, { status: 503 })
+        if (pathname !== "/autorizacion-pendiente") return NextResponse.redirect(new URL("/autorizacion-pendiente", request.url))
+      }
+    }
+  }
+
   const isAgentAPI = pathname.startsWith("/api/agents/")
   const isSuperagentAPI = pathname.startsWith("/api/superagent/")
   const isCreatorAPI = pathname.startsWith("/api/creator/") || pathname === "/api/process-content"
   const isWhiteboardAPI = pathname.startsWith("/api/whiteboard/")
+
+  // Rollout flag: turn on only after deploying the RLS/RPC migration and reviewing all
+  // affected routes. Until then, the consent UI must remain in draft, not production.
+  if (process.env.EDUAI_PRIVACY_ENFORCE_CHOICES === "true" && (!user || !hasLegacyConsentGrace(user.created_at))) {
+    const required = requiredPrivacyPermissionsForRoute(pathname, request.method)
+    if (required.length > 0) {
+      if (!user) return NextResponse.json({ error: "Debes iniciar sesión antes de usar herramientas de IA." }, { status: 401 })
+
+      const { data: privacy, error: privacyError } = await supabase
+        .from("eduai_privacy_choices")
+        .select("ai_generation, ai_documents, ai_voice")
+        .eq("user_id", user.id)
+        .maybeSingle()
+
+      if (privacyError || !privacy || required.some(key => privacy[key] !== true)) {
+        return NextResponse.json({
+          error: "La función requiere una autorización opcional vigente.",
+          action: "Revisa y actualiza tus preferencias en Configuración del perfil.",
+          missing_permission: required.filter(key => privacy?.[key] !== true),
+        }, { status: 403, headers: { "Cache-Control": "no-store" } })
+      }
+    }
+  }
 
   if ((isCreatorAPI || isWhiteboardAPI) && !user) {
     return new NextResponse(

@@ -138,11 +138,16 @@ function save(file, relative, source, changed) {
     changed = true
   }
 
-  const signupMarker = `    if (!acceptedTerms) { setError("Debes aceptar los términos y la política de privacidad"); setLoading(false); return }\n\n    const { data: signUpData, error } = await supabase.auth.signUp({`
-  const safeSignupMarker = `    if (!acceptedTerms) { setError("Debes aceptar los términos y la política de privacidad"); setLoading(false); return }\n\n    const supabase = createClient()\n    const { data: signUpData, error } = await supabase.auth.signUp({`
-  if (!source.includes(safeSignupMarker)) {
-    if (!source.includes(signupMarker)) throw new Error(`[client-supabase-prerender] marcador signup no encontrado en ${relative}`)
-    source = source.replace(signupMarker, safeSignupMarker)
+  // This guard must not depend on the exact wording of the terms-and-privacy
+  // validation. A separate granular consent form can legitimately alter it.
+  // Match only the stable Supabase signup call, then insert deferred client init.
+  const signupCall = `    const { data: signUpData, error } = await supabase.auth.signUp({`
+  const safeSignupCall = `    const supabase = createClient()\n    const { data: signUpData, error } = await supabase.auth.signUp({`
+  if (!source.includes(safeSignupCall)) {
+    if (!source.includes(signupCall)) {
+      throw new Error(`[client-supabase-prerender] llamada signup no encontrada en ${relative}`)
+    }
+    source = source.replace(signupCall, safeSignupCall)
     changed = true
   }
 
