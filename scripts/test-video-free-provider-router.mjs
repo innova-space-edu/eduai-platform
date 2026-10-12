@@ -42,12 +42,9 @@ if (videoCardStart < 0 || videoCardEnd < 0) {
   throw new Error("[test-video-free-router] No se encontró la tarjeta Video Studio en Agentes")
 }
 const videoCard = agentsPage.slice(videoCardStart, videoCardEnd)
-requireText(videoCard, 'status: "active"', "Video Studio disponible en Agentes")
-requireText(videoCard, 'href: "/video-studio"', "enlace de Video Studio")
-requireText(videoCard, 'ctaLabel: "Abrir Video Studio"', "CTA de Video Studio")
-if (videoCard.includes('status: "maintenance"') || videoCard.includes("Temporalmente no disponible")) {
-  throw new Error("[test-video-free-router] Video Studio volvió a quedar bloqueado en Agentes")
-}
+requireText(videoCard, 'status: "maintenance"', "Video Studio en mantenimiento")
+requireText(videoCard, 'ctaLabel: "Temporalmente no disponible"', "CTA de mantenimiento")
+if (videoCard.includes('status: "active"')) throw new Error("[test-video-free-router] Video Studio no debe estar habilitado")
 
 if (createRoute.includes("await incrementDailyUsage({ supabase, userId: user.id, plan })")) {
   throw new Error("[test-video-free-router] Un intento de video todavía consume cupo antes de completarse")
