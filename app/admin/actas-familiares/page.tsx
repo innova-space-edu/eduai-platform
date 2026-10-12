@@ -39,6 +39,7 @@ export default function FamilyActsPage() {
       <nav className="flex flex-wrap gap-4 text-sm text-blue-700">
         <Link href="/admin">← Administración</Link>
         <Link href="/admin/autorizaciones-familiares">Revisar autorizaciones</Link>
+        <Link href="/admin/registros" className="font-semibold">Descargar Excel / PDF completo</Link>
       </nav>
       <header className="rounded-2xl bg-slate-900 p-6 text-white">
         <p className="text-xs font-semibold uppercase tracking-widest text-cyan-300">Archivo privado · EDUAI</p>
