@@ -69,10 +69,10 @@ export default function Dashboard() {
   const displayName = user?.user_metadata?.name || user?.email?.split("@")[0] || "Usuario"
 
   return (
-    <div className="flex h-[100dvh] overflow-hidden bg-app [--sidebar-closed:56px] [--sidebar-open:184px] lg:[--sidebar-closed:68px] lg:[--sidebar-open:220px] min-[2048px]:[--sidebar-closed:84px] min-[2048px]:[--sidebar-open:280px]">
+    <div className="flex h-[calc(100dvh-var(--legacy-consent-banner-height,0px))] min-h-0 overflow-hidden bg-app [--sidebar-closed:56px] [--sidebar-open:184px] lg:[--sidebar-closed:68px] lg:[--sidebar-open:220px] min-[2048px]:[--sidebar-closed:84px] min-[2048px]:[--sidebar-open:280px]">
       <aside
         style={{ width: expanded ? "var(--sidebar-open)" : "var(--sidebar-closed)" }}
-        className="fixed left-0 top-0 z-20 flex h-[100dvh] flex-col overflow-hidden transition-[width] duration-300"
+        className="fixed left-0 top-[var(--legacy-consent-banner-height,0px)] z-20 flex h-[calc(100dvh-var(--legacy-consent-banner-height,0px))] min-h-0 flex-col overflow-hidden transition-[width] duration-300"
         onMouseEnter={() => setExpanded(true)}
         onMouseLeave={() => setExpanded(false)}
       >
@@ -177,7 +177,7 @@ export default function Dashboard() {
 
       <main
         style={{ marginLeft: expanded ? "var(--sidebar-open)" : "var(--sidebar-closed)" }}
-        className="flex h-[100dvh] min-w-0 flex-1 flex-col overflow-hidden transition-[margin] duration-300"
+        className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-[margin] duration-300"
       >
         <div
           className="z-10 shrink-0 border-b backdrop-blur-xl"
