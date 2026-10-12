@@ -69,7 +69,7 @@ export default function RegisterPage() {
     if (Number.isNaN(parsedBirth.getTime()) || parsedBirth > new Date()) {
       setError("La fecha de nacimiento no es válida"); setLoading(false); return
     }
-    if (isUnder18(birthDate) && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(guardianEmail.trim())) { setError("Indica un correo válido del representante del menor."); setLoading(false); return }
+    if (isUnder18(birthDate) && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(guardianEmail.trim())) { setError("Indica un correo válido del representante del menor."); setLoading(false); return }
     if (!acceptedTerms || !acknowledgedDataWarning) { setError("Debes reconocer las condiciones necesarias y la advertencia sobre datos personales."); setLoading(false); return }
     if (isUnder18(birthDate) && Object.values(optionalChoices).some(Boolean)) { setError("Los permisos opcionales de menores requieren validación separada."); setLoading(false); return }
 

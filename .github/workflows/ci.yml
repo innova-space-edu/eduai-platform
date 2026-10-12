@@ -26,6 +26,9 @@ jobs:
           node-version: "22"
           cache: npm
 
+      - name: Guardian email validation regression
+        run: node scripts/test-guardian-email-validation.mjs 'app/(auth)/register/page.tsx' lib/family-consent/server.ts
+
       - name: Normalize lockfile registry
         run: node scripts/normalize-npm-lockfile.mjs
 
