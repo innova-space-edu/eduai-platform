@@ -1,11 +1,12 @@
 "use client"
-import { useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 export default function FamilyAuthorizationPending() {
  const [busy,setBusy]=useState(false)
  const [message,setMessage]=useState("")
  const router=useRouter()
- async function verifyOrSend() {
+ const automaticRequestStarted=useRef(false)
+ const verifyOrSend = useCallback(async () => {
   setBusy(true);setMessage("")
   try {
    const result=await fetch("/api/family-consent/self/invite",{method:"POST",headers:{"Content-Type":"application/json"},cache:"no-store"})
@@ -14,7 +15,12 @@ export default function FamilyAuthorizationPending() {
    if(data.status==="approved"){router.push("/dashboard");router.refresh();return}
    setMessage(data.message||"El formulario está pendiente de firma y aprobación institucional.")
   } catch {setMessage("No se pudo contactar al servidor. Intenta nuevamente.")} finally{setBusy(false)}
- }
+ }, [router])
+ useEffect(() => {
+  if (automaticRequestStarted.current) return
+  automaticRequestStarted.current = true
+  void verifyOrSend()
+ }, [verifyOrSend])
  return <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4 text-slate-900">
   <div className="w-full max-w-xl space-y-4 rounded-3xl border bg-white p-8 shadow-sm">
    <p className="text-xs font-bold uppercase tracking-widest text-blue-700">Protección de estudiantes</p>
@@ -26,7 +32,7 @@ export default function FamilyAuthorizationPending() {
    </p>
    <p className="text-sm leading-6">
     La firma enviada se registra inicialmente como pendiente, no como autorización
-    aprobada. Si no llegó el correo, puedes revisar o solicitar el envío con el botón.
+    aprobada. Al ingresar se intenta enviar el correo automáticamente. Si no llegó, puedes revisarlo o solicitar un reintento con el botón.
     El enlace no sustituye la verificación institucional.
    </p>
    <button type="button" onClick={verifyOrSend} disabled={busy}
