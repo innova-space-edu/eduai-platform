@@ -42,6 +42,9 @@ jobs:
       - name: Estadísticas y aprobación institucional
         run: node scripts/test-family-admin-stats.mjs lib/family-consent/admin-stats.ts app/api/family-consent/admin/route.ts app/admin/autorizaciones-familiares/page.tsx
 
+      - name: Actas familiares y consentimiento una sola vez
+        run: node scripts/test-eduai-actas-consent-once.mjs
+
       - name: Family authorization regression
         run: node scripts/test-family-enforcement.mjs lib/family-consent/transition.ts proxy.ts app/autorizacion-pendiente/page.tsx
 
