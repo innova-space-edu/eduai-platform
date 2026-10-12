@@ -291,6 +291,13 @@ export default function AdminPage() {
               </div><ChevronRight size={18} className="text-emerald-500"/>
             </Link>
 
+            <Link href="/admin/registros" className="mb-4 flex items-center gap-3 rounded-2xl border border-sky-500/30 bg-sky-500/5 p-4 hover:border-sky-500/60">
+              <FileBarChart size={22} className="text-sky-500"/>
+              <div className="flex-1">
+                <p className="font-bold text-main">Exportar todos los registros</p>
+                <p className="text-sm text-sub">Un Excel clasificado o un PDF completo con actas, autorizaciones, decisiones e historial</p>
+              </div><ChevronRight size={18} className="text-sky-500"/>
+            </Link>
             {/* Accesos rápidos */}
             <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
               <button onClick={() => setActiveTab("reportes")}
