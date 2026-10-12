@@ -1,3 +1,4 @@
+import { VIDEO_STUDIO_MAINTENANCE, VIDEO_STUDIO_MAINTENANCE_RESPONSE } from "@/lib/video/maintenance"
 import { NextRequest } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { assertAICapabilityAllowed } from "@/lib/ai/access-policy"
@@ -145,6 +146,9 @@ async function findReusableJob(params: {
 }
 
 export async function POST(req: NextRequest) {
+  if (VIDEO_STUDIO_MAINTENANCE) {
+    return Response.json(VIDEO_STUDIO_MAINTENANCE_RESPONSE, { status: 503, headers: { "Cache-Control": "no-store" } })
+  }
   try {
     const supabase = await createClient()
     const { data: { user }, error: userError } = await supabase.auth.getUser()
