@@ -13,7 +13,7 @@ import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import { requiredPrivacyPermissionsForRoute } from "@/lib/privacy/consent-guard"
 import { createFamilyAdminClient } from "@/lib/family-consent/server"
-import { hasLegacyConsentGrace } from "@/lib/family-consent/transition"
+import { hasLegacyConsentGrace, shouldEnforceFamilyConsent } from "@/lib/family-consent/transition"
 
 const PROTECTED_ROUTES = [
   "/dashboard", "/study", "/profile", "/admin",
@@ -105,11 +105,14 @@ export async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   // Family signature != verified parental authority; the institution must approve.
-  // The flag stays OFF until all existing minor accounts have been offered a
-  // suitable lawful onboarding or alternative route.
-  if (process.env.EDUAI_FAMILY_CONSENT_ENFORCE === "true" && user && !hasLegacyConsentGrace(user.created_at)) {
+  // Cuentas nuevas: control familiar obligatorio desde el servidor.
+  // Cuentas anteriores: no cambiar el período de transición.
+  if (user) {
     const { data: lockedAge, error: ageError } = await createFamilyAdminClient().from("family_age_status")
-      .select("declared_birth_date").eq("user_id", user.id).maybeSingle()
+      .select("declared_birth_date,captured_at").eq("user_id", user.id).maybeSingle()
+    const familyGateOn = shouldEnforceFamilyConsent(
+      user.created_at, lockedAge?.captured_at, process.env.EDUAI_FAMILY_CONSENT_ENFORCE === "true",
+    )
     const dob = ageError ? "" : String(lockedAge?.declared_birth_date || "")
     const born = new Date(dob + "T00:00:00")
     const today = new Date()
@@ -117,7 +120,7 @@ export async function proxy(request: NextRequest) {
       born > new Date(today.getFullYear() - 18, today.getMonth(), today.getDate())
     const isFamilyPage = pathname.startsWith("/autorizacion-familiar") ||
       pathname === "/autorizacion-pendiente" || pathname.startsWith("/api/family-consent")
-    if (minor && !isFamilyPage) {
+    if (familyGateOn && minor && !isFamilyPage) {
       try {
         const db = createFamilyAdminClient()
         const { data, error } = await db.from("family_authorization_requests")
