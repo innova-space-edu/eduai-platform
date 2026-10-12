@@ -1,3 +1,4 @@
+import { VIDEO_STUDIO_MAINTENANCE } from "@/lib/video/maintenance"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { getPersonalCredentialSecret, type PersonalAIProvider } from "@/lib/ai/personal-credentials"
@@ -50,7 +51,7 @@ export async function GET(
 
   let job: any = loaded
 
-  if (job.status === "processing" && job.operation_name) {
+  if (!VIDEO_STUDIO_MAINTENANCE && job.status === "processing" && job.operation_name) {
     const operation = parsePersonalVideoOperation(job.operation_name)
     const payload = (job.request_payload || {}) as Record<string, any>
     const provider = (operation?.provider || payload.personalProvider || job.provider) as PersonalAIProvider

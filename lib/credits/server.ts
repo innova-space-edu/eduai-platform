@@ -1,4 +1,5 @@
 import "server-only"
+import { VIDEO_STUDIO_MAINTENANCE } from "@/lib/video/maintenance"
 
 import { createClient as createAdminClient } from "@supabase/supabase-js"
 
@@ -69,8 +70,9 @@ export async function getBillingSettings(): Promise<BillingSettings> {
     usdToClp: Number(data?.usd_to_clp ?? 1000),
     markupMultiplier: Number(data?.markup_multiplier ?? 1.3),
     minGenerationCredits: Number(data?.min_generation_credits ?? 100),
-    paymentsEnabled: data?.payments_enabled !== false,
-    premiumVideoEnabled: data?.premium_video_enabled !== false,
+    // Fallar de manera segura si faltan las banderas.
+    paymentsEnabled: data?.payments_enabled === true && !VIDEO_STUDIO_MAINTENANCE,
+    premiumVideoEnabled: data?.premium_video_enabled === true && !VIDEO_STUDIO_MAINTENANCE,
   }
 }
 

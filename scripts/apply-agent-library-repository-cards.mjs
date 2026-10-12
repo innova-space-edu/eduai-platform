@@ -121,10 +121,7 @@ source = source
     '      "Genera videos educativos desde texto o imagen con cola de trabajos, límites por plan y seguimiento de estado."',
     '      "Genera y reutiliza videos desde texto o imagen. EduAI prioriza ahorro y permite Premium Personal con la cuenta del usuario."',
   )
-  .replace(
-    '    tag: "Creativo",\n    status: "maintenance",\n    ctaLabel: "Temporalmente no disponible",\n  },\n  {\n    id: "galeria"',
-    '    tag: "Creativo",\n    status: "active",\n    ctaLabel: "Abrir Video Studio",\n  },\n  {\n    id: "galeria"',
-  )
+
 
 writeFileSync(PAGE, source)
 
@@ -140,8 +137,8 @@ for (const required of [
   'id: "image-studio"',
   'Gemini 3.1 primero',
   'id: "video-studio"',
-  'ctaLabel: "Abrir Video Studio"',
-  'Premium Personal',
+  'ctaLabel: "Temporalmente no disponible"',
+  'Generación de video aún no disponible',
   'id: "multimedia-studio"',
   'href: "/multimedia-studio"',
   'ctaLabel: "Abrir Editor Multimedia"',
@@ -154,8 +151,8 @@ for (const required of [
 const videoStart = verified.indexOf('id: "video-studio"')
 const videoEnd = verified.indexOf('id: "galeria"', videoStart)
 const videoBlock = verified.slice(videoStart, videoEnd)
-if (!videoBlock.includes('status: "active"') || videoBlock.includes('status: "maintenance"')) {
-  throw new Error("[agent-cards] Video Studio continúa bloqueado en Agentes")
+if (!videoBlock.includes('status: "maintenance"') || videoBlock.includes('status: "active"')) {
+  throw new Error("[agent-cards] Video Studio debe permanecer en mantenimiento")
 }
 
 const multimediaStart = verified.indexOf('id: "multimedia-studio"')
@@ -165,4 +162,4 @@ if (!multimediaBlock.includes('status: "active"')) {
   throw new Error("[agent-cards] Editor Multimedia no quedó activo en Agentes")
 }
 
-console.log("[agent-cards] Biblioteca, Nube EduAI, Image Studio, Video Studio y Editor Multimedia disponibles en Agentes")
+console.log("[agent-cards] Biblioteca, Nube EduAI, Image Studio y Editor Multimedia activos; Video Studio en mantenimiento")

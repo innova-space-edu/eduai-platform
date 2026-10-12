@@ -1,3 +1,4 @@
+import { VIDEO_STUDIO_MAINTENANCE, VIDEO_STUDIO_MAINTENANCE_RESPONSE } from "@/lib/video/maintenance"
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { assertAICapabilityAllowed } from "@/lib/ai/access-policy"
@@ -7,6 +8,9 @@ import { VIDEO_STUDIO_MODELS } from "@/lib/video/premium-models"
 export const runtime = "nodejs"
 
 export async function GET() {
+  if (VIDEO_STUDIO_MAINTENANCE) {
+    return NextResponse.json(VIDEO_STUDIO_MAINTENANCE_RESPONSE, { status: 503, headers: { "Cache-Control": "no-store" } })
+  }
   try {
     const supabase = await createClient()
     const { data: { user }, error } = await supabase.auth.getUser()

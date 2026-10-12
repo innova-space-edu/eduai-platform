@@ -213,14 +213,14 @@ const AGENTS: AgentItem[] = [
     icon: "🎬",
     name: "Video Studio",
     description:
-      "Genera y reutiliza videos desde texto o imagen. EduAI prioriza ahorro y permite Premium Personal con la cuenta del usuario.",
+      "Generación de video aún no disponible. Sin generación de videos ni compras de créditos mientras está en mantenimiento.",
     color: "from-cyan-500 to-blue-600",
     glow: "rgba(34,211,238,0.14)",
     border: "rgba(34,211,238,0.24)",
     href: "/video-studio",
     tag: "Creativo",
-    status: "active",
-    ctaLabel: "Abrir Video Studio",
+    status: "maintenance",
+    ctaLabel: "Temporalmente no disponible",
   },
   {
     id: "galeria",
