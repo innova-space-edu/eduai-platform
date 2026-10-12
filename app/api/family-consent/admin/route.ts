@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server"
 import { createClient as createSessionClient } from "@/lib/supabase/server"
-import { FAMILY_CONSENT_VERSION } from "@/lib/family-consent/config"
+import { FAMILY_CONSENT_VERSION, familyPurposes } from "@/lib/family-consent/config"
 import { createFamilyAdminClient, createInvitationToken, privateResponse, safeEmail, safeText } from "@/lib/family-consent/server"
+import { summarizeFamilyResponses, type FamilyDecisionRow } from "@/lib/family-consent/admin-stats"
 
 export const runtime = "nodejs"
 const PLATFORM = "eduai" as const
@@ -27,9 +28,23 @@ export async function GET() {
     const db = createFamilyAdminClient()
     const { data, error } = await db.from("family_authorization_requests")
       .select("id,student_user_id,institution_name,guardian_email,status,issued_at,expires_at,submitted_at,guardian_full_name,guardian_relationship,student_name_declared,decisions,verified_method,reviewed_at")
-      .eq("platform", PLATFORM).order("issued_at", { ascending: false }).limit(60)
+      .eq("platform", PLATFORM).order("issued_at", { ascending: false }).limit(100)
     if (error) return privateResponse({ error: "No se pudo consultar el registro." }, 503)
-    return privateResponse({ requests: data ?? [] })
+
+    // Count all signed forms, not merely the 100 most recent displayed rows.
+    const countRows: FamilyDecisionRow[] = []
+    let complete = false
+    for (let page = 0; page < 20; page++) {
+      const start = page * 1000
+      const { data: batch, error: countError } = await db.from("family_authorization_requests")
+        .select("status,submitted_at,decisions").eq("platform", PLATFORM)
+        .order("issued_at", { ascending: false }).range(start, start + 999)
+      if (countError || !batch) return privateResponse({ error: "No se pudo calcular el resumen." }, 503)
+      countRows.push(...batch)
+      if (batch.length < 1000) { complete = true; break }
+    }
+    const statistics = summarizeFamilyResponses(countRows, familyPurposes(PLATFORM))
+    return privateResponse({ requests: data ?? [], statistics, statisticsComplete: complete })
   } catch {
     return privateResponse({ error: "Servicio de autorizaciones no disponible." }, 503)
   }
@@ -88,12 +103,19 @@ export async function POST(request: NextRequest) {
       const requestId = safeText(body.requestId, 40)
       if (!/^[0-9a-f-]{36}$/i.test(requestId)) return privateResponse({ error: "Solicitud inválida" }, 400)
       const { data: record, error: lookupError } = await db.from("family_authorization_requests")
-        .select("id,status,student_user_id,guardian_full_name,signature_sha256,decisions")
+        .select("id,status,student_user_id,guardian_full_name,signature_sha256,submitted_at,document_version,decisions")
         .eq("id", requestId).eq("platform", PLATFORM).maybeSingle()
       if (lookupError || !record) return privateResponse({ error: "Solicitud no encontrada" }, 404)
       if (action === "approve") {
         const evidenceRef = safeText(body.evidenceRef, 180)
         const verifiedMethod = safeText(body.verifiedMethod, 32)
+        if (record.decisions?.platform_access !== true) {
+          return privateResponse({ error: "El apoderado no autorizó el ingreso: no se puede conceder acceso." }, 409)
+        }
+        if (!record.signature_sha256 || !record.guardian_full_name || !record.submitted_at ||
+            record.document_version !== FAMILY_CONSENT_VERSION) {
+          return privateResponse({ error: "Debe existir un formulario vigente, firmado y presentado." }, 409)
+        }
         if (record.status !== "submitted" || body.identityVerified !== true ||
           body.legalCapacityVerified !== true || evidenceRef.length < 5 ||
           !["manual_institution", "qualified_eid_provider"].includes(verifiedMethod)) {
