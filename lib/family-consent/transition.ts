@@ -12,3 +12,8 @@ export function hasLegacyConsentGrace(createdAt: string | null | undefined, nowM
   const createdMs = Date.parse(createdAt)
   return Number.isFinite(createdMs) && createdMs < LEGACY_ACCOUNT_CUTOFF_MS
 }
+
+/** User registered using the parental consent flow needs authorization before entry. */
+export function requiresNewMinorConsent(createdAt: string | null, consentFlow: boolean): boolean {
+  return consentFlow || (Boolean(createdAt) && Date.parse(createdAt!) >= LEGACY_ACCOUNT_CUTOFF_MS)
+}
