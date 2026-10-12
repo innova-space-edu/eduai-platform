@@ -1,5 +1,6 @@
 "use client"
 import { useCallback, useEffect, useState } from "react"
+import Link from "next/link"
 import { familyPurposes } from "@/lib/family-consent/config"
 
 type FamilyRequest = {
