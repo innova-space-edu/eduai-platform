@@ -1,5 +1,6 @@
 import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
+import { isVoiceCloningAdmin } from "@/lib/audio/voice-admin"
 
 export const VOICE_SECURITY_COOKIE = "eduai_voice_cloning_session"
 export const VOICE_SECURITY_TTL_SECONDS = 30 * 24 * 60 * 60
@@ -13,6 +14,11 @@ export async function validateVoiceSecuritySession() {
   const supabase = await createClient()
   const token = await getVoiceSecurityToken()
   if (!token) return { valid: false, token: "", supabase, error: "" }
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || !(await isVoiceCloningAdmin(supabase, user))) {
+    return { valid: false, token: "", supabase, error: "" }
+  }
 
   let lastError = ""
   for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -47,6 +53,11 @@ export async function touchVoiceSecuritySession() {
   const supabase = await createClient()
   const token = await getVoiceSecurityToken()
   if (!token) return { valid: false, expiresAt: null as string | null }
+
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user || !(await isVoiceCloningAdmin(supabase, user))) {
+    return { valid: false, expiresAt: null as string | null }
+  }
 
   const { data, error } = await supabase.rpc("touch_voice_security_session", {
     p_session_token: token,
