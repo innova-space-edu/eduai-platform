@@ -43,4 +43,10 @@ assert.match(migration,/then public\.eduai_privacy_choices\.terms_acknowledged_a
 assert.match(migration,/then public\.eduai_privacy_choices\.data_warning_acknowledged_at/)
 assert.match(profile,/privacyAcceptedAt/)
 assert.match(profile,/eduai_privacy_choice_events/)
+const signup=fs.readFileSync("supabase/migrations/202610120003_eduai_signup_privacy_snapshot.sql","utf8")
+assert.match(signup,/zz_eduai_initial_privacy_on_signup/)
+assert.match(signup,/signup_declarations/)
+assert.match(signup,/on conflict \(user_id\) do nothing/,"Never overwrite a previous user decision at signup")
+assert.match(signup,/v_minor/,"Minor purposes must remain default-denied")
+
 console.log("OK: privacy requested once, timestamp preserved and family acts restricted and archived")
