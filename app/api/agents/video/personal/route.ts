@@ -1,3 +1,4 @@
+import { VIDEO_STUDIO_MAINTENANCE, VIDEO_STUDIO_MAINTENANCE_RESPONSE } from "@/lib/video/maintenance"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { assertAICapabilityAllowed } from "@/lib/ai/access-policy"
@@ -57,6 +58,9 @@ async function signedVideoUrl(supabase: Awaited<ReturnType<typeof createClient>>
 }
 
 export async function POST(req: NextRequest) {
+  if (VIDEO_STUDIO_MAINTENANCE) {
+    return NextResponse.json(VIDEO_STUDIO_MAINTENANCE_RESPONSE, { status: 503, headers: { "Cache-Control": "no-store" } })
+  }
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ ok: false, error: "No autenticado" }, { status: 401 })
