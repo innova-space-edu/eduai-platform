@@ -142,6 +142,32 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Consentimiento persistente por versión: no basta con ocultar el formulario
+  // de login. Impedir acceso directo a las rutas protegidas si aún falta la
+  // primera aceptación; no regrabar preferencias al iniciar sesión.
+  const needsPrivacyGate = user && !hasLegacyConsentGrace(user.created_at) &&
+    (PROTECTED_ROUTES.some(path => pathname.startsWith(path)) ||
+     pathname.startsWith("/api/agents/") || pathname.startsWith("/api/superagent/") ||
+     pathname.startsWith("/api/creator/") || pathname.startsWith("/api/whiteboard/") ||
+     pathname === "/api/process-content")
+  if (needsPrivacyGate) {
+    const { data: savedPrivacy, error: privacyReadError } = await supabase
+      .from("eduai_privacy_choices")
+      .select("policy_version,terms_acknowledged_at,data_warning_acknowledged_at")
+      .eq("user_id",user.id).maybeSingle()
+    if (privacyReadError) {
+      if (pathname.startsWith("/api/")) return NextResponse.json(
+        {error:"No fue posible validar tus condiciones de privacidad."}, {status:503})
+      return NextResponse.redirect(new URL("/consentimiento",request.url))
+    }
+    if (savedPrivacy?.policy_version !== "2026-10-11-v1" ||
+        !savedPrivacy?.terms_acknowledged_at || !savedPrivacy?.data_warning_acknowledged_at) {
+      if (pathname.startsWith("/api/")) return NextResponse.json(
+        {error:"Debes registrar las condiciones vigentes una sola vez.",action:"/consentimiento"}, {status:403})
+      return NextResponse.redirect(new URL("/consentimiento",request.url))
+    }
+  }
+
   const isAgentAPI = pathname.startsWith("/api/agents/")
   const isSuperagentAPI = pathname.startsWith("/api/superagent/")
   const isCreatorAPI = pathname.startsWith("/api/creator/") || pathname === "/api/process-content"

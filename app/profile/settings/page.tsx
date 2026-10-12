@@ -21,6 +21,10 @@ export default function ProfileSettings() {
   const [privacySaving, setPrivacySaving] = useState(false)
   const [privacyAcknowledged, setPrivacyAcknowledged] = useState(false)
   const [privacyStatus, setPrivacyStatus] = useState("")
+  const [privacyAcceptedAt,setPrivacyAcceptedAt] = useState<string|null>(null)
+  const [privacyUpdatedAt,setPrivacyUpdatedAt] = useState<string|null>(null)
+  const [privacyEvents,setPrivacyEvents] = useState<Array<{recorded_at:string;event_type:string;choices:OptionalPrivacyChoices}>>([])
+
   const router = useRouter()
   const supabase = createClient()
 
@@ -37,10 +41,12 @@ export default function ProfileSettings() {
       const today = new Date()
       setPrivacyMinor(!dob || Number.isNaN(d.getTime()) || d > new Date(today.getFullYear() - 18, today.getMonth(), today.getDate()))
       const { data: existing, error: loadError } = await supabase.from("eduai_privacy_choices")
-        .select("policy_version, terms_acknowledged_at, data_warning_acknowledged_at, ai_generation, ai_documents, ai_voice, optional_analytics")
+        .select("policy_version, terms_acknowledged_at, data_warning_acknowledged_at, updated_at, ai_generation, ai_documents, ai_voice, optional_analytics")
         .eq("user_id", user.id).maybeSingle()
       if (loadError) setPrivacyStatus("Aún no se pudieron cargar tus permisos. Comprueba que la actualización de privacidad esté habilitada.")
       if (existing) {
+        setPrivacyAcceptedAt(existing.terms_acknowledged_at || null)
+        setPrivacyUpdatedAt(existing.updated_at || null)
         setPrivacyAcknowledged(Boolean(existing.terms_acknowledged_at && existing.data_warning_acknowledged_at && existing.policy_version === PRIVACY_TERMS_VERSION))
         setPrivacyChoices({
           ai_generation: existing.ai_generation === true,
@@ -49,6 +55,10 @@ export default function ProfileSettings() {
           optional_analytics: existing.optional_analytics === true,
         })
       }
+      const { data: privacyAudit } = await supabase.from("eduai_privacy_choice_events")
+        .select("recorded_at,event_type,choices").eq("user_id",user.id)
+        .order("recorded_at",{ascending:false}).limit(12)
+      if (privacyAudit) setPrivacyEvents(privacyAudit as Array<{recorded_at:string;event_type:string;choices:OptionalPrivacyChoices}>)
     }
     init()
   }, [])
@@ -86,7 +96,19 @@ export default function ProfileSettings() {
       p_choices: privacyMinor ? EMPTY_OPTIONAL_PRIVACY_CHOICES : privacyChoices,
     })
     setPrivacySaving(false)
-    setPrivacyStatus(error ? "No fue posible registrar tus preferencias. Contacta soporte si continúa el problema." : "Preferencias actualizadas. Puedes revocar los permisos opcionales cuando lo necesites.")
+    if (!error) {
+      const { data:latest } = await supabase.from("eduai_privacy_choices")
+        .select("terms_acknowledged_at,updated_at").eq("user_id",user.id).maybeSingle()
+      if (latest) {
+        setPrivacyAcceptedAt(latest.terms_acknowledged_at || null)
+        setPrivacyUpdatedAt(latest.updated_at || null)
+      }
+      const {data:audit}=await supabase.from("eduai_privacy_choice_events")
+        .select("recorded_at,event_type,choices").eq("user_id",user.id)
+        .order("recorded_at",{ascending:false}).limit(12)
+      if(audit)setPrivacyEvents(audit as Array<{recorded_at:string;event_type:string;choices:OptionalPrivacyChoices}>)
+    }
+    setPrivacyStatus(error ? "No fue posible registrar tus preferencias. Contacta soporte si continúa el problema." : "Preferencias actualizadas. La fecha original de aceptación se conserva.")
   }
 
   const AVATARS = ["🧑‍🎓","👩‍🎓","🧑‍🏫","👩‍🏫","🧑‍💻","👩‍💻","🧑‍🔬","👩‍🔬","🦊","🐼","🦁","🐯","🌟","🚀","🎯","🏆"]
@@ -215,6 +237,11 @@ export default function ProfileSettings() {
         {/* Preferencias de tratamiento opcional */}
         <div className="rounded-2xl p-5 border" style={{ background: "var(--bg-card)", borderColor: "var(--border-soft)" }}>
           <h2 className="text-main font-medium text-sm mb-3">Privacidad y permisos de herramientas</h2>
+          {privacyAcceptedAt && <p className="mb-2 rounded-lg border border-soft p-3 text-xs leading-5 text-sub">
+            Condiciones aceptadas: <strong>{new Date(privacyAcceptedAt).toLocaleString("es-CL",{timeZone:"America/Santiago",dateStyle:"medium",timeStyle:"short"})}</strong>
+            {" · "}Versión {PRIVACY_TERMS_VERSION}
+            {privacyUpdatedAt && <span className="block">Última actualización de permisos: {new Date(privacyUpdatedAt).toLocaleString("es-CL",{timeZone:"America/Santiago",dateStyle:"medium",timeStyle:"short"})}</span>}
+          </p>}
           <p className="mb-4 text-xs leading-5 text-sub">Consulta las finalidades y cambia tus permisos. Los tratamientos necesarios para mantener la cuenta se rigen por las condiciones del servicio y las bases legales aplicables.</p>
           <PrivacyPreferences value={privacyChoices} onChange={setPrivacyChoices} minorRestricted={privacyMinor} />
           {privacyStatus && <p className="mt-3 text-xs text-sub" role="status">{privacyStatus}</p>}
@@ -222,6 +249,15 @@ export default function ProfileSettings() {
             className="mt-4 rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-semibold text-white disabled:opacity-40">
             {privacySaving ? "Guardando..." : "Guardar preferencias y revocaciones"}
           </button>
+          {privacyEvents.length > 0 && <details className="mt-4 rounded-xl border border-soft p-3 text-xs text-sub">
+            <summary className="cursor-pointer font-semibold">Historial de decisiones guardadas ({privacyEvents.length} recientes)</summary>
+            <div className="mt-3 space-y-3">
+              {privacyEvents.map((ev,index)=><div key={index} className="border-b border-soft pb-2">
+                <p className="font-semibold">{new Date(ev.recorded_at).toLocaleString("es-CL",{timeZone:"America/Santiago",dateStyle:"medium",timeStyle:"short"})}</p>
+                <p>IA: {ev.choices?.ai_generation?"Sí":"No"} · Documentos: {ev.choices?.ai_documents?"Sí":"No"} · Voz: {ev.choices?.ai_voice?"Sí":"No"} · Analítica: {ev.choices?.optional_analytics?"Sí":"No"}</p>
+              </div>)}
+            </div>
+          </details>}
         </div>
 
         {/* Zona peligrosa */}
