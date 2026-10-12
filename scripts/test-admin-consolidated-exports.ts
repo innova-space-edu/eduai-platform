@@ -14,11 +14,11 @@ const tables:Record<string,Row[]> = {
     identity_verified_at:now,legal_capacity_verified_at:now,verified_method:"manual_institution",
     evidence_reference:"VER-001",document_version:"family-2026-10-v1"}],
   family_authorization_requests:[
-    {id:"req1",student_user_id:"minor1",student_name_declared:"Estudiante Uno",guardian_name:"",
+    {id:"req1",platform:"eduai",student_user_id:"minor1",student_name_declared:"Estudiante Uno",guardian_name:"",
       guardian_full_name:"Adulto Uno",guardian_email:"family@example.com",institution_name:"Innova",
       status:"approved",issued_at:now,expires_at:now,submitted_at:now,decisions:{platform_access:true,ai_text:false},
       reviewed_at:now,document_version:"family-2026-10-v1"},
-    {id:"req2",student_user_id:"minor2",student_name_declared:"Estudiante Dos",guardian_email:"family2@example.com",
+    {id:"req2",platform:"eduai",student_user_id:"minor2",student_name_declared:"Estudiante Dos",guardian_email:"family2@example.com",
       institution_name:"Innova",status:"invited",issued_at:now,expires_at:now,submitted_at:null,decisions:{}},
   ],
   eduai_privacy_choices:[{user_id:"minor1",policy_version:"2026-10-11-v1",terms_acknowledged_at:now,
