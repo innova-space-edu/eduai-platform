@@ -49,7 +49,20 @@ async def current_user(token: str) -> dict[str, Any]:
         response = await client.get(f"{SUPABASE_URL}/auth/v1/user", headers=auth_headers(token))
     if response.status_code != 200:
         raise HTTPException(status_code=401, detail="Sesión de EduAI inválida")
-    return response.json()
+    user = response.json()
+    email = str(user.get("email") or "").strip().lower()
+    if not email:
+        raise HTTPException(status_code=403, detail="Solo administración puede clonar voces")
+    # Comprobar el administrador en Supabase, no confiar en el rol enviado por el cliente.
+    async with httpx.AsyncClient(timeout=20) as client:
+        admin_response = await client.get(
+            f"{SUPABASE_URL}/rest/v1/admin_emails",
+            headers=auth_headers(token),
+            params={"select": "email", "email": f"eq.{email}", "limit": "1"},
+        )
+    if admin_response.status_code != 200 or not admin_response.json():
+        raise HTTPException(status_code=403, detail="Solo administración puede clonar voces")
+    return user
 
 
 async def get_profile(token: str, profile_id: str) -> dict[str, Any]:
