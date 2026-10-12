@@ -141,6 +141,7 @@ export default function FamilyConsentAdminPage() {
       <div className="mx-auto max-w-6xl space-y-6">
         <div><a href="/admin" className="text-sm text-blue-700 underline">← Volver al panel administrador</a></div>
         <Link href="/admin/actas-familiares" className="inline-flex rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-800">Ver archivo de actas aprobadas →</Link>
+        <Link href="/admin/registros" className="inline-flex rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800">Descargar registros completos · Excel o PDF</Link>
         <header className="rounded-2xl bg-slate-900 p-6 text-white">
           <p className="text-xs uppercase tracking-widest text-cyan-300">Administración · Autorizaciones familiares</p>
           <h1 className="mt-1 text-2xl font-bold">Invitaciones, decisiones y verificación legal</h1>
