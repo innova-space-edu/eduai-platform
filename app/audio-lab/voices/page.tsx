@@ -55,6 +55,7 @@ export default function AudioLabVoicesPage() {
   const consentInputRef = useRef<HTMLInputElement>(null)
 
   const [loading, setLoading] = useState(true)
+  const [adminDenied, setAdminDenied] = useState(false)
   const [unlocked, setUnlocked] = useState(false)
   const [securityProfile, setSecurityProfile] = useState<SecurityProfile | null>(null)
   const [voices, setVoices] = useState<VoiceProfile[]>([])
@@ -92,6 +93,18 @@ export default function AudioLabVoicesPage() {
       router.push("/login")
       return false
     }
+    if (response.status === 403) {
+      setAdminDenied(true)
+      setUnlocked(false)
+      setLoading(false)
+      return false
+    }
+    if (!response.ok) {
+      setError(data.error || "No se pudo comprobar el permiso administrativo")
+      setLoading(false)
+      return false
+    }
+    setAdminDenied(false)
     const isUnlocked = data.unlocked === true
     setUnlocked(isUnlocked)
     setSecurityProfile(data.profile || null)
@@ -473,6 +486,7 @@ export default function AudioLabVoicesPage() {
             <label className="flex items-start gap-2 text-sm text-sub"><input type="checkbox" checked={termsAccepted} onChange={(event) => setTermsAccepted(event.target.checked)} className="mt-1" /> Declaro que usaré esta función únicamente con mi propia voz o con autorización expresa de la persona titular.</label>
             <button onClick={acceptTerms} className="rounded-xl bg-purple-600 text-white px-4 py-2 text-sm font-semibold">Registrar consentimiento</button>
           </section>
+        : adminDenied ? <section className="rounded-3xl border border-soft p-6 bg-card-soft-theme space-y-2"><h2 className="font-bold">Acceso restringido</h2><p className="text-sm text-sub">La clonación de voz está reservada exclusivamente al administrador de EDUAI. Usuarios menores y mayores de edad no pueden usar esta función.</p></section>
         : !unlocked ? <section className="rounded-3xl border border-soft p-5 bg-card-soft-theme space-y-4">
             <h2 className="font-bold">2. Verificación reforzada</h2>
             <p className="text-muted2 text-sm">Solo esta zona usa segundo factor. Tu sesión general de EduAI permanece abierta.</p>
