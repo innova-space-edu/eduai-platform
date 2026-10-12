@@ -271,6 +271,16 @@ export default function AdminPage() {
               })}
             </div>
 
+            <Link href="/admin/autorizaciones-familiares"
+              className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-4 transition-all hover:border-cyan-500/60">
+              <ClipboardList size={22} className="text-cyan-500" />
+              <div className="flex-1">
+                <p className="font-bold text-main">Autorizaciones familiares</p>
+                <p className="text-sm text-sub">Revisar formularios, contabilizar Sí/No y aprobar el ingreso de menores verificados</p>
+              </div>
+              <ChevronRight size={18} className="text-cyan-500" />
+            </Link>
+
             {/* Accesos rápidos */}
             <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
               <button onClick={() => setActiveTab("reportes")}
