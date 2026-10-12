@@ -6,16 +6,13 @@ import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
 import { Zap, Mail, Lock, Eye, EyeOff, AlertCircle } from "lucide-react"
 import LegalFooter from "@/components/legal/LegalFooter"
-import PrivacyConsentPanel, { EMPTY_OPTIONAL_PRIVACY_CHOICES, PRIVACY_TERMS_VERSION, type OptionalPrivacyChoices } from "@/components/legal/PrivacyConsentPanel"
+import { PRIVACY_TERMS_VERSION } from "@/components/legal/PrivacyConsentPanel"
 import { hasLegacyConsentGrace } from "@/lib/family-consent/transition"
 
 export default function LoginPage() {
   const [email, setEmail]                 = useState("")
   const [password, setPassword]           = useState("")
   const [showPass, setShowPass]           = useState(false)
-  const [acceptedTerms, setAcceptedTerms] = useState(false)
-  const [acknowledgedDataWarning, setAcknowledgedDataWarning] = useState(false)
-  const [optionalChoices, setOptionalChoices] = useState<OptionalPrivacyChoices>({ ...EMPTY_OPTIONAL_PRIVACY_CHOICES })
   const [error, setError]                 = useState("")
   const [loading, setLoading]             = useState(false)
   const router = useRouter()
@@ -28,41 +25,30 @@ export default function LoginPage() {
     const supabase = createClient()
     const { data: signedIn, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) { setError("Email o contraseña incorrectos"); setLoading(false); return }
-    // No imponer las nuevas condiciones antes del 15/11/2026 a cuentas preexistentes.
+    // Preferencias persistentes: solo pedir aceptación cuando falte la versión vigente.
     const legacyGrace = hasLegacyConsentGrace(signedIn.user?.created_at)
-    if (!legacyGrace && (!acceptedTerms || !acknowledgedDataWarning)) {
-      await supabase.auth.signOut()
-      setError("Para continuar debes revisar y reconocer las nuevas condiciones de privacidad.")
-      setLoading(false)
-      return
-    }
-    const birthFromAuth = String(signedIn.user?.user_metadata?.birth_date || "")
-    const born = new Date(birthFromAuth + "T00:00:00")
-    const today = new Date()
-    const minor = !birthFromAuth || Number.isNaN(born.getTime()) ||
-      born > new Date(today.getFullYear()-18,today.getMonth(),today.getDate())
-
     if (!legacyGrace) {
-      const { error: privacyError } = await supabase.rpc("record_eduai_privacy_choices", {
-      p_policy_version: PRIVACY_TERMS_VERSION,
-      p_terms_acknowledged: acceptedTerms,
-      p_data_warning_acknowledged: acknowledgedDataWarning,
-      p_choices: minor ? EMPTY_OPTIONAL_PRIVACY_CHOICES : optionalChoices,
-    })
-    if (privacyError) {
-      await supabase.auth.signOut()
-      setError("No se pudieron registrar las preferencias de privacidad. Verifica tu fecha de nacimiento o intenta nuevamente.")
-      setLoading(false)
-      return
-    }
-    }
-    if (minor && !legacyGrace) {
-      const attempt = await fetch("/api/family-consent/self/invite",{method:"POST"}).catch(()=>null)
-      // Even when email delivery is unavailable, never grant access without an approved form.
-      if (attempt?.ok) {
-        const result = await attempt.json().catch(()=>({}))
-        if (result.status === "approved") { router.push("/dashboard"); return }
+      const { data: consent, error: consentError } = await supabase.from("eduai_privacy_choices")
+        .select("policy_version,terms_acknowledged_at,data_warning_acknowledged_at")
+        .eq("user_id", signedIn.user!.id).maybeSingle()
+      if (consentError) {
+        await supabase.auth.signOut()
+        setError("No fue posible verificar tus preferencias. Intenta nuevamente.")
+        setLoading(false)
+        return
       }
+      if (consent?.policy_version !== PRIVACY_TERMS_VERSION ||
+          !consent?.terms_acknowledged_at || !consent?.data_warning_acknowledged_at) {
+        router.push("/consentimiento")
+        return
+      }
+    }
+    const dob = String(signedIn.user?.user_metadata?.birth_date || "")
+    const date = new Date(dob + "T00:00:00")
+    const today = new Date()
+    const minor = !dob || Number.isNaN(date.getTime()) ||
+      date > new Date(today.getFullYear() - 18,today.getMonth(),today.getDate())
+    if (minor && !legacyGrace) {
       router.push("/autorizacion-pendiente")
       return
     }
@@ -136,18 +122,10 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* La aceptación necesaria y los permisos opcionales se registran después de autenticar. */}
-            <p className="text-xs text-muted2">Cuentas anteriores al 12 de octubre de 2026: puedes ingresar durante el plazo de transición sin completar este nuevo formulario. Para otras cuentas se exige el reconocimiento de condiciones.</p>
-            <PrivacyConsentPanel
-              acceptedTerms={acceptedTerms}
-              onAcceptedTerms={setAcceptedTerms}
-              acknowledgedDataWarning={acknowledgedDataWarning}
-              onAcknowledgedDataWarning={setAcknowledgedDataWarning}
-              value={optionalChoices}
-              onChange={setOptionalChoices}
-            />
-
-
+            <p className="rounded-xl border border-soft bg-card-soft-theme p-3 text-xs leading-5 text-sub">
+              Las condiciones y las preferencias opcionales guardadas en tu cuenta se conservan al iniciar sesión.
+              Solo se solicitará el formulario si todavía falta registrar la versión vigente.
+            </p>
 
             {error && (
               <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl border"
