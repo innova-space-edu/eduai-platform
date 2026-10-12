@@ -1,3 +1,4 @@
+import { VIDEO_STUDIO_MAINTENANCE } from "@/lib/video/maintenance"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { createClient as createAdmin } from "@supabase/supabase-js"
@@ -369,7 +370,8 @@ export async function GET(
     if (error) return NextResponse.json({ ok: false, error: error.message, code: "JOB_FETCH_FAILED" }, { status: 500 })
     if (!loadedJob) return NextResponse.json({ ok: false, error: "Job no encontrado.", code: "JOB_NOT_FOUND" }, { status: 404 })
 
-    const job = await maybeAdvanceVideoJob(loadedJob)
+    // Consultar el historial sin iniciar nuevos trabajos en segundo plano.
+    const job = VIDEO_STUDIO_MAINTENANCE ? loadedJob : await maybeAdvanceVideoJob(loadedJob)
     const [videoUrl, thumbnailUrl] = await Promise.all([
       resolvePrivateUrl(supabase, job.video_url),
       resolvePrivateUrl(supabase, job.thumbnail_url),
