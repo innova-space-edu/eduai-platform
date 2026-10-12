@@ -1,3 +1,4 @@
+import { VIDEO_STUDIO_MAINTENANCE, VIDEO_STUDIO_MAINTENANCE_RESPONSE } from "@/lib/video/maintenance"
 import { NextResponse } from "next/server"
 import { createClient } from "@supabase/supabase-js"
 import { processVideoJob, type ProcessVideoJobResult } from "@/lib/video-agent"
@@ -190,6 +191,9 @@ async function findWork(supabase: ReturnType<typeof getAdminSupabase>): Promise<
 }
 
 export async function POST(req: Request) {
+  if (VIDEO_STUDIO_MAINTENANCE) {
+    return NextResponse.json(VIDEO_STUDIO_MAINTENANCE_RESPONSE, { status: 503, headers: { "Cache-Control": "no-store" } })
+  }
   try {
     if (!isAuthorized(req)) {
       return NextResponse.json({ ok: false, error: "Unauthorized" } satisfies ProcessVideoResponse, { status: 401 })
