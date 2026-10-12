@@ -39,6 +39,9 @@ jobs:
       - name: Install dependencies
         run: npm install --registry=https://registry.npmjs.org/
 
+      - name: Family authorization regression
+        run: node scripts/test-family-enforcement.mjs lib/family-consent/transition.ts proxy.ts app/autorizacion-pendiente/page.tsx
+
       - name: Apply provider client lazy initialization
         run: node scripts/apply-provider-client-initialization.mjs
 
