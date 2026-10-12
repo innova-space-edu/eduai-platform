@@ -13,7 +13,20 @@ export function hasLegacyConsentGrace(createdAt: string | null | undefined, nowM
   return Number.isFinite(createdMs) && createdMs < LEGACY_ACCOUNT_CUTOFF_MS
 }
 
-/** User registered using the parental consent flow needs authorization before entry. */
-export function requiresNewMinorConsent(createdAt: string | null, consentFlow: boolean): boolean {
-  return consentFlow || (Boolean(createdAt) && Date.parse(createdAt!) >= LEGACY_ACCOUNT_CUTOFF_MS)
+/** Detecta altas nuevas mediante la instantánea de edad protegida por Supabase.
+ * En altas nuevas, captured_at coincide con created_at; los usuarios anteriores
+ * se cargaron retrospectivamente. No confía en metadatos editables por el usuario.
+ */
+export function shouldEnforceFamilyConsent(
+  createdAt: string | null | undefined,
+  capturedAt: string | null | undefined,
+  enforceLegacy: boolean,
+  nowMs = Date.now(),
+): boolean {
+  const createdMs = createdAt ? Date.parse(createdAt) : Number.NaN
+  if (!Number.isFinite(createdMs)) return true
+  if (createdMs >= LEGACY_ACCOUNT_CUTOFF_MS) return true
+  const capturedMs = capturedAt ? Date.parse(capturedAt) : Number.NaN
+  if (Number.isFinite(capturedMs) && Math.abs(capturedMs - createdMs) <= 60_000) return true
+  return enforceLegacy && !hasLegacyConsentGrace(createdAt, nowMs)
 }
