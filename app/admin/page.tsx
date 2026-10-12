@@ -281,6 +281,16 @@ export default function AdminPage() {
               <ChevronRight size={18} className="text-cyan-500" />
             </Link>
 
+            <Link href="/admin/actas-familiares"
+              className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border p-4 transition-all"
+              style={{background:"rgba(16,185,129,0.06)",borderColor:"rgba(16,185,129,0.25)"}}>
+              <ClipboardList size={22} className="text-emerald-500"/>
+              <div className="flex-1">
+                <p className="font-bold text-main">Archivo de actas familiares</p>
+                <p className="text-sm text-sub">Folios ACTA, fecha, hora, estudiante, apoderado y administrador responsable</p>
+              </div><ChevronRight size={18} className="text-emerald-500"/>
+            </Link>
+
             {/* Accesos rápidos */}
             <div className="grid md:grid-cols-2 xl:grid-cols-4 gap-4">
               <button onClick={() => setActiveTab("reportes")}
