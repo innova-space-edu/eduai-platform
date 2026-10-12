@@ -39,6 +39,9 @@ jobs:
       - name: Install dependencies
         run: npm install --registry=https://registry.npmjs.org/
 
+      - name: Estadísticas y aprobación institucional
+        run: node scripts/test-family-admin-stats.mjs lib/family-consent/admin-stats.ts app/api/family-consent/admin/route.ts app/admin/autorizaciones-familiares/page.tsx
+
       - name: Family authorization regression
         run: node scripts/test-family-enforcement.mjs lib/family-consent/transition.ts proxy.ts app/autorizacion-pendiente/page.tsx
 
