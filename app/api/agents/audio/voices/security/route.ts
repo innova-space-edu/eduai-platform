@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { createClient } from "@/lib/supabase/server"
+import { isVoiceCloningAdmin } from "@/lib/audio/voice-admin"
 import {
   VOICE_SECURITY_COOKIE,
   VOICE_SECURITY_TTL_SECONDS,
@@ -25,6 +26,9 @@ export async function GET() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ ok: false, authenticated: false }, { status: 401 })
+  if (!(await isVoiceCloningAdmin(supabase, user))) {
+    return NextResponse.json({ ok: false, authenticated: true, allowed: false, unlocked: false, error: "Clonación de voz reservada al administrador." }, { status: 403 })
+  }
 
   const { valid } = await validateVoiceSecuritySession()
   const { data: profile } = await supabase
@@ -36,6 +40,7 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     authenticated: true,
+    allowed: true,
     unlocked: valid,
     profile: profile || null,
   })
@@ -45,6 +50,9 @@ export async function POST() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+  if (!(await isVoiceCloningAdmin(supabase, user))) {
+    return NextResponse.json({ error: "Clonación de voz reservada al administrador." }, { status: 403 })
+  }
 
   const { data, error } = await supabase.rpc("open_voice_security_session")
   const row = Array.isArray(data) ? data[0] : null
