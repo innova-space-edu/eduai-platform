@@ -2,12 +2,13 @@ import { randomUUID } from "crypto"
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { createClient } from "@/lib/supabase/server"
 import { normalizeChatText } from "@/lib/text/normalize-chat-text"
+import { CLAW_MAX_STORED_CHARS, indexClawText } from "@/lib/agents/claw-document-chunks"
 
 export const runtime = "nodejs"
 export const maxDuration = 120
 
 const MAX_FILE_BYTES = 30 * 1024 * 1024
-const MAX_EXTRACTED_CHARS = 90_000
+const MAX_EXTRACTED_CHARS = CLAW_MAX_STORED_CHARS
 const MAX_VISUAL_PARTS = 12
 const MAX_VISUAL_BYTES = 12 * 1024 * 1024
 
@@ -312,7 +313,8 @@ export async function POST(req: Request) {
       }, { status: 415 })
     }
 
-    const text = normalizeChatText(String(result.text || "")).slice(0, MAX_EXTRACTED_CHARS)
+    const sourceText = normalizeChatText(String(result.text || ""))
+    const text = sourceText.slice(0, MAX_EXTRACTED_CHARS)
     if (!text) {
       return Response.json({
         error: "No pude extraer información utilizable de este archivo.",
@@ -320,15 +322,33 @@ export async function POST(req: Request) {
       }, { status: 422 })
     }
 
+    const chunks = indexClawText(text)
+    const id = randomUUID()
+    const { error: documentError } = await supabase.from("claw_documents").insert({
+      id, user_id: user.id, name, kind: result.kind,
+      chars: text.length, chunk_count: chunks.length,
+    })
+    if (documentError) throw new Error("No se pudo guardar el índice del archivo. Revisa la migración de Claw en Supabase.")
+
+    const rows = chunks.map((chunk) => ({
+      ...chunk, document_id: id, user_id: user.id,
+    }))
+    for (let offset=0;offset<rows.length;offset+=100) {
+      const { error: chunkError } = await supabase.from("claw_document_chunks").insert(rows.slice(offset,offset+100))
+      if (chunkError) {
+        await supabase.from("claw_documents").delete().eq("id",id).eq("user_id",user.id)
+        throw new Error("No se pudieron indexar todos los fragmentos del archivo.")
+      }
+    }
+
     return Response.json({
-      id: randomUUID(),
-      name,
-      mimeType: mimeType || "application/octet-stream",
-      size: file.size,
-      kind: result.kind,
-      text,
-      chars: text.length,
-      warnings: result.warnings,
+      id, name, mimeType: mimeType || "application/octet-stream", size: file.size,
+      kind: result.kind, chars: text.length, chunkCount: chunks.length,
+      warnings: [
+        ...result.warnings,
+        ...(sourceText.length > MAX_EXTRACTED_CHARS ? ["Se indexó el contenido hasta el límite de extracción; el archivo es más extenso."] : []),
+      ],
+      indexed: true,
     })
   } catch (error) {
     console.error("[Claw files] extraction failed:", error)

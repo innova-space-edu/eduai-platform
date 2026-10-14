@@ -352,6 +352,7 @@ export async function POST(req: Request) {
     const filePath = getString(body?.filePath).trim()
     const filename = getString(body?.filename).trim()
     const forceRefresh = body?.forceRefresh === true
+    const compactForClaw = body?.compactForClaw === true
 
     if (!bucket || !filePath) {
       return Response.json({ error: "Faltan bucket o filePath." }, { status: 400 })
@@ -391,7 +392,7 @@ export async function POST(req: Request) {
       )
     }
 
-    if (result.documentId) {
+    if (result.documentId && !compactForClaw) {
       try {
         await updateChunkEmbeddings({
           supabase,
@@ -407,8 +408,8 @@ export async function POST(req: Request) {
 
     return Response.json({
       title: result.title,
-      text: finalText,
-      summary: result.summary,
+      text: compactForClaw ? undefined : finalText,
+      summary: compactForClaw ? String(result.summary || "").slice(0,700) : result.summary,
       pageCount: result.pageCount,
       truncated: finalText.length < (result.text || "").length,
       extractionMethod: result.extractionMethod,
