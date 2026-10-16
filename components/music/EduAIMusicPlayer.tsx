@@ -76,6 +76,7 @@ function getEmbedUrl(track?: EduMusicTrack | null) {
 const NAV_ITEMS = [
   { id: "home", view: "home", label: "Inicio", icon: Home },
   { id: "youtube", view: "search", label: "YouTube", icon: Play },
+  { id: "mix", view: "mix", label: "Mix Favorite", icon: Shuffle },
   { id: "spotify", view: null, label: "Spotify", icon: Music2 },
   { id: "radio", view: "radio", label: "Radio", icon: Radio },
   { id: "library", view: "library", label: "Mis audios", icon: Library },
@@ -2171,6 +2172,11 @@ function NeonSidebar({
                 }
                 onNavigate();
                 if (item.view) {
+                  if (item.view === "mix") {
+                    if (music.mixFavoriteActive) music.setView("mix");
+                    else music.startMixFavorite();
+                    return;
+                  }
                   music.setView(item.view);
                   if (item.view === "radio" && !music.radioTracks.length && !music.radioLoading) {
                     void music.searchRadio("", "CL");
@@ -2524,13 +2530,14 @@ function NeonMain({
 
   const tracks = useMemo(() => {
     if (music.view === "liked") return music.allTracks.filter((track) => music.liked.has(track.id));
+    if (music.view === "mix") return music.mixFavoriteTracks;
     if (music.view === "queue") return music.queue;
     if (music.view === "library") return music.uploadedTracks;
     if (music.view === "radio") return music.radioTracks;
     if (music.view === "search") return music.onlineTracks.length ? music.onlineTracks : music.visibleTracks;
     if (music.view === "playlists") return music.baseTracks;
     return homeTracks;
-  }, [homeTracks, music.allTracks, music.baseTracks, music.liked, music.onlineTracks, music.queue, music.radioTracks, music.uploadedTracks, music.view, music.visibleTracks]);
+  }, [homeTracks, music.allTracks, music.baseTracks, music.liked, music.mixFavoriteTracks, music.onlineTracks, music.queue, music.radioTracks, music.uploadedTracks, music.view, music.visibleTracks]);
 
   const recentTracks = (music.recentTracks.length ? music.recentTracks : tracks).slice(0, 6);
   const catalogTracks =
@@ -2601,6 +2608,7 @@ function NeonMain({
     music.view === "radio" ? "Radio en vivo" :
     music.view === "library" ? "Mis audios" :
     music.view === "liked" ? "Favoritos" :
+    music.view === "mix" ? "Mix Favorite" :
     music.view === "queue" ? "Cola" :
     music.view === "playlists" ? music.selectedPlaylist?.name || "Playlists" :
     music.view === "search" ? "YouTube" :
@@ -2610,6 +2618,7 @@ function NeonMain({
     music.view === "radio" ? "Explora emisoras sin interrumpir la pista que ya está sonando." :
     music.view === "library" ? "Tus archivos de audio permanecen separados de la reproducción actual." :
     music.view === "liked" ? "Tus canciones favoritas, listas para reproducir cuando quieras." :
+    music.view === "mix" ? "Reproducción aleatoria continua: artistas diferentes, videos oficiales y lyric de cualquier usuario." :
     music.view === "queue" ? "Revisa y administra la cola sin cambiar la canción actual." :
     music.view === "playlists" ? "Navega tus playlists; solo cambia la reproducción cuando eliges una pista." :
     music.view === "search" ? "Busca y recorre el catálogo de YouTube manteniendo estable el reproductor." :
@@ -2665,6 +2674,7 @@ function NeonMain({
               ["Mis audios", "library"],
               ["Playlists", "playlists"],
               ["Favoritos", "liked"],
+              ["Mix Favorite", "mix"],
               ["Cola", "queue"],
             ].map(([label, view]) => (
               <button
@@ -2673,6 +2683,11 @@ function NeonMain({
                 onClick={() => {
                   onCloseSpotify();
                   if (view === "search") music.setOnlineProviderMode("youtube");
+                  if (view === "mix") {
+                    if (music.mixFavoriteActive) music.setView("mix");
+                    else music.startMixFavorite();
+                    return;
+                  }
                   music.setView(view as typeof music.view);
                   if (view === "radio" && !music.radioTracks.length && !music.radioLoading) {
                     void music.searchRadio("", "CL");
@@ -2713,6 +2728,43 @@ function NeonMain({
               </label>
             )}
           </div>
+
+          {music.view === "mix" && (
+            <section className="mt-3 rounded-2xl border border-fuchsia-300/25 bg-fuchsia-400/[0.07] px-4 py-3" aria-label="Modo Mix Favorite">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[12px] font-black text-fuchsia-100">Mix Favorite · reproducción inteligente</p>
+                  <p className="mt-1 text-[10px] text-slate-300">
+                    {music.mixFavoriteArtists.length} artistas base y personales · {music.mixFavoriteLearnedCount} canciones aprendidas · {music.mixFavoriteTracks.length} en rotación
+                  </p>
+                  <p className="mt-1 text-[9px] text-slate-400">
+                    Video oficial o lyric de cualquier canal, sin listas largas ni artistas consecutivos repetidos.
+                  </p>
+                </div>
+                <div className="flex shrink-0 gap-2">
+                  {music.mixFavoriteActive ? (
+                    <button type="button" onClick={music.stopMixFavorite}
+                      className="rounded-xl border border-fuchsia-300/40 px-3 py-2 text-[10px] font-black text-fuchsia-100 hover:bg-fuchsia-300/10">
+                      Detener mix
+                    </button>
+                  ) : (
+                    <button type="button" onClick={music.startMixFavorite}
+                      className="rounded-xl bg-fuchsia-400 px-3 py-2 text-[10px] font-black text-slate-950">
+                      {music.mixFavoriteTracks.length ? "Reiniciar mix" : "Iniciar mix"}
+                    </button>
+                  )}
+                </div>
+              </div>
+              {music.mixFavoriteLoading && <p className="mt-2 text-[10px] text-cyan-200">Buscando videos reproducibles de distintos artistas...</p>}
+              {music.mixFavoriteError && (
+                <div className="mt-2 flex items-center gap-2 text-[10px] text-amber-200">
+                  <span className="flex-1">{music.mixFavoriteError}</span>
+                  <button type="button" onClick={music.startMixFavorite}
+                    className="rounded-lg border border-amber-300/30 px-2 py-1 font-bold">Reintentar</button>
+                </div>
+              )}
+            </section>
+          )}
 
           <div className="neon-view-context mt-3 flex items-center justify-between gap-3 rounded-xl border border-cyan-300/15 bg-[#03101c]/72 px-3 py-2">
             <div className="min-w-0">
@@ -3311,6 +3363,7 @@ export default function EduAIMusicPlayer({
   // explícita fuera de Spotify lo cierra.
   const tracksForMain = useMemo(() => {
     if (music.view === "liked") return music.allTracks.filter((track) => music.liked.has(track.id));
+    if (music.view === "mix") return music.mixFavoriteTracks;
     if (music.view === "queue") return music.queue;
     return music.visibleTracks;
   }, [music.allTracks, music.liked, music.queue, music.view, music.visibleTracks]);
