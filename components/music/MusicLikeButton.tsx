@@ -66,7 +66,7 @@ export function MusicLikeButton({
         "eduai-like-button relative isolate inline-flex shrink-0 items-center justify-center overflow-visible rounded-full",
         "transition-[background-color,border-color,box-shadow] duration-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300",
         variant === "pill"
-          ? "min-h-9 gap-2 border border-white/15 bg-white/[0.06] px-4 text-xs font-black text-white"
+          ? "eduai-like-pill min-h-9 gap-2 border border-white/15 bg-white/[0.06] px-4 text-xs font-black text-white"
           : SIZE_CLASS[size],
         className,
       ].join(" ")}
