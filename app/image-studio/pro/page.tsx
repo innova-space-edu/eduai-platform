@@ -22,6 +22,7 @@ import {
   Check,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { DESIGN_REFERENCES, buildVisualSkillPrompt, resolveDesignReference } from "@/lib/visual-design/design-references";
 import {
   EDUAI_VISUAL_PROVIDER_OPTIONS,
   compileForEduAI,
@@ -34,6 +35,8 @@ const FORMATS = [
   { id: "16:9", label: "Horizontal 16:9", width: 1024, height: 576 },
   { id: "1:1", label: "Cuadrado 1:1", width: 1024, height: 1024 },
   { id: "9:16", label: "Vertical 9:16", width: 576, height: 1024 },
+  { id: "4:5", label: "Social 4:5", width: 832, height: 1040 },
+  { id: "A4", label: "Lámina A4 vertical", width: 848, height: 1200 },
 ];
 
 const EXAMPLES = [
@@ -73,6 +76,7 @@ type ImageResult = {
   model?: string;
   reused?: boolean;
   providerOrder?: string[];
+  attempts?: Array<{ provider: string }>;
   elapsedMs?: number;
   persistentUrl?: string | null;
   storagePath?: string | null;
@@ -93,6 +97,12 @@ export default function ImageStudioProPage() {
   const [originalPrompt, setOriginalPrompt] = useState<string | null>(null);
   const [optimizerInfo, setOptimizerInfo] = useState<{ provider?: string; model?: string; reused?: boolean } | null>(null);
   const [optimizationLevel, setOptimizationLevel] = useState<OptimizationLevel>("recommended");
+  const [referenceId, setReferenceId] = useState("auto");
+  const [designType, setDesignType] = useState("auto");
+  const [activeResultTab, setActiveResultTab] = useState<"result" | "brief" | "provider" | "incidents" | "suggestions">("result");
+  const [autoOptimize, setAutoOptimize] = useState(true);
+  const [allowFallback, setAllowFallback] = useState(true);
+  const [optimizationPhase, setOptimizationPhase] = useState("");
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
   const [resultAction, setResultAction] = useState<"saving" | "saved" | "sharing" | "copied" | "downloading" | null>(null);
 
@@ -185,29 +195,81 @@ export default function ImageStudioProPage() {
   }
 
   async function generate() {
-    if (!prompt.trim() || generating) return;
-    const current = planState || createPlan();
+    const typedPrompt = prompt.trim();
+    if (!typedPrompt || generating) return;
     setGenerating(true);
     setError("");
     setResult(null);
+    setOptimizationPhase("");
     try {
+      const originalRequest = optimizationResult?.originalPrompt?.trim() || originalPrompt?.trim() || typedPrompt;
+      const localRouting = planEduAIVisual(originalRequest, {
+        audience: "Comunidad EDUAI", width: format.width, height: format.height,
+        context: { locale: "es-CL", proMode: true },
+      });
+      const matchingOptimization = optimizationResult && (
+        typedPrompt === optimizationResult.originalPrompt || typedPrompt === optimizationResult.optimizedPrompt
+      ) ? optimizationResult : null;
+      const local = buildVisualSkillPrompt({
+        originalPrompt: matchingOptimization?.optimizedPrompt || typedPrompt,
+        format: format.id,
+        selectedSkills: localRouting.plan.routing.selected_skills,
+        primarySkill: localRouting.plan.routing.primary_skill,
+        textCritical: requiresAccurateVisualText(localRouting.plan),
+        referenceId, designType, level: optimizationLevel,
+      });
+      let enhancedPrompt = local.enhanced;
+      if (autoOptimize && !matchingOptimization) {
+        setOptimizationPhase("Aplicando las skills y optimizando automáticamente…");
+        try {
+          const optimizationResponse = await fetch("/api/image-studio/pro/optimize", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prompt: enhancedPrompt,
+              format: format.id,
+              selectedSkills: localRouting.plan.routing.selected_skills,
+              primarySkill: localRouting.plan.routing.primary_skill,
+              textCritical: requiresAccurateVisualText(localRouting.plan),
+              level: optimizationLevel,
+            }),
+          });
+          const optimizationData = await optimizationResponse.json().catch(() => ({}));
+          if (optimizationResponse.ok && typeof optimizationData.optimizedPrompt === "string" && optimizationData.optimizedPrompt.trim()) {
+            enhancedPrompt = optimizationData.optimizedPrompt.trim();
+            setOptimizationResult({
+              originalPrompt: originalRequest, optimizedPrompt: enhancedPrompt,
+              level: optimizationLevel, changes: Array.isArray(optimizationData.changes) ? optimizationData.changes : [],
+              brief: optimizationData.brief || null,
+              provider: optimizationData.provider, model: optimizationData.model, reused: optimizationData.reused,
+            });
+            setOptimizerInfo({ provider: optimizationData.provider, model: optimizationData.model, reused: optimizationData.reused });
+          } else {
+            setOptimizationPhase("Optimizador IA no disponible; continuamos con las skills locales.");
+          }
+        } catch {
+          setOptimizationPhase("Optimizador IA no disponible; continuamos con las skills locales.");
+        }
+      }
+      const current = planEduAIVisual(originalRequest, {
+        audience: "Comunidad EDUAI", width: format.width, height: format.height,
+        generationPrompt: enhancedPrompt,
+        context: { locale: "es-CL", proMode: true, optimized: autoOptimize },
+      });
+      setPlanState(current);
       const customPrompt = compileForEduAI(current.plan, provider);
       const response = await fetch("/api/agents/imagenes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: optimizationResult?.originalPrompt?.trim() || originalPrompt?.trim() || prompt.trim(),
+          prompt: originalRequest,
           customPrompt,
-          style: current.style,
-          width: format.width,
-          height: format.height,
-          provider,
-          mode: current.mode,
-          source: "image-studio-pro",
+          style: local.reference.engineStyle || current.style,
+          width: format.width, height: format.height, provider,
+          allowProviderFallback: allowFallback,
+          mode: current.mode, source: "image-studio-pro",
           topic: current.plan.routing.primary_skill,
           educationalContext: JSON.stringify({
             selectedSkills: current.plan.routing.selected_skills,
-            optimizedPrompt: prompt.trim(),
+            designReference: local.reference.id,
             renderStrategy: current.plan.visual_brief.render_strategy,
             constraints: current.plan.visual_brief.constraints,
             language: "es-CL",
@@ -217,18 +279,15 @@ export default function ImageStudioProPage() {
         }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok || data.success === false) {
-        throw new Error(data.error || `Error ${response.status}`);
-      }
-      setResult({
-        ...data,
-        imageUrl: data.persistentUrl || data.imageUrl,
-      });
+      if (!response.ok || data.success === false) throw new Error(data.error || ("Error " + response.status));
+      setResult({ ...data, imageUrl: data.persistentUrl || data.imageUrl });
+      setActiveResultTab("result");
       setResultAction(data.persistentUrl || data.assetId ? "saved" : null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No fue posible generar la imagen");
     } finally {
       setGenerating(false);
+      setOptimizationPhase("");
     }
   }
 
@@ -411,6 +470,39 @@ export default function ImageStudioProPage() {
               </label>
             </div>
 
+            <div className="mt-4 rounded-2xl border border-violet-400/20 bg-violet-500/[0.04] p-3">
+              <p className="text-xs font-black text-main">Biblioteca de referencias visuales</p>
+              <p className="mt-1 text-[11px] text-muted2">Elige un diseño o deja que la skill lo detecte. Incluye estilos de videojuegos voxel, cómic, arte retro e infografías.</p>
+              <div className="mt-3 flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
+                {DESIGN_REFERENCES.map((item) => (
+                  <button key={item.id} type="button" onClick={() => {
+                    if (originalPrompt && optimizationResult) setPrompt(originalPrompt);
+                    setReferenceId(item.id); setPlanState(null); setOriginalPrompt(null); setOptimizationResult(null); setOptimizerInfo(null);
+                  }}
+                    aria-pressed={referenceId === item.id}
+                    className={"rounded-full border px-2.5 py-1.5 text-[11px] font-semibold transition " +
+                      (referenceId === item.id ? "border-violet-500 bg-violet-500/15 text-violet-700" : "border-soft bg-app text-muted2 hover:text-main")}>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] text-muted2">Estilo detectado: <strong>{resolveDesignReference(referenceId, prompt).label}</strong></p>
+              <label className="mt-3 block text-xs font-semibold">Tipo de pieza
+                <select value={designType} onChange={(event) => {setDesignType(event.target.value);setPlanState(null);}} className="mt-1 w-full rounded-xl border border-soft bg-input-theme px-3 py-2 text-xs">
+                  <option value="auto">Automático según la solicitud</option>
+                  <option value="illustration">Ilustración</option>
+                  <option value="educational">Recurso educativo</option>
+                  <option value="game">Escena de videojuego</option>
+                  <option value="graphic">Póster / diseño gráfico</option>
+                  <option value="photography">Fotografía</option>
+                </select>
+              </label>
+              <div className="mt-3 space-y-2 text-xs text-main">
+                <label className="flex items-center gap-2"><input type="checkbox" checked={autoOptimize} onChange={(event) => setAutoOptimize(event.target.checked)} /> Optimizar automáticamente al generar (puede consumir créditos IA)</label>
+                <label className="flex items-center gap-2"><input type="checkbox" checked={allowFallback} onChange={(event) => setAllowFallback(event.target.checked)} /> Permitir proveedor alternativo si el elegido falla (puede cambiar el costo)</label>
+              </div>
+            </div>
+
             <div className="mt-4">
               <p className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-muted2">Nivel de optimización</p>
               <div className="inline-flex flex-wrap gap-1 rounded-xl border border-soft bg-app p-1">
@@ -497,7 +589,7 @@ export default function ImageStudioProPage() {
               </button>
               <button onClick={generate} disabled={!prompt.trim() || generating} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 via-violet-600 to-fuchsia-600 px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-violet-500/15 disabled:opacity-50">
                 {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {generating ? "Generando…" : "Generar con modelos EDUAI"}
+                {generating ? (optimizationPhase || "Generando…") : "Generar con modelos EDUAI"}
               </button>
             </div>
 
@@ -570,6 +662,19 @@ export default function ImageStudioProPage() {
               )}
             </div>
 
+            <div role="tablist" aria-label="Paneles de Diseño Pro" className="flex gap-1 overflow-x-auto border-b border-soft bg-app/50 px-3 py-2">
+              {([
+                ["result", "Resultado"], ["brief", "Brief"], ["provider", "Proveedor"],
+                ["incidents", "Incidencias"], ["suggestions", "Sugerencias"],
+              ] as const).map(([id, label]) => (
+                <button key={id} type="button" role="tab" aria-selected={activeResultTab === id}
+                  onClick={() => setActiveResultTab(id)}
+                  className={"whitespace-nowrap rounded-lg px-3 py-2 text-[11px] font-bold " +
+                    (activeResultTab === id ? "bg-violet-600 text-white" : "text-muted2 hover:bg-violet-500/10")}>{label}</button>
+              ))}
+            </div>
+            {activeResultTab === "result" && (
+              <>
             <div className="grid min-h-[520px] place-items-center bg-[radial-gradient(circle_at_top,_rgba(124,58,237,0.10),_transparent_45%)] p-5">
               {generating ? (
                 <div className="text-center"><Loader2 className="mx-auto h-10 w-10 animate-spin text-violet-500" /><p className="mt-4 text-sm font-black">Diseño Pro está generando</p><p className="mt-1 text-xs text-muted2">Se conserva el fallback y los límites de Image Studio.</p></div>
@@ -589,7 +694,48 @@ export default function ImageStudioProPage() {
                   {typeof result.elapsedMs === "number" && <span className="rounded-full bg-app px-2.5 py-1 text-muted2">{(result.elapsedMs / 1000).toFixed(1)}s</span>}
                   {result.persistentUrl && <span className="rounded-full bg-blue-500/10 px-2.5 py-1 font-bold text-blue-600">Guardada</span>}
                 </div>
+                {!!result.attempts?.length && <p className="mt-3 rounded-xl border border-amber-400/25 bg-amber-500/10 p-3 text-xs text-amber-700">El proveedor principal no completó la solicitud; EDUAI utilizó un proveedor alternativo compatible. EDUAI envió el evento al registro administrativo, sujeto a disponibilidad de telemetría.</p>}
                 {result.optimizedPrompt && <details className="mt-3"><summary className="cursor-pointer text-xs font-bold text-muted2">Prompt compilado usado</summary><p className="mt-2 rounded-xl bg-app p-3 text-xs leading-5 text-muted2">{result.optimizedPrompt}</p></details>}
+              </div>
+            )}
+            </>)}
+            {activeResultTab === "brief" && (
+              <div role="tabpanel" className="min-h-80 space-y-3 p-5 text-xs text-main">
+                <h3 className="text-sm font-black">Brief visual y dirección artística</h3>
+                <p><strong>Solicitud original:</strong> {optimizationResult?.originalPrompt || originalPrompt || prompt}</p>
+                <p><strong>Estilo:</strong> {resolveDesignReference(referenceId, prompt).label}</p>
+                <p><strong>Tipo:</strong> {designType === "auto" ? resolveDesignReference(referenceId, prompt).type : designType}</p>
+                <p><strong>Formato:</strong> {format.label}</p>
+                {optimizationResult?.optimizedPrompt && <p className="whitespace-pre-wrap rounded-xl bg-app p-3"><strong>Prompt optimizado:</strong> {optimizationResult.optimizedPrompt}</p>}
+                {!optimizationResult?.optimizedPrompt && <p>El brief final se completa automáticamente al generar. Pulsa «Analizar con Diseño Pro» para conocer las skills seleccionadas.</p>}
+                {planState && <p><strong>Skills activas:</strong> {planState.plan.routing.selected_skills.join(", ")}</p>}
+              </div>
+            )}
+            {activeResultTab === "provider" && (
+              <div role="tabpanel" className="min-h-80 space-y-3 p-5 text-xs text-main">
+                <h3 className="text-sm font-black">Enrutamiento de proveedores</h3>
+                <p>Preferencia: <strong>{provider === "auto" ? "Selección automática" : provider}</strong></p>
+                <p>Fallback: <strong>{allowFallback ? "Autorizado para Diseño Pro" : "Desactivado"}</strong>. Puede cambiar los costos, el modelo y la calidad.</p>
+                <p>Proveedor utilizado: <strong>{result?.provider || "Aún no generado"}</strong></p>
+                <p>Modelo: <strong>{result?.model || "Sin datos"}</strong></p>
+                {result?.providerOrder?.length ? <p>Orden considerado: {result.providerOrder.join(" → ")}</p> : null}
+                <p>Los errores y cuotas se supervisan mediante el registro administrativo, no se muestran credenciales ni respuestas privadas aquí.</p>
+              </div>
+            )}
+            {activeResultTab === "incidents" && (
+              <div role="tabpanel" className="min-h-80 p-5 text-xs text-main">
+                <h3 className="text-sm font-black">Incidencias de generación</h3>
+                <p className="mt-3 leading-6">{error || "No hay fallos visibles en esta sesión. El historial de incidencias y la antigüedad están disponibles únicamente en la campana de administración Edu Claw."}</p>
+                <p className="mt-3 text-muted2">Cuando un proveedor falla y está permitido, EDUAI intenta otro compatible y registra la incidencia sin duplicarla.</p>
+              </div>
+            )}
+            {activeResultTab === "suggestions" && (
+              <div role="tabpanel" className="min-h-80 space-y-3 p-5 text-xs text-main">
+                <h3 className="text-sm font-black">Sugerencias para el diseño</h3>
+                <p>Incluye el personaje u objeto principal, qué acción realiza, escenario, estilo artístico, iluminación y destino de uso.</p>
+                <p>Para un videojuego de bloques, menciona perspectiva, acción, texturas voxel y fondo de aventura.</p>
+                <p>Para material educativo, proporciona curso y contenidos exactos; revisa fórmulas y rótulos antes de publicar.</p>
+                <p>El motor puede interpretar estilos, pero no garantiza texto o geometría exactos sin revisión.</p>
               </div>
             )}
           </div>
@@ -598,7 +744,7 @@ export default function ImageStudioProPage() {
             <h3 className="text-sm font-black">Cómo trabaja Diseño Pro</h3>
             <div className="mt-4 space-y-2">
               {[
-                "Opcionalmente convierte la solicitud en un brief visual con nivel Ligero, Recomendado o Avanzado.",
+                "Detecta estilos y optimiza automáticamente con las skills visuales, y opcionalmente con IA.",
                 "Clasifica la solicitud y carga solo las skills visuales relevantes.",
                 "Construye VisualBrief y restricciones específicas para la pieza.",
                 "Compila un prompt coherente para el modelo elegido, con reglas estrictas de texto cuando corresponde.",

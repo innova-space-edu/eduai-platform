@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { runAIText } from "@/lib/ai/gateway"
 import { createClient } from "@/lib/supabase/server"
+import { recordAdminIncident } from "@/lib/admin/edu-claw-incidents"
 import { getSkillGuidance } from "@innova-space/visual-design"
 import {
   buildLocalOptimizationBrief,
@@ -129,7 +130,13 @@ Convierte la solicitud en una instrucción visual de producción claramente mejo
       generationAvoided: result.reused,
     }, { headers: HEADERS })
   } catch (error) {
-    console.error("[ImageStudioPro][Optimize]", error)
+    console.error("[ImageStudioPro][Optimize]", error instanceof Error ? error.name : "provider_failure")
+    await recordAdminIncident({
+      fingerprint: "image:prompt-optimizer:failure",
+      category: "runtime", severity: "medium", module: "image-studio-pro",
+      title: "Optimizador visual no disponible",
+      message: "El optimizador IA falló; Diseño Pro puede continuar con las reglas de la skill local.",
+    })
     const typed = error as Error & { status?: number; code?: string }
     return NextResponse.json({
       error: typed.code === "EDUAI_ACCESS_RESTRICTED"

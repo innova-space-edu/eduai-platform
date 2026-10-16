@@ -2,6 +2,7 @@
 // Motor multiproveedor con límites por proveedor, fallback y reutilización persistente.
 
 import { createClient } from "@/lib/supabase/server"
+import { recordImageProviderFailures, recordAdminIncident } from "@/lib/admin/edu-claw-incidents"
 import { createClient as createAdmin } from "@supabase/supabase-js"
 import { assertAICapabilityAllowed } from "@/lib/ai/access-policy"
 import { generationFingerprint } from "@/lib/ai/fingerprint"
@@ -902,6 +903,7 @@ export async function POST(req: Request) {
   const width = clamp(Number(body?.width), 256, 1920, 1024)
   const height = clamp(Number(body?.height), 256, 1920, 768)
   const provider = (body?.provider || "auto") as ProviderId
+  const allowProviderFallback = body?.source === "image-studio-pro" && body?.allowProviderFallback === true
   const rawMode = String(body?.mode || "fast").toLowerCase()
   const mode: GenerationMode =
     rawMode === "pro" || rawMode === "quality"
@@ -1024,10 +1026,16 @@ export async function POST(req: Request) {
         ? await optimizePrompt(prompt, style, educationalContext)
         : basicPrompt(prompt, style)
 
-    const baseOrder = providerOrder(provider, mode)
+    const baseOrder = provider === "auto" || !allowProviderFallback
+      ? providerOrder(provider, mode)
+      : [provider, ...providerOrder("auto", mode).filter((candidate) => candidate !== provider)]
     const textSafeOrder = TEXT_CRITICAL_PROVIDER_ORDER.filter((candidate) => baseOrder.includes(candidate))
-    const order = provider === "auto" && textPriority && textSafeOrder.length
-      ? textSafeOrder
+    const order = textPriority && textSafeOrder.length
+      ? provider === "auto"
+        ? textSafeOrder
+        : allowProviderFallback
+          ? [provider, ...textSafeOrder.filter((candidate) => candidate !== provider)]
+          : baseOrder
       : baseOrder
     const attempts: ProviderAttempt[] = []
     let imageBase64: string | null = null
@@ -1085,6 +1093,8 @@ export async function POST(req: Request) {
         elapsedMs,
       })
     }
+
+    await recordImageProviderFailures(attempts)
 
     if (!imageBase64) {
       const details = attempts.map(formatAttempt)
@@ -1191,6 +1201,11 @@ export async function POST(req: Request) {
     } catch (saveError) {
       console.error("[Image][Save]", errMsg(saveError))
       if (requireStorage) {
+        await recordAdminIncident({
+          fingerprint: "image:storage:failure", category: "storage", severity: "high",
+          module: "image-studio", title: "Error de almacenamiento de imágenes",
+          message: "Image Studio no pudo guardar un resultado. Comprueba el bucket y los permisos de almacenamiento.",
+        })
         await finishGenerationRequest({
           supabase,
           requestId,
