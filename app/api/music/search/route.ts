@@ -18,6 +18,8 @@ type NormalizedTrack = {
   youtubeVideoId?: string;
   videoEmbedUrl?: string;
   videoThumbnail?: string;
+  playable?: boolean;
+  externalOnly?: boolean;
   previewSeconds?: number;
   previewStartSeconds?: number;
 };
@@ -326,8 +328,6 @@ async function searchYouTube(
     // demasiado la variedad y hacía que la cola reciclara los mismos videos.
     q: query,
     type: "video",
-    videoEmbeddable: "true",
-    videoSyndicated: "true",
     maxResults: String(Math.min(limit, 50)),
     key,
     safeSearch: "moderate",
@@ -339,10 +339,29 @@ async function searchYouTube(
   });
   if (!res.ok) throw new Error(`YouTube Data API ${res.status}`);
   const data = await res.json();
+  const found = ((data.items || []) as YouTubeSearchResult[])
+    .filter((item) => item.id?.videoId && item.snippet?.title);
+  // Mostramos todas las publicaciones; status.embeddable decide si el
+  // reproductor integrado funciona o se ofrece acceso directo a YouTube.
+  const availability = new Map<string, boolean>();
+  if (found.length) {
+    const detailQuery = new URLSearchParams({
+      part: "status", key, id: found.map((item) => item.id!.videoId!).join(","),
+    });
+    try {
+      const detailsRes = await fetch("https://www.googleapis.com/youtube/v3/videos?" + detailQuery, {
+        next: { revalidate: 1800 },
+      });
+      if (detailsRes.ok) {
+        const detailData = await detailsRes.json();
+        for (const detail of (detailData.items || []) as Array<{ id?: string; status?: { embeddable?: boolean } }>) {
+          if (detail.id) availability.set(detail.id, detail.status?.embeddable === true);
+        }
+      }
+    } catch {}
+  }
 
-  return ((data.items || []) as YouTubeSearchResult[])
-    .filter((item) => item.id?.videoId && item.snippet?.title)
-    .map((item) => {
+  return found.map((item) => {
       const videoId = item.id!.videoId!;
       const title = item.snippet?.title || "Video musical";
       const artist = item.snippet?.channelTitle || "YouTube";
@@ -370,6 +389,8 @@ async function searchYouTube(
         youtubeVideoId: videoId,
         videoEmbedUrl: `https://www.youtube.com/embed/${videoId}`,
         videoThumbnail: thumbnail,
+        playable: availability.get(videoId) !== false,
+        externalOnly: availability.get(videoId) === false,
         previewSeconds,
         // DJ toma un fragmento reconocible de la canción, no la introducción.
         previewStartSeconds: previewSeconds ? 50 : undefined,
@@ -458,7 +479,7 @@ async function handle(req: NextRequest) {
     fallbackReason: youtubeFallback.length
       ? normalizedProvider === "preview"
         ? "Modo DJ: audio de YouTube desde 0:50 durante 30 segundos y cola automática."
-        : "No se encontró audio completo en Jamendo/Audius para esa búsqueda; se muestran videos embebibles de YouTube."
+        : "Se incluyen videos de YouTube y enlaces directos cuando no pueden insertarse en EDUAI."
       : null,
     youtubeKeyMissing: !process.env.YOUTUBE_API_KEY && (normalizedProvider === "full" || normalizedProvider === "youtube" || normalizedProvider === "preview"),
     youtubeSearchUrl: !process.env.YOUTUBE_API_KEY && (normalizedProvider === "full" || normalizedProvider === "youtube" || normalizedProvider === "preview") ? `https://www.youtube.com/results?search_query=${encodeURIComponent(query)}` : null,
