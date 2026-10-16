@@ -62,7 +62,7 @@ export function classifyProviderFailure(provider: string, errorText: string): In
   const kind: IncidentCategory =
     /429|resource_exhausted|quota|credit|billing|insufficient_balance|limit.exceeded/.test(text)
       ? "provider_quota"
-      : /401|403|unauthorized|forbidden|api.?key|token invalid|auth/.test(text)
+      : /401|403|unauthorized|forbidden|api.?key|token invalid|no hay clave|no hay token|auth/.test(text)
         ? "provider_auth"
         : /time.?out|timed out|timeout|abort/.test(text)
           ? "provider_timeout"
