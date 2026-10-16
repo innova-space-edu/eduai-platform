@@ -79,6 +79,9 @@ jobs:
       - name: Manual Kaggle voice regression
         run: node scripts/test-kaggle-manual-voice.mjs
 
+      - name: Secure Kaggle ZIP/WAV regression
+        run: npx tsx scripts/test-kaggle-zip.ts
+
       - name: Offline Chatterbox private GPU contract
         run: |
           python -m py_compile services/eduai-voice-chatterbox/main.py
