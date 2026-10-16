@@ -1,3 +1,4 @@
+import { getAdaptiveWllamaTuning, isEfficiencyAdapterEnabled } from "./eduai-efficiency-adapter";
 import { searchEduAILocalKnowledgePack } from "./eduai-local-rag";
 import { validateEduAIGgufFiles } from "./eduai-local-gguf";
 import {
@@ -272,9 +273,12 @@ export async function loadEduAILocalModel(
     ? Math.max(1, Math.min(4, hardware.cores - 1))
     : 1;
 
+  const adaptive = isEfficiencyAdapterEnabled()
+    ? getAdaptiveWllamaTuning(hardware.memoryGB, model.context)
+    : { n_ctx: model.context, n_batch: 128 };
   const loadConfig: Record<string, unknown> = {
-    n_ctx: model.context,
-    n_batch: 128,
+    n_ctx: adaptive.n_ctx,
+    n_batch: adaptive.n_batch,
     n_threads: threads,
     jinja: true,
     progressCallback: (progress: { loaded: number; total: number }) => {
