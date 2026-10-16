@@ -2705,7 +2705,7 @@ function NeonMain({
                 <div className="min-w-0">
                   <p className="text-[12px] font-black text-fuchsia-100">Mix Favorite · reproducción inteligente</p>
                   <p className="mt-1 text-[10px] text-slate-300">
-                    {music.mixFavoriteArtists.length} artistas base y personales · {music.mixFavoriteLearnedCount} canciones aprendidas · {music.mixFavoriteTracks.length} en rotación
+                    {music.mixFavoriteArtists.length} artistas base y personales · {music.mixFavoriteLearnedCount} canciones aprendidas de búsquedas y reproducciones · {music.mixFavoriteTracks.length} en rotación
                   </p>
                   <p className="mt-1 text-[9px] text-slate-400">
                     Videos oficiales, lyrics, remixes, covers y mezclas de cualquier canal. Si YouTube bloquea el reproductor, podrás abrirlos allí.
