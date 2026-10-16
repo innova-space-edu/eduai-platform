@@ -1318,6 +1318,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     mixActiveRef.current = false;
     mixAdvancePendingRef.current = false;
     setMixFavoriteActive(false);
+    setPlaying(false);
+    setQueueIds([]);
   }, []);
 
   const nextTrack = useCallback(() => {
