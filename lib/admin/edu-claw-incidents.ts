@@ -98,13 +98,16 @@ export async function recordImageProviderFailures(attempts: Array<{provider: str
 }
 
 export async function getEduClawSnapshot(db: SupabaseClient) {
-  const [incidentsResult, tasksResult, healthResult] = await Promise.all([
+  const [incidentsResult, tasksResult, healthResult, recentFailuresResult] = await Promise.all([
     db.from("eduai_admin_incidents").select("id,fingerprint,category,severity,module,provider,title,message,status,occurrences,first_seen_at,last_seen_at,acknowledged_at,resolved_at")
       .neq("status", "resolved").order("last_seen_at", { ascending: false }).limit(100),
     db.from("eduai_admin_tasks").select("id,task_key,module,title,detail,priority,status,created_at,updated_at")
       .in("status", ["pending", "in_progress"]).order("created_at", { ascending: true }).limit(60),
     db.from("ai_provider_health").select("provider,capability,status,error_code,checked_at")
       .order("checked_at", { ascending: false }).limit(30),
+    db.from("ai_generation_requests").select("provider,capability,created_at")
+      .eq("status", "failed").gte("created_at", new Date(Date.now() - 24 * 3600_000).toISOString())
+      .order("created_at", { ascending: false }).limit(100),
   ]);
   if (incidentsResult.error || tasksResult.error) throw new Error("La base de datos de incidencias no está preparada");
   const incidents = incidentsResult.data || [];
@@ -115,8 +118,21 @@ export async function getEduClawSnapshot(db: SupabaseClient) {
     const id = row.capability + ":" + row.provider;
     if (!latestByProvider.has(id)) latestByProvider.set(id, row);
   }
+  const lastDay = recentFailuresResult.data || [];
+  const failureByCapability: Record<string, number> = {};
+  for (const row of lastDay) {
+    const capability = String(row.capability || "unknown").slice(0, 50);
+    failureByCapability[capability] = (failureByCapability[capability] || 0) + 1;
+  }
   return {
     checkedAt: new Date().toISOString(),
+    recentGenerationFailures: {
+      total: lastDay.length,
+      maxRows: 100,
+      mayBeTruncated: lastDay.length >= 100,
+      byCapability: failureByCapability,
+      sourceAvailable: !recentFailuresResult.error,
+    },
     monitor: "Edu Claw · evaluación determinista con telemetría disponible",
     completeSystemAudit: false,
     incidents, tasks, providers: [...latestByProvider.values()],
