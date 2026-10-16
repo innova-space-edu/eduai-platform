@@ -22,6 +22,7 @@ import {
   Check,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { DESIGN_REFERENCES, buildVisualSkillPrompt, resolveDesignReference } from "@/lib/visual-design/design-references";
 import {
   EDUAI_VISUAL_PROVIDER_OPTIONS,
   compileForEduAI,
@@ -34,6 +35,8 @@ const FORMATS = [
   { id: "16:9", label: "Horizontal 16:9", width: 1024, height: 576 },
   { id: "1:1", label: "Cuadrado 1:1", width: 1024, height: 1024 },
   { id: "9:16", label: "Vertical 9:16", width: 576, height: 1024 },
+  { id: "4:5", label: "Social 4:5", width: 832, height: 1040 },
+  { id: "A4", label: "Lámina A4 vertical", width: 848, height: 1200 },
 ];
 
 const EXAMPLES = [
@@ -93,6 +96,10 @@ export default function ImageStudioProPage() {
   const [originalPrompt, setOriginalPrompt] = useState<string | null>(null);
   const [optimizerInfo, setOptimizerInfo] = useState<{ provider?: string; model?: string; reused?: boolean } | null>(null);
   const [optimizationLevel, setOptimizationLevel] = useState<OptimizationLevel>("recommended");
+  const [referenceId, setReferenceId] = useState("auto");
+  const [autoOptimize, setAutoOptimize] = useState(true);
+  const [allowFallback, setAllowFallback] = useState(true);
+  const [optimizationPhase, setOptimizationPhase] = useState("");
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null);
   const [resultAction, setResultAction] = useState<"saving" | "saved" | "sharing" | "copied" | "downloading" | null>(null);
 
@@ -185,29 +192,78 @@ export default function ImageStudioProPage() {
   }
 
   async function generate() {
-    if (!prompt.trim() || generating) return;
-    const current = planState || createPlan();
+    const typedPrompt = prompt.trim();
+    if (!typedPrompt || generating) return;
     setGenerating(true);
     setError("");
     setResult(null);
+    setOptimizationPhase("");
     try {
+      const originalRequest = optimizationResult?.originalPrompt?.trim() || originalPrompt?.trim() || typedPrompt;
+      const localRouting = planEduAIVisual(originalRequest, {
+        audience: "Comunidad EDUAI", width: format.width, height: format.height,
+        context: { locale: "es-CL", proMode: true },
+      });
+      const local = buildVisualSkillPrompt({
+        originalPrompt: typedPrompt,
+        format: format.id,
+        selectedSkills: localRouting.plan.routing.selected_skills,
+        primarySkill: localRouting.plan.routing.primary_skill,
+        textCritical: requiresAccurateVisualText(localRouting.plan),
+        referenceId, level: optimizationLevel,
+      });
+      let enhancedPrompt = local.enhanced;
+      if (autoOptimize && !optimizationResult) {
+        setOptimizationPhase("Aplicando las skills y optimizando automáticamente…");
+        try {
+          const optimizationResponse = await fetch("/api/image-studio/pro/optimize", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              prompt: enhancedPrompt,
+              format: format.id,
+              selectedSkills: localRouting.plan.routing.selected_skills,
+              primarySkill: localRouting.plan.routing.primary_skill,
+              textCritical: requiresAccurateVisualText(localRouting.plan),
+              level: optimizationLevel,
+            }),
+          });
+          const optimizationData = await optimizationResponse.json().catch(() => ({}));
+          if (optimizationResponse.ok && typeof optimizationData.optimizedPrompt === "string" && optimizationData.optimizedPrompt.trim()) {
+            enhancedPrompt = optimizationData.optimizedPrompt.trim();
+            setOptimizationResult({
+              originalPrompt: originalRequest, optimizedPrompt: enhancedPrompt,
+              level: optimizationLevel, changes: Array.isArray(optimizationData.changes) ? optimizationData.changes : [],
+              brief: optimizationData.brief || null,
+              provider: optimizationData.provider, model: optimizationData.model, reused: optimizationData.reused,
+            });
+            setOptimizerInfo({ provider: optimizationData.provider, model: optimizationData.model, reused: optimizationData.reused });
+          } else {
+            setOptimizationPhase("Optimizador IA no disponible; continuamos con las skills locales.");
+          }
+        } catch {
+          setOptimizationPhase("Optimizador IA no disponible; continuamos con las skills locales.");
+        }
+      }
+      const current = planEduAIVisual(originalRequest, {
+        audience: "Comunidad EDUAI", width: format.width, height: format.height,
+        generationPrompt: enhancedPrompt,
+        context: { locale: "es-CL", proMode: true, optimized: autoOptimize },
+      });
+      setPlanState(current);
       const customPrompt = compileForEduAI(current.plan, provider);
       const response = await fetch("/api/agents/imagenes", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: optimizationResult?.originalPrompt?.trim() || originalPrompt?.trim() || prompt.trim(),
+          prompt: originalRequest,
           customPrompt,
-          style: current.style,
-          width: format.width,
-          height: format.height,
-          provider,
-          mode: current.mode,
-          source: "image-studio-pro",
+          style: local.reference.engineStyle || current.style,
+          width: format.width, height: format.height, provider,
+          allowProviderFallback: allowFallback,
+          mode: current.mode, source: "image-studio-pro",
           topic: current.plan.routing.primary_skill,
           educationalContext: JSON.stringify({
             selectedSkills: current.plan.routing.selected_skills,
-            optimizedPrompt: prompt.trim(),
+            designReference: local.reference.id,
             renderStrategy: current.plan.visual_brief.render_strategy,
             constraints: current.plan.visual_brief.constraints,
             language: "es-CL",
@@ -217,18 +273,14 @@ export default function ImageStudioProPage() {
         }),
       });
       const data = await response.json().catch(() => ({}));
-      if (!response.ok || data.success === false) {
-        throw new Error(data.error || `Error ${response.status}`);
-      }
-      setResult({
-        ...data,
-        imageUrl: data.persistentUrl || data.imageUrl,
-      });
+      if (!response.ok || data.success === false) throw new Error(data.error || ("Error " + response.status));
+      setResult({ ...data, imageUrl: data.persistentUrl || data.imageUrl });
       setResultAction(data.persistentUrl || data.assetId ? "saved" : null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No fue posible generar la imagen");
     } finally {
       setGenerating(false);
+      setOptimizationPhase("");
     }
   }
 
