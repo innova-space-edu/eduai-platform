@@ -20,7 +20,7 @@ for(const name of [
 ]) assert.ok(server.includes(name), "Missing secure GPU bridge: "+name)
 
 for(const name of [
-  'mode=compute','getVoiceGpuBridge(req)','postVoiceGpuBridge(req)'
+  'get("mode") === "compute"','getVoiceGpuBridge(req)','postVoiceGpuBridge(req)'
 ]) assert.ok(endpoint.includes(name), "Must reuse existing Vercel Hobby function: "+name)
 for(const name of ["Kaggle","Colab","pairing_code","navigator.clipboard",
   "Crear código de conexión","Generar audio","audio_url","MFA"])
