@@ -4,7 +4,7 @@ import { validateVoiceSecuritySession } from "@/lib/audio/voice-security"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-export const maxDuration = 60
+export const maxDuration = 300
 
 type VoiceAction = "prepare" | "render" | "delete"
 const ACTIONS: Record<VoiceAction, string> = {
