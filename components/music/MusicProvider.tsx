@@ -880,16 +880,6 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     });
   }, [mixProfileReady]);
 
-  useEffect(() => {
-    if (playing && currentTrack?.source === "youtube" && currentTrack.youtubeVideoId) {
-      // El estado PLAYING también cubre videos elegidos por Siguiente,
-      // reproducciones de playlists y la rotación automática de Mix.
-      learnMixTracks([currentTrack], { origin: "played" });
-    }
-    // Seguimos el ID y el estado real, no cada render del reproductor.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, currentTrack?.id, learnMixTracks]);
-
   const playlists = useMemo(() => {
     const likedPlaylist: EduMusicPlaylist = {
       id: "pl-liked",
@@ -944,6 +934,17 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     () => getTrack(currentId) ?? EMPTY_MUSIC_TRACK,
     [currentId, getTrack],
   );
+
+  useEffect(() => {
+    if (playing && currentTrack?.source === "youtube" && currentTrack.youtubeVideoId) {
+      // El estado PLAYING también cubre videos elegidos por Siguiente,
+      // reproducciones de playlists y la rotación automática de Mix.
+      learnMixTracks([currentTrack], { origin: "played" });
+    }
+    // Seguimos el ID y el estado real, no cada render del reproductor.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, currentTrack?.id, learnMixTracks]);
+
 
   const recentTracks = useMemo(
     () => recentIds.map((id) => getTrack(id)).filter(Boolean) as EduMusicTrack[],
