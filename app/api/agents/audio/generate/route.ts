@@ -31,5 +31,6 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({} as Record<string, unknown>))
   if (isSongRequest(req, body)) return createSongJob(body)
-  return createNarration(body)
+  const acceptsBinary = /audio\/(?:wav|mpeg|\*)/i.test(req.headers.get("accept") || "")
+  return createNarration(body, acceptsBinary)
 }
