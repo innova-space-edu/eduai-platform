@@ -113,6 +113,7 @@ type MusicContextValue = {
   mixFavoriteTracks: EduMusicTrack[];
   startMixFavorite: () => void;
   stopMixFavorite: () => void;
+  loadMoreMixFavorite: () => void;
   createOpen: boolean;
   setCreateOpen: (value: boolean | ((prev: boolean) => boolean)) => void;
   newPlaylistName: string;
@@ -1327,6 +1328,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     void refillMixFavorite();
   }, [refillMixFavorite]);
 
+  const loadMoreMixFavorite = useCallback(() => {
+    if (mixActiveRef.current) void refillMixFavorite();
+  }, [refillMixFavorite]);
+
   const stopMixFavorite = useCallback(() => {
     mixActiveRef.current = false;
     mixAdvancePendingRef.current = false;
@@ -1408,8 +1413,15 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    if (shuffle && list.length > 1) {
-      const others = list.filter((track) => track.id !== currentId);
+    const playableList = list.filter((track) => !asExtendedTrack(track)?.externalOnly &&
+      !failedYouTubeIds.includes(track.youtubeVideoId || ""));
+    if (!playableList.length) {
+      setPlaying(false);
+      return;
+    }
+
+    if (shuffle && playableList.length > 1) {
+      const others = playableList.filter((track) => track.id !== currentId);
       const random = others[Math.floor(Math.random() * others.length)] ?? list[0];
       const shouldContinue = playingRef.current;
       setCurrentId(random.id);
@@ -1417,8 +1429,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    const index = Math.max(0, list.findIndex((track) => track.id === currentId));
-    const next = list[index + 1] ?? (repeat === "all" ? list[0] : null);
+    const index = playableList.findIndex((track) => track.id === currentId);
+    const next = playableList[index + 1] ?? (repeat === "all" ? playableList[0] : null);
     if (next) {
       const shouldContinue = playingRef.current;
       setCurrentId(next.id);
@@ -1480,7 +1492,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   }, [baseTracks, currentId, currentTrack?.source, onlineTracks, queue]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || currentTrack?.source !== "youtube") return;
+    if (typeof window === "undefined" || currentTrack?.source !== "youtube" || asExtendedTrack(currentTrack)?.externalOnly) return;
 
     const videoId = currentTrack.youtubeVideoId;
     if (!videoId) return;
@@ -1830,7 +1842,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         // botones anterior/siguiente recorren el catálogo en el mismo orden
         // mostrado cuando el modo aleatorio está apagado.
         setQueueIds(sanitizedTracks.map((track) => track.id));
-        if (sanitizedTracks[0]) playTrack(sanitizedTracks[0], sanitizedTracks);
+        const initialPlayable = sanitizedTracks.find((track) => !asExtendedTrack(track)?.externalOnly);
+        if (initialPlayable) playTrack(initialPlayable, sanitizedTracks);
+        else setOnlineError("Se encontraron videos disponibles en YouTube, pero ninguno permite la reproducción integrada. Puedes abrirlos desde la lista.");
       } catch (error) {
         if (controller.signal.aborted || requestId !== onlineSearchRequestRef.current) return;
         setOnlineError(error instanceof Error ? error.message : "Error buscando música online.");
@@ -1933,6 +1947,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     mixFavoriteTracks: mixQueueTracks,
     startMixFavorite,
     stopMixFavorite,
+    loadMoreMixFavorite,
     createOpen,
     setCreateOpen,
     newPlaylistName,
