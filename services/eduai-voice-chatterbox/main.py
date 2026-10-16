@@ -31,37 +31,52 @@ _model = None
 _generation_lock = asyncio.Lock()
 
 
-def install_verified_weights() -> None:
-    """Copy owner-supplied, SHA256-verified weights from GCS, never from HF."""
-    if not MODEL_GCS_URI.startswith("gs://"):
-        raise RuntimeError("CHATTERBOX_MODEL_GCS_URI debe señalar un bucket de modelos verificados")
-    from google.cloud import storage
-
-    bucket_name, _, prefix = MODEL_GCS_URI.removeprefix("gs://").partition("/")
-    prefix = prefix.strip("/")
-    if not bucket_name or not prefix:
-        raise RuntimeError("Ruta de checkpoint de GCS inválida")
-    client = storage.Client()
-    bucket = client.bucket(bucket_name)
-    manifest_blob = bucket.blob(f"{prefix}/manifest.json")
-    manifest = json.loads(manifest_blob.download_as_text())
+def verify_local_manifest() -> None:
+    manifest_file = MODEL_PATH / "manifest.json"
+    if not manifest_file.is_file():
+        raise RuntimeError("Falta manifest.json del checkpoint Chatterbox")
+    manifest = json.loads(manifest_file.read_text())
     hashes = manifest.get("files")
     if not isinstance(hashes, dict) or not all(name in hashes for name in REQUIRED_WEIGHTS):
-        raise RuntimeError("Falta el manifiesto de integridad o algún archivo del modelo")
-    MODEL_PATH.mkdir(parents=True, exist_ok=True)
+        raise RuntimeError("Manifiesto de integridad del modelo incompleto")
     for name, expected in hashes.items():
         if not isinstance(name, str) or not isinstance(expected, str) or \
            Path(name).name != name or name.startswith(".") or len(expected) != 64:
             raise RuntimeError("Manifiesto SHA256 inválido")
-        file_path = MODEL_PATH / name
-        if file_path.is_file() and hashlib.sha256(file_path.read_bytes()).hexdigest() == expected.lower():
-            continue
-        bucket.blob(f"{prefix}/{name}").download_to_filename(str(file_path))
-        if hashlib.sha256(file_path.read_bytes()).hexdigest() != expected.lower():
-            file_path.unlink(missing_ok=True)
-            raise RuntimeError("Integridad del checkpoint incorrecta")
-    if not all((MODEL_PATH / name).is_file() for name in REQUIRED_WEIGHTS):
-        raise RuntimeError("Checkpoint de Chatterbox incompleto")
+        src = MODEL_PATH / name
+        if not src.is_file():
+            raise RuntimeError("Falta checkpoint Chatterbox: " + name)
+        digest = hashlib.file_digest(src.open("rb"), "sha256").hexdigest()
+        if digest.lower() != expected.lower():
+            raise RuntimeError("Hash de checkpoint Chatterbox incorrecto: " + name)
+
+
+def install_verified_weights() -> None:
+    """Prefer a baked, SHA256-verified offline image. GCS is optional."""
+    if (MODEL_PATH / "manifest.json").is_file():
+        verify_local_manifest()
+        return
+    if not MODEL_GCS_URI.startswith("gs://"):
+        raise RuntimeError("Imagen sin checkpoints y CHATTERBOX_MODEL_GCS_URI no configurado")
+
+    from google.cloud import storage
+    bucket_name, _, prefix = MODEL_GCS_URI.removeprefix("gs://").partition("/")
+    prefix = prefix.strip("/")
+    if not bucket_name or not prefix:
+        raise RuntimeError("Ruta del checkpoint en GCS inválida")
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+    manifest = json.loads(bucket.blob(f"{prefix}/manifest.json").download_as_text())
+    hashes = manifest.get("files")
+    if not isinstance(hashes, dict) or not all(name in hashes for name in REQUIRED_WEIGHTS):
+        raise RuntimeError("Manifiesto GCS inválido")
+    MODEL_PATH.mkdir(parents=True, exist_ok=True)
+    for name in hashes:
+        if Path(name).name != name or name.startswith("."):
+            raise RuntimeError("Nombre de checkpoint inválido")
+        bucket.blob(f"{prefix}/{name}").download_to_filename(str(MODEL_PATH / name))
+    (MODEL_PATH / "manifest.json").write_text(json.dumps(manifest))
+    verify_local_manifest()
 
 
 def initialize() -> None:
