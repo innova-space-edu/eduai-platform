@@ -3,7 +3,7 @@
 # No Hugging Face downloads, no new user data, no other model changes.
 FROM us-central1-docker.pkg.dev/scientificbrain-compute/eduai-audio/chatterbox-voice:v1
 USER root
-RUN pip install --no-cache-dir --no-deps \
+RUN pip install --no-cache-dir --force-reinstall --no-deps \
   "git+https://github.com/resemble-ai/chatterbox.git@5de7a54aa4e5e2baadb0182dde554908b48b85c2" \
   && python -c "import inspect; from chatterbox.mtl_tts import ChatterboxMultilingualTTS; assert 't3_model' in inspect.signature(ChatterboxMultilingualTTS.from_local).parameters"
 USER worker
