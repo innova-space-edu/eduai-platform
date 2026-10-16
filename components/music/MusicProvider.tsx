@@ -18,7 +18,7 @@ import {
   type EduMusicTrack,
 } from "@/lib/music/eduai-music-catalog";
 import { MIX_FAVORITE_SEED_ARTISTS } from "@/lib/music/mix-favorite-seed";
-import { chooseMixRequests, inferredMixSong, normalizeArtist, type MixSong } from "@/lib/music/mix-favorite";
+import { chooseMixRequests, inferredMixSong, learnedVideoTrack, mixSongKey, normalizeArtist, type MixSong } from "@/lib/music/mix-favorite";
 
 type MusicView =
   | "home"
@@ -812,7 +812,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         typeof a === "string" && a.length > 1).map((a): [string, string] => [normalizeArtist(a), a])).values()).slice(-1000));
       setMixLearnedSongs(Array.from(new Map(tracks.filter((v): v is MixSong =>
         typeof v?.artist === "string" && typeof v?.title === "string" && !!v.artist && !!v.title)
-        .map((v): [string, MixSong] => [normalizeArtist(v.artist) + ":" + normalizeArtist(v.title), v])).values()).slice(-1500));
+        .map((v): [string, MixSong] => [mixSongKey(v), v])).values()).slice(-1500));
       setMixProfileReady(true);
     };
     void supabase.auth.getUser().then(({ data }) => load(data.user?.id || null));
@@ -840,15 +840,55 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     return () => { if (mixSyncTimerRef.current) clearTimeout(mixSyncTimerRef.current); };
   }, [hydrated, mixProfileReady, mixArtists, mixLearnedSongs, supabase]);
 
-  const learnMixTracks = useCallback((tracks: EduMusicTrack[]) => {
+  // Aprende resultados de búsqueda y, con prioridad, canciones realmente
+  // reproducidas, incluyendo el avance automático entre videos de YouTube.
+  const learnMixTracks = useCallback((tracks: EduMusicTrack[], options?: {
+    origin?: "search" | "played" | "discovered"; query?: string;
+  }) => {
     if (!mixProfileReady) return;
-    const songs = tracks.map(inferredMixSong).filter((v): v is MixSong => Boolean(v));
+    const origin = options?.origin || "discovered";
+    const songs = tracks.map((track) => inferredMixSong(track, options?.query))
+      .filter((song): song is MixSong => Boolean(song))
+      .map((song) => ({ ...song, origin }));
     if (!songs.length) return;
-    setMixArtists((prev) => Array.from(new Map([...prev, ...songs.map((v) => v.artist)]
-      .map((a): [string, string] => [normalizeArtist(a), a])).values()).slice(-1000));
-    setMixLearnedSongs((prev) => Array.from(new Map([...prev, ...songs]
-      .map((v): [string, MixSong] => [normalizeArtist(v.artist) + ":" + normalizeArtist(v.title), v])).values()).slice(-1500));
+    setMixArtists((prev) => {
+      const byArtist = new Map(prev.map((artist): [string, string] => [normalizeArtist(artist), artist]));
+      let added = false;
+      for (const song of songs) {
+        const key = normalizeArtist(song.artist);
+        if (!byArtist.has(key)) { byArtist.set(key, song.artist); added = true; }
+      }
+      return added ? [...byArtist.values()].slice(-1000) : prev;
+    });
+    setMixLearnedSongs((prev) => {
+      const bySong = new Map(prev.map((song): [string, MixSong] => [mixSongKey(song), song]));
+      let changed = false;
+      for (const song of songs) {
+        const key = mixSongKey(song);
+        const existing = bySong.get(key);
+        // Una búsqueda posterior nunca degrada una pista reproducida.
+        const merged = existing && existing.origin === "played" && origin !== "played"
+          ? { ...song, ...existing, origin: "played" as const }
+          : { ...existing, ...song };
+        if (existing && existing.youtubeVideoId === merged.youtubeVideoId &&
+            existing.origin === merged.origin && existing.artworkUrl === merged.artworkUrl) continue;
+        bySong.delete(key);
+        bySong.set(key, merged);
+        changed = true;
+      }
+      return changed ? [...bySong.values()].slice(-1500) : prev;
+    });
   }, [mixProfileReady]);
+
+  useEffect(() => {
+    if (playing && currentTrack?.source === "youtube" && currentTrack.youtubeVideoId) {
+      // El estado PLAYING también cubre videos elegidos por Siguiente,
+      // reproducciones de playlists y la rotación automática de Mix.
+      learnMixTracks([currentTrack], { origin: "played" });
+    }
+    // Seguimos el ID y el estado real, no cada render del reproductor.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [playing, currentTrack?.id, learnMixTracks]);
 
   const playlists = useMemo(() => {
     const likedPlaylist: EduMusicPlaylist = {
@@ -1187,7 +1227,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         setMixFavoriteActive(false);
       }
       if (track.id !== EMPTY_MUSIC_TRACK.id) {
-        learnMixTracks([track]);
+        learnMixTracks([track], { origin: "search" });
         setRecentIds((prev) => [track.id, ...prev.filter((id) => id !== track.id)].slice(0, 18));
       }
 
@@ -1300,7 +1340,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         });
         return newIds.length ? [...existingIds, ...newIds] : existingIds;
       });
-      learnMixTracks(tracks);
+      learnMixTracks(tracks.slice(0, 12), { origin: "discovered" });
       // Avanzar solo si el reproductor realmente esperaba otra pista.
       // Una actualización manual no interrumpe la canción actual.
       if (mixAdvancePendingRef.current && !playingRef.current) {
@@ -1325,20 +1365,43 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const startMixFavorite = useCallback(() => {
     mixActiveRef.current = true;
-    mixAdvancePendingRef.current = true;
-    mixSeenRef.current = new Set<string>();
     mixRefillTriggerRef.current = "";
     mixInitialPrefetchRef.current = 0;
-    mixCurrentQueueRef.current = [];
-    setMixQueueTracks([]);
-    setQueueIds([]);
+    // Reutilizar las canciones aprendidas de YouTube sin llamar primero a la
+    // API. Favorece las realmente escuchadas y añade más artistas después.
+    const shuffled = (songs: MixSong[]) => [...songs].sort(() => Math.random() - 0.5);
+    const personal = [
+      ...shuffled(mixLearnedSongs.filter((s) => s.origin === "played")),
+      ...shuffled(mixLearnedSongs.filter((s) => s.origin !== "played")),
+    ];
+    const seenArtists = new Set<string>();
+    const seenVideos = new Set<string>();
+    const initial: EduMusicTrack[] = [];
+    for (const song of personal) {
+      const track = learnedVideoTrack(song);
+      if (!track || !track.youtubeVideoId || seenVideos.has(track.youtubeVideoId) ||
+          failedYouTubeIds.includes(track.youtubeVideoId)) continue;
+      const artist = normalizeArtist(track.artist);
+      if (seenArtists.has(artist)) continue;
+      seenArtists.add(artist);
+      seenVideos.add(track.youtubeVideoId);
+      initial.push(track);
+      if (initial.length >= 12) break;
+    }
+    const first = initial.find((track) => !asExtendedTrack(track)?.externalOnly);
+    mixSeenRef.current = seenVideos;
+    mixAdvancePendingRef.current = !first;
+    mixCurrentQueueRef.current = initial;
+    setMixQueueTracks(initial);
+    setQueueIds(initial.map((track) => track.id));
     setMixFavoriteActive(true);
     setView("mix");
-    setPlaying(false);
-    setCurrentId(undefined);
+    setCurrentId(first?.id);
+    setPlaying(Boolean(first));
+    if (first) setRecentIds((prev) => [first.id, ...prev.filter((id) => id !== first.id)].slice(0, 18));
     setHasActiveSession(true);
     void refillMixFavorite();
-  }, [refillMixFavorite]);
+  }, [failedYouTubeIds, mixLearnedSongs, refillMixFavorite]);
 
   const loadMoreMixFavorite = useCallback(() => {
     // Ni la cola, ni el video actual, ni la posición se reinician al buscar.
@@ -1851,7 +1914,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         const sanitizedTracks = tracks.map(sanitizeStoredTrack).slice(0, 60);
-        learnMixTracks(sanitizedTracks);
+        // Aprender de la búsqueda sin asumir que el canal del usuario es el cantante.
+        // Las pistas efectivamente escuchadas tienen prioridad al reproducirse.
+        learnMixTracks(sanitizedTracks.slice(0, 30), { origin: "search", query: clean });
         setOnlineTracks(sanitizedTracks);
         // Una búsqueda nueva define un orden de reproducción claro. Así los
         // botones anterior/siguiente recorren el catálogo en el mismo orden
