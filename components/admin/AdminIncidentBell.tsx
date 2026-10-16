@@ -41,6 +41,8 @@ export default function AdminIncidentBell() {
   const [fetching, setFetching] = useState(false);
   const [changing, setChanging] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [newTask, setNewTask] = useState("");
+  const [addingTask, setAddingTask] = useState(false);
   const [now, setNow] = useState(() => Date.now());
 
   const refresh = useCallback(async () => {
@@ -92,6 +94,27 @@ export default function AdminIncidentBell() {
       await refresh();
     } catch { setError("No se pudo actualizar el registro. Inténtalo nuevamente."); }
     finally { setChanging(null); }
+  }
+
+  async function addTask() {
+    const title = newTask.trim();
+    if (!title || addingTask) return;
+    setAddingTask(true); setError("");
+    try {
+      const response = await fetch("/api/admin/edu-claw/overview", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          task_key: "admin:manual-" + Date.now(),
+          title, module: "administracion", detail: "Pendiente registrado por administración.",
+          priority: "medium",
+        }),
+      });
+      if (!response.ok) throw new Error("No se pudo registrar la tarea");
+      setNewTask("");
+      await refresh();
+    } catch {
+      setError("No fue posible registrar la tarea.");
+    } finally { setAddingTask(false); }
   }
 
   const total = snapshot ? snapshot.counts.open + snapshot.counts.acknowledged + snapshot.counts.pendingTasks : 0;
@@ -146,6 +169,19 @@ export default function AdminIncidentBell() {
                       </div>
                     </article>
                   ))}
+                </div>
+                <div className="mt-5 rounded-xl border border-white/10 p-3">
+                  <label className="text-[11px] font-bold" htmlFor="edu-claw-new-task">Registrar pendiente administrativo</label>
+                  <div className="mt-2 flex gap-2">
+                    <input id="edu-claw-new-task" value={newTask} onChange={(event) => setNewTask(event.target.value)}
+                      maxLength={140} placeholder="Nueva tarea por completar"
+                      className="min-w-0 flex-1 rounded-lg border border-white/15 bg-slate-900 p-2 text-xs" />
+                    <button type="button" disabled={!newTask.trim() || addingTask} onClick={() => void addTask()}
+                      className="rounded-lg border border-cyan-400/30 px-3 py-2 text-[11px] text-cyan-200 disabled:opacity-40">
+                      {addingTask ? "..." : "Añadir"}
+                    </button>
+                  </div>
+                  <p className="mt-1 text-[10px] text-slate-500">No incluyas datos personales ni contraseñas.</p>
                 </div>
                 {snapshot.tasks.length > 0 && <h3 className="mt-5 text-xs font-black">Tareas sin completar</h3>}
                 <div className="mt-2 space-y-2">
