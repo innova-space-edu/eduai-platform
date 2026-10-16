@@ -114,6 +114,7 @@ export default function AudioLabVoicesPage() {
   const [kaggleUrlInput, setKaggleUrlInput] = useState("")
   const [kaggleProfileId, setKaggleProfileId] = useState("")
   const [kaggleUploading, setKaggleUploading] = useState(false)
+  const [kaggleDownloadingId, setKaggleDownloadingId] = useState("")
   const [kaggleAudios, setKaggleAudios] = useState<KaggleAudio[]>([])
 
   const refreshSecurity = useCallback(async () => {
@@ -212,6 +213,31 @@ export default function AudioLabVoicesPage() {
     setSuccess("Enlace privado de Kaggle guardado en este navegador.")
   }
 
+  async function downloadGeneratedKaggleWav(audio: KaggleAudio) {
+    setError("")
+    setKaggleDownloadingId(audio.id)
+    try {
+      const response = await fetch(audio.audio_url, { cache: "no-store" })
+      if (!response.ok) throw new Error("La URL del WAV venció. Actualiza la biblioteca y vuelve a intentar.")
+      const data = await response.blob()
+      if (!data.size) throw new Error("El archivo descargado está vacío")
+      const blobUrl = URL.createObjectURL(data)
+      try {
+        const link = document.createElement("a")
+        link.href = blobUrl
+        link.download = "eduai_voz_" + audio.id + ".wav"
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+      } finally {
+        window.setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
+      }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "No se pudo descargar el WAV")
+    } finally {
+      setKaggleDownloadingId("")
+    }
+  }
   async function importKaggleWav(file: File) {
     if (!kaggleProfileId) return setError("Elige primero un perfil vocal.")
     if (!/\.wav$/i.test(file.name) || file.size > 8 * 1024 * 1024) {
@@ -657,7 +683,8 @@ export default function AudioLabVoicesPage() {
                   className="min-w-0 flex-1 rounded-xl border border-soft bg-app px-3 py-2 text-xs" />
                 <button type="button" onClick={saveKaggleUrl} className="rounded-xl border border-purple-500/25 px-3 py-2 text-xs font-semibold">Guardar enlace</button>
               </div>
-              <p className="text-[11px] text-muted2">La primera vez, importa el archivo de GitHub con File → Load from URL. Guarda el notebook como privado y pega aquí su dirección. El botón abrirá ese mismo notebook en sesiones futuras.</p>
+              <p className="text-[11px] text-muted2">La primera vez, importa el notebook desde GitHub y guarda tu enlace privado. EDUAI conserva la referencia y el consentimiento del perfil para volver a utilizar tu voz con Chatterbox. Kaggle procesa cada nueva frase cuando enciendes su GPU; no hace falta entrenar pesos nuevos.</p>
+              <p className="text-[11px] text-muted2">Al terminar en Kaggle, descarga el ZIP desde Output, extrae el WAV e impórtalo aquí. Después podrás escucharlo y descargarlo desde tu biblioteca.</p>
               <p className="text-[11px] text-amber-700">Al cargar tu muestra en Kaggle, un proveedor externo procesará temporalmente tu voz. No publiques el notebook ni sus archivos. No introduzcas claves de EDUAI o Supabase.</p>
               {kaggleAudios.length > 0 && <div className="rounded-xl border border-purple-500/15 p-3 space-y-2">
                 <h3 className="font-semibold text-xs">Audios importados de Kaggle · biblioteca privada</h3>
@@ -665,7 +692,7 @@ export default function AudioLabVoicesPage() {
                   <div key={audio.id} className="flex flex-wrap items-center gap-2 text-xs">
                     <span className="text-muted2 min-w-32">{voices.find((v) => v.id === audio.profile_id)?.display_name || "Voz"} · {new Date(audio.created_at).toLocaleDateString("es-CL")}</span>
                     <audio controls preload="none" src={audio.audio_url} className="max-w-full h-8 flex-1" />
-                    <a href={audio.audio_url} target="_blank" rel="noopener noreferrer" className="underline text-purple-700">Abrir WAV</a>
+                    <button type="button" onClick={() => void downloadGeneratedKaggleWav(audio)} disabled={kaggleDownloadingId === audio.id} className="underline text-purple-700 disabled:opacity-50">{kaggleDownloadingId === audio.id ? "Descargando…" : "Descargar WAV"}</button>
                   </div>
                 ))}
               </div>}
@@ -685,7 +712,7 @@ export default function AudioLabVoicesPage() {
                 <p className="mt-2 rounded-xl border border-purple-500/20 bg-app px-3 py-2 font-medium text-main">“Soy el propietario de esta voz y doy mi consentimiento para que Google la utilice para crear un modelo de voz sintética.”</p>
                 <p className="mt-2 text-xs text-muted2">La referencia debe contener entre 10 y 30 segundos de habla natural limpia. Google recomienda WAV mono PCM de 16 bits a 24 kHz.</p>
               </div>
-              <div className="flex items-center justify-between"><div><h2 className="font-bold">Biblioteca privada</h2><p className="text-muted2 text-sm">Guardamos la muestra canónica para que futuros motores creen su propio adaptador sin volver a pedirte la voz.</p></div><button onClick={loadVoices} className="rounded-xl border border-soft p-2"><RefreshCw size={14} /></button></div>
+              <div className="flex items-center justify-between"><div><h2 className="font-bold">Biblioteca privada</h2><p className="text-muted2 text-sm">Este perfil guarda la referencia y el consentimiento para reutilizar tu voz. Chatterbox utiliza el modelo general; no es un modelo entrenado individualmente.</p></div><button onClick={loadVoices} className="rounded-xl border border-soft p-2"><RefreshCw size={14} /></button></div>
               {voices.length === 0 ? <p className="text-sm text-muted2">Todavía no existen perfiles vocales.</p> : voices.map((voice) => (
                 <article key={voice.id} className="rounded-2xl border border-soft p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
