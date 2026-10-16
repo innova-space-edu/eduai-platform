@@ -1283,15 +1283,27 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         return true;
       });
       if (!tracks.length) {
-        setMixFavoriteError("No se encontraron más publicaciones para estos artistas. Prueba Reintentar.");
+        setMixFavoriteError("No aparecieron canciones nuevas en esta búsqueda. Tu lista y reproducción se mantienen; puedes volver a intentar.");
         return;
       }
-      const combined = [...prior, ...tracks].slice(-250);
+      // Reintentar y Encontrar más son operaciones acumulativas. Nunca
+      // sustituir pistas anteriores ni alterar su orden o la reproducción.
+      const combined = [...prior, ...tracks];
       mixCurrentQueueRef.current = combined;
       setMixQueueTracks(combined);
-      setQueueIds(combined.map((t) => t.id));
+      setQueueIds((existingIds) => {
+        const seen = new Set(existingIds);
+        const newIds = tracks.map((track) => track.id).filter((id) => {
+          if (seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        });
+        return newIds.length ? [...existingIds, ...newIds] : existingIds;
+      });
       learnMixTracks(tracks);
-      if (mixAdvancePendingRef.current) {
+      // Avanzar solo si el reproductor realmente esperaba otra pista.
+      // Una actualización manual no interrumpe la canción actual.
+      if (mixAdvancePendingRef.current && !playingRef.current) {
         const firstPlayable = tracks.find((track) => !asExtendedTrack(track)?.externalOnly && !failedYouTubeIds.includes(track.youtubeVideoId || ""));
         if (firstPlayable) {
           mixAdvancePendingRef.current = false;
@@ -1329,7 +1341,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   }, [refillMixFavorite]);
 
   const loadMoreMixFavorite = useCallback(() => {
-    if (mixActiveRef.current) void refillMixFavorite();
+    // Ni la cola, ni el video actual, ni la posición se reinician al buscar.
+    if (mixActiveRef.current && !mixRefillPendingRef.current) {
+      void refillMixFavorite();
+    }
   }, [refillMixFavorite]);
 
   const stopMixFavorite = useCallback(() => {
