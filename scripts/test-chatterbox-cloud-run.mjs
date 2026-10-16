@@ -7,6 +7,7 @@ const docker = source("services/eduai-voice-chatterbox/Dockerfile")
 const gateway = source("services/google-audio-gateway/voice_gateway.py")
 const build = source("services/eduai-voice-chatterbox/stage-weights.cloudbuild.yaml")
 const page = source("app/audio-lab/voices/page.tsx")
+const v3Upgrade = source("services/eduai-voice-chatterbox/Dockerfile.v3-upgrade")
 const diagnostics = source("app/api/agents/audio/voices/engine/route.ts")
 
 for (const expected of [
@@ -14,6 +15,9 @@ for (const expected of [
   "HF_HUB_OFFLINE", "TORCH", // verified below for exact settings
 ]) if (expected === "ChatterboxMultilingualTTS.from_local") assert.ok(runtime.includes(expected))
 assert.ok(docker.includes("HF_HUB_OFFLINE=1"))
+assert.ok(v3Upgrade.includes("5de7a54aa4e5e2baadb0182dde554908b48b85c2"))
+assert.ok(v3Upgrade.includes("t3_model"))
+assert.ok(v3Upgrade.includes("--no-deps"))
 assert.ok(docker.includes("TRANSFORMERS_OFFLINE=1"))
 assert.ok(!runtime.includes("from_pretrained("))
 assert.ok(runtime.includes("install_verified_weights"))
