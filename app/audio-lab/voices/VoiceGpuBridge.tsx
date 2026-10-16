@@ -28,6 +28,7 @@ export default function VoiceGpuBridge({profileId,profileName}:{profileId:string
   const [sessionId,setSessionId]=useState("")
   const [pairingCode,setPairingCode]=useState("")
   const [expires,setExpires]=useState("")
+  const [providerConsent,setProviderConsent]=useState(false)
   const [text,setText]=useState("Hola. Esta es una prueba de mi voz usando Chatterbox V3 desde EDUAI.")
   const [busy,setBusy]=useState("")
   const [error,setError]=useState("")
@@ -68,7 +69,7 @@ export default function VoiceGpuBridge({profileId,profileName}:{profileId:string
     try{
       const response=await fetch(ENDPOINT,{
         method:"POST",headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({operation,profile_id:profileId,provider,session_id:sessionId,text}),
+        body:JSON.stringify({operation,profile_id:profileId,provider,session_id:sessionId,text,provider_consent:providerConsent}),
       })
       const result=await response.json().catch(()=>({}))
       if(!response.ok||!result.ok) throw new Error(result.error||"No se pudo realizar la operación")
@@ -103,18 +104,22 @@ export default function VoiceGpuBridge({profileId,profileName}:{profileId:string
     </div>
     <div className="flex flex-wrap gap-2">
       {(["kaggle","colab"] as GpuProvider[]).map(item=>
-        <button key={item} type="button" onClick={()=>{if(item!==provider){setProvider(item);setSessionId("");setPairingCode("");setExpires("");}}}
+        <button key={item} type="button" onClick={()=>{if(item!==provider){setProvider(item);setSessionId("");setPairingCode("");setExpires("");setProviderConsent(false);}}}
           className={"rounded-xl border px-3 py-2 text-xs font-semibold "+(provider===item?"border-purple-500 bg-purple-500/15":"border-soft")}>
           {WORKERS[item].label}
         </button>)}
     </div>
     <p className="text-xs text-muted2">{settings.notes}. Guarda el cuaderno como privado.</p>
+    <label className="text-xs text-muted2 flex items-start gap-2">
+      <input type="checkbox" checked={providerConsent} onChange={event=>setProviderConsent(event.target.checked)}/>
+      Consiento que mi propia muestra vocal se procese temporalmente en {provider==="kaggle"?"Kaggle":"Google Colab"}, servicio externo a EDUAI. Mantendré el notebook privado y no compartiré el código.
+    </label>
     <div className="flex flex-wrap gap-2">
       <a className="rounded-xl border border-soft px-3 py-2 text-xs flex items-center gap-1"
         target="_blank" rel="noopener noreferrer" href={settings.url}><ExternalLink size={13}/> Abrir {provider==="kaggle"?"Kaggle":"Colab"}</a>
       <a className="rounded-xl border border-soft px-3 py-2 text-xs flex items-center gap-1"
         target="_blank" rel="noopener noreferrer" href={settings.notebook}><ExternalLink size={13}/> Notebook EDUAI {provider}</a>
-      <button type="button" onClick={()=>void command("connect")} disabled={!!busy}
+      <button type="button" onClick={()=>void command("connect")} disabled={!!busy||!providerConsent}
         className="rounded-xl bg-purple-600 px-3 py-2 text-white text-xs font-semibold disabled:opacity-50 flex gap-1 items-center">
         {busy==="connect"?<Loader2 size={13} className="animate-spin"/>:<Wifi size={13}/>} Crear código de conexión
       </button>
