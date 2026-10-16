@@ -61,10 +61,13 @@ def _run(args: list[str], timeout: int = 50) -> str:
     if not _auth_present():
         raise KaggleBridgeError("Configura KAGGLE_API_TOKEN de forma privada en el servidor")
     try:
+        subprocess_env = os.environ.copy()
+        # The MCP bearer authenticates the caller, not Kaggle; never pass it downstream.
+        subprocess_env.pop("KAGGLE_MCP_BEARER", None)
         completed = subprocess.run(
             ["kaggle", "kernels", *args],
             capture_output=True, text=True, check=False,
-            timeout=timeout, env=os.environ.copy(),
+            timeout=timeout, env=subprocess_env,
         )
     except subprocess.TimeoutExpired as exc:
         raise KaggleBridgeError("La operación de Kaggle agotó el tiempo de espera") from exc
