@@ -47,6 +47,10 @@ python -m py_compile client.py server.py
 
 La primera versión comprueba operaciones de lectura y políticas de autorización mediante mocks. No certifica una integración real con Kaggle, ni la seguridad final de un despliegue público.
 
+## Dependencia de EDUAI Phase 1
+
+La herramienta opcional de publicación requiere el notebook preparado en [PR #247](https://github.com/innova-space-edu/eduai-platform/pull/247), todavía pendiente de fusionar. Hasta integrarlo, los comandos de **lectura** no dependen de ese PR; la acción de publicación devuelve un error controlado si el archivo no existe. No fusionar ambos PR ni desplegar en producción sin pruebas.
+
 ## Próximas fases
 
 - V1.1: enlazar cuenta Kaggle por token privado, verificar el listado y el estado de un notebook, habilitar hosting y OAuth para ChatGPT si el plan lo permite.
