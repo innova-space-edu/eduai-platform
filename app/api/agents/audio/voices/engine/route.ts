@@ -27,7 +27,11 @@ export async function GET() {
       }, { status: 503, headers: { "Cache-Control": "no-store" } })
     }
     const result = await res.json().catch(() => ({}))
-    const available = result?.ok === true
+    // A successful GET /voices is NOT proof of permission to create a voice.
+    // Google may list voices on a free tier while refusing replication with 403.
+    const configured = result?.ok === true
+    const googleReplicationBlocked = result?.provider !== "chatterbox-self-hosted"
+    const available = configured && !googleReplicationBlocked
     const provider = result?.provider === "chatterbox-self-hosted"
       ? "Chatterbox Multilingual V3 · GPU ScientificBrain"
       : "Google Gemini Voice Replication"
@@ -41,7 +45,7 @@ export async function GET() {
         ? (isChatterbox ? "Chatterbox GPU activo; voz local sin Gemini ni Hugging Face" : "Google Voices API disponible")
         : (isChatterbox
             ? "Motor Chatterbox pendiente: comprueba los pesos verificados, la cuota GPU y el acceso privado de Cloud Run."
-            : "Gemini Voice Replication requiere Paid Quota Tier 1; configura Chatterbox antes de replicar."),
+            : "Google permite consultar voces, pero la clonación devuelve 403: requiere Paid Quota Tier 1. No está habilitada; Chatterbox espera cuota GPU."),
     }, { status: available ? 200 : 503, headers: { "Cache-Control": "no-store" } })
   } catch {
     return NextResponse.json({
