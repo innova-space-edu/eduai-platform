@@ -5,6 +5,9 @@ on:
       - 'lib/ai/local/eduai-efficiency-adapter.ts'
       - 'lib/ai/local/eduai-local-runtime.ts'
       - 'components/admin/EduAIEfficiencyAdapterPanel.tsx'
+      - 'components/admin/ModelLabWorkspace.tsx'
+      - 'lib/admin/model-lab-sections.ts'
+      - 'scripts/test-model-lab-navigation.ts'
       - 'app/admin/model-lab/page.tsx'
       - 'scripts/test-eduai-efficiency-adapter.ts'
       - 'docs/EDUAI_EFFICIENCY_ADAPTER.md'
@@ -27,5 +30,7 @@ jobs:
         run: npm install --ignore-scripts --no-save --package-lock=false --no-audit --no-fund
       - name: Adapter safety tests
         run: npx --no-install tsx scripts/test-eduai-efficiency-adapter.ts
+      - name: Model Lab responsive section navigation tests
+        run: npx --no-install tsx scripts/test-model-lab-navigation.ts
       - name: Typecheck
         run: npx --no-install tsc --noEmit --incremental false
