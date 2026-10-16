@@ -18,6 +18,11 @@ for (const pin of ['"torch==2.6.0"', '"torchvision==0.21.0"', '"torchaudio==2.6.
   assert.ok(text.includes(pin), "Pytorch CUDA compatibility pin missing: "+pin)
 }
 assert.ok(text.includes("subprocess.run([sys.executable, \"-c\", verify]"), "Verify torch and torchaudio from clean process")
+assert.ok(text.includes('run_pip("setuptools<81")'), "Perth pkg_resources compatibility pin required")
+assert.ok(text.includes("perth.PerthImplicitWatermarker is not None"), "Do not accept missing Perth watermarker")
+assert.ok(text.includes("perth.PerthImplicitWatermarker()"), "Exercise the real Perth watermark constructor")
+assert.ok(!text.includes("DummyWatermarker"), "Do not disable the output watermark")
+
 assert.ok(text.includes('"--no-deps", source'), "Prevent Chatterbox V3 git from overriding CUDA torch")
 
 assert.ok(text.indexOf("getaddrinfo") < text.indexOf("chatterbox-tts==0.1.7"), "DNS check must run before pip")
