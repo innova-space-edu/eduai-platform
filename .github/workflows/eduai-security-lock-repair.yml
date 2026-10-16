@@ -26,10 +26,20 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - name: Ensure only expected security patch versions are installed
+        run: |
+          node -e 'const p=require("./package.json"); if(p.dependencies.next!=="16.4.2" || p.devDependencies["eslint-config-next"]!=="16.4.2" || p.overrides.sharp!=="0.35.5" || p.overrides.undici!=="7.29.1" || p.overrides["source-map-js"]!=="1.2.2")process.exit(1)'
       - name: Reconcile package-lock without executing package scripts
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-      - name: Verify lock consistency offline
-        run: npm ci --package-lock-only --ignore-scripts --offline --no-audit --no-fund
+      - name: Verify clean install from regenerated lockfile
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Save regenerated lockfile for recovery
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eduai-security-repaired-package-lock
+          path: package-lock.json
+          if-no-files-found: error
       - name: Commit only lockfile changes to the PR branch
         shell: bash
         run: |
