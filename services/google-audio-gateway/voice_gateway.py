@@ -447,8 +447,8 @@ async def prepare_voice(body: ProfileRequest, authorization: str | None = Header
                 "internal_use_enabled": False,
             })
             await add_event(token, user["id"], body.profile_id, "processing_started", {
-                "provider": "google-gemini",
-                "engine": VOICE_MODEL,
+                "provider": "chatterbox" if VOICE_PROVIDER == "chatterbox" else "google-gemini",
+                "engine": "chatterbox-multilingual-v3" if VOICE_PROVIDER == "chatterbox" else VOICE_MODEL,
             })
             yield sse("progress", {
                 "progress": 8,
@@ -543,8 +543,8 @@ async def prepare_voice(body: ProfileRequest, authorization: str | None = Header
                 "updated_at": now,
             })
             await add_event(token, user["id"], body.profile_id, "ready", {
-                "provider": "google-gemini",
-                "engine": VOICE_MODEL,
+                "provider": "chatterbox" if VOICE_PROVIDER == "chatterbox" else "google-gemini",
+                "engine": "chatterbox-multilingual-v3" if VOICE_PROVIDER == "chatterbox" else VOICE_MODEL,
                 "voice_id": voice_id,
                 "source_seconds": round(source_seconds, 2),
                 "consent_seconds": round(consent_seconds, 2),
@@ -641,8 +641,8 @@ async def render_voice(body: RenderRequest, authorization: str | None = Header(d
                 "updated_at": now,
             })
             await add_event(token, user["id"], body.profile_id, "used", {
-                "provider": "google-gemini",
-                "engine": VOICE_MODEL,
+                "provider": "chatterbox" if voice_id.startswith("chatterbox:") else "google-gemini",
+                "engine": "chatterbox-multilingual-v3" if voice_id.startswith("chatterbox:") else VOICE_MODEL,
                 "text_chars": len(body.text),
             })
 
