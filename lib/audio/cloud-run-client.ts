@@ -19,7 +19,7 @@ export const EDUAI_AUDIO_ENGINE_URL = "https://eduai-song-gateway-7rtwaj6pca-uc.
  * Songs still use the direct Cloud Run gateway.
  */
 export function audioEngineRequest(path: string, token: string, payload: Record<string, unknown>, stream = false) {
-  const voiceAction = /^\\/v1\\/voice\\/(prepare|render|delete)$/.exec(path)?.[1]
+  const voiceAction = path === "/v1/voice/prepare" ? "prepare" : path === "/v1/voice/render" ? "render" : path === "/v1/voice/delete" ? "delete" : ""
   if (voiceAction) {
     return {
       url: "/api/agents/audio/voices/gateway",
