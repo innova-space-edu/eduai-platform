@@ -2,9 +2,8 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import {
-  Activity, ArrowLeft, AudioWaveform, BrainCircuit, Cpu, Database,
+  Activity, AudioWaveform, BrainCircuit, Cpu, Database,
   Gauge, GraduationCap, HardDrive, Layers, LayoutDashboard, Menu,
   PanelLeftClose, PanelLeftOpen, Server, ShieldCheck, Video, X, Zap,
 } from "lucide-react";
@@ -145,7 +144,7 @@ function Artifacts() {
           <p className="rounded-xl bg-white/5 p-3 text-xs text-slate-200">Pin y limpieza manual</p>
           <p className="rounded-xl bg-white/5 p-3 text-xs text-slate-200">Preflight nativo sin ejecución por defecto</p>
         </div>
-        <a href="https://github.com/innova-space-edu/eduai-platform/blob/feat/model-lab-universal-efficiency-bonsai-v1/training/eduai-local/efficiency/README.md"
+        <a href="https://github.com/innova-space-edu/eduai-platform/pull/250/files"
           target="_blank" rel="noopener noreferrer"
           className="mt-4 inline-flex rounded-xl border border-cyan-400/25 px-3 py-2 text-xs font-semibold text-cyan-200 hover:bg-cyan-950/30">
           Ver instrucciones de instalación →
