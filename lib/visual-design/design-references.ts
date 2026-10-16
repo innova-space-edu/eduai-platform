@@ -55,6 +55,7 @@ export function buildVisualSkillPrompt(input: {
     textCritical: input.textCritical,
   });
   const additions = [
+    "FORMATO: " + input.format + ". Ajusta encuadre y área segura al formato solicitado.",
     reference.cue ? "DIRECCIÓN ARTÍSTICA: " + reference.cue : "",
     reference.composition ? "COMPOSICIÓN: " + reference.composition : "",
     "Mantén la identidad, los personajes, la acción y el estilo especificados por el usuario; no sustituyas nombres propios ni añadas texto no solicitado.",
