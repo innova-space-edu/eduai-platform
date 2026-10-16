@@ -410,6 +410,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const youtubePlayerRef = useRef<any>(null);
   const youtubeReadyRef = useRef(false);
   const youtubeVideoIdRef = useRef<string>("");
+  const currentYouTubeTrackRef = useRef<EduMusicTrack>(EMPTY_MUSIC_TRACK);
   const youtubeRetryRef = useRef(0);
   const volumeRef = useRef(0.62);
   // YouTube emite ENDED, PAUSED y a veces ERROR durante un mismo cambio de
@@ -879,6 +880,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       return changed ? [...bySong.values()].slice(-1500) : prev;
     });
   }, [mixProfileReady]);
+  const learnMixTracksRef = useRef(learnMixTracks);
+  useEffect(() => { learnMixTracksRef.current = learnMixTracks; }, [learnMixTracks]);
 
   const playlists = useMemo(() => {
     const likedPlaylist: EduMusicPlaylist = {
@@ -936,14 +939,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   );
 
   useEffect(() => {
-    if (playing && currentTrack?.source === "youtube" && currentTrack.youtubeVideoId) {
-      // El estado PLAYING también cubre videos elegidos por Siguiente,
-      // reproducciones de playlists y la rotación automática de Mix.
-      learnMixTracks([currentTrack], { origin: "played" });
-    }
-    // Seguimos el ID y el estado real, no cada render del reproductor.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, currentTrack?.id, learnMixTracks]);
+    currentYouTubeTrackRef.current = currentTrack;
+  }, [currentTrack]);
 
 
   const recentTracks = useMemo(
@@ -1636,6 +1633,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
               if (state === window.YT?.PlayerState?.PLAYING) {
                 setPlaying(true);
                 youtubeRetryRef.current = 0;
+                // Solo aprender como "reproducido" cuando YouTube confirma
+                // que el video se está escuchando, no por un clic o búsqueda.
+                const reportedId = event.target?.getVideoData?.()?.video_id || youtubeVideoIdRef.current;
+                const playingTrack = currentYouTubeTrackRef.current;
+                if (reportedId && playingTrack.youtubeVideoId === reportedId) {
+                  learnMixTracksRef.current([playingTrack], { origin: "played" });
+                }
                 return;
               }
               // Los controles de YouTube están ocultos: pausar desde EduAI ya
