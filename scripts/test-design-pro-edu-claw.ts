@@ -34,7 +34,7 @@ const migration = readFileSync("supabase/migrations/20261016153000_eduai_admin_c
 const helper = readFileSync("lib/admin/edu-claw-incidents.ts","utf8");
 const bell = readFileSync("components/admin/AdminIncidentBell.tsx", "utf8");
 
-assert.ok(pro.includes("setAutoOptimize(true)"));
+assert.ok(pro.includes('const [autoOptimize, setAutoOptimize] = useState(true)'));
 assert.ok(pro.includes("buildVisualSkillPrompt("));
 assert.ok(pro.includes('"/api/image-studio/pro/optimize"'));
 assert.ok(pro.includes("allowProviderFallback: allowFallback"));
