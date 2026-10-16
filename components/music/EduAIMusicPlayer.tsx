@@ -6,7 +6,6 @@ import {
   ArrowLeft,
   Copy,
   ExternalLink,
-  Heart,
   Home,
   Library,
   ListMusic,
@@ -34,6 +33,7 @@ import {
   type EduMusicTrack,
 } from "@/lib/music/eduai-music-catalog";
 import { YOUTUBE_PLAYER_ID, useEduAIMusic } from "@/components/music/MusicProvider";
+import { MusicLikeButton } from "@/components/music/MusicLikeButton";
 
 type PlayerMode = "panel" | "mini" | "page";
 
@@ -627,20 +627,7 @@ function TableTrackRow({
         {sourceLabel(track.source)}
       </span>
       <div className="ml-auto flex shrink-0 items-center gap-3">
-        <button
-          type="button"
-          onClick={() => music.toggleLike(track.id)}
-          className={cn(
-            "text-slate-500 hover:text-cyan-300",
-            music.liked.has(track.id) && "text-cyan-300",
-          )}
-          aria-label="Me gusta"
-        >
-          <Heart
-            className="h-3.5 w-3.5"
-            fill={music.liked.has(track.id) ? "currentColor" : "none"}
-          />
-        </button>
+        <MusicLikeButton liked={music.liked.has(track.id)} onToggle={() => music.toggleLike(track.id)} size="xs" />
         <button
           type="button"
           onClick={() => music.addToQueue(track.id)}
@@ -1060,9 +1047,9 @@ function PlaylistHeader({ tracks }: { tracks: EduMusicTrack[] }) {
         <IconButton onClick={() => music.setShuffle((value) => !value)} active={music.shuffle} title="Aleatorio">
           <Shuffle className="h-4 w-4" />
         </IconButton>
-        <IconButton onClick={() => music.toggleLike(music.currentTrack.id)} active={music.liked.has(music.currentTrack.id)} title="Me gusta">
-          <Heart className="h-4 w-4" fill={music.liked.has(music.currentTrack.id) ? "currentColor" : "none"} />
-        </IconButton>
+        <MusicLikeButton liked={music.liked.has(music.currentTrack.id)}
+          onToggle={() => music.toggleLike(music.currentTrack.id)} size="sm"
+          className="border border-cyan-300/15 bg-white/[0.04] hover:bg-cyan-400/10" />
         <IconButton
           onClick={() => music.setRepeat(music.repeat === "off" ? "all" : music.repeat === "all" ? "one" : "off")}
           active={music.repeat !== "off"}
@@ -1475,18 +1462,9 @@ function MainPanel({
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
-                <button
-                  type="button"
-                  onClick={() => music.toggleLike(track.id)}
-                  className={cn(
-                    "rounded-full border px-3 py-2 text-xs font-black transition",
-                    music.liked.has(track.id)
-                      ? "border-cyan-400 bg-cyan-400 text-slate-950"
-                      : "border-white/10 bg-white/7 text-slate-300 hover:bg-cyan-400/10 hover:text-cyan-200",
-                  )}
-                >
-                  ♥ Me gusta
-                </button>
+                <MusicLikeButton liked={music.liked.has(track.id)}
+                  onToggle={() => music.toggleLike(track.id)} variant="pill"
+                  className="w-full hover:bg-cyan-400/10" />
                 <a
                   href={track.externalUrl || embedUrl || "https://www.canal95.cl/"}
                   target="_blank"
@@ -1567,18 +1545,9 @@ function MainPanel({
               )}
 
               <div className="mt-4 grid grid-cols-2 gap-2 max-sm:grid-cols-1">
-                <button
-                  type="button"
-                  onClick={() => music.toggleLike(track.id)}
-                  className={cn(
-                    "rounded-full border px-3 py-2 text-xs font-black transition",
-                    music.liked.has(track.id)
-                      ? "border-cyan-400 bg-cyan-400 text-slate-950"
-                      : "border-white/10 bg-white/7 text-slate-300 hover:bg-cyan-400/10 hover:text-cyan-200",
-                  )}
-                >
-                  ♥ Me gusta
-                </button>
+                <MusicLikeButton liked={music.liked.has(track.id)}
+                  onToggle={() => music.toggleLike(track.id)} variant="pill"
+                  className="w-full hover:bg-cyan-400/10" />
                 <button
                   type="button"
                   onClick={() => music.requestAddToPlaylist(track.id)}
@@ -1703,9 +1672,8 @@ function RightPanel({
             <p className="truncate text-xs font-bold text-cyan-300">{track.artist}</p>
           </div>
           {!idle && (
-            <button type="button" onClick={() => music.toggleLike(track.id)} className={cn("mt-1 text-slate-500", music.liked.has(track.id) && "text-fuchsia-400")}>
-              <Heart className="h-5 w-5" fill={music.liked.has(track.id) ? "currentColor" : "none"} />
-            </button>
+            <MusicLikeButton liked={music.liked.has(track.id)} onToggle={() => music.toggleLike(track.id)}
+              size="lg" className="mt-1" />
           )}
         </div>
 
@@ -1821,13 +1789,8 @@ function BottomPlayer() {
           <p className="truncate text-sm font-black text-white">{music.currentTrack.title}</p>
           <p className="truncate text-xs text-slate-400">{music.currentTrack.artist} · {sourceLabel(music.currentTrack.source)}</p>
         </div>
-        <button
-          type="button"
-          onClick={() => music.toggleLike(music.currentTrack.id)}
-          className={cn("text-slate-500 hover:text-cyan-300", music.liked.has(music.currentTrack.id) && "text-cyan-300")}
-        >
-          <Heart className="h-4 w-4" fill={music.liked.has(music.currentTrack.id) ? "currentColor" : "none"} />
-        </button>
+        <MusicLikeButton liked={music.liked.has(music.currentTrack.id)}
+          onToggle={() => music.toggleLike(music.currentTrack.id)} size="sm" />
       </div>
 
       <div className="min-w-0 flex-1">
@@ -2321,19 +2284,9 @@ function NeonRecentCard({
             )}
           </span>
         </button>
-        <button
-          type="button"
-          onClick={() => music.toggleLike(track.id)}
-          className={cn(
-            "absolute right-2 top-2 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-white/15 bg-[#020914]/88 shadow-lg backdrop-blur transition",
-            favorite ? "border-fuchsia-300/55 text-fuchsia-300" : "text-slate-300 hover:border-fuchsia-300/45 hover:text-fuchsia-200",
-          )}
-          aria-label={favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-          title={favorite ? "Quitar de favoritos" : "Agregar a favoritos"}
-        >
-          <Heart className="h-4 w-4" fill={favorite ? "currentColor" : "none"} />
-        </button>
       </div>
+      <MusicLikeButton liked={favorite} onToggle={() => music.toggleLike(track.id)}
+        size="sm" className="absolute right-4 top-4 z-20 border border-white/15 bg-[#020914]/90 shadow-lg backdrop-blur hover:border-fuchsia-300/60" />
       <button
         type="button"
         onClick={() => music.playTrack(track, tracks)}
@@ -2416,11 +2369,8 @@ function NeonTrackTable({ tracks }: { tracks: EduMusicTrack[] }) {
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 )}
-                <button type="button" onClick={() => music.toggleLike(track.id)}
-                  className={cn("text-slate-500 hover:text-fuchsia-300", music.liked.has(track.id) && "text-fuchsia-400")}
-                  aria-label="Favorito">
-                  <Heart className="h-3.5 w-3.5" fill={music.liked.has(track.id) ? "currentColor" : "none"} />
-                </button>
+                <MusicLikeButton liked={music.liked.has(track.id)}
+                  onToggle={() => music.toggleLike(track.id)} size="xs" />
               </span>
             </div>
           );
@@ -2992,13 +2942,8 @@ function NeonRightPanel() {
               <p className="truncate text-[10px] font-bold text-cyan-300">{track.artist}</p>
             </div>
             {!idle && (
-              <button
-                type="button"
-                onClick={() => music.toggleLike(track.id)}
-                className={cn("mt-0.5 text-slate-500 transition hover:text-fuchsia-300", music.liked.has(track.id) && "text-fuchsia-400")}
-              >
-                <Heart className="h-5 w-5" fill={music.liked.has(track.id) ? "currentColor" : "none"} />
-              </button>
+              <MusicLikeButton liked={music.liked.has(track.id)}
+                onToggle={() => music.toggleLike(track.id)} size="lg" className="mt-0.5" />
             )}
           </div>
 
@@ -3166,9 +3111,7 @@ function NeonBottomPlayer() {
               <p className="truncate text-[9px] text-slate-400">{track.artist}</p>
             </div>
             {!idle && (
-              <button type="button" onClick={() => music.toggleLike(track.id)} className={cn("text-slate-500 hover:text-fuchsia-300", music.liked.has(track.id) && "text-fuchsia-400")}>
-                <Heart className="h-4 w-4" fill={music.liked.has(track.id) ? "currentColor" : "none"} />
-              </button>
+              <MusicLikeButton liked={music.liked.has(track.id)} onToggle={() => music.toggleLike(track.id)} size="sm" />
             )}
           </div>
 
