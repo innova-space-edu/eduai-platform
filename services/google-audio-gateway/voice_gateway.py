@@ -68,6 +68,15 @@ async def require_admin_adult(token: str) -> dict[str, Any]:
         raise HTTPException(status_code=503, detail="No se pudo verificar el acceso administrativo a voz")
     if role.json() is not True or age.json() is not True:
         raise HTTPException(status_code=403, detail="Clonación vocal solo para administradores mayores de edad")
+    # El gateway es accesible fuera del navegador de EDUAI: exigir sesión
+    # Supabase con el segundo factor MFA ya verificado (aal2).
+    try:
+        encoded = token.split(".")[1]
+        claims = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
+    except (ValueError, IndexError, json.JSONDecodeError):
+        raise HTTPException(status_code=401, detail="Token de sesión inválido")
+    if claims.get("aal") != "aal2":
+        raise HTTPException(status_code=403, detail="Debes verificar el segundo factor antes de replicar una voz")
     return user
 
 
@@ -521,6 +530,8 @@ async def render_voice(body: RenderRequest, authorization: str | None = Header(d
     async def stream():
         try:
             voice_id = profile.get("provider_voice_id")
+            if not profile.get("consent_confirmed") or not profile.get("authorization_confirmed"):
+                raise RuntimeError("La voz no tiene consentimiento y autorización válidos")
             if profile.get("status") != "ready" or not voice_id or not profile.get("internal_use_enabled"):
                 raise RuntimeError("La voz todavía no está lista")
 
