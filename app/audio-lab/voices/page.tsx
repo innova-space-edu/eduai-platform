@@ -25,6 +25,7 @@ import { createClient } from "@/lib/supabase/client"
 import { uploadAudioResumable } from "@/lib/audio/resumable-upload"
 import { prepareKaggleVoiceUpload } from "@/lib/audio/kaggle-zip"
 import { callAudioEngine, currentSupabaseToken, streamAudioEngine } from "@/lib/audio/cloud-run-client"
+import VoiceGpuBridge from "./VoiceGpuBridge"
 
 const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
 
@@ -119,6 +120,7 @@ export default function AudioLabVoicesPage() {
   const [kaggleProfileId, setKaggleProfileId] = useState("")
   const [kaggleUploading, setKaggleUploading] = useState(false)
   const [kaggleAudios, setKaggleAudios] = useState<KaggleAudio[]>([])
+  const [gpuVoiceId, setGpuVoiceId] = useState("")
   const [kaggleSourceConfirmed, setKaggleSourceConfirmed] = useState(false)
   const [kaggleText, setKaggleText] = useState("Hola. Esta es una nueva generación con mi voz de EDUAI.")
   const [kaggleSelectedVoiceId, setKaggleSelectedVoiceId] = useState("")
@@ -759,6 +761,25 @@ export default function AudioLabVoicesPage() {
                 ))}
               </div>}
             </section>
+            {voices.some((voice) => voice.source_kind === "self" && voice.sample_path && voice.consent_audio_path) && (
+              <div className="space-y-2">
+                <label className="text-xs font-semibold flex flex-col gap-1">
+                  Perfil vocal para crear audios
+                  <select value={voices.some(v => v.id === gpuVoiceId && v.source_kind === "self" && v.sample_path && v.consent_audio_path)
+                    ? gpuVoiceId : voices.find(v => v.source_kind === "self" && v.sample_path && v.consent_audio_path)?.id || ""}
+                    onChange={event => setGpuVoiceId(event.target.value)}
+                    className="w-full rounded-xl bg-app border border-soft p-2 text-sm">
+                    {voices.filter(v => v.source_kind === "self" && v.sample_path && v.consent_audio_path)
+                      .map(v => <option value={v.id} key={v.id}>{v.display_name}</option>)}
+                  </select>
+                </label>
+                {(() => {
+                  const v = voices.find(v => v.id === gpuVoiceId && v.source_kind === "self" && v.sample_path && v.consent_audio_path)
+                    || voices.find(v => v.source_kind === "self" && v.sample_path && v.consent_audio_path)
+                  return v ? <VoiceGpuBridge key={v.id} profileId={v.id} profileName={v.display_name} /> : null
+                })()}
+              </div>
+            )}
             <section className="rounded-3xl border border-soft p-5 bg-card-soft-theme space-y-4">
               <h2 className="font-bold flex items-center gap-2"><Plus size={16} /> Agregar perfil vocal</h2>
               <div className="grid sm:grid-cols-2 gap-3"><input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Nombre visible de la voz" className="rounded-xl border border-soft bg-transparent px-3 py-2 text-sm" /><select value={sourceKind} onChange={(event) => setSourceKind(event.target.value as "self" | "authorized_third_party")} className="rounded-xl border border-soft bg-app px-3 py-2 text-sm"><option value="self">Es mi propia voz</option><option value="authorized_third_party">Voz de tercero autorizado</option></select></div>
@@ -771,7 +792,7 @@ export default function AudioLabVoicesPage() {
               <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-4 text-sm text-sub">
                 <p className="font-semibold text-main">Grabación obligatoria de consentimiento</p>
                 <p className="mt-1">La misma persona de la muestra debe leer exactamente:</p>
-                <p className="mt-2 rounded-xl border border-purple-500/20 bg-app px-3 py-2 font-medium text-main">“Soy titular de esta voz y autorizo a EDUAI a utilizarla para generar audio sintético con el motor de voz que seleccione expresamente, incluido Chatterbox en Kaggle.”</p>
+                <p className="mt-2 rounded-xl border border-purple-500/20 bg-app px-3 py-2 font-medium text-main">“Soy titular de esta voz y autorizo a EDUAI a utilizarla para generar audio sintético con el motor de voz que seleccione expresamente, incluido Chatterbox en Kaggle o Colab.”</p>
                 <p className="mt-2 text-xs text-muted2">La referencia debe contener entre 10 y 30 segundos de voz limpia. Se recomienda WAV mono PCM de 16 bits a 24 kHz.</p>
               </div>
               <div className="flex items-center justify-between"><div><h2 className="font-bold">Biblioteca privada</h2><p className="text-muted2 text-sm">Guardamos la muestra canónica para que futuros motores creen su propio adaptador sin volver a pedirte la voz.</p></div><button onClick={loadVoices} className="rounded-xl border border-soft p-2"><RefreshCw size={14} /></button></div>

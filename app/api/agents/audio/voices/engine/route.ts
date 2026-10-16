@@ -45,7 +45,7 @@ export async function GET() {
         ? (isChatterbox ? "Chatterbox GPU activo; voz local sin Gemini ni Hugging Face" : "Google Voices API disponible")
         : (isChatterbox
             ? "Motor Chatterbox pendiente: comprueba los pesos verificados, la cuota GPU y el acceso privado de Cloud Run."
-            : "Google permite consultar voces, pero la clonación devuelve 403: requiere Paid Quota Tier 1. No está habilitada; Chatterbox espera cuota GPU."),
+            : "Google exige Paid Quota Tier 1 para su replicación. Puedes generar audios en EDUAI con Chatterbox a través de Kaggle o Colab."),
     }, { status: 200, headers: { "Cache-Control": "no-store" } })
   } catch {
     return NextResponse.json({
