@@ -2740,8 +2740,12 @@ function NeonMain({
               {music.mixFavoriteError && (
                 <div className="mt-2 flex items-center gap-2 text-[10px] text-amber-200">
                   <span className="flex-1">{music.mixFavoriteError}</span>
-                  <button type="button" onClick={music.startMixFavorite}
-                    className="rounded-lg border border-amber-300/30 px-2 py-1 font-bold">Reintentar</button>
+                  <button type="button" onClick={music.loadMoreMixFavorite}
+                    disabled={!music.mixFavoriteActive || music.mixFavoriteLoading}
+                    title="Buscar nuevas canciones sin borrar la cola ni detener la música"
+                    className="rounded-lg border border-amber-300/30 px-2 py-1 font-bold disabled:cursor-not-allowed disabled:opacity-50">
+                    {music.mixFavoriteLoading ? "Buscando..." : "Reintentar y agregar"}
+                  </button>
                 </div>
               )}
             </section>
