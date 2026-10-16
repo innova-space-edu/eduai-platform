@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server"
 import { validateVoiceSecuritySession } from "@/lib/audio/voice-security"
 import { EDUAI_AUDIO_ENGINE_URL } from "@/lib/audio/cloud-run-client"
+import { importKaggleWav, listKaggleWavs } from "@/lib/audio/kaggle-voice-import"
 
 export const runtime = "nodejs"
 
-export async function GET() {
+export async function GET(req: Request) {
+  if (new URL(req.url).searchParams.get("mode") === "kaggle") return listKaggleWavs()
   const { valid, supabase, error: securityError } = await validateVoiceSecuritySession()
   if (securityError) return NextResponse.json({ error: "No se pudo validar la zona protegida. Reintenta en unos segundos." }, { status: 503 })
   if (!valid) return NextResponse.json({ error: "Sesión protegida vencida" }, { status: 401 })
@@ -24,6 +26,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  if (new URL(req.url).searchParams.get("mode") === "kaggle") return importKaggleWav(req)
   const { valid, supabase, error: securityError } = await validateVoiceSecuritySession()
   if (securityError) return NextResponse.json({ error: "No se pudo validar la zona protegida. Reintenta en unos segundos." }, { status: 503 })
   if (!valid) return NextResponse.json({ error: "Sesión protegida vencida" }, { status: 401 })

@@ -179,7 +179,7 @@ export default function AudioLabVoicesPage() {
 
   const loadKaggleAudios = useCallback(async () => {
     try {
-      const response = await fetch("/api/agents/audio/voices/kaggle-import", { cache: "no-store" })
+      const response = await fetch("/api/agents/audio/voices/profiles?mode=kaggle", { cache: "no-store" })
       if (!response.ok) return
       const data = await response.json().catch(() => ({}))
       if (Array.isArray(data.audios)) setKaggleAudios(data.audios)
@@ -222,7 +222,7 @@ export default function AudioLabVoicesPage() {
       const form = new FormData()
       form.set("profileId", kaggleProfileId)
       form.set("audio", file)
-      const response = await fetch("/api/agents/audio/voices/kaggle-import", { method: "POST", body: form })
+      const response = await fetch("/api/agents/audio/voices/profiles?mode=kaggle", { method: "POST", body: form })
       const result = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(result.error || "No fue posible importar el audio")
       setSuccess(result.message || "Audio de Kaggle importado a tu biblioteca privada.")

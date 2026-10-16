@@ -17,7 +17,7 @@ assert.ok(!text.includes("SUPABASE_SERVICE_ROLE_KEY") && !text.includes("SUPABAS
 assert.ok(notebook.cells.every(c => c.cell_type !== "code" || (c.execution_count == null && c.outputs.length === 0)),
   "Never commit executed voice data to Git")
 
-const route = readFileSync("app/api/agents/audio/voices/kaggle-import/route.ts", "utf8")
+const route = readFileSync("lib/audio/kaggle-voice-import.ts", "utf8")
 for (const required of [
   "validateVoiceSecuritySession", "getAuthenticatorAssuranceLevel",
   'currentLevel !== "aal2"', '.eq("user_id", ctx.user.id)',
@@ -26,8 +26,12 @@ for (const required of [
   'audio_bucket: BUCKET', 'Cache-Control', 'audio_voice_render_jobs',
 ]) assert.ok(route.includes(required), "Import endpoint missing " + required)
 assert.ok(!route.includes("status: \"ready\""), "Do not alter cloned profile state")
+const profiles = readFileSync("app/api/agents/audio/voices/profiles/route.ts", "utf8")
+assert.ok(profiles.includes('searchParams.get("mode") === "kaggle"'))
+assert.ok(profiles.includes("importKaggleWav(req)") && profiles.includes("listKaggleWavs()"))
 const page = readFileSync("app/audio-lab/voices/page.tsx", "utf8")
 assert.ok(page.includes("KAGGLE_START_URL"))
+assert.ok(page.includes("/api/agents/audio/voices/profiles?mode=kaggle"))
 assert.ok(page.includes("kaggleNotebookUrl"))
 assert.ok(page.includes('target="_blank" rel="noopener noreferrer"'))
 assert.ok(page.includes("Importar WAV de Kaggle"))

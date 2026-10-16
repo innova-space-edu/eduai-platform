@@ -1,9 +1,6 @@
-import { NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
 import { validateVoiceSecuritySession } from "@/lib/audio/voice-security"
 
-export const runtime = "nodejs"
-export const dynamic = "force-dynamic"
-export const maxDuration = 40
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const MAX_WAV_BYTES = 8 * 1024 * 1024
@@ -32,9 +29,9 @@ async function session() {
 /** Manually import a Kaggle-generated WAV. No Kaggle API keys, tunnels or worker credentials.
  * Do not mark the voice profile "ready": this does not deploy persistent inference.
  */
-export async function POST(req: NextRequest) {
+export async function importKaggleWav(req: Request) {
   const origin = req.headers.get("origin")
-  if (origin && origin !== req.nextUrl.origin) return fail("Origen no permitido", 403)
+  if (origin && origin !== new URL(req.url).origin) return fail("Origen no permitido", 403)
   if (!req.headers.get("content-type")?.startsWith("multipart/form-data")) return fail("Envía el archivo WAV", 415)
   const ctx = await session()
   if (!ctx.valid || !ctx.user) return fail(ctx.error || "Requiere administrador adulto, MFA y zona protegida", 403)
@@ -91,7 +88,7 @@ export async function POST(req: NextRequest) {
   }, { headers: { "Cache-Control": "private, no-store" } })
 }
 
-export async function GET() {
+export async function listKaggleWavs() {
   const ctx = await session()
   if (!ctx.valid || !ctx.user) return fail(ctx.error || "Requiere administrador adulto, MFA y zona protegida", 403)
   const { data: rows, error } = await ctx.supabase.from("audio_voice_render_jobs")
