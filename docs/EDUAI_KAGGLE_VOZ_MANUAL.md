@@ -23,6 +23,12 @@ El notebook actualizado instala juntos **torch==2.6.0, torchvision==0.21.0 y tor
 
 Advertencias ajenas sobre `starlette` o `pkg_resources` no explican el símbolo indefinido; no cambies bibliotecas web si el objetivo es generar voz. Los tres módulos PyTorch deben quedar alineados.
 
+## Error de marca de agua Perth
+
+Si el modelo deja de cargar con `TypeError: 'NoneType' object is not callable` en `self.watermarker = perth.PerthImplicitWatermarker()`, no es una falla de la GPU ni de los pesos. Algunas versiones de `resemble-perth` todavía importan `pkg_resources`, ausente en nuevas versiones de setuptools. El notebook instala `setuptools<81` y comprueba la clase real de Perth antes de cargar los pesos. **No** sustituirla por DummyWatermarker ni desactivar la marca de agua.
+
+En el entorno aislado de Python 3.11 (Kaggle), reparar con `uv pip install --python /kaggle/working/eduai_voice_env/bin/python 'setuptools<81'` y validar `perth.PerthImplicitWatermarker()` desde un proceso nuevo.
+
 ## Generar voz
 
 1. Abre Kaggle desde EDUAI; selecciona T4 x2 e Internet si la sesión está apagada.
