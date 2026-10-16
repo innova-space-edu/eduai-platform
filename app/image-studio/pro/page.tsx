@@ -114,7 +114,7 @@ export default function ImageStudioProPage() {
 
   function createPlan() {
     const generationPrompt = prompt.trim();
-    const routingPrompt = optimizationResult?.originalPrompt?.trim() || originalPrompt?.trim() || generationPrompt;
+    const routingPrompt = generationPrompt;
     const next = planEduAIVisual(routingPrompt, {
       audience: "Comunidad EDUAI",
       width: format.width,
@@ -161,7 +161,6 @@ export default function ImageStudioProPage() {
         throw new Error(data.error || `Error ${response.status}`);
       }
       setOriginalPrompt(currentPrompt);
-      setPrompt(String(data.optimizedPrompt).trim());
       setOptimizerInfo({ provider: data.provider, model: data.model, reused: data.reused });
       setOptimizationResult({
         originalPrompt: currentPrompt,
@@ -186,7 +185,6 @@ export default function ImageStudioProPage() {
 
   function undoOptimization() {
     if (!originalPrompt) return;
-    setPrompt(originalPrompt);
     setOriginalPrompt(null);
     setOptimizerInfo(null);
     setOptimizationResult(null);
@@ -202,14 +200,12 @@ export default function ImageStudioProPage() {
     setResult(null);
     setOptimizationPhase("");
     try {
-      const originalRequest = optimizationResult?.originalPrompt?.trim() || originalPrompt?.trim() || typedPrompt;
+      const originalRequest = typedPrompt;
       const localRouting = planEduAIVisual(originalRequest, {
         audience: "Comunidad EDUAI", width: format.width, height: format.height,
         context: { locale: "es-CL", proMode: true },
       });
-      const matchingOptimization = optimizationResult && (
-        typedPrompt === optimizationResult.originalPrompt || typedPrompt === optimizationResult.optimizedPrompt
-      ) ? optimizationResult : null;
+      const matchingOptimization = optimizationResult?.originalPrompt === typedPrompt ? optimizationResult : null;
       const local = buildVisualSkillPrompt({
         originalPrompt: matchingOptimization?.optimizedPrompt || typedPrompt,
         format: format.id,
@@ -225,7 +221,7 @@ export default function ImageStudioProPage() {
           const optimizationResponse = await fetch("/api/image-studio/pro/optimize", {
             method: "POST", headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              prompt: enhancedPrompt,
+              prompt: originalRequest,
               format: format.id,
               selectedSkills: localRouting.plan.routing.selected_skills,
               primarySkill: localRouting.plan.routing.primary_skill,
@@ -235,7 +231,11 @@ export default function ImageStudioProPage() {
           });
           const optimizationData = await optimizationResponse.json().catch(() => ({}));
           if (optimizationResponse.ok && typeof optimizationData.optimizedPrompt === "string" && optimizationData.optimizedPrompt.trim()) {
-            enhancedPrompt = optimizationData.optimizedPrompt.trim();
+            enhancedPrompt = [
+              optimizationData.optimizedPrompt.trim(),
+              local.reference.cue ? `DIRECCIÓN ARTÍSTICA SUBORDINADA: ${local.reference.cue}` : "",
+              local.reference.composition ? `COMPOSICIÓN SUBORDINADA: ${local.reference.composition}` : "",
+            ].filter(Boolean).join("\n\n");
             setOptimizationResult({
               originalPrompt: originalRequest, optimizedPrompt: enhancedPrompt,
               level: optimizationLevel, changes: Array.isArray(optimizationData.changes) ? optimizationData.changes : [],
@@ -551,11 +551,11 @@ export default function ImageStudioProPage() {
                 <div className="mt-3 grid gap-3 lg:grid-cols-2">
                   <div className="rounded-xl bg-app p-3">
                     <p className="text-[10px] font-black uppercase tracking-[0.12em] text-muted2">Original</p>
-                    <p className="mt-2 text-xs leading-5 text-muted2">{optimizationResult.originalPrompt}</p>
+                    <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-muted2">{optimizationResult.originalPrompt}</p>
                   </div>
                   <div className="rounded-xl border border-cyan-400/15 bg-white/60 p-3 dark:bg-black/10">
                     <p className="text-[10px] font-black uppercase tracking-[0.12em] text-cyan-700">Optimizado</p>
-                    <p className="mt-2 text-xs leading-5 text-main">{optimizationResult.optimizedPrompt}</p>
+                    <p className="mt-2 whitespace-pre-wrap text-xs leading-5 text-main">{optimizationResult.optimizedPrompt}</p>
                   </div>
                 </div>
                 {optimizationResult.changes.length > 0 && (
@@ -587,10 +587,7 @@ export default function ImageStudioProPage() {
               <button onClick={createPlan} disabled={!prompt.trim()} className="inline-flex items-center gap-2 rounded-xl border border-violet-400/20 bg-violet-500/10 px-4 py-2.5 text-sm font-black text-violet-600 disabled:opacity-40">
                 <Route className="h-4 w-4" /> Analizar con Diseño Pro · $0 IA
               </button>
-              <button onClick={generate} disabled={!prompt.trim() || generating} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 via-violet-600 to-fuchsia-600 px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-violet-500/15 disabled:opacity-50">
-                {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {generating ? (optimizationPhase || "Generando…") : "Generar con modelos EDUAI"}
-              </button>
+
             </div>
 
             {error && <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-500/10 p-3 text-xs leading-5 text-red-600">{error}</div>}
@@ -738,6 +735,14 @@ export default function ImageStudioProPage() {
                 <p>El motor puede interpretar estilos, pero no garantiza texto o geometría exactos sin revisión.</p>
               </div>
             )}
+          </div>
+
+          <div className="rounded-[28px] border border-violet-400/20 bg-card-soft-theme p-4">
+            <button type="button" onClick={generate} disabled={!prompt.trim() || generating || optimizing} className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-cyan-500 via-violet-600 to-fuchsia-600 px-5 py-3.5 text-sm font-black text-white shadow-lg shadow-violet-500/15 disabled:opacity-50">
+              {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+              {generating ? (optimizationPhase || "Generando…") : "Generar con modelos EDUAI"}
+            </button>
+            <p className="mt-2 text-center text-xs text-muted2">Se conserva tu solicitud original; las skills y mejoras son complementarias.</p>
           </div>
 
           <div className="rounded-[28px] border border-soft bg-card-soft-theme p-5">
