@@ -1,0 +1,55 @@
+name: EDUAI one-time security lockfile reconciliation
+on:
+  pull_request:
+    paths:
+      - 'package.json'
+      - '.github/workflows/eduai-security-lock-repair.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  lockfile-repair:
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.head_ref == 'feat/model-lab-universal-efficiency-bonsai-v1'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout our trusted PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          persist-credentials: true
+      - name: Use the project Node.js version
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Reconcile package-lock without executing package scripts
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Verify lock consistency offline
+        run: npm ci --package-lock-only --ignore-scripts --offline --no-audit --no-fund
+      - name: Commit only lockfile changes to the PR branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! git diff --quiet -- package-lock.json; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add -- package-lock.json
+            git commit -m "chore(security): reconcile patched npm lockfile"
+            git push origin HEAD:refs/heads/feat/model-lab-universal-efficiency-bonsai-v1
+          fi
+      - name: Audit production dependencies
+        shell: bash
+        run: |
+          npm audit --omit=dev --json > audit-security-repair.json || true
+          node -e 'const fs=require("fs"); const a=JSON.parse(fs.readFileSync("audit-security-repair.json","utf8")); const v=a.metadata?.vulnerabilities || {}; console.log(JSON.stringify(v, null, 2)); if ((v.high || 0) > 0 || (v.critical || 0) > 0) { process.exitCode=1; }'
+      - name: Save audit evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: eduai-security-lock-repair-audit
+          path: audit-security-repair.json
+          if-no-files-found: ignore
