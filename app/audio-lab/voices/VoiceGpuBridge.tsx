@@ -98,7 +98,7 @@ export default function VoiceGpuBridge({profileId,profileName}:{profileId:string
       <h3 className="text-sm font-bold flex gap-2 items-center"><Mic2 size={15}/> Generar audio desde EDUAI con mi voz</h3>
       <p className="mt-1 text-xs text-muted2">
         Chatterbox V3 usa la muestra del perfil «{profileName}»; no necesita entrenar un modelo por frase.
-        El notebook se ejecuta solo mientras tú mantengas encendida la GPU.
+        El notebook se ejecuta solo mientras tú mantengas encendida la GPU. Acceso administrativo con MFA.
       </p>
     </div>
     <div className="flex flex-wrap gap-2">
