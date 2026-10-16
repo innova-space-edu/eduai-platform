@@ -1,0 +1,32 @@
+name: EDUAI Diseño Pro and Edu Claw admin QA
+on:
+  pull_request:
+    paths:
+      - 'app/image-studio/pro/**'
+      - 'app/api/agents/imagenes/route.ts'
+      - 'app/api/admin/edu-claw/**'
+      - 'components/admin/AdminIncidentBell.tsx'
+      - 'lib/admin/edu-claw-incidents.ts'
+      - 'lib/visual-design/design-references.ts'
+      - 'app/layout.tsx'
+      - 'scripts/test-design-pro-edu-claw.ts'
+      - 'supabase/migrations/20261016153000_eduai_admin_claw_incidents.sql'
+      - '.github/workflows/eduai-design-pro-claw.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies from lockfile
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Visual design and administration contract tests
+        run: npx --no-install tsx scripts/test-design-pro-edu-claw.ts
+      - name: TypeScript check
+        run: npx --no-install tsc --noEmit --incremental false
