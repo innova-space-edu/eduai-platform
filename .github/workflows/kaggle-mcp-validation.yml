@@ -1,0 +1,22 @@
+name: Kaggle MCP validation
+on:
+  pull_request:
+    paths:
+      - 'integrations/kaggle-mcp/**'
+      - '.github/workflows/kaggle-mcp-validation.yml'
+  workflow_dispatch:
+
+jobs:
+  offline-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile Python code
+        run: python -m py_compile integrations/kaggle-mcp/client.py integrations/kaggle-mcp/server.py
+      - name: Run offline unit tests
+        run: |
+          cd integrations/kaggle-mcp
+          python -m unittest discover -s tests -p 'test_*.py' -v
