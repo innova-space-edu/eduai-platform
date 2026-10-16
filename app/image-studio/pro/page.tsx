@@ -206,8 +206,11 @@ export default function ImageStudioProPage() {
         audience: "Comunidad EDUAI", width: format.width, height: format.height,
         context: { locale: "es-CL", proMode: true },
       });
+      const matchingOptimization = optimizationResult && (
+        typedPrompt === optimizationResult.originalPrompt || typedPrompt === optimizationResult.optimizedPrompt
+      ) ? optimizationResult : null;
       const local = buildVisualSkillPrompt({
-        originalPrompt: typedPrompt,
+        originalPrompt: matchingOptimization?.optimizedPrompt || typedPrompt,
         format: format.id,
         selectedSkills: localRouting.plan.routing.selected_skills,
         primarySkill: localRouting.plan.routing.primary_skill,
@@ -215,7 +218,7 @@ export default function ImageStudioProPage() {
         referenceId, designType, level: optimizationLevel,
       });
       let enhancedPrompt = local.enhanced;
-      if (autoOptimize && !optimizationResult) {
+      if (autoOptimize && !matchingOptimization) {
         setOptimizationPhase("Aplicando las skills y optimizando automáticamente…");
         try {
           const optimizationResponse = await fetch("/api/image-studio/pro/optimize", {
@@ -471,7 +474,10 @@ export default function ImageStudioProPage() {
               <p className="mt-1 text-[11px] text-muted2">Elige un diseño o deja que la skill lo detecte. Incluye estilos de videojuegos voxel, cómic, arte retro e infografías.</p>
               <div className="mt-3 flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
                 {DESIGN_REFERENCES.map((item) => (
-                  <button key={item.id} type="button" onClick={() => { setReferenceId(item.id); setPlanState(null); }}
+                  <button key={item.id} type="button" onClick={() => {
+                    if (originalPrompt && optimizationResult) setPrompt(originalPrompt);
+                    setReferenceId(item.id); setPlanState(null); setOriginalPrompt(null); setOptimizationResult(null); setOptimizerInfo(null);
+                  }}
                     aria-pressed={referenceId === item.id}
                     className={"rounded-full border px-2.5 py-1.5 text-[11px] font-semibold transition " +
                       (referenceId === item.id ? "border-violet-500 bg-violet-500/15 text-violet-700" : "border-soft bg-app text-muted2 hover:text-main")}>
