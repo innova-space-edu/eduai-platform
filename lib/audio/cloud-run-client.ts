@@ -15,6 +15,39 @@ export type AudioEngineEventType = "progress" | "complete" | "error"
 
 export const EDUAI_AUDIO_ENGINE_URL = "https://eduai-song-gateway-7rtwaj6pca-uc.a.run.app"
 
+/** Voice calls always use EDUAI's same-origin protected relay.
+ * Songs still use the direct Cloud Run gateway.
+ */
+export function audioEngineRequest(path: string, token: string, payload: Record<string, unknown>, stream = false) {
+  const voiceAction = path === "/v1/voice/prepare" ? "prepare" : path === "/v1/voice/render" ? "render" : path === "/v1/voice/delete" ? "delete" : ""
+  if (voiceAction) {
+    return {
+      url: "/api/agents/audio/voices/gateway",
+      init: {
+        method: "POST",
+        credentials: "same-origin" as const,
+        headers: {
+          "Content-Type": "application/json",
+          ...(stream ? { Accept: "text/event-stream" } : {}),
+        },
+        body: JSON.stringify({ action: voiceAction, ...payload }),
+      },
+    }
+  }
+  return {
+    url: `${EDUAI_AUDIO_ENGINE_URL}${path}`,
+    init: {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+        ...(stream ? { Accept: "text/event-stream" } : {}),
+      },
+      body: JSON.stringify(payload),
+    },
+  }
+}
+
 function parseSseBlock(block: string) {
   let event: AudioEngineEventType = "progress"
   const dataLines: string[] = []
@@ -46,15 +79,8 @@ export async function streamAudioEngine(
   payload: Record<string, unknown>,
   onEvent: (type: AudioEngineEventType, data: AudioEngineEvent) => void,
 ) {
-  const response = await fetch(`${EDUAI_AUDIO_ENGINE_URL}${path}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      Accept: "text/event-stream",
-    },
-    body: JSON.stringify(payload),
-  })
+  const request = audioEngineRequest(path, token, payload, true)
+  const response = await fetch(request.url, request.init)
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}))
@@ -102,14 +128,8 @@ export async function callAudioEngine(
   token: string,
   payload: Record<string, unknown>,
 ) {
-  const response = await fetch(`${EDUAI_AUDIO_ENGINE_URL}${path}`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  })
+  const request = audioEngineRequest(path, token, payload)
+  const response = await fetch(request.url, request.init)
   const data = await response.json().catch(() => ({}))
   if (!response.ok) throw new Error(String(data?.detail || data?.error || `Google Audio Gateway respondió ${response.status}`))
   return data

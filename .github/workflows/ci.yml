@@ -73,6 +73,9 @@ jobs:
       - name: Voice replication access and no-HF regression
         run: node scripts/test-admin-voice-replication.mjs
 
+      - name: Voice same-origin CORS relay regression
+        run: npx tsx scripts/test-voice-cors-proxy.ts
+
       - name: Audio Google gateway integrity
         run: |
           python -m py_compile services/google-audio-gateway/*.py
