@@ -1,0 +1,36 @@
+name: EDUAI Kaggle preflight
+on:
+  pull_request:
+    paths:
+      - "training/eduai-local/kaggle/**"
+      - "training/eduai-local/example-instructions.jsonl"
+      - ".github/workflows/eduai-kaggle-preflight.yml"
+  workflow_dispatch:
+
+jobs:
+  kaggle-preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Dataset validation
+        run: python training/eduai-local/kaggle/smoke_train.py --dry-run
+      - name: No-GPU regression tests
+        run: python -m unittest discover -s training/eduai-local/kaggle -p 'test_*.py' -v
+      - name: Notebook syntax and structure
+        run: |
+          python - <<'PY'
+          import ast
+          import json
+          from pathlib import Path
+          nb = json.loads(Path("training/eduai-local/kaggle/EDUAI_Model_Factory_Kaggle_Phase1.ipynb").read_text())
+          assert nb["nbformat"] == 4
+          assert nb["metadata"]["eduai"]["production_enabled"] is False
+          code_cells = [c for c in nb["cells"] if c["cell_type"] == "code"]
+          assert len(code_cells) >= 5
+          for c in code_cells:
+              ast.parse("".join(c["source"]))
+          print("Notebook code cells parsed:", len(code_cells))
+          PY
