@@ -14,6 +14,12 @@ for (const required of [
 assert.ok(text.includes('socket.getaddrinfo("pypi.org"'), "Must verify DNS before pip")
 assert.ok(text.includes("Turn on internet"), "Must explain Kaggle Internet switch")
 assert.ok(text.includes("https://www.kaggle.com/settings"), "Provide account verification support")
+for (const pin of ['"torch==2.6.0"', '"torchvision==0.21.0"', '"torchaudio==2.6.0"', '"--index-url"', 'download.pytorch.org/whl/cu126']) {
+  assert.ok(text.includes(pin), "Pytorch CUDA compatibility pin missing: "+pin)
+}
+assert.ok(text.includes("subprocess.run([sys.executable, \"-c\", verify]"), "Verify torch and torchaudio from clean process")
+assert.ok(text.includes('"--no-deps", source'), "Prevent Chatterbox V3 git from overriding CUDA torch")
+
 assert.ok(text.indexOf("getaddrinfo") < text.indexOf("chatterbox-tts==0.1.7"), "DNS check must run before pip")
 assert.ok(!text.includes("from_pretrained("), "Do not pull model checkpoints from Hugging Face")
 assert.ok(!text.includes("ngrok") && !text.includes("cloudflared"), "Do not expose public tunnels from Kaggle")

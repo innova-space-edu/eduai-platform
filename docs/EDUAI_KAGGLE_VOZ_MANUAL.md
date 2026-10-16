@@ -15,6 +15,14 @@ La conexión inicial es **manual** y segura: no expone una API pública, no deja
 6. En EDUAI, ve a [Audio Lab → Mis voces](https://eduai.innova-space-edu.cl/audio-lab/voices), desbloquea tu zona protegida y pega en **Guardar enlace** la URL permanente de tu notebook guardado, de formato `https://www.kaggle.com/code/usuario/nombre`.
 7. En adelante, el botón **Abrir mi notebook de Kaggle** abrirá esa misma página en otra pestaña. El enlace se guarda **en ese navegador** (localStorage): tendrás que pegarlo nuevamente en otro PC o navegador.
 
+## Reparar errores de Torch/Torchaudio
+
+Si Kaggle muestra `libtorchaudio.so: undefined symbol` o que torchvision 0.26 requiere torch 2.11 mientras se instaló torch 2.6, la causa es una mezcla binaria. Chatterbox 0.1.7 pide torch 2.6.0 y torchaudio 2.6.0, pero Kaggle ya tiene torchvision 0.26.0.
+
+El notebook actualizado instala juntos **torch==2.6.0, torchvision==0.21.0 y torchaudio==2.6.0** usando las ruedas oficiales NVIDIA CUDA 12.6 (`https://download.pytorch.org/whl/cu126`). Comprueba los imports y `torch.cuda.is_available()` en un proceso nuevo. Si la sesión Jupyter había importado otra versión de torch, reinicia el kernel antes de cargar Chatterbox. No ejecutes la antigua celda de instalación que dejaba torchvision sin actualizar.
+
+Advertencias ajenas sobre `starlette` o `pkg_resources` no explican el símbolo indefinido; no cambies bibliotecas web si el objetivo es generar voz. Los tres módulos PyTorch deben quedar alineados.
+
 ## Generar voz
 
 1. Abre Kaggle desde EDUAI; selecciona T4 x2 e Internet si la sesión está apagada.
