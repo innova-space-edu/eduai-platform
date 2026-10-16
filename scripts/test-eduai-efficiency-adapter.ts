@@ -101,6 +101,8 @@ assert.equal(planUniversalEfficiency(tooLarge).status, "blocked");
 
 assert.deepEqual(getAdaptiveWllamaTuning(4, 4096), { n_ctx: 1024, n_batch: 32 });
 assert.deepEqual(getAdaptiveWllamaTuning(8, 4096), { n_ctx: 2048, n_batch: 64 });
+assert.deepEqual(getAdaptiveWllamaTuning(10, 4096), { n_ctx: 2048, n_batch: 64 });
+assert.deepEqual(getAdaptiveWllamaTuning(12, 4096), { n_ctx: 4096, n_batch: 128 });
 assert.deepEqual(getAdaptiveWllamaTuning(16, 4096), { n_ctx: 4096, n_batch: 128 });
 assert.deepEqual(getAdaptiveWllamaTuning(null, 4096), { n_ctx: 1024, n_batch: 32 });
 assert.deepEqual(getAdaptiveWllamaTuning(4, 768), { n_ctx: 768, n_batch: 32 });
@@ -113,4 +115,4 @@ vision.nativeBackendVerified = true;
 vision.includeVision = true;
 assert.equal(planUniversalEfficiency(vision).requiredDiskMB, small.weightsMB + small.visionProjectorMB!);
 
-console.log("Universal Efficiency Adapter V1: 19 safety and planning checks passed");
+console.log("Universal Efficiency Adapter V1: 20+ safety and planning checks passed");
