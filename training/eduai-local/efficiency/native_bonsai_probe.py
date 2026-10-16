@@ -70,8 +70,14 @@ def preflight(
 def run_cpu_smoke(preflight_report: dict, context: int, tokens: int, timeout: int) -> dict:
     if context < 512 or context > 2048 or tokens < 8 or tokens > 64 or timeout < 30 or timeout > 240:
         raise CacheError("Los límites de contexto/tokens/timeout deben respetarse")
+    binary_path = Path(preflight_report["backend"]["binary"])
+    model_path = Path(preflight_report["model_path"])
+    if hash_file(binary_path)[0] != preflight_report["backend"]["binary_sha256"]:
+        raise CacheError("El ejecutable cambió desde la verificación")
+    if hash_file(model_path)[0] != preflight_report["model_sha256"]:
+        raise CacheError("Los pesos cambiaron desde la verificación")
     command = [
-        preflight_report["backend"]["binary"], "-m", preflight_report["model_path"],
+        str(binary_path), "-m", str(model_path),
         "-c", str(context), "-n", str(tokens), "-ngl", "0", "-p", PROBE_PROMPT,
     ]
     started = time.monotonic()
