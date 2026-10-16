@@ -1,0 +1,51 @@
+# Build-stage weights come ONLY from ModelScope ResembleAI/chatterbox.
+# Runtime container is fully offline regarding model repositories.
+FROM python:3.11-slim AS weights
+WORKDIR /build
+RUN pip install --no-cache-dir "modelscope>=1.20,<3"
+RUN mkdir -p /models/chatterbox-v3 && \
+    modelscope download --model ResembleAI/chatterbox \
+      ve.pt s3gen.pt t3_mtl23ls_v3.safetensors grapheme_mtl_merged_expanded_v1.json \
+      --local_dir /models/chatterbox-v3
+RUN python - <<'PY'
+import hashlib
+import json
+from pathlib import Path
+folder = Path("/models/chatterbox-v3")
+names = ["ve.pt", "s3gen.pt", "t3_mtl23ls_v3.safetensors", "grapheme_mtl_merged_expanded_v1.json"]
+digests = {}
+for name in names:
+    path = folder / name
+    if not path.is_file() or path.stat().st_size < 2048:
+        raise RuntimeError("Falta checkpoint de ModelScope: " + name)
+    with path.open("rb") as stream:
+        digests[name] = hashlib.file_digest(stream, "sha256").hexdigest()
+(folder / "manifest.json").write_text(json.dumps({
+    "source": "ModelScope ResembleAI/chatterbox",
+    "model": "Chatterbox Multilingual V3",
+    "license": "MIT",
+    "files": digests,
+}))
+PY
+
+FROM python:3.11-slim
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1 \
+    HF_DATASETS_OFFLINE=1 \
+    CHATTERBOX_MODEL_PATH=/models/chatterbox-v3 \
+    PORT=8080
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ffmpeg git ca-certificates libsndfile1 && rm -rf /var/lib/apt/lists/*
+RUN pip install --no-cache-dir \
+    "fastapi==0.116.1" \
+    "uvicorn[standard]==0.35.0" \
+    "chatterbox-tts==0.1.7"
+COPY --from=weights /models/chatterbox-v3 /models/chatterbox-v3
+COPY main.py /app/main.py
+RUN useradd --uid 10001 --create-home worker && chown -R worker:worker /app /models
+USER worker
+EXPOSE 8080
+CMD ["uvicorn","main:app","--host","0.0.0.0","--port","8080","--workers","1"]
