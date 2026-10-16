@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   ExternalLink,
   Download,
+  Copy,
   CheckCircle2,
   KeyRound,
   Loader2,
@@ -22,6 +23,7 @@ import {
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { uploadAudioResumable } from "@/lib/audio/resumable-upload"
+import { prepareKaggleVoiceUpload } from "@/lib/audio/kaggle-zip"
 import { callAudioEngine, currentSupabaseToken, streamAudioEngine } from "@/lib/audio/cloud-run-client"
 
 const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
@@ -49,6 +51,8 @@ type KaggleAudio = {
   profile_id: string
   created_at: string
   audio_url: string
+  audio_path: string
+  text: string
 }
 
 const KAGGLE_URL_KEY = "eduai_voice_kaggle_notebook_url"
@@ -115,6 +119,10 @@ export default function AudioLabVoicesPage() {
   const [kaggleProfileId, setKaggleProfileId] = useState("")
   const [kaggleUploading, setKaggleUploading] = useState(false)
   const [kaggleAudios, setKaggleAudios] = useState<KaggleAudio[]>([])
+  const [kaggleSourceConfirmed, setKaggleSourceConfirmed] = useState(false)
+  const [kaggleText, setKaggleText] = useState("Hola. Esta es una nueva generación con mi voz de EDUAI.")
+  const [kaggleSelectedVoiceId, setKaggleSelectedVoiceId] = useState("")
+  const [kaggleDownloadingId, setKaggleDownloadingId] = useState("")
 
   const refreshSecurity = useCallback(async () => {
     const response = await fetch("/api/agents/audio/voices/security", { cache: "no-store" })
@@ -213,26 +221,65 @@ export default function AudioLabVoicesPage() {
   }
 
   async function importKaggleWav(file: File) {
-    if (!kaggleProfileId) return setError("Elige primero un perfil vocal.")
-    if (!/\.wav$/i.test(file.name) || file.size > 8 * 1024 * 1024) {
-      return setError("El resultado de Kaggle debe ser WAV y pesar como máximo 8 MB.")
+    const profileId = kaggleProfileId
+    if (!profileId) return setError("Elige primero un perfil vocal.")
+    if (!kaggleSourceConfirmed) {
+      return setError("Confirma que la voz es tuya y autorizas guardar el audio generado con Kaggle.")
     }
     setError("")
     setKaggleUploading(true)
     try {
+      const wav = await prepareKaggleVoiceUpload(file)
       const form = new FormData()
-      form.set("profileId", kaggleProfileId)
-      form.set("audio", file)
+      form.set("profileId", profileId)
+      form.set("audio", wav)
+      form.set("text", kaggleText.trim().slice(0, 1500))
+      form.set("sourceConfirmed", "true")
       const response = await fetch("/api/agents/audio/voices/profiles?mode=kaggle", { method: "POST", body: form })
       const result = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(result.error || "No fue posible importar el audio")
       setSuccess(result.message || "Audio de Kaggle importado a tu biblioteca privada.")
+      setKaggleSourceConfirmed(false)
       await loadKaggleAudios()
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo importar el audio")
     } finally {
       setKaggleUploading(false)
       setKaggleProfileId("")
+    }
+  }
+
+  async function downloadKaggleAudio(audio: KaggleAudio) {
+    setError("")
+    setKaggleDownloadingId(audio.id)
+    try {
+      const { data, error: downloadError } = await supabase.storage
+        .from("generated-voice-audio").download(audio.audio_path)
+      if (downloadError || !data) throw new Error(downloadError?.message || "No se pudo descargar el audio")
+      const url = URL.createObjectURL(data)
+      const anchor = document.createElement("a")
+      anchor.href = url
+      anchor.download = `eduai-chatterbox-${audio.id}.wav`
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "No se pudo descargar el WAV")
+    } finally {
+      setKaggleDownloadingId("")
+    }
+  }
+
+  async function copyKagglePrompt() {
+    if (!kaggleText.trim()) return setError("Escribe el texto que quieras generar.")
+    if (!kaggleSelectedVoiceId) return setError("Selecciona la voz que utilizarás en Kaggle.")
+    try {
+      await navigator.clipboard.writeText(kaggleText.trim())
+      setError("")
+      setSuccess("Texto copiado. Abre Kaggle y reemplaza TEXTO en tu notebook. Después importa el WAV a esta voz.")
+    } catch {
+      setError("El navegador no permitió copiar el texto. Selecciónalo manualmente.")
     }
   }
 
