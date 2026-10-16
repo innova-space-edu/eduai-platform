@@ -198,3 +198,86 @@
 [data-eduai-chat-scroll]::-webkit-scrollbar-track { background: transparent; }
 [data-eduai-chat-scroll]::-webkit-scrollbar-thumb { background: rgba(148,163,184,.55); border-radius: 999px; }
 [data-eduai-chat-scroll]::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,.8); }
+
+
+/* EDUAI Music · favoritos iridiscentes y chispas laterales.
+   Los colores son los del logotipo Music: cian, violeta y fucsia. */
+.eduai-like-button {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.eduai-like-button[data-liked="true"] .eduai-like-icon {
+  filter: drop-shadow(0 0 5px rgba(37, 244, 255, .48)) drop-shadow(0 0 5px rgba(255, 66, 207, .35));
+}
+.eduai-like-button[data-liked="true"].eduai-like-button:has(> span:last-child:not(.eduai-like-icon)) {
+  border-color: rgba(155, 108, 255, .6);
+  background: linear-gradient(100deg, rgba(37, 244, 255, .12), rgba(155, 108, 255, .17), rgba(255, 66, 207, .12));
+}
+.eduai-like-button:hover .eduai-like-icon {
+  filter: drop-shadow(0 0 6px rgba(155, 108, 255, .55));
+}
+.eduai-like-stop-cyan { animation: eduai-like-chroma-cyan 5s ease-in-out infinite; }
+.eduai-like-stop-violet { animation: eduai-like-chroma-violet 5s ease-in-out infinite; }
+.eduai-like-stop-pink { animation: eduai-like-chroma-pink 5s ease-in-out infinite; }
+@keyframes eduai-like-chroma-cyan {
+  0%, 100% { stop-color: #25f4ff; }
+  50% { stop-color: #a481ff; }
+}
+@keyframes eduai-like-chroma-violet {
+  0%, 100% { stop-color: #9b6cff; }
+  50% { stop-color: #ff42cf; }
+}
+@keyframes eduai-like-chroma-pink {
+  0%, 100% { stop-color: #ff42cf; }
+  50% { stop-color: #25f4ff; }
+}
+.eduai-like-pop { animation: eduai-like-heart-pop .5s cubic-bezier(.21, 1.4, .39, 1) both; }
+@keyframes eduai-like-heart-pop {
+  0% { transform: scale(.67); }
+  40% { transform: scale(1.45); }
+  68% { transform: scale(.90); }
+  100% { transform: scale(1); }
+}
+.eduai-like-ring {
+  position: absolute;
+  inset: 0;
+  border: 1.5px solid rgba(155, 108, 255, .86);
+  border-radius: 9999px;
+  box-shadow: 0 0 14px rgba(37,244,255,.4), inset 0 0 7px rgba(255,66,207,.25);
+  animation: eduai-like-ring-burst .54s ease-out both;
+}
+@keyframes eduai-like-ring-burst {
+  0% { opacity: .9; transform: scale(.4); }
+  70% { opacity: .45; }
+  100% { opacity: 0; transform: scale(2.1); }
+}
+.eduai-like-spark {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 4px;
+  height: 9px;
+  border-radius: 999px;
+  background: var(--eduai-spark-color);
+  box-shadow: 0 0 8px var(--eduai-spark-color), 0 0 15px var(--eduai-spark-color);
+  opacity: 0;
+  animation: eduai-like-spark-shoot .63s cubic-bezier(.15,.8,.32,1) var(--eduai-spark-delay) both;
+}
+@keyframes eduai-like-spark-shoot {
+  0% {
+    opacity: 0;
+    transform: translate(-50%,-50%) translate(0,0) rotate(0) scale(.4);
+  }
+  19% { opacity: 1; }
+  100% {
+    opacity: 0;
+    transform: translate(-50%,-50%) translate(var(--eduai-spark-x), var(--eduai-spark-y)) rotate(70deg) scale(.25);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eduai-like-stop-cyan, .eduai-like-stop-violet, .eduai-like-stop-pink,
+  .eduai-like-pop, .eduai-like-ring, .eduai-like-spark {
+    animation: none !important;
+  }
+  .eduai-like-ring, .eduai-like-spark { display: none !important; }
+}
