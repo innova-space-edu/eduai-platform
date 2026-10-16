@@ -694,7 +694,7 @@ export default function ImageStudioProPage() {
                   {typeof result.elapsedMs === "number" && <span className="rounded-full bg-app px-2.5 py-1 text-muted2">{(result.elapsedMs / 1000).toFixed(1)}s</span>}
                   {result.persistentUrl && <span className="rounded-full bg-blue-500/10 px-2.5 py-1 font-bold text-blue-600">Guardada</span>}
                 </div>
-                {!!result.attempts?.length && <p className="mt-3 rounded-xl border border-amber-400/25 bg-amber-500/10 p-3 text-xs text-amber-700">El proveedor principal no completó la solicitud; EDUAI utilizó un proveedor alternativo compatible. Administración recibió el registro de fallo.</p>}
+                {!!result.attempts?.length && <p className="mt-3 rounded-xl border border-amber-400/25 bg-amber-500/10 p-3 text-xs text-amber-700">El proveedor principal no completó la solicitud; EDUAI utilizó un proveedor alternativo compatible. EDUAI envió el evento al registro administrativo, sujeto a disponibilidad de telemetría.</p>}
                 {result.optimizedPrompt && <details className="mt-3"><summary className="cursor-pointer text-xs font-bold text-muted2">Prompt compilado usado</summary><p className="mt-2 rounded-xl bg-app p-3 text-xs leading-5 text-muted2">{result.optimizedPrompt}</p></details>}
               </div>
             )}
