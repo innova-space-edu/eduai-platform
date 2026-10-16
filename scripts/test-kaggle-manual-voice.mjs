@@ -11,6 +11,10 @@ for (const required of [
   "language_id=\"es\"", "TEXTO", "eduai_voz_kaggle.wav", "FileUpload",
   "reference.unlink", "HF_HUB_OFFLINE",
 ]) assert.ok(text.includes(required), "Notebook missing: " + required)
+assert.ok(text.includes('socket.getaddrinfo("pypi.org"'), "Must verify DNS before pip")
+assert.ok(text.includes("Turn on internet"), "Must explain Kaggle Internet switch")
+assert.ok(text.includes("https://www.kaggle.com/settings"), "Provide account verification support")
+assert.ok(text.indexOf("getaddrinfo") < text.indexOf("chatterbox-tts==0.1.7"), "DNS check must run before pip")
 assert.ok(!text.includes("from_pretrained("), "Do not pull model checkpoints from Hugging Face")
 assert.ok(!text.includes("ngrok") && !text.includes("cloudflared"), "Do not expose public tunnels from Kaggle")
 assert.ok(!text.includes("SUPABASE_SERVICE_ROLE_KEY") && !text.includes("SUPABASE_ANON_KEY"), "No user credentials in notebook")
