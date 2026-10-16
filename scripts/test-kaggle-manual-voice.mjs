@@ -9,23 +9,27 @@ for (const required of [
   "torch.cuda.is_available", "ChatterboxMultilingualTTS.from_local",
   't3_model="v3"', "modelscope", "ResembleAI/chatterbox",
   "language_id=\"es\"", "TEXTO", "eduai_voz_kaggle.wav", "FileUpload",
-  "reference.unlink", "HF_HUB_OFFLINE",
+  "source_path.unlink", "HF_HUB_OFFLINE",
 ]) assert.ok(text.includes(required), "Notebook missing: " + required)
-assert.ok(text.includes('socket.getaddrinfo("pypi.org"'), "Must verify DNS before pip")
+assert.ok(text.includes("socket.getaddrinfo("), "Must verify DNS before pip")
 assert.ok(text.includes("Turn on internet"), "Must explain Kaggle Internet switch")
-assert.ok(text.includes("https://www.kaggle.com/settings"), "Provide account verification support")
-for (const pin of ['"torch==2.6.0"', '"torchvision==0.21.0"', '"torchaudio==2.6.0"', '"--index-url"', 'download.pytorch.org/whl/cu126']) {
+assert.ok(text.includes("Settings → Turn on internet"), "Must explain Internet activation")
+for (const pin of ['"torch==2.6.0"', '"torchvision==0.21.0"', '"torchaudio==2.6.0"', '"--index-url"', 'download.pytorch.org/whl/cu126', "eduai_voice_env"]) {
   assert.ok(text.includes(pin), "Pytorch CUDA compatibility pin missing: "+pin)
 }
-assert.ok(text.includes("subprocess.run([sys.executable, \"-c\", verify]"), "Verify torch and torchaudio from clean process")
-assert.ok(text.includes('run_pip("setuptools<81")'), "Perth pkg_resources compatibility pin required")
+assert.ok(text.includes("subprocess.run([PY, \"-c\", verificar]"), "Verify torch and torchaudio in isolated Python")
+assert.ok(text.includes('"setuptools<81"'), "Perth pkg_resources compatibility pin required")
 assert.ok(text.includes("perth.PerthImplicitWatermarker is not None"), "Do not accept missing Perth watermarker")
 assert.ok(text.includes("perth.PerthImplicitWatermarker()"), "Exercise the real Perth watermark constructor")
 assert.ok(!text.includes("perth.DummyWatermarker()"), "Do not disable the output watermark")
 
-assert.ok(text.includes('"--no-deps", source'), "Prevent Chatterbox V3 git from overriding CUDA torch")
+assert.ok(text.includes('"--reinstall", "--no-deps"'), "Prevent Chatterbox V3 git from overriding CUDA torch")
 
 assert.ok(text.indexOf("getaddrinfo") < text.indexOf("chatterbox-tts==0.1.7"), "DNS check must run before pip")
+assert.ok(text.includes("from zipfile import ZipFile"), "ZIP WAV export missing")
+assert.ok(text.includes("eduai_mi_voz.zip"), "ZIP must be discoverable in Kaggle Output")
+assert.ok(text.includes("SALIDA.is_file()"), "Verify generated WAV before export")
+assert.ok(text.includes("Importar WAV de Kaggle"), "Explain manual EDUAI import")
 assert.ok(!text.includes("from_pretrained("), "Do not pull model checkpoints from Hugging Face")
 assert.ok(!text.includes("ngrok") && !text.includes("cloudflared"), "Do not expose public tunnels from Kaggle")
 assert.ok(!text.includes("SUPABASE_SERVICE_ROLE_KEY") && !text.includes("SUPABASE_ANON_KEY"), "No user credentials in notebook")
