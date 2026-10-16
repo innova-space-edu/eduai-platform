@@ -209,16 +209,19 @@
 .eduai-like-button[data-liked="true"] .eduai-like-icon {
   filter: drop-shadow(0 0 5px rgba(37, 244, 255, .48)) drop-shadow(0 0 5px rgba(255, 66, 207, .35));
 }
-.eduai-like-button[data-liked="true"].eduai-like-button:has(> span:last-child:not(.eduai-like-icon)) {
+.eduai-like-button.eduai-like-pill[data-liked="true"] {
   border-color: rgba(155, 108, 255, .6);
   background: linear-gradient(100deg, rgba(37, 244, 255, .12), rgba(155, 108, 255, .17), rgba(255, 66, 207, .12));
 }
 .eduai-like-button:hover .eduai-like-icon {
   filter: drop-shadow(0 0 6px rgba(155, 108, 255, .55));
 }
-.eduai-like-stop-cyan { animation: eduai-like-chroma-cyan 5s ease-in-out infinite; }
-.eduai-like-stop-violet { animation: eduai-like-chroma-violet 5s ease-in-out infinite; }
-.eduai-like-stop-pink { animation: eduai-like-chroma-pink 5s ease-in-out infinite; }
+.eduai-like-button[data-liked="true"] .eduai-like-stop-cyan,
+.eduai-like-button:hover .eduai-like-stop-cyan { animation: eduai-like-chroma-cyan 5s ease-in-out infinite; }
+.eduai-like-button[data-liked="true"] .eduai-like-stop-violet,
+.eduai-like-button:hover .eduai-like-stop-violet { animation: eduai-like-chroma-violet 5s ease-in-out infinite; }
+.eduai-like-button[data-liked="true"] .eduai-like-stop-pink,
+.eduai-like-button:hover .eduai-like-stop-pink { animation: eduai-like-chroma-pink 5s ease-in-out infinite; }
 @keyframes eduai-like-chroma-cyan {
   0%, 100% { stop-color: #25f4ff; }
   50% { stop-color: #a481ff; }
