@@ -5,6 +5,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   ArrowLeft,
+  ExternalLink,
+  Download,
   CheckCircle2,
   KeyRound,
   Loader2,
@@ -42,6 +44,27 @@ type VoiceProfile = {
   processed_at?: string | null
 }
 
+type KaggleAudio = {
+  id: string
+  profile_id: string
+  created_at: string
+  audio_url: string
+}
+
+const KAGGLE_URL_KEY = "eduai_voice_kaggle_notebook_url"
+const KAGGLE_START_URL = "https://www.kaggle.com/code/new"
+const KAGGLE_GUIDE_URL = "https://github.com/innova-space-edu/eduai-platform/blob/main/notebooks/eduai_chatterbox_kaggle.ipynb"
+
+function validKaggleNotebookUrl(input: string) {
+  try {
+    const url = new URL(input.trim())
+    return url.protocol === "https:" &&
+      (url.hostname === "kaggle.com" || url.hostname === "www.kaggle.com") &&
+      /^\/code\/[a-zA-Z0-9_.-]+\/[a-zA-Z0-9_.-]+\/?$/.test(url.pathname) &&
+      !url.username && !url.password && !url.search && !url.hash
+  } catch { return false }
+}
+
 type SecurityProfile = {
   birth_date: string | null
   rut: string | null
@@ -53,6 +76,7 @@ export default function AudioLabVoicesPage() {
   const supabase = useMemo(() => createClient(), [])
   const sampleInputRef = useRef<HTMLInputElement>(null)
   const consentInputRef = useRef<HTMLInputElement>(null)
+  const kaggleInputRef = useRef<HTMLInputElement>(null)
 
   const [loading, setLoading] = useState(true)
   const [unlocked, setUnlocked] = useState(false)
@@ -85,6 +109,11 @@ export default function AudioLabVoicesPage() {
   const [voiceRenderProgress, setVoiceRenderProgress] = useState(0)
   const [voiceRenderLabel, setVoiceRenderLabel] = useState("")
   const [engineStatus, setEngineStatus] = useState<{ ok: boolean; message: string; provider: string } | null>(null)
+  const [kaggleNotebookUrl, setKaggleNotebookUrl] = useState("")
+  const [kaggleUrlInput, setKaggleUrlInput] = useState("")
+  const [kaggleProfileId, setKaggleProfileId] = useState("")
+  const [kaggleUploading, setKaggleUploading] = useState(false)
+  const [kaggleAudios, setKaggleAudios] = useState<KaggleAudio[]>([])
 
   const refreshSecurity = useCallback(async () => {
     const response = await fetch("/api/agents/audio/voices/security", { cache: "no-store" })
@@ -140,6 +169,72 @@ export default function AudioLabVoicesPage() {
   useEffect(() => {
     refreshSecurity()
   }, [refreshSecurity])
+  useEffect(() => {
+    const saved = window.localStorage.getItem(KAGGLE_URL_KEY) || ""
+    if (validKaggleNotebookUrl(saved)) {
+      setKaggleNotebookUrl(saved)
+      setKaggleUrlInput(saved)
+    }
+  }, [])
+
+  const loadKaggleAudios = useCallback(async () => {
+    try {
+      const response = await fetch("/api/agents/audio/voices/kaggle-import", { cache: "no-store" })
+      if (!response.ok) return
+      const data = await response.json().catch(() => ({}))
+      if (Array.isArray(data.audios)) setKaggleAudios(data.audios)
+    } catch {
+      // La biblioteca es opcional; la autenticación se comprueba en cada ruta.
+    }
+  }, [])
+
+  useEffect(() => {
+    if (unlocked) void loadKaggleAudios()
+    else setKaggleAudios([])
+  }, [unlocked, loadKaggleAudios])
+
+  function saveKaggleUrl() {
+    const url = kaggleUrlInput.trim()
+    if (!url) {
+      window.localStorage.removeItem(KAGGLE_URL_KEY)
+      setKaggleNotebookUrl("")
+      setSuccess("Enlace restablecido. El botón abrirá un notebook nuevo en Kaggle.")
+      return
+    }
+    if (!validKaggleNotebookUrl(url)) {
+      setError("Usa el enlace de tu notebook privado: https://www.kaggle.com/code/usuario/nombre")
+      return
+    }
+    window.localStorage.setItem(KAGGLE_URL_KEY, url)
+    setKaggleNotebookUrl(url)
+    setError("")
+    setSuccess("Enlace privado de Kaggle guardado en este navegador.")
+  }
+
+  async function importKaggleWav(file: File) {
+    if (!kaggleProfileId) return setError("Elige primero un perfil vocal.")
+    if (!/\.wav$/i.test(file.name) || file.size > 8 * 1024 * 1024) {
+      return setError("El resultado de Kaggle debe ser WAV y pesar como máximo 8 MB.")
+    }
+    setError("")
+    setKaggleUploading(true)
+    try {
+      const form = new FormData()
+      form.set("profileId", kaggleProfileId)
+      form.set("audio", file)
+      const response = await fetch("/api/agents/audio/voices/kaggle-import", { method: "POST", body: form })
+      const result = await response.json().catch(() => ({}))
+      if (!response.ok) throw new Error(result.error || "No fue posible importar el audio")
+      setSuccess(result.message || "Audio de Kaggle importado a tu biblioteca privada.")
+      await loadKaggleAudios()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo importar el audio")
+    } finally {
+      setKaggleUploading(false)
+      setKaggleProfileId("")
+    }
+  }
+
 
   useEffect(() => {
     if (!unlocked) { setEngineStatus(null); return }
@@ -514,6 +609,41 @@ export default function AudioLabVoicesPage() {
                 } catch { setEngineStatus({ ok: false, message: "Motor no disponible", provider: "Motor de voz" }) }
               }} className="mt-2 text-xs font-semibold underline">Volver a comprobar motor</button>
             </section>
+            <section className="rounded-3xl border border-purple-500/20 bg-purple-500/5 p-4 space-y-3">
+              <div>
+                <h2 className="font-semibold text-sm flex items-center gap-2"><ExternalLink size={15} className="text-purple-600" /> Kaggle GPU · clonación gratuita bajo demanda</h2>
+                <p className="text-xs text-muted2 mt-1">Abre tu notebook privado, activa GPU T4 x2 e Internet y ejecútalo solo cuando lo necesites. Kaggle no es un servidor permanente y consume su cuota gratuita.</p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <a href={kaggleNotebookUrl || KAGGLE_START_URL} target="_blank" rel="noopener noreferrer"
+                  className="rounded-xl bg-purple-600 text-white px-4 py-2 text-xs font-semibold flex gap-2 items-center">
+                  <ExternalLink size={13} /> {kaggleNotebookUrl ? "Abrir mi notebook de Kaggle" : "Crear notebook en Kaggle"}
+                </a>
+                <a href={KAGGLE_GUIDE_URL} target="_blank" rel="noopener noreferrer"
+                  className="rounded-xl border border-purple-500/25 px-3 py-2 text-xs flex gap-2 items-center">
+                  <Download size={13} /> Notebook EDUAI para importar
+                </a>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <input aria-label="Enlace de tu notebook privado de Kaggle" value={kaggleUrlInput}
+                  onChange={(event) => setKaggleUrlInput(event.target.value)}
+                  placeholder="https://www.kaggle.com/code/usuario/mi-notebook"
+                  className="min-w-0 flex-1 rounded-xl border border-soft bg-app px-3 py-2 text-xs" />
+                <button type="button" onClick={saveKaggleUrl} className="rounded-xl border border-purple-500/25 px-3 py-2 text-xs font-semibold">Guardar enlace</button>
+              </div>
+              <p className="text-[11px] text-muted2">La primera vez, importa el archivo de GitHub con File → Load from URL. Guarda el notebook como privado y pega aquí su dirección. El botón abrirá ese mismo notebook en sesiones futuras.</p>
+              <p className="text-[11px] text-amber-700">Al cargar tu muestra en Kaggle, un proveedor externo procesará temporalmente tu voz. No publiques el notebook ni sus archivos. No introduzcas claves de EDUAI o Supabase.</p>
+              {kaggleAudios.length > 0 && <div className="rounded-xl border border-purple-500/15 p-3 space-y-2">
+                <h3 className="font-semibold text-xs">Audios importados de Kaggle · biblioteca privada</h3>
+                {kaggleAudios.slice(0, 8).map((audio) => (
+                  <div key={audio.id} className="flex flex-wrap items-center gap-2 text-xs">
+                    <span className="text-muted2 min-w-32">{voices.find((v) => v.id === audio.profile_id)?.display_name || "Voz"} · {new Date(audio.created_at).toLocaleDateString("es-CL")}</span>
+                    <audio controls preload="none" src={audio.audio_url} className="max-w-full h-8 flex-1" />
+                    <a href={audio.audio_url} target="_blank" rel="noopener noreferrer" className="underline text-purple-700">Abrir WAV</a>
+                  </div>
+                ))}
+              </div>}
+            </section>
             <section className="rounded-3xl border border-soft p-5 bg-card-soft-theme space-y-4">
               <h2 className="font-bold flex items-center gap-2"><Plus size={16} /> Agregar perfil vocal</h2>
               <div className="grid sm:grid-cols-2 gap-3"><input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Nombre visible de la voz" className="rounded-xl border border-soft bg-transparent px-3 py-2 text-sm" /><select value={sourceKind} onChange={(event) => setSourceKind(event.target.value as "self" | "authorized_third_party")} className="rounded-xl border border-soft bg-app px-3 py-2 text-sm"><option value="self">Es mi propia voz</option><option value="authorized_third_party">Voz de tercero autorizado</option></select></div>
@@ -593,6 +723,12 @@ export default function AudioLabVoicesPage() {
                         </button>
                       </div>
                     )}
+                    {voice.sample_path && voice.consent_audio_path && (
+                      <button type="button" onClick={() => { setKaggleProfileId(voice.id); kaggleInputRef.current?.click() }}
+                        disabled={kaggleUploading} className="rounded-xl border border-purple-500/25 px-3 py-2 text-xs text-purple-700 flex gap-2 items-center disabled:opacity-50">
+                        <Upload size={13} /> {kaggleUploading && kaggleProfileId === voice.id ? "Importando…" : "Importar WAV de Kaggle"}
+                      </button>
+                    )}
                     <button onClick={() => deleteVoice(voice.id)} className="rounded-xl border border-red-500/20 px-3 py-2 text-xs text-red-500 flex items-center gap-2"><Trash2 size={13} /> Eliminar</button>
                   </div>
                 </article>
@@ -603,6 +739,8 @@ export default function AudioLabVoicesPage() {
 
       <input ref={sampleInputRef} type="file" accept=".mp3,.wav,.m4a,.webm,.ogg" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadSample(file, "reference"); event.target.value = "" }} />
       <input ref={consentInputRef} type="file" accept=".mp3,.wav,.m4a,.webm,.ogg" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadSample(file, "consent"); event.target.value = "" }} />
+      <input ref={kaggleInputRef} type="file" accept=".wav,audio/wav" className="hidden"
+        onChange={(event) => { const file = event.target.files?.[0]; if (file) void importKaggleWav(file); event.target.value = "" }} />
       {uploading && <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center"><div className="rounded-2xl bg-app border border-soft p-5 space-y-3 w-72"><div className="flex items-center gap-3"><Loader2 className="animate-spin text-purple-500" /><span className="text-sm">Subiendo {activeUploadKind === "consent" ? "consentimiento" : "referencia"} privada… {uploadProgress}%</span></div><div className="h-2 rounded-full overflow-hidden bg-black/10"><div className="h-full bg-purple-500 transition-all" style={{ width: `${uploadProgress}%` }} /></div></div></div>}
     </main>
   )
