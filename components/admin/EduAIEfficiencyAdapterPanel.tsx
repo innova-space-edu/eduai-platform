@@ -191,7 +191,7 @@ export default function EduAIEfficiencyAdapterPanel() {
           className="rounded-xl border border-white/15 px-3 py-2 text-xs text-slate-200 disabled:opacity-50"><LockKeyhole className="mr-1 inline h-3.5 w-3.5" /> Solicitar persistencia</button>
         <button type="button" onClick={() => void refresh()} className="rounded-xl border border-white/15 px-3 py-2 text-xs text-slate-200"><RefreshCw className="mr-1 inline h-3.5 w-3.5" /> Recalibrar</button>
       </div>
-      <p className="mt-3 text-xs text-slate-400">Ajustes con adaptador activo para el modelo elegido: contexto {tuningPreview.n_ctx}, batch {tuningPreview.n_batch}. Solo se aplicarán a nuevas cargas de GGUF del catálogo con wllama; no aceleran Bonsai 2 ni habilitan conexión con servidor.</p>
+      <p className="mt-3 text-xs text-slate-400">Ajustes con adaptador activo para el modelo elegido: contexto {tuningPreview.n_ctx}, batch {tuningPreview.n_batch}. Vista previa según los datos indicados. En la carga real se usa la RAM detectada por el navegador, que puede ser desconocida y aplicar límites más conservadores. Solo afecta a nuevas cargas GGUF del catálogo wllama; no ejecuta Bonsai 2 ni conecta un servidor.</p>
       {message ? <p className="mt-2 text-xs text-cyan-200">{message}</p> : null}
       <p className="mt-4 flex items-center gap-2 text-[11px] text-slate-500"><ShieldCheck className="h-4 w-4" /> Sin transferencias cloud automáticas; sin promoción ni ejecución de Bonsai 2. <a className="underline" href={BONSAI_DOCS} target="_blank" rel="noopener noreferrer">Ficha oficial PrismML</a>.</p>
     </section>
