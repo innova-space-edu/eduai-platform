@@ -12,7 +12,8 @@ RUN apt-get update \
 RUN pip install --no-cache-dir \
     fastapi==0.116.1 \
     "uvicorn[standard]==0.35.0" \
-    httpx==0.28.1
+    httpx==0.28.1 \
+    google-auth==2.40.3
 
 COPY main.py song_gateway.py voice_gateway.py /app/
 
