@@ -13,7 +13,7 @@ for(const name of [
   'mfa?.currentLevel !== "aal2"','source_kind === "self"',
   "consent_confirmed","authorization_confirmed","consent_audio_path",
   "randomBytes(32)",'createHash("sha256")',
-  "expires_at","SESSION_SECONDS","createSignedUrl(src,3600)",
+  "expires_at","SESSION_SECONDS","provider_consent_at","body.provider_consent !== true","createSignedUrl(src,3600)",
   "createSignedUploadUrl(path)","audio_voice_render_jobs",
   'operation === "poll"','operation === "finish"',
   "eduai_voice_worker_claim","eduai_voice_worker_finish",
@@ -23,7 +23,7 @@ for(const name of [
   'get("mode") === "compute"','getVoiceGpuBridge(req)','postVoiceGpuBridge(req)'
 ]) assert.ok(endpoint.includes(name), "Must reuse existing Vercel Hobby function: "+name)
 for(const name of ["Kaggle","Colab","pairing_code","navigator.clipboard",
-  "Crear código de conexión","Generar audio","audio_url","MFA"])
+  "Crear código de conexión","Generar audio","audio_url","MFA","providerConsent"])
   assert.ok(ui.includes(name), "UI missing "+name)
 for(const name of ["extensions.digest","auth.users","public.admin_emails","pr.birth_date",
   "SKIP LOCKED","storage.objects","SECURITY DEFINER",
