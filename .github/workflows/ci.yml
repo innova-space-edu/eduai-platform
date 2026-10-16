@@ -76,6 +76,9 @@ jobs:
       - name: Voice same-origin CORS relay regression
         run: npx tsx scripts/test-voice-cors-proxy.ts
 
+      - name: Manual Kaggle voice regression
+        run: node scripts/test-kaggle-manual-voice.mjs
+
       - name: Offline Chatterbox private GPU contract
         run: |
           python -m py_compile services/eduai-voice-chatterbox/main.py
