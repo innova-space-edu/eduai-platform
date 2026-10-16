@@ -1238,6 +1238,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const playPlaylist = useCallback(
     (playlistId?: string) => {
+      mixActiveRef.current = false;
+      setMixFavoriteActive(false);
       const playlist = playlists.find((p) => p.id === (playlistId || selectedPlaylistId)) ?? selectedPlaylist;
       const tracks = getTracksForPlaylist(playlist, allTracks);
       if (!tracks.length) return;
