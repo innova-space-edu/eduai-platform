@@ -177,21 +177,31 @@ export function improvementScore(original: string, candidate: string) {
   };
 }
 
+/**
+ * The original request is immutable. Reject any model rewrite that does not
+ * begin with the literal source request, falling back to deterministic skill
+ * advice instead of silently changing subjects, style, numbers or exclusions.
+ */
 export function ensureProductionPrompt(original: string, candidate: string, profile: VisualOptimizationProfile) {
-  if (profile.level === "light") return candidate.trim() || original.trim();
-  const score = improvementScore(original, candidate);
-  if (score.improved) return candidate.trim();
-
-  const structure = profile.structure.slice(0, profile.level === "advanced" ? 5 : 3).join(" ");
-  const priorities = profile.priorities.slice(0, profile.level === "advanced" ? 7 : 5).join(" ");
-  const avoid = profile.avoid.slice(0, profile.level === "advanced" ? 8 : 6).join(", ");
+  const source = original.trim();
+  if (!source) return "";
+  const proposed = candidate.trim();
+  const safeAddition = proposed.startsWith(source)
+    ? proposed.slice(source.length).trim().replace(/^[\\s:;,.\\-–—]+/, "").trim()
+    : "";
+  const structure = profile.structure.slice(0, profile.level === "advanced" ? 5 : profile.level === "light" ? 1 : 3).join(" ");
+  const priorities = profile.priorities.slice(0, profile.level === "advanced" ? 7 : profile.level === "light" ? 2 : 5).join(" ");
+  const avoid = profile.avoid.slice(0, profile.level === "advanced" ? 8 : profile.level === "light" ? 2 : 6).join(", ");
 
   return [
-    candidate.trim() || original.trim(),
-    `Composición: ${structure}`,
-    `Prioridades: ${priorities}`,
-    avoid ? `Evitar: ${avoid}.` : "",
-  ].filter(Boolean).join(" ");
+    "SOLICITUD ORIGINAL DEL USUARIO — PRIORIDAD ABSOLUTA. Reproducir todos sus requisitos sin omitir, sustituir, suavizar ni reinterpretar detalles:",
+    source,
+    safeAddition ? `REFINAMIENTOS VISUALES OPCIONALES (solo si son compatibles con la solicitud original): ${safeAddition}` : "",
+    structure ? `COMPOSICIÓN SUGERIDA: ${structure}` : "",
+    priorities ? `PRIORIDADES DE CALIDAD: ${priorities}` : "",
+    avoid ? `EVITAR CUANDO NO CONTRADIGA LA SOLICITUD: ${avoid}.` : "",
+    "Si una sugerencia o skill entra en conflicto con la solicitud original, ignorar la sugerencia. Conservar íntegros el sujeto, acción, estilo, vestimenta, colores, encuadre, fondo, iluminación, composición, nombres, números y texto exacto pedidos.",
+  ].filter(Boolean).join("\n\n");
 }
 
 export function extractOptimizedPromptText(value: unknown): string {
