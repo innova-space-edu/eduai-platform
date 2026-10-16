@@ -28,14 +28,20 @@ export async function GET() {
     }
     const result = await res.json().catch(() => ({}))
     const available = result?.ok === true
+    const provider = result?.provider === "chatterbox-self-hosted"
+      ? "Chatterbox Multilingual V3 · GPU ScientificBrain"
+      : "Google Gemini Voice Replication"
+    const isChatterbox = result?.provider === "chatterbox-self-hosted"
     return NextResponse.json({
       ok: available,
-      provider: "Google Gemini Voice Replication",
-      model: typeof result?.model === "string" ? result.model : "gemini-3.8-flash-tts",
+      provider,
+      model: typeof result?.model === "string" ? result.model : "",
       httpStatus: typeof result?.status === "number" ? result.status : null,
       message: available
-        ? "Google Voices API disponible sin Hugging Face"
-        : "El gateway responde, pero Gemini Voices API aún requiere configuración, permiso o cuota",
+        ? (isChatterbox ? "Chatterbox GPU activo; voz local sin Gemini ni Hugging Face" : "Google Voices API disponible")
+        : (isChatterbox
+            ? "Motor Chatterbox pendiente: comprueba los pesos verificados, la cuota GPU y el acceso privado de Cloud Run."
+            : "Gemini Voice Replication requiere Paid Quota Tier 1; configura Chatterbox antes de replicar."),
     }, { status: available ? 200 : 503, headers: { "Cache-Control": "no-store" } })
   } catch {
     return NextResponse.json({
