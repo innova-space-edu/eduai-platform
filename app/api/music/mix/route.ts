@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient as createAdminClient } from "@supabase/supabase-js";
 import { MIX_FAVORITE_SEED_SONGS } from "@/lib/music/mix-favorite-seed";
 
 export const maxDuration = 25;
@@ -68,27 +69,58 @@ export async function POST(req: NextRequest) {
   })).filter((s: RequestSong) => s.artist && s.title);
   if (!requests.length) return NextResponse.json({ ok: false, error: "Faltan artistas o canciones." }, { status: 400 });
   const excluded = new Set((Array.isArray(body.excludeIds) ? body.excludeIds : []).slice(-500).filter((s: unknown): s is string => typeof s === "string"));
+  // Caché global de videos verificados: reutilizar un mismo video para distintas
+  // cuentas no mezcla historiales personales y evita gastar cuota de búsqueda.
+  const adminUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const cache = adminUrl && adminKey
+    ? createAdminClient(adminUrl, adminKey, { auth: { autoRefreshToken: false, persistSession: false } })
+    : null;
+  const songKey = (song: RequestSong) => normalized(song.artist) + "|" + normalized(song.title);
+  const requestedKeys = requests.map(songKey);
+  const cachedTracks: Array<{ song_key: string; track: Record<string, unknown> }> = [];
+  if (cache) {
+    const cutoff = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString();
+    const { data } = await cache.from("eduai_music_mix_video_cache")
+      .select("song_key,track").in("song_key", requestedKeys).gte("verified_at", cutoff);
+    for (const row of data || []) {
+      const id = (row.track as { youtubeVideoId?: string })?.youtubeVideoId;
+      if (id && !excluded.has(id)) cachedTracks.push(row);
+    }
+  }
+  const inCache = new Set(cachedTracks.map((v) => v.song_key));
+  const unresolved = requests.filter((s) => !inCache.has(songKey(s)));
   const found: { song: RequestSong; item: YouTubeItem }[] = [];
   let failures = 0;
-
-  await Promise.all(requests.map(async (song) => {
+  if (unresolved.length) {
+    // YouTube permite OR (|): hasta tres artistas con una sola búsqueda.
     const params = new URLSearchParams({
-      key: apiKey, part: "snippet", type: "video", q: song.artist + " " + song.title,
-      videoEmbeddable: "true", videoSyndicated: "true", safeSearch: "moderate", maxResults: "12",
+      key: apiKey, part: "snippet", type: "video",
+      q: unresolved.map((song) => song.artist + " " + song.title).join("|"),
+      videoEmbeddable: "true", videoSyndicated: "true",
+      safeSearch: "moderate", maxResults: "50",
     });
     try {
       const response = await fetch("https://www.googleapis.com/youtube/v3/search?" + params, { next: { revalidate: 7200 } });
-      if (!response.ok) { failures++; return; }
-      const data = await response.json();
-      for (const item of (data.items || []) as YouTubeItem[]) {
-        if (item.id?.videoId && !excluded.has(item.id.videoId) && item.snippet?.title) {
-          found.push({ song, item });
+      if (!response.ok) failures++;
+      else {
+        const data = await response.json();
+        for (const item of (data.items || []) as YouTubeItem[]) {
+          if (!item.id?.videoId || excluded.has(item.id.videoId) || !item.snippet?.title) continue;
+          for (const song of unresolved) {
+            if (rankVideo(item.snippet.title, item.snippet.channelTitle || "", song) >= 0) {
+              found.push({ song, item });
+            }
+          }
         }
       }
     } catch { failures++; }
-  }));
+  }
   if (!found.length) {
-    return NextResponse.json({ ok: true, tracks: [], searched: requests.length, failures });
+    return NextResponse.json({
+      ok: true, tracks: cachedTracks.map((v) => v.track), searched: unresolved.length,
+      cached: cachedTracks.length, failures,
+    });
   }
 
   const ids = [...new Set(found.map((v) => v.item.id!.videoId!))].slice(0, 36);
@@ -127,8 +159,24 @@ export async function POST(req: NextRequest) {
     seen.add(row.artistKey);
     selected.push(row);
   }
+  if (cache && selected.length) {
+    void await cache.from("eduai_music_mix_video_cache").upsert(selected.map((v) => ({
+      song_key: songKey(v.song), artist: v.song.artist, title: v.song.title,
+      track: v.track, verified_at: new Date().toISOString(),
+    })), { onConflict: "song_key" }).then(({ error }) => {
+      if (error) console.warn("[EDUAI Music] No se pudo almacenar caché verificada:", error.message);
+    });
+  }
+  const finalTracks = [...cachedTracks.map((v) => v.track), ...selected.map((v) => v.track)];
+  const playedArtists = new Set<string>();
+  const tracks = finalTracks.filter((track) => {
+    const key = normalized(String(track.artist || ""));
+    if (!key || playedArtists.has(key)) return false;
+    playedArtists.add(key);
+    return true;
+  });
   return NextResponse.json({
-    ok: true, tracks: selected.map((v) => v.track), searched: requests.length,
+    ok: true, tracks, searched: unresolved.length, cached: cachedTracks.length,
     failures, verifiedCount: details.length, candidates: scored.length,
   });
 }
