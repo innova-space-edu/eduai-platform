@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { buildGeminiTtsRequest, generateGeminiNarration, GeminiTtsError } from "../lib/audio/gemini-narration"
 
+async function main() {
 const narr = [{ speaker: "A" as const, text: "Hola, este es un audio educativo." }]
 const one = buildGeminiTtsRequest(narr, "narration", "es-CL-LorenzoNeural", "es-ES-ElviraNeural")
 assert.equal(one.generationConfig.responseModalities[0], "AUDIO")
@@ -46,3 +47,7 @@ try {
   globalThis.fetch = originalFetch
 }
 console.log("Audio Lab Gemini TTS request, accents, dialogue and WAV regression: OK")
+
+}
+
+void main().catch((error) => { console.error(error); process.exitCode = 1 })
