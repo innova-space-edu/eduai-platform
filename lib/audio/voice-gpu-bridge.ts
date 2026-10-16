@@ -74,6 +74,7 @@ export async function postVoiceGpuBridge(req: Request) {
 
   if (body.operation === "connect") {
     if (body.provider !== "kaggle" && body.provider !== "colab") return fail("Selecciona Kaggle o Colab",400)
+    if (body.provider_consent !== true) return fail("Confirma el consentimiento para procesar tu voz en el proveedor seleccionado",403)
     await db.from("audio_voice_render_jobs").update({
       status:"failed",stage:"worker_replaced",error:"Se creó otra sesión GPU",
     }).eq("user_id",ctx.userId).eq("voice_profile_id",profileId)
@@ -85,7 +86,7 @@ export async function postVoiceGpuBridge(req: Request) {
       status:"starting",stage:"worker_waiting",progress:0,
       provider:String(body.provider)+"-voice-bridge",engine:"chatterbox-multilingual-v3",
       metadata:{token_hash:createHash("sha256").update(secret).digest("hex"),
-        expires_at:expires,scope:"own-profile-only"},
+        expires_at:expires,scope:"own-profile-only",provider_consent_at:new Date().toISOString()},
     }).select("id").single()
     if(error||!row) return fail("No se pudo crear la vinculación temporal",503)
     return NextResponse.json({ok:true,provider:body.provider,session_id:row.id,
