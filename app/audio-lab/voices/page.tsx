@@ -541,8 +541,8 @@ export default function AudioLabVoicesPage() {
                     {!voice.consent_audio_path && voice.sample_path && (
                       <p className="mt-1 max-w-xl text-xs text-amber-700">Falta grabar y subir el consentimiento vocal. La muestra anterior se conserva y no necesitas crear otro perfil.</p>
                     )}
-                    {voice.processing_error && (/OpenVoice|hf\.co|Hugging Face/i.test(voice.processing_error)
-                      ? <p className="mt-1 max-w-xl text-xs text-amber-700">Aviso antiguo de OpenVoice/Hugging Face: este proveedor ya no se usa. Tras subir el consentimiento podrás procesar la voz cuando Chatterbox esté listo.</p>
+                    {voice.processing_error && (/OpenVoice|hf\.co|Hugging Face|Voice replication requires Paid Quota Tier 1|Gemini Voice Replication respondió 403/i.test(voice.processing_error)
+                      ? <p className="mt-1 max-w-xl text-xs text-amber-700">Intento anterior no completado: el proveedor rechazó la clonación. Se conservan la muestra y el consentimiento. Chatterbox está pendiente de cuota GPU; no vuelvas a intentar hasta que aparezca disponible.</p>
                       : <p className="mt-1 max-w-xl text-xs text-red-500">{voice.processing_error}</p>)}
                     {(voice.status === "processing" || processingVoiceId === voice.id) && (
                       <div className="mt-3 max-w-xl">
