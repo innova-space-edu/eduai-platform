@@ -790,6 +790,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         setMixFavoriteActive(false);
         setMixQueueTracks([]);
         mixCurrentQueueRef.current = [];
+        setCurrentId(undefined);
+        setPlaying(false);
       }
       setMixProfileReady(false);
       mixProfileUserRef.current = userId;
