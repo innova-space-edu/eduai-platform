@@ -1,40 +1,55 @@
-# EDUAI Chatterbox Multilingual V3 on ScientificBrain Cloud Run
+# Chatterbox Multilingual V3 — motor privado de EDUAI
 
-This private inference service provides zero-shot Spanish voice cloning. The user must be an adult EDUAI administrator with MFA, private voice profile and recorded consent.
+## Estado y arquitectura
 
-## Flow
+Esta implementación utiliza la cuenta y el consentimiento de Audio Lab existentes.
+Flujo: navegador EDUAI -> ruta protegida Vercel -> gateway en Google Cloud Run -> contenedor privado Chatterbox GPU -> Supabase Storage privado.
 
-EDUAI browser -> protected same-origin Vercel endpoint -> eduai-song-gateway (Supabase authorization, MFA and consent) -> private eduai-voice-engine (Cloud Run IAM) -> Chatterbox GPU -> encrypted private Supabase storage -> signed playback URL.
+- Administrador adulto, MFA AAL2 y consentimiento grabado son requisitos obligatorios.
+- El motor GPU recibe exclusivamente la muestra WAV efímera y el texto, sin claves Supabase.
+- Chatterbox genera español desde una referencia propia (zero-shot). No se entrena un modelo nuevo por usuario.
+- El motor no utiliza Gemini Voice Replication, la cuota Paid Tier 1 ni Hugging Face Spaces/API.
+- Solo el gateway puede invocar el contenedor mediante un token de identidad de Google Cloud Run.
 
-The GPU inference container receives only the source WAV and the text to synthesize, never Supabase credentials. The output is watermarked by upstream Chatterbox. Users cannot contact the GPU service directly unless authorized through Cloud Run IAM.
+## Imagen recomendada — sin dependencias de buckets ni HF
 
-## No Hugging Face inference or downloading
-
-The service uses ChatterboxMultilingualTTS.from_local with fully verified checkpoints downloaded from the independent ModelScope mirror at https://modelscope.cn/models/ResembleAI/chatterbox. This project uses no Hugging Face inference provider, Space, API key or runtime checkpoint download. The Python wheel includes upstream hub dependencies but HF_HUB_OFFLINE=1 prevents contacting HF.
-
-The source is MIT licensed: https://github.com/resemble-ai/chatterbox .
-
-Required model files in private GCS:
+Dockerfile.baked incorpora los pesos al contenedor DURANTE la compilación, descargándolos desde el mirror público ModelScope ResembleAI/chatterbox. Crea un manifiesto SHA256 para:
 - ve.pt
 - s3gen.pt
 - t3_mtl23ls_v3.safetensors
 - grapheme_mtl_merged_expanded_v1.json
-- manifest.json containing SHA256 hashes for all checkpoint files.
 
-GCS prefix: gs://scientificbrain-compute-artifacts-260133939682/eduai-voice-models/chatterbox-v3
+El código arranca con ChatterboxMultilingualTTS.from_local, comprueba los hashes y configura HF_HUB_OFFLINE=1. No descarga pesos durante las peticiones de usuario. MIT: https://github.com/resemble-ai/chatterbox .
 
-Run the included stage-weights.cloudbuild.yaml as a Cloud Build job once. It downloads the four required files from ModelScope and validates them with SHA256 before uploading to Cloud Storage.
+Modelo: https://modelscope.cn/models/ResembleAI/chatterbox
 
-## Cloud Run GPU deployment (do not enable without checkpoint assets)
+El Dockerfile tradicional y stage-weights.cloudbuild.yaml se conservan como alternativa GCS, pero NO se necesitan cuando la imagen ya contiene un checkpoint válido. No es necesario conceder acceso a los datos de MaleCNS.
 
-Build the Dockerfile inside services/eduai-voice-chatterbox and push image to the existing eduai-audio Artifact Registry repository. Deploy with NVIDIA L4 in us-central1, 4 vCPU, 16 GiB RAM, one max instance, zero minimum instances, concurrency 1, timeout 900 seconds and no public access.
+## Despliegue
 
-Configure CHATTERBOX_MODEL_GCS_URI pointing at the GCS prefix above. Grant the GPU service account read-only checkpoint access; grant only the existing gateway service account roles/run.invoker on this private service. Do not grant allUsers.
+Proyecto: scientificbrain-compute.
+Imagen: us-central1-docker.pkg.dev/scientificbrain-compute/eduai-audio/chatterbox-voice:v1
+Servicio privado: eduai-voice-engine (us-central1)
+GPU: NVIDIA L4 24 GB, 4 vCPU, 16 GiB RAM.
+Escalado: min 0, max 1, concurrencia 1, timeout 900s.
+Seguridad: NO permitir acceso público; conceder roles/run.invoker solamente a la cuenta de servicio del gateway eduai-song-gateway.
 
-A Compute Engine quota does NOT guarantee Cloud Run GPU availability; inspect specific Cloud Run GPU quota before deployment. Costs accrue for GPU start, inference and Cloud Build even when no Gemini paid voice API is used. Configure Google Cloud budget alerts.
+Validar la cuota específica Cloud Run NVIDIA L4 antes de desplegar. Una cuota para Compute Engine no significa cuota para Cloud Run. Confirmar los costos, límites de facturación y presupuesto de ScientificBrain. El arranque frío carga alrededor de varios GB de modelo, por lo que puede ser lento y facturable.
 
-Once the new GPU service successfully loads weights and returns a positive private /health, redeploy the existing gateway with VOICE_PROVIDER=chatterbox and CHATTERBOX_ENGINE_URL set to the private URL. Keep existing protected browser relay, admin-adult-MFA enforcement, consent and Supabase paths.
+El contenedor GPU requiere su cuenta de servicio de mínimo privilegio. No necesita Secret Manager, claves API, ni permisos para acceder a Supabase si utiliza la imagen con modelo integrado.
 
-The gateway labels a profile ready only after the engine is reachable; it stores a reference identifier, not a trained model. The existing reference WAV and consent stay private in Supabase.
+## Activación del gateway
 
-Deployment of the Vercel frontend alone does not change the Cloud Run gateway. Do not claim replication is working until both preparing and rendering a consented voice are verified.
+Una vez que el nuevo servicio privado responda correctamente a GET /health con un token Google IAM del gateway:
+- Desplegar services/google-audio-gateway con google-auth instalado.
+- Configurar VOICE_PROVIDER=chatterbox.
+- Configurar CHATTERBOX_ENGINE_URL a la URL concreta del servicio privado.
+- Mantener todas las variables actuales de Supabase, CORS, claves Google para otras herramientas y autenticación.
+
+GET /diagnostics/voice deberá devolver provider=chatterbox-self-hosted y ok=true. Solo entonces la interfaz podrá preparar una voz.
+
+## Verificación
+
+Usar el perfil propio existente, con muestra y consentimiento, y probar preparación seguida de síntesis real. No alterar manualmente el estado a ready. El motor anterior continúa sin cambios mientras el gateway no tenga VOICE_PROVIDER=chatterbox.
+
+El servicio nuevo puede generar costos de Cloud Build y GPU aunque no se pague por llamadas a Gemini. La clonación no está verificada hasta obtener y reproducir un WAV.
