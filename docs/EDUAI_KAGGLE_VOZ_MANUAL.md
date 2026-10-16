@@ -5,9 +5,9 @@ La conexión inicial es **manual** y segura: no expone una API pública, no deja
 ## Configurar por primera vez
 
 1. Accede a [Kaggle Notebooks](https://www.kaggle.com/code/new) con tu cuenta.
-2. Importa el notebook `notebooks/eduai_chatterbox_kaggle.ipynb`:
+2. Importa el notebook `notebooks/eduai_chatterbox_kaggle_python311.ipynb`:
    - **File → Load from URL** y pega la URL de GitHub:
-     https://github.com/innova-space-edu/eduai-platform/blob/main/notebooks/eduai_chatterbox_kaggle.ipynb
+     https://github.com/innova-space-edu/eduai-platform/blob/main/notebooks/eduai_chatterbox_kaggle_python311.ipynb
    - Si Kaggle no puede leer un repositorio privado, descarga el archivo `.ipynb` desde GitHub y utiliza la opción de importar/subir notebook de Kaggle.
 3. Guarda tu notebook con visibilidad **Private**. No guardes muestras vocales o audios en notebooks públicos.
 4. En Kaggle elige **Settings → Accelerator → GPU T4 x2** y **Settings → Turn on internet** para descargar las dependencias y el modelo desde ModelScope. Si el menú dice «Turn on internet», pulsa esa opción para activarlo y reinicia la sesión.
@@ -53,3 +53,19 @@ Si Kaggle cerró la sesión, pulsa de nuevo **Abrir mi notebook de Kaggle**, vue
 - La cuota de GPU es gratuita solo mientras Kaggle la ofrezca para tu cuenta y dentro de sus límites. Cada T4 tiene 16 GB VRAM independiente; Chatterbox utiliza una GPU.
 - El proceso de instalación necesita Internet de Kaggle y usa GitHub oficial + ModelScope; no usa HF Spaces ni llama a la API de clonación Gemini.
 - Los primeros resultados deben evaluarse por calidad de español, entonación y semejanza antes de dar por validado el motor.
+
+## Integrar una voz generada en «Mis voces»
+
+Una ejecución en Kaggle produce `eduai_voz_kaggle.wav` y `eduai_mi_voz.zip`. El ZIP incluye exactamente un WAV mono PCM de 16 bits a 24 kHz.
+
+1. En EDUAI, abre Audio Lab → Mis voces y desbloquea el área del administrador con MFA.
+2. Localiza el perfil previamente creado (por ejemplo «livi») con muestra y consentimiento.
+3. Confirma la autorización para guardar el resultado que procesaste en Kaggle.
+4. Selecciona **Importar ZIP o WAV de Kaggle** y carga cualquiera de esos dos archivos.
+5. EDUAI extrae localmente el único WAV permitido, valida la cabecera PCM del audio, lo guarda en tu bucket privado y lo registra en los trabajos de voz asociados a tu perfil.
+6. Reproduce o pulsa **Descargar WAV** desde «Mis audios Chatterbox V3».
+7. Para crear otro audio, escribe el texto en el campo de EDUAI, elige el perfil, pulsa **Copiar texto para Kaggle**, abre tu notebook privado y pega el texto en la variable `TEXTO`. Después vuelve a importar el nuevo archivo ZIP/WAV.
+
+El modelo base de Chatterbox V3 NO se entrena con cada audio y el archivo de 8,92 segundos generado NO es un checkpoint reutilizable. EDUAI ya conserva la referencia vocal autorizada; el archivo importado es una demostración que se guarda bajo su perfil. Sin un proceso GPU de Kaggle ejecutándose y sin un canal autenticado de intercambio de trabajos, la web no puede hacer inferencia directa. No marcar perfiles como `ready` por haber importado un WAV ni afirmar que Cloud Run GPU funciona.
+
+**Privacidad:** la muestra y los WAV no van al repositorio GitHub. El ZIP se descomprime en el navegador, nunca se sube como archivo comprimido al servidor. El usuario debe confirmar su autorización y mantener el notebook de Kaggle privado. La sesión sensible exige MFA AAL2.
