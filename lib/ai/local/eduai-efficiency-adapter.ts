@@ -123,9 +123,9 @@ export function planUniversalEfficiency(input: EfficiencyInput): EfficiencyPlan 
   const chosenContext = Math.max(512, Math.min(
     model.maxContext, 4096,
     Number.isFinite(desiredContext) ? desiredContext : 2048,
-    ram !== null && ram <= 4 ? 1024 : ram !== null && ram <= 8 ? 2048 : 4096,
+    ram !== null && ram <= 4 ? 1024 : ram !== null && ram < 12 ? 2048 : 4096,
   ));
-  const batchSize = ram !== null && ram <= 4 ? 32 : ram !== null && ram <= 8 ? 64 : 128;
+  const batchSize = ram !== null && ram <= 4 ? 32 : ram !== null && ram < 12 ? 64 : 128;
   const weightsMB = model.weightsMB;
   const requiredDiskMB = Math.ceil(weightsMB + (input.includeVision ? (model.visionProjectorMB ?? 0) : 0));
   const estimatedRuntimeBudgetMB = approximateRuntimeBudgetMB(model, chosenContext, input.includeVision);
@@ -230,10 +230,10 @@ export function getAdaptiveWllamaTuning(memoryGB: number | null, modelContext: n
   n_batch: number;
 } {
   const ram = positiveMemory(memoryGB);
-  const ceiling = ram === null ? 1024 : ram <= 4 ? 1024 : ram <= 8 ? 2048 : 4096;
+  const ceiling = ram === null ? 1024 : ram <= 4 ? 1024 : ram < 12 ? 2048 : 4096;
   return {
     n_ctx: Math.min(Math.max(512, Math.floor(modelContext)), ceiling),
-    n_batch: ram === null || ram <= 4 ? 32 : ram <= 8 ? 64 : 128,
+    n_batch: ram === null || ram <= 4 ? 32 : ram < 12 ? 64 : 128,
   };
 }
 
