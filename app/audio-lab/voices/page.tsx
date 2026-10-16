@@ -7,6 +7,7 @@ import {
   ArrowLeft,
   ExternalLink,
   Download,
+  Copy,
   CheckCircle2,
   KeyRound,
   Loader2,
@@ -22,6 +23,7 @@ import {
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { uploadAudioResumable } from "@/lib/audio/resumable-upload"
+import { prepareKaggleVoiceUpload } from "@/lib/audio/kaggle-zip"
 import { callAudioEngine, currentSupabaseToken, streamAudioEngine } from "@/lib/audio/cloud-run-client"
 
 const sleep = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms))
@@ -49,11 +51,13 @@ type KaggleAudio = {
   profile_id: string
   created_at: string
   audio_url: string
+  audio_path: string
+  text: string
 }
 
 const KAGGLE_URL_KEY = "eduai_voice_kaggle_notebook_url"
 const KAGGLE_START_URL = "https://www.kaggle.com/code/new"
-const KAGGLE_GUIDE_URL = "https://github.com/innova-space-edu/eduai-platform/blob/main/notebooks/eduai_chatterbox_kaggle.ipynb"
+const KAGGLE_GUIDE_URL = "https://github.com/innova-space-edu/eduai-platform/blob/main/notebooks/eduai_chatterbox_kaggle_python311.ipynb"
 
 function validKaggleNotebookUrl(input: string) {
   try {
@@ -115,6 +119,10 @@ export default function AudioLabVoicesPage() {
   const [kaggleProfileId, setKaggleProfileId] = useState("")
   const [kaggleUploading, setKaggleUploading] = useState(false)
   const [kaggleAudios, setKaggleAudios] = useState<KaggleAudio[]>([])
+  const [kaggleSourceConfirmed, setKaggleSourceConfirmed] = useState(false)
+  const [kaggleText, setKaggleText] = useState("Hola. Esta es una nueva generación con mi voz de EDUAI.")
+  const [kaggleSelectedVoiceId, setKaggleSelectedVoiceId] = useState("")
+  const [kaggleDownloadingId, setKaggleDownloadingId] = useState("")
 
   const refreshSecurity = useCallback(async () => {
     const response = await fetch("/api/agents/audio/voices/security", { cache: "no-store" })
@@ -213,26 +221,65 @@ export default function AudioLabVoicesPage() {
   }
 
   async function importKaggleWav(file: File) {
-    if (!kaggleProfileId) return setError("Elige primero un perfil vocal.")
-    if (!/\.wav$/i.test(file.name) || file.size > 8 * 1024 * 1024) {
-      return setError("El resultado de Kaggle debe ser WAV y pesar como máximo 8 MB.")
+    const profileId = kaggleProfileId
+    if (!profileId) return setError("Elige primero un perfil vocal.")
+    if (!kaggleSourceConfirmed) {
+      return setError("Confirma que la voz es tuya y autorizas guardar el audio generado con Kaggle.")
     }
     setError("")
     setKaggleUploading(true)
     try {
+      const wav = await prepareKaggleVoiceUpload(file)
       const form = new FormData()
-      form.set("profileId", kaggleProfileId)
-      form.set("audio", file)
+      form.set("profileId", profileId)
+      form.set("audio", wav)
+      form.set("text", kaggleText.trim().slice(0, 1500))
+      form.set("sourceConfirmed", "true")
       const response = await fetch("/api/agents/audio/voices/profiles?mode=kaggle", { method: "POST", body: form })
       const result = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(result.error || "No fue posible importar el audio")
       setSuccess(result.message || "Audio de Kaggle importado a tu biblioteca privada.")
+      setKaggleSourceConfirmed(false)
       await loadKaggleAudios()
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo importar el audio")
     } finally {
       setKaggleUploading(false)
       setKaggleProfileId("")
+    }
+  }
+
+  async function downloadKaggleAudio(audio: KaggleAudio) {
+    setError("")
+    setKaggleDownloadingId(audio.id)
+    try {
+      const { data, error: downloadError } = await supabase.storage
+        .from("generated-voice-audio").download(audio.audio_path)
+      if (downloadError || !data) throw new Error(downloadError?.message || "No se pudo descargar el audio")
+      const url = URL.createObjectURL(data)
+      const anchor = document.createElement("a")
+      anchor.href = url
+      anchor.download = `eduai-chatterbox-${audio.id}.wav`
+      document.body.appendChild(anchor)
+      anchor.click()
+      anchor.remove()
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "No se pudo descargar el WAV")
+    } finally {
+      setKaggleDownloadingId("")
+    }
+  }
+
+  async function copyKagglePrompt() {
+    if (!kaggleText.trim()) return setError("Escribe el texto que quieras generar.")
+    if (!kaggleSelectedVoiceId) return setError("Selecciona la voz que utilizarás en Kaggle.")
+    try {
+      await navigator.clipboard.writeText(kaggleText.trim())
+      setError("")
+      setSuccess("Texto copiado. Abre Kaggle y reemplaza TEXTO en tu notebook. Después importa el WAV a esta voz.")
+    } catch {
+      setError("El navegador no permitió copiar el texto. Selecciónalo manualmente.")
     }
   }
 
@@ -658,14 +705,56 @@ export default function AudioLabVoicesPage() {
                 <button type="button" onClick={saveKaggleUrl} className="rounded-xl border border-purple-500/25 px-3 py-2 text-xs font-semibold">Guardar enlace</button>
               </div>
               <p className="text-[11px] text-muted2">La primera vez, importa el archivo de GitHub con File → Load from URL. Guarda el notebook como privado y pega aquí su dirección. El botón abrirá ese mismo notebook en sesiones futuras.</p>
+              <div className="rounded-xl border border-purple-500/15 p-3 space-y-2">
+                <h3 className="text-xs font-semibold text-main">Generar una frase con mi voz (Kaggle manual)</h3>
+                <select value={kaggleSelectedVoiceId} onChange={(event) => setKaggleSelectedVoiceId(event.target.value)}
+                  aria-label="Voz de referencia para Kaggle"
+                  className="w-full rounded-lg border border-soft bg-app px-3 py-2 text-xs">
+                  <option value="">Selecciona un perfil con referencia y consentimiento</option>
+                  {voices.filter((voice) => voice.sample_path && voice.consent_audio_path).map((voice) => (
+                    <option key={voice.id} value={voice.id}>{voice.display_name}</option>
+                  ))}
+                </select>
+                <textarea value={kaggleText} onChange={(event) => setKaggleText(event.target.value)}
+                  maxLength={1500} rows={3} aria-label="Texto de mi próxima voz"
+                  className="w-full rounded-lg border border-soft bg-app px-3 py-2 text-xs"
+                  placeholder="Escribe lo que tu voz debe decir..." />
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => void copyKagglePrompt()} type="button"
+                    className="rounded-xl border border-purple-500/25 px-3 py-2 text-xs font-semibold flex gap-2 items-center">
+                    <Copy size={13} /> Copiar texto para Kaggle
+                  </button>
+                  <a href={kaggleNotebookUrl || KAGGLE_START_URL} target="_blank" rel="noopener noreferrer"
+                    className="rounded-xl border border-purple-500/25 px-3 py-2 text-xs font-semibold flex gap-2 items-center">
+                    <ExternalLink size={13} /> Abrir Kaggle para generar
+                  </a>
+                </div>
+                <p className="text-[11px] text-muted2">Pega el texto en la variable TEXTO del notebook, carga tu referencia descargable desde el perfil y genera el WAV. Kaggle debe tener una sesión GPU encendida; EDUAI todavía no ejecuta el modelo en su servidor.</p>
+              </div>
+              <label className="flex items-start gap-2 text-xs text-sub">
+                <input type="checkbox" checked={kaggleSourceConfirmed}
+                  onChange={(event) => setKaggleSourceConfirmed(event.target.checked)} className="mt-0.5" />
+                Confirmo que este audio pertenece a mi voz autorizada y acepto guardarlo en la biblioteca privada de EDUAI después de procesarlo con Kaggle.
+              </label>
               <p className="text-[11px] text-amber-700">Al cargar tu muestra en Kaggle, un proveedor externo procesará temporalmente tu voz. No publiques el notebook ni sus archivos. No introduzcas claves de EDUAI o Supabase.</p>
-              {kaggleAudios.length > 0 && <div className="rounded-xl border border-purple-500/15 p-3 space-y-2">
-                <h3 className="font-semibold text-xs">Audios importados de Kaggle · biblioteca privada</h3>
-                {kaggleAudios.slice(0, 8).map((audio) => (
-                  <div key={audio.id} className="flex flex-wrap items-center gap-2 text-xs">
-                    <span className="text-muted2 min-w-32">{voices.find((v) => v.id === audio.profile_id)?.display_name || "Voz"} · {new Date(audio.created_at).toLocaleDateString("es-CL")}</span>
-                    <audio controls preload="none" src={audio.audio_url} className="max-w-full h-8 flex-1" />
-                    <a href={audio.audio_url} target="_blank" rel="noopener noreferrer" className="underline text-purple-700">Abrir WAV</a>
+              {kaggleAudios.length > 0 && <div className="rounded-xl border border-purple-500/15 p-3 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-xs">Mis audios Chatterbox V3 · biblioteca privada</h3>
+                  <button type="button" onClick={() => void loadKaggleAudios()} className="text-xs underline">Actualizar audios</button>
+                </div>
+                {kaggleAudios.slice(0, 12).map((audio) => (
+                  <div key={audio.id} className="rounded-lg border border-soft p-2 space-y-2">
+                    <div className="flex items-start justify-between flex-wrap gap-2 text-xs">
+                      <span className="font-medium">{voices.find((v) => v.id === audio.profile_id)?.display_name || "Mi voz"} · {new Date(audio.created_at).toLocaleString("es-CL")}</span>
+                      <button type="button" onClick={() => void downloadKaggleAudio(audio)}
+                        disabled={kaggleDownloadingId === audio.id}
+                        className="rounded-lg border border-purple-500/20 px-3 py-1.5 text-purple-700 flex gap-1 items-center disabled:opacity-50">
+                        {kaggleDownloadingId === audio.id ? <Loader2 size={12} className="animate-spin" /> : <Download size={12} />}
+                        Descargar WAV
+                      </button>
+                    </div>
+                    <audio controls preload="none" src={audio.audio_url} className="w-full h-9" />
+                    {audio.text && <p className="text-[11px] text-muted2 line-clamp-2">{audio.text}</p>}
                   </div>
                 ))}
               </div>}
@@ -682,8 +771,8 @@ export default function AudioLabVoicesPage() {
               <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-4 text-sm text-sub">
                 <p className="font-semibold text-main">Grabación obligatoria de consentimiento</p>
                 <p className="mt-1">La misma persona de la muestra debe leer exactamente:</p>
-                <p className="mt-2 rounded-xl border border-purple-500/20 bg-app px-3 py-2 font-medium text-main">“Soy el propietario de esta voz y doy mi consentimiento para que Google la utilice para crear un modelo de voz sintética.”</p>
-                <p className="mt-2 text-xs text-muted2">La referencia debe contener entre 10 y 30 segundos de habla natural limpia. Google recomienda WAV mono PCM de 16 bits a 24 kHz.</p>
+                <p className="mt-2 rounded-xl border border-purple-500/20 bg-app px-3 py-2 font-medium text-main">“Soy titular de esta voz y autorizo a EDUAI a utilizarla para generar audio sintético con el motor de voz que seleccione expresamente, incluido Chatterbox en Kaggle.”</p>
+                <p className="mt-2 text-xs text-muted2">La referencia debe contener entre 10 y 30 segundos de voz limpia. Se recomienda WAV mono PCM de 16 bits a 24 kHz.</p>
               </div>
               <div className="flex items-center justify-between"><div><h2 className="font-bold">Biblioteca privada</h2><p className="text-muted2 text-sm">Guardamos la muestra canónica para que futuros motores creen su propio adaptador sin volver a pedirte la voz.</p></div><button onClick={loadVoices} className="rounded-xl border border-soft p-2"><RefreshCw size={14} /></button></div>
               {voices.length === 0 ? <p className="text-sm text-muted2">Todavía no existen perfiles vocales.</p> : voices.map((voice) => (
@@ -693,12 +782,13 @@ export default function AudioLabVoicesPage() {
                     <p className="text-xs text-muted2 mt-1">
                       {voice.source_kind === "self" ? "Voz propia" : "Tercero autorizado"} · Estado: {voice.status} · {voice.sample_path ? "referencia lista" : "sin referencia"} · {voice.consent_audio_path ? "consentimiento grabado" : "sin consentimiento de voz"}
                       {voice.model_provider ? ` · ${voice.model_provider}` : ""}
+                      {kaggleAudios.some((audio) => audio.profile_id === voice.id) ? " · Chatterbox V3 probado con Kaggle" : ""}
                     </p>
                     {!voice.consent_audio_path && voice.sample_path && (
                       <p className="mt-1 max-w-xl text-xs text-amber-700">Falta grabar y subir el consentimiento vocal. La muestra anterior se conserva y no necesitas crear otro perfil.</p>
                     )}
                     {voice.processing_error && (/OpenVoice|hf\.co|Hugging Face|Voice replication requires Paid Quota Tier 1|Gemini Voice Replication respondió 403/i.test(voice.processing_error)
-                      ? <p className="mt-1 max-w-xl text-xs text-amber-700">Intento anterior no completado: el proveedor rechazó la clonación. Se conservan la muestra y el consentimiento. Chatterbox está pendiente de cuota GPU; no vuelvas a intentar hasta que aparezca disponible.</p>
+                      ? <p className="mt-1 max-w-xl text-xs text-amber-700">Intento anterior no completado: el proveedor rechazó la clonación. Se conservan la muestra y el consentimiento. Chatterbox en Cloud Run todavía espera GPU. Mientras tanto puedes generar manualmente con Kaggle e importar el audio aquí.</p>
                       : <p className="mt-1 max-w-xl text-xs text-red-500">{voice.processing_error}</p>)}
                     {(voice.status === "processing" || processingVoiceId === voice.id) && (
                       <div className="mt-3 max-w-xl">
@@ -761,9 +851,14 @@ export default function AudioLabVoicesPage() {
                       </div>
                     )}
                     {voice.sample_path && voice.consent_audio_path && (
-                      <button type="button" onClick={() => { setKaggleProfileId(voice.id); kaggleInputRef.current?.click() }}
+                      <button type="button" onClick={() => {
+                        if (!kaggleSourceConfirmed) { setError("Confirma arriba la autorización para importar tu voz desde Kaggle."); return }
+                        setKaggleProfileId(voice.id)
+                        setKaggleSelectedVoiceId(voice.id)
+                        kaggleInputRef.current?.click()
+                      }}
                         disabled={kaggleUploading} className="rounded-xl border border-purple-500/25 px-3 py-2 text-xs text-purple-700 flex gap-2 items-center disabled:opacity-50">
-                        <Upload size={13} /> {kaggleUploading && kaggleProfileId === voice.id ? "Importando…" : "Importar WAV de Kaggle"}
+                        <Upload size={13} /> {kaggleUploading && kaggleProfileId === voice.id ? "Importando…" : "Importar ZIP o WAV de Kaggle"}
                       </button>
                     )}
                     <button onClick={() => deleteVoice(voice.id)} className="rounded-xl border border-red-500/20 px-3 py-2 text-xs text-red-500 flex items-center gap-2"><Trash2 size={13} /> Eliminar</button>
@@ -776,7 +871,7 @@ export default function AudioLabVoicesPage() {
 
       <input ref={sampleInputRef} type="file" accept=".mp3,.wav,.m4a,.webm,.ogg" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadSample(file, "reference"); event.target.value = "" }} />
       <input ref={consentInputRef} type="file" accept=".mp3,.wav,.m4a,.webm,.ogg" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) uploadSample(file, "consent"); event.target.value = "" }} />
-      <input ref={kaggleInputRef} type="file" accept=".wav,audio/wav" className="hidden"
+      <input ref={kaggleInputRef} type="file" accept=".wav,.zip,audio/wav,application/zip" className="hidden"
         onChange={(event) => { const file = event.target.files?.[0]; if (file) void importKaggleWav(file); event.target.value = "" }} />
       {uploading && <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center"><div className="rounded-2xl bg-app border border-soft p-5 space-y-3 w-72"><div className="flex items-center gap-3"><Loader2 className="animate-spin text-purple-500" /><span className="text-sm">Subiendo {activeUploadKind === "consent" ? "consentimiento" : "referencia"} privada… {uploadProgress}%</span></div><div className="h-2 rounded-full overflow-hidden bg-black/10"><div className="h-full bg-purple-500 transition-all" style={{ width: `${uploadProgress}%` }} /></div></div></div>}
     </main>

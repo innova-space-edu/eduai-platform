@@ -45,10 +45,26 @@ const profiles = readFileSync("app/api/agents/audio/voices/profiles/route.ts", "
 assert.ok(profiles.includes('searchParams.get("mode") === "kaggle"'))
 assert.ok(profiles.includes("importKaggleWav(req)") && profiles.includes("listKaggleWavs()"))
 const page = readFileSync("app/audio-lab/voices/page.tsx", "utf8")
+const stableNotebook = JSON.parse(readFileSync("notebooks/eduai_chatterbox_kaggle_python311.ipynb", "utf8"))
+assert.ok(stableNotebook.cells.length >= 8)
+const stableCode = stableNotebook.cells.map((c) => c.source.join("")).join("\\n")
+for (const check of [
+  'chatterbox-tts==0.1.7', 'torch==2.6.0', 'torchaudio==2.6.0',
+  'setuptools<81', 'ChatterboxMultilingualTTS.from_local',
+  'eduai_mi_voz.zip', 'ResembleAI/chatterbox',
+]) assert.ok(stableCode.includes(check), "Missing clean Kaggle Python 3.11 workflow: " + check)
+assert.ok(stableNotebook.cells.every(c => c.cell_type !== "code" || (c.execution_count == null && c.outputs.length === 0)),
+  "Do not commit user private samples or notebook execution output")
 assert.ok(page.includes("KAGGLE_START_URL"))
 assert.ok(page.includes("/api/agents/audio/voices/profiles?mode=kaggle"))
 assert.ok(page.includes("kaggleNotebookUrl"))
 assert.ok(page.includes('target="_blank" rel="noopener noreferrer"'))
-assert.ok(page.includes("Importar WAV de Kaggle"))
+assert.ok(page.includes("Importar ZIP o WAV de Kaggle"))
+assert.ok(page.includes("prepareKaggleVoiceUpload"))
+assert.ok(page.includes("downloadKaggleAudio"))
+assert.ok(page.includes("copyKagglePrompt"))
+assert.ok(route.includes('source_confirmed: sourceConfirmed'))
+assert.ok(route.includes('audio_path: row.audio_path'))
+assert.ok(route.includes('function validWav('))
 assert.ok(page.includes("Guard") && page.includes("Kaggle"))
 console.log("EDUAI Kaggle manual GPU notebook / private import security validation: OK")
