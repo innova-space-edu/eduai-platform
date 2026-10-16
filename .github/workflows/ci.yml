@@ -92,6 +92,9 @@ jobs:
       - name: EDUAI Music YouTube learning
         run: npx tsx scripts/test-mix-favorite-learning.ts
 
+      - name: EDUAI Audio Lab Gemini TTS regression
+        run: npx tsx scripts/test-gemini-narration.ts
+
       - name: Brain AI shadow routing
         run: npx tsx scripts/test-brain-ai.ts
 
