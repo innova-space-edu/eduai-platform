@@ -104,6 +104,7 @@ export default function AudioLabVoicesPage() {
   const [activeUploadKind, setActiveUploadKind] = useState<"reference" | "consent">("reference")
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [downloadingSampleId, setDownloadingSampleId] = useState("")
   const [processingVoiceId, setProcessingVoiceId] = useState("")
   const [playingVoiceId, setPlayingVoiceId] = useState("")
   const [voiceRenderProgress, setVoiceRenderProgress] = useState(0)
@@ -424,6 +425,31 @@ export default function AudioLabVoicesPage() {
     }
   }
 
+  async function downloadVoiceReference(voice: VoiceProfile) {
+    if (!unlocked || !voice.sample_path) return
+    setDownloadingSampleId(voice.id)
+    setError("")
+    try {
+      const { data, error: downloadError } = await supabase.storage
+        .from("voice-clones")
+        .download(voice.sample_path)
+      if (downloadError || !data) throw new Error(downloadError?.message || "No se pudo obtener el audio de referencia")
+
+      const url = URL.createObjectURL(data)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = voice.sample_path.split("/").pop() || "referencia-voz.wav"
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : "No se pudo descargar la referencia")
+    } finally {
+      setDownloadingSampleId("")
+    }
+  }
+
   async function processVoice(profileId: string) {
     setProcessingVoiceId(profileId)
     setError("")
@@ -698,6 +724,17 @@ export default function AudioLabVoicesPage() {
                     >
                       <Upload size={13} /> {voice.sample_path ? "Reemplazar referencia" : "Subir referencia"}
                     </button>
+                    {voice.sample_path && (
+                      <button
+                        type="button"
+                        onClick={() => void downloadVoiceReference(voice)}
+                        disabled={downloadingSampleId === voice.id}
+                        className="rounded-xl border border-soft px-3 py-2 text-xs flex items-center gap-2 disabled:opacity-50"
+                      >
+                        {downloadingSampleId === voice.id ? <Loader2 size={13} className="animate-spin" /> : <Download size={13} />}
+                        {downloadingSampleId === voice.id ? "Descargando…" : "Descargar referencia"}
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         setActiveUploadProfileId(voice.id)
