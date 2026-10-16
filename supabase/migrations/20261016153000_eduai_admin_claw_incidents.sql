@@ -82,4 +82,13 @@ end;
 $$;
 revoke all on function public.eduai_record_admin_incident(text,text,text,text,text,text,text,jsonb) from public, anon, authenticated;
 grant execute on function public.eduai_record_admin_incident(text,text,text,text,text,text,text,jsonb) to service_role;
+
+-- Existing, explicitly known project follow-ups. Never reset completed entries.
+insert into public.eduai_admin_tasks(task_key,module,title,detail,priority)
+values
+('model-lab:bonsai-native','model-lab','Validar backend Bonsai nativo','Pendiente instalar y medir el motor PrismML en un computador compatible; el panel web es solo un planificador.', 'medium'),
+('integrations:kaggle-mcp','integrations','Reanudar Kaggle MCP','La integración MCP está pausada hasta recuperar Innova Server Debian.', 'low'),
+('image-studio:provider-benchmarks','image-studio','Medir proveedores de imágenes','Faltan benchmarks reales de texto, costo y latencia para ordenar proveedores por capacidad.', 'medium')
+on conflict(task_key) do nothing;
+
 commit;
