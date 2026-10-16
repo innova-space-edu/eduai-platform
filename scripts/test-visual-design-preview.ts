@@ -21,6 +21,7 @@ assert.equal(visualStyleForPlan(selfie.plan), "realistic");
 const poster = planEduAIVisual('Afiche vertical con el texto exacto "FERIA CIENTÍFICA 2026"');
 const compiled = compileForEduAI(poster.plan, "auto");
 assert.ok(compiled.includes("FERIA CIENTÍFICA 2026"));
+assert.ok(compiled.includes("PRIORITY — USER REQUEST (VERBATIM"));
 assert.ok(compiled.includes("Spanish (es-CL)"));
 assert.ok(compiled.includes("pseudo-text"));
 assert.ok(compiled.includes("ONLY words or phrases allowed"));
@@ -55,6 +56,20 @@ const weak = "Infografía educativa del sistema solar";
 const enriched = ensureProductionPrompt(weak, weak, infographicProfile);
 assert.ok(enriched.length > weak.length * 2);
 assert.equal(improvementScore(weak, enriched).improved, true);
+
+// Regression: no rewriting, deleting or replacing details from the user request.
+const protectedRequest = 'Mario con traje rojo saltando en selva voxel tipo Minecraft, cámara lateral, luz nocturna, sin texto, fondo verde';
+const hostileRewrite = 'Mario con traje azul caminando en ciudad realista, cámara cenital y luz diurna';
+const protectedResult = ensureProductionPrompt(protectedRequest, hostileRewrite, infographicProfile);
+assert.ok(protectedResult.includes(protectedRequest));
+assert.ok(!protectedResult.includes(hostileRewrite));
+assert.ok(protectedResult.indexOf(protectedRequest) < protectedResult.indexOf("COMPOSICIÓN SUGERIDA"));
+assert.ok(ensureProductionPrompt(protectedRequest, protectedRequest + "\nMejorar nitidez de bordes.", infographicProfile).includes("Mejorar nitidez de bordes."));
+assert.ok(ensureProductionPrompt(protectedRequest, "Paisaje sin personaje", infographicProfile).includes(protectedRequest));
+const requiredPoster = 'Póster con 12 nombres y el texto "FERIA 2026"';
+const posterOverride = ensureProductionPrompt(requiredPoster, 'Póster con solo 6 etiquetas', infographicProfile);
+assert.ok(posterOverride.includes(requiredPoster));
+assert.ok(!posterOverride.includes('Póster con solo 6 etiquetas'));
 
 // Provider routing regression notes:
 // - Gemini image requests must use v1beta/interactions, not generateContent responseFormat.
