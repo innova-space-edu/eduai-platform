@@ -165,6 +165,11 @@ export function compileForEduAI(plan: VisualPlan, provider: EduAIVisualProvider)
   const compiled = String(request.prompt || plan.prompt || plan.visual_brief.purpose).trim();
   const languageRule = "OUTPUT LANGUAGE: Spanish (es-CL). Keep the requested subject, educational level and intent coherent.";
   const textRule = visibleTextRules(plan);
-  return [compiled, languageRule, textRule].filter(Boolean).join("\n\n");
+  const context = plan.visual_brief.context as Record<string, unknown> | undefined;
+  const originalRequest = typeof context?.routing_source === "string" ? context.routing_source.trim() : "";
+  const priority = originalRequest
+    ? `PRIORITY — USER REQUEST (VERBATIM, NEVER OVERRIDE):\n${originalRequest}\nAll details in this request override any conflicting specialist skill, design reference, optimization or compiled instructions.`
+    : "";
+  return [priority, compiled, languageRule, textRule].filter(Boolean).join("\n\n");
 }
 
