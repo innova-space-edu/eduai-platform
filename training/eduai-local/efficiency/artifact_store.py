@@ -75,6 +75,8 @@ class ArtifactStore:
     @contextmanager
     def _lock(self):
         self.root.mkdir(mode=0o700, parents=True, exist_ok=True)
+        if self.files_dir.is_symlink() or self.index_path.is_symlink():
+            raise CacheError("No se permiten enlaces simbólicos dentro del caché")
         self.files_dir.mkdir(mode=0o700, exist_ok=True)
         lock = self.root / ".index.lock"
         try:
@@ -88,6 +90,8 @@ class ArtifactStore:
             lock.unlink(missing_ok=True)
 
     def _read(self) -> dict:
+        if self.index_path.is_symlink():
+            raise CacheError("Índice simbólico prohibido")
         if not self.index_path.exists():
             return {"schema": 1, "entries": {}}
         if self.index_path.is_symlink() or self.index_path.stat().st_size > 4_000_000:
@@ -136,9 +140,16 @@ class ArtifactStore:
             raise CacheError("SHA-256 del artefacto no coincide; no usarlo")
         return path, size
 
-    def add(self, source: Path, model_id: str, expected_sha256: str, *, pin: bool = False) -> dict:
+    def add(self, source: Path, model_id: str, expected_sha256: str, *, pin: bool = False, quantization: str = "unspecified") -> dict:
         digest = clean_digest(expected_sha256)
         safe_model_id(model_id)
+        if not re.fullmatch(r"[A-Z][A-Z0-9_]{1,20}|unspecified", quantization):
+            raise CacheError("Formato de cuantización inválido")
+        if model_id.startswith("bonsai2-") and (
+            quantization not in ("PTQ1_0", "PQ2_0", "Q2_0")
+            or quantization not in source.name.upper()
+        ):
+            raise CacheError("Bonsai 2 requiere declarar el formato presente en el nombre original del archivo")
         if source.suffix.lower() != ".gguf" or source.is_symlink() or not source.is_file():
             raise CacheError("Importar únicamente GGUF regular y sin enlaces simbólicos")
         if self.root in source.resolve().parents:
@@ -177,12 +188,15 @@ class ArtifactStore:
                 finally:
                     Path(temp_name).unlink(missing_ok=True)
             current = idx["entries"].get(digest, {})
+            if current and current.get("quantization") != quantization:
+                raise CacheError("Formato inconsistente para el mismo SHA-256")
             aliases = sorted(set(current.get("model_ids", [])) | {model_id})
             idx["entries"][digest] = {
                 "sha256": digest, "bytes": n, "model_ids": aliases,
                 "pinned": bool(pin or current.get("pinned", False)),
                 "last_used": time.time(), "format": "GGUF",
                 "verified": True, "local_only": True,
+                "quantization": quantization, "source_name": source.name,
             }
             self._save(idx)
             return dict(idx["entries"][digest], path=str(dest), reused=bool(current))
@@ -253,6 +267,8 @@ def main(argv: list[str] | None = None) -> int:
     imp.add_argument("--model-id", required=True)
     imp.add_argument("--expected-sha256", required=True)
     imp.add_argument("--pin", action="store_true")
+    imp.add_argument("--quantization", default="unspecified",
+                     help="Por ejemplo PTQ1_0, PQ2_0, Q2_0, Q4_K_M")
     sub.add_parser("list")
     verify = sub.add_parser("verify")
     verify.add_argument("--sha256", required=True)
@@ -267,7 +283,7 @@ def main(argv: list[str] | None = None) -> int:
     store = ArtifactStore(args.cache_dir)
     try:
         if args.action == "import":
-            result = store.add(args.path, args.model_id, args.expected_sha256, pin=args.pin)
+            result = store.add(args.path, args.model_id, args.expected_sha256, pin=args.pin, quantization=args.quantization)
         elif args.action == "list":
             result = {"entries": store.list()}
         elif args.action == "verify":
