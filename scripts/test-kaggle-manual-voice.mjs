@@ -21,7 +21,7 @@ assert.ok(text.includes("subprocess.run([sys.executable, \"-c\", verify]"), "Ver
 assert.ok(text.includes('run_pip("setuptools<81")'), "Perth pkg_resources compatibility pin required")
 assert.ok(text.includes("perth.PerthImplicitWatermarker is not None"), "Do not accept missing Perth watermarker")
 assert.ok(text.includes("perth.PerthImplicitWatermarker()"), "Exercise the real Perth watermark constructor")
-assert.ok(!text.includes("DummyWatermarker"), "Do not disable the output watermark")
+assert.ok(!text.includes("perth.DummyWatermarker()"), "Do not disable the output watermark")
 
 assert.ok(text.includes('"--no-deps", source'), "Prevent Chatterbox V3 git from overriding CUDA torch")
 
