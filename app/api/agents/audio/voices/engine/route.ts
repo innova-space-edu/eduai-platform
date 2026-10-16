@@ -24,7 +24,7 @@ export async function GET() {
         ok: false, provider: "Google Gemini Voice Replication",
         message: "El gateway de audio respondió, pero el diagnóstico no estuvo disponible",
         httpStatus: res.status,
-      }, { status: 503, headers: { "Cache-Control": "no-store" } })
+      }, { status: 200, headers: { "Cache-Control": "no-store" } })
     }
     const result = await res.json().catch(() => ({}))
     // A successful GET /voices is NOT proof of permission to create a voice.
@@ -46,11 +46,11 @@ export async function GET() {
         : (isChatterbox
             ? "Motor Chatterbox pendiente: comprueba los pesos verificados, la cuota GPU y el acceso privado de Cloud Run."
             : "Google permite consultar voces, pero la clonación devuelve 403: requiere Paid Quota Tier 1. No está habilitada; Chatterbox espera cuota GPU."),
-    }, { status: available ? 200 : 503, headers: { "Cache-Control": "no-store" } })
+    }, { status: 200, headers: { "Cache-Control": "no-store" } })
   } catch {
     return NextResponse.json({
       ok: false, provider: "Google Gemini Voice Replication",
       message: "No se pudo contactar con el servicio de audio de Cloud Run",
-    }, { status: 503, headers: { "Cache-Control": "no-store" } })
+    }, { status: 200, headers: { "Cache-Control": "no-store" } })
   }
 }
