@@ -13,6 +13,7 @@ import {
 } from "@/lib/ai/local/eduai-efficiency-adapter";
 import {
   probeEduAILocalHardware,
+  listEduAILocalCachedModels,
   requestEduAILocalPersistentStorage,
   type EduAILocalHardware,
 } from "@/lib/ai/local/eduai-local-runtime";
@@ -29,7 +30,8 @@ export default function EduAIEfficiencyAdapterPanel() {
   const [vramInput, setVramInput] = useState("");
   const [selectedModelId, setSelectedModelId] = useState("eduai-local-lfm-350m");
   const [engine, setEngine] = useState<EfficiencyEngine>("browser-wllama");
-  const [cachedOnDisk, setCachedOnDisk] = useState(false);
+  const [assumeCached, setAssumeCached] = useState(false);
+  const [verifiedCachedIds, setVerifiedCachedIds] = useState<string[]>([]);
   const [includeVision, setIncludeVision] = useState(false);
   const [tuning, setTuning] = useState(false);
   const [pending, setPending] = useState(false);
@@ -37,7 +39,13 @@ export default function EduAIEfficiencyAdapterPanel() {
 
   async function refresh() {
     try {
-      setHardware(await probeEduAILocalHardware());
+      const [nextHardware, cached] = await Promise.all([
+        probeEduAILocalHardware(),
+        listEduAILocalCachedModels().catch(() => []),
+      ]);
+      setHardware(nextHardware);
+      setVerifiedCachedIds(cached.filter((m) => m.status === "valid" && m.catalogModelId)
+        .map((m) => m.catalogModelId as string));
     } catch {
       setMessage("No se pudo consultar hardware o cuota del navegador.");
     }
@@ -49,6 +57,8 @@ export default function EduAIEfficiencyAdapterPanel() {
   }, []);
 
   const chosenModel = EFFICIENCY_MODELS.find((m) => m.id === selectedModelId) ?? EFFICIENCY_MODELS[0];
+  const actuallyCached = chosenModel.family === "eduai-gguf" && verifiedCachedIds.includes(chosenModel.id);
+  const cachedOnDisk = actuallyCached || assumeCached;
   const ram = memoryInput.trim() ? Number(memoryInput) : hardware?.memoryGB ?? null;
   const vram = vramInput.trim() ? Number(vramInput) : null;
   const diskFree = hardware?.storageQuotaMB != null && hardware.storageUsageMB != null
@@ -150,7 +160,7 @@ export default function EduAIEfficiencyAdapterPanel() {
       </div>
 
       <div className="mt-3 flex flex-wrap gap-4 text-xs">
-        <label className="flex cursor-pointer items-center gap-2"><input type="checkbox" checked={cachedOnDisk} onChange={(e) => setCachedOnDisk(e.target.checked)} /> Suponer pesos ya cacheados (simulación)</label>
+        <label className="flex cursor-pointer items-center gap-2"><input type="checkbox" checked={assumeCached} onChange={(e) => setAssumeCached(e.target.checked)} disabled={actuallyCached} /> {actuallyCached ? "Modelo verificado en caché wllama" : "Simular pesos cacheados (no verifica archivo)"}</label>
         <label className="flex cursor-pointer items-center gap-2"><input type="checkbox" checked={includeVision} onChange={(e) => setIncludeVision(e.target.checked)} disabled={!chosenModel.visionProjectorMB}/> Incluir proyector visual opcional</label>
       </div>
 
@@ -167,7 +177,7 @@ export default function EduAIEfficiencyAdapterPanel() {
           <p>Contexto: <strong>{plan.chosenContext} tokens</strong></p>
           <p>Ejecución: <strong>{plan.executionTier}</strong></p>
         </div>
-        <p className="mt-3 text-xs text-slate-300">Ubicación de pesos: {plan.storageTier}. No implica que se puedan paginar tensores desde el navegador.</p>
+        <p className="mt-3 text-xs text-slate-300">Ubicación de pesos: {plan.storageTier}. Caché comprobada con wllama: {actuallyCached ? "sí" : "no"}. No implica que se puedan paginar tensores desde el navegador.</p>
         {plan.reasons.map((value) => <p key={value} className="mt-2 text-xs text-emerald-200">✓ {value}</p>)}
         {plan.warnings.map((value) => <p key={value} className="mt-1 text-xs leading-5 text-amber-200/80">• {value}</p>)}
       </div>
