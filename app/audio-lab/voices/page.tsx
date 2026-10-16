@@ -476,7 +476,7 @@ export default function AudioLabVoicesPage() {
             <Link href="/audio-lab" className="w-9 h-9 rounded-xl border border-soft flex items-center justify-center text-sub hover:text-main"><ArrowLeft size={15} /></Link>
             <div>
               <h1 className="font-bold text-lg flex items-center gap-2"><ShieldCheck size={18} className="text-purple-500" /> Audio Lab · Mis voces</h1>
-              <p className="text-muted2 text-xs">Exclusivo para administradores mayores de 18 años · clonación privada con consentimiento, sin servicios de Hugging Face.</p>
+              <p className="text-muted2 text-xs">Exclusivo para administradores mayores de 18 años · clonación privada con consentimiento, sin Hugging Face como servicio.</p>
             </div>
           </div>
           {unlocked && <button onClick={lockSensitiveArea} className="rounded-xl border border-soft px-3 py-2 text-xs text-sub flex items-center gap-2"><LockKeyhole size={14} /> Bloquear ahora</button>}
