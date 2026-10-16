@@ -143,13 +143,13 @@ export function planUniversalEfficiency(input: EfficiencyInput): EfficiencyPlan 
     };
   }
 
-  if (!input.cachedOnDisk && hardware.freeStorageMB !== null
+  if (engine !== "remote-server" && !input.cachedOnDisk && hardware.freeStorageMB !== null
       && (!Number.isFinite(hardware.freeStorageMB)
           || hardware.freeStorageMB < requiredDiskMB + STORAGE_RESERVE_MB)) {
     warnings.push("Cuota de almacenamiento insuficiente para descarga y reserva de seguridad.");
     status = "blocked";
     storageTier = "no disponible";
-  } else if (!input.cachedOnDisk && hardware.freeStorageMB === null) {
+  } else if (engine !== "remote-server" && !input.cachedOnDisk && hardware.freeStorageMB === null) {
     warnings.push("Cuota de almacenamiento no verificable: comprobar espacio antes de descargar.");
   }
 
@@ -190,7 +190,7 @@ export function planUniversalEfficiency(input: EfficiencyInput): EfficiencyPlan 
         warnings.push("Se necesita RAM comprobada antes de autorizar inferencia nativa.");
       } else {
         executionTier = "SSD + mmap";
-        status = estimatedRuntimeBudgetMB <= ram * 1024 * RAM_SAFETY_FRACTION
+        status = input.cachedOnDisk && estimatedRuntimeBudgetMB <= ram * 1024 * RAM_SAFETY_FRACTION
           ? "ready-to-test" : "requires-verification";
         reasons.push("PrismML/llama.cpp nativo permite probar mmap y offloading CPU/GPU.");
         if (status !== "ready-to-test") {
