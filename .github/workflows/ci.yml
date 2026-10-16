@@ -76,6 +76,12 @@ jobs:
       - name: Voice same-origin CORS relay regression
         run: npx tsx scripts/test-voice-cors-proxy.ts
 
+      - name: Offline Chatterbox private GPU contract
+        run: |
+          python -m py_compile services/eduai-voice-chatterbox/main.py
+          python -m py_compile services/eduai-voice-chatterbox/test_main.py
+          node scripts/test-chatterbox-cloud-run.mjs
+
       - name: Audio Google gateway integrity
         run: |
           python -m py_compile services/google-audio-gateway/*.py
