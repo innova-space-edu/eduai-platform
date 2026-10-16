@@ -474,6 +474,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const mixActiveRef = useRef(false);
   const mixCurrentQueueRef = useRef<EduMusicTrack[]>([]);
   const mixSeenRef = useRef(new Set<string>());
+  const mixRefillTriggerRef = useRef("");
   useEffect(() => { mixActiveRef.current = mixFavoriteActive; }, [mixFavoriteActive]);
   useEffect(() => { mixCurrentQueueRef.current = mixQueueTracks; }, [mixQueueTracks]);
 
@@ -783,6 +784,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     const load = async (userId: string | null) => {
       const sequence = ++mixLoadSequenceRef.current;
       if (userId === mixProfileUserRef.current && mixProfileReady) return;
+      if (userId !== mixProfileUserRef.current) {
+        mixActiveRef.current = false;
+        mixAdvancePendingRef.current = false;
+        setMixFavoriteActive(false);
+        setMixQueueTracks([]);
+        mixCurrentQueueRef.current = [];
+      }
       setMixProfileReady(false);
       mixProfileUserRef.current = userId;
       let saved: { artists?: string[]; tracks?: MixSong[] } = {};
@@ -799,10 +807,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       }
       if (!mounted || sequence !== mixLoadSequenceRef.current) return;
       setMixArtists(Array.from(new Map(artists.filter((a): a is string =>
-        typeof a === "string" && a.length > 1).map((a) => [normalizeArtist(a), a])).values()).slice(-1000));
+        typeof a === "string" && a.length > 1).map((a): [string, string] => [normalizeArtist(a), a])).values()).slice(-1000));
       setMixLearnedSongs(Array.from(new Map(tracks.filter((v): v is MixSong =>
         typeof v?.artist === "string" && typeof v?.title === "string" && !!v.artist && !!v.title)
-        .map((v) => [normalizeArtist(v.artist) + ":" + normalizeArtist(v.title), v])).values()).slice(-1500));
+        .map((v): [string, MixSong] => [normalizeArtist(v.artist) + ":" + normalizeArtist(v.title), v])).values()).slice(-1500));
       setMixProfileReady(true);
     };
     void supabase.auth.getUser().then(({ data }) => load(data.user?.id || null));
@@ -835,9 +843,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     const songs = tracks.map(inferredMixSong).filter((v): v is MixSong => Boolean(v));
     if (!songs.length) return;
     setMixArtists((prev) => Array.from(new Map([...prev, ...songs.map((v) => v.artist)]
-      .map((a) => [normalizeArtist(a), a])).values()).slice(-1000));
+      .map((a): [string, string] => [normalizeArtist(a), a])).values()).slice(-1000));
     setMixLearnedSongs((prev) => Array.from(new Map([...prev, ...songs]
-      .map((v) => [normalizeArtist(v.artist) + ":" + normalizeArtist(v.title), v])).values()).slice(-1500));
+      .map((v): [string, MixSong] => [normalizeArtist(v.artist) + ":" + normalizeArtist(v.title), v])).values()).slice(-1500));
   }, [mixProfileReady]);
 
   const playlists = useMemo(() => {
@@ -907,7 +915,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   );
 
   const visibleTracks = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = view === "mix" ? "" : query.trim().toLowerCase();
     const source = view === "mix"
       ? mixQueueTracks
       : view === "radio"
@@ -918,7 +926,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           ? allTracks
           : baseTracks;
     return source.filter((track) => {
-      const moodOk = view === "radio" || selectedMood === "all" || track.mood === selectedMood;
+      const moodOk = view === "radio" || view === "mix" || selectedMood === "all" || track.mood === selectedMood;
       const queryOk =
         !q ||
         [track.title, track.artist, track.album, track.mood, track.source || "", ...track.tags]
@@ -1172,8 +1180,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const playTrack = useCallback(
     (track: EduMusicTrack, _queueFrom?: EduMusicTrack[]) => {
       setHasActiveSession(true);
-      mixActiveRef.current = false;
-      setMixFavoriteActive(false);
+      if (!mixActiveRef.current || !mixCurrentQueueRef.current.some((row) => row.id === track.id)) {
+        mixActiveRef.current = false;
+        setMixFavoriteActive(false);
+      }
       if (track.id !== EMPTY_MUSIC_TRACK.id) {
         learnMixTracks([track]);
         setRecentIds((prev) => [track.id, ...prev.filter((id) => id !== track.id)].slice(0, 18));
@@ -1290,6 +1300,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     mixActiveRef.current = true;
     mixAdvancePendingRef.current = true;
     mixSeenRef.current = new Set<string>();
+    mixRefillTriggerRef.current = "";
     mixCurrentQueueRef.current = [];
     setMixQueueTracks([]);
     setQueueIds([]);
@@ -1405,7 +1416,13 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!mixFavoriteActive || mixFavoriteLoading || !mixQueueTracks.length) return;
     const index = mixQueueTracks.findIndex((t) => t.id === currentId);
-    if (index >= 0 && mixQueueTracks.length - index <= 4) void refillMixFavorite();
+    if (index >= 0 && mixQueueTracks.length - index <= 4) {
+      const token = currentId + ":" + mixQueueTracks.length;
+      if (mixRefillTriggerRef.current !== token) {
+        mixRefillTriggerRef.current = token;
+        void refillMixFavorite();
+      }
+    }
   }, [mixFavoriteActive, mixFavoriteLoading, mixQueueTracks, currentId, refillMixFavorite]);
 
   const prevTrack = useCallback(() => {
