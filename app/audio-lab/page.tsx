@@ -660,7 +660,7 @@ export default function AudioLabPage() {
                 {audioGenLoading ? (
                   <>
                     <Loader2 size={18} className="animate-spin" />
-                    Generando MP3...
+                    Generando audio...
                   </>
                 ) : (
                   <>
@@ -683,7 +683,7 @@ export default function AudioLabPage() {
                     className="inline-flex items-center gap-1.5 rounded-xl border border-cyan-400/25 bg-cyan-500/10 px-3 py-1.5 text-xs font-bold text-cyan-700"
                   >
                     <Download size={12} />
-                    MP3
+                    {audioGenMime === "audio/wav" ? "Descargar WAV" : "Descargar MP3"}
                   </button>
                 )}
               </div>
@@ -692,6 +692,7 @@ export default function AudioLabPage() {
                 {audioGenUrl ? (
                   <>
                     <audio controls src={audioGenUrl} className="w-full" />
+                    {audioGenProvider && <p className="text-[11px] text-muted2">Motor: {audioGenProvider} · formato {audioGenMime === "audio/wav" ? "WAV" : "MP3"}</p>}
 
                     <div className="rounded-xl border border-soft bg-app/40 p-3">
                       <div className="flex items-center justify-between gap-2 mb-2">
@@ -709,7 +710,7 @@ export default function AudioLabPage() {
                       </div>
 
                       <div className="max-h-[220px] overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-sub">
-                        {audioGenScript}
+                        {audioGenScript || "El audio está listo para reproducir y descargar."}
                       </div>
                     </div>
                   </>
