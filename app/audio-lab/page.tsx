@@ -123,6 +123,8 @@ export default function AudioLabPage() {
   const [audioGenLoading, setAudioGenLoading] = useState(false)
   const [audioGenError, setAudioGenError] = useState("")
   const [audioGenUrl, setAudioGenUrl] = useState("")
+  const [audioGenMime, setAudioGenMime] = useState("audio/mpeg")
+  const [audioGenProvider, setAudioGenProvider] = useState("")
   const [audioGenScript, setAudioGenScript] = useState("")
   const [audioGenCopied, setAudioGenCopied] = useState(false)
 
@@ -337,7 +339,7 @@ export default function AudioLabPage() {
     try {
       const res = await fetch("/api/agents/audio/generate", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", Accept: "audio/wav, audio/mpeg, application/json" },
         body: JSON.stringify({
           prompt,
           inputMode: audioGenInputMode,
@@ -347,23 +349,40 @@ export default function AudioLabPage() {
         }),
       })
 
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data?.error || `No se pudo generar el audio (HTTP ${res.status})`)
+      }
+
+      const mime = res.headers.get("content-type")?.split(";")[0].trim() || ""
+      if (mime === "audio/wav" || mime === "audio/mpeg") {
+        // Audio binario: evita el límite de tamaño de JSON/base64 en Vercel.
+        const blob = await res.blob()
+        if (blob.size < 100) throw new Error("El motor de voz devolvió un archivo incompleto.")
+        const scriptHeader = res.headers.get("x-audio-script")
+        let script = audioGenInputMode === "text" ? prompt : ""
+        if (scriptHeader) {
+          try {
+            const bytes = Uint8Array.from(atob(scriptHeader), char => char.charCodeAt(0))
+            script = new TextDecoder().decode(bytes)
+          } catch { /* mantener el texto original */ }
+        }
+        setAudioGenMime(mime)
+        setAudioGenProvider(res.headers.get("x-audio-provider") || "Motor de audio")
+        setAudioGenUrl(URL.createObjectURL(blob))
+        setAudioGenScript(script)
+        return
+      }
+
+      // Compatibilidad con respuestas JSON de versiones anteriores.
       const data = await res.json().catch(() => ({}))
-
-      if (!res.ok || !data?.ok) {
-        throw new Error(data?.error || "No se pudo generar el audio")
-      }
-
-      const binary = atob(String(data.audioBase64 || ""))
-      const bytes = new Uint8Array(binary.length)
-
-      for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i)
-      }
-
-      const blob = new Blob([bytes], { type: data.mime || "audio/mpeg" })
-      const url = URL.createObjectURL(blob)
-
-      setAudioGenUrl(url)
+      if (!data?.ok || !data.audioBase64) throw new Error(data?.error || "No se pudo generar el audio")
+      const binary = atob(String(data.audioBase64))
+      const bytes = Uint8Array.from(binary, char => char.charCodeAt(0))
+      const outputMime = data.mime || "audio/mpeg"
+      setAudioGenMime(outputMime)
+      setAudioGenProvider(data.provider || "Motor de audio")
+      setAudioGenUrl(URL.createObjectURL(new Blob([bytes], { type: outputMime })))
       setAudioGenScript(String(data.script || ""))
     } catch (err: any) {
       setAudioGenError(err?.message || "Error generando audio")
@@ -385,7 +404,7 @@ export default function AudioLabPage() {
 
     const a = document.createElement("a")
     a.href = audioGenUrl
-    a.download = `audio-lab-${audioGenStyle}-${Date.now()}.mp3`
+    a.download = `audio-lab-${audioGenStyle}-${Date.now()}.${audioGenMime === "audio/wav" ? "wav" : "mp3"}`
     a.click()
   }
 
