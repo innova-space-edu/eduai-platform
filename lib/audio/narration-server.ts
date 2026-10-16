@@ -1,6 +1,7 @@
 import Groq from "groq-sdk"
 import { NextResponse } from "next/server"
 import { EdgeTTS, Constants } from "@andresaya/edge-tts"
+import { generateGeminiNarration, getGeminiNarrationKey, type GeneratedNarration } from "@/lib/audio/gemini-narration"
 
 type AudioStyle = "narration" | "dialogue"
 type InputMode = "prompt" | "text"
@@ -212,7 +213,41 @@ async function synthesize(segments: Segment[], voiceA: string, voiceB: string) {
   return concat(parts)
 }
 
-export async function createNarration(body: any) {
+type AudioResult = { audio: Buffer; mime: "audio/mpeg" | "audio/wav"; provider: string }
+
+async function renderSpeech(segments: Segment[], style: AudioStyle, voiceA: string, voiceB: string): Promise<AudioResult> {
+  let geminiError: unknown = null
+  if (getGeminiNarrationKey()) {
+    try {
+      const result: GeneratedNarration = await generateGeminiNarration(segments, style, voiceA, voiceB)
+      return result
+    } catch (err) {
+      geminiError = err
+      console.warn("[audio/narration] Gemini TTS fallback requested:", err instanceof Error ? err.message : "unknown")
+    }
+  }
+  try {
+    const mp3 = await synthesize(segments, voiceA, voiceB)
+    return { audio: Buffer.from(mp3), mime: "audio/mpeg", provider: "edge-tts" }
+  } catch (edgeError) {
+    console.error("[audio/narration] Edge TTS failed:", edgeError instanceof Error ? edgeError.message : "unknown")
+    const upstream = edgeError instanceof Error ? edgeError.message : ""
+    const isBlocked = /403|401|HANDSHAKE|forbidden|unauthorized/i.test(upstream)
+    const help = getGeminiNarrationKey()
+      ? (geminiError instanceof Error ? geminiError.message : "Google TTS también falló.")
+      : "Configura GEMINI_API_KEY en Vercel para activar el respaldo Google Gemini TTS."
+    const message = isBlocked
+      ? `Microsoft Edge TTS rechazó la conexión (403). ${help}`
+      : `El servicio de voz no respondió. ${help}`
+    throw new Error(message)
+  }
+}
+
+/** Legacy JSON output is kept for callers other than Audio Lab. The binary
+ * response lets Audio Lab download WAV of any supported duration without
+ * Vercel's base64 JSON body limit.
+ */
+export async function createNarration(body: any, binaryResponse = false) {
   try {
     const prompt = String(body.prompt || body.text || "").trim().slice(0, MAX_INPUT_LENGTH)
     const inputMode: InputMode = body.inputMode === "text" ? "text" : "prompt"
@@ -230,20 +265,42 @@ export async function createNarration(body: any) {
       return NextResponse.json({ ok: false, error: "No se pudo crear un guion narrable." }, { status: 400 })
     }
 
-    const mp3 = await synthesize(segments, voiceA, voiceB)
+    const result = await renderSpeech(segments, style, voiceA, voiceB)
+    if (binaryResponse) {
+      const bytes = Buffer.byteLength(script, "utf8")
+      const encodedScript = bytes <= 2400 ? Buffer.from(script, "utf8").toString("base64") : ""
+      return new Response(new Uint8Array(result.audio), {
+        status: 200,
+        headers: {
+          "Content-Type": result.mime,
+          "Content-Disposition": `attachment; filename="eduai-audio.${result.mime === "audio/wav" ? "wav" : "mp3"}"`,
+          "Cache-Control": "private, no-store",
+          "X-Audio-Provider": result.provider,
+          ...(encodedScript ? { "X-Audio-Script": encodedScript } : {}),
+        },
+      })
+    }
+    // Backward compatibility with clients that still expect JSON.
+    if (result.audio.byteLength > 2.5 * 1024 * 1024) {
+      return NextResponse.json({
+        ok: false,
+        error: "Audio demasiado grande para respuesta JSON. Actualiza Audio Lab para recibir audio binario.",
+      }, { status: 413 })
+    }
     return NextResponse.json({
       ok: true,
-      mime: "audio/mpeg",
-      audioBase64: Buffer.from(mp3).toString("base64"),
-      script,
-      segments,
-      style,
-      inputMode,
+      mime: result.mime,
+      audioBase64: result.audio.toString("base64"),
+      script, segments, style, inputMode,
       voices: { A: voiceA, B: style === "dialogue" ? voiceB : null },
-      provider: process.env.GROQ_API_KEY && inputMode === "prompt" ? "groq-script + edge-tts" : "edge-tts",
+      provider: result.provider,
     })
   } catch (error: any) {
-    console.error("audio/narration error:", error?.message || error)
-    return NextResponse.json({ ok: false, error: error?.message || "Error generando audio" }, { status: 500 })
+    console.error("audio/narration error:", error instanceof Error ? error.message : "Unknown error")
+    const providerDown = /Edge TTS|servicio de voz|Gemini TTS|Gemini no autorizó|clave|cuota/i.test(String(error?.message || ""))
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : "Error generando audio" },
+      { status: providerDown ? 503 : 500, headers: { "Cache-Control": "no-store" } },
+    )
   }
 }
