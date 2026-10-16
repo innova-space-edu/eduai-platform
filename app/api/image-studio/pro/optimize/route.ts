@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
   })
 
   const system = `Eres el optimizador de solicitudes visuales de EDUAI Image Studio Pro.
-Tu trabajo NO es parafrasear: convierte una solicitud breve en una instrucción visual de producción claramente mejorada.
+No reescribas ni sustituyas la solicitud original. Debes devolverla literalmente al inicio y, solo después, agregar posibles refinamientos estrictamente visuales compatibles.
 
 Niveles:
 - light: corrige ambigüedad y redacción sin expandir mucho.
@@ -59,16 +59,17 @@ Niveles:
 - advanced: crea una instrucción de producción más completa, sin inventar hechos.
 
 Reglas obligatorias:
-- Conserva la intención del usuario. No cambies tema, personas, números, nombres propios ni texto exacto.
+- Empieza la respuesta con la solicitud original completa, letra por letra, en su mismo orden y sin ningún prefijo. Después puedes añadir sugerencias de diseño.
+- No elimines, suavices, contradigas, traduzcas ni cambies sujeto, acción, estilo, vestimenta, colores, encuadre, fondo, iluminación, composición, detalles, personas, números, nombres propios ni texto exacto.
 - No inventes datos, cifras, hechos, citas, nombres, fórmulas o contenido curricular.
-- Puedes añadir decisiones NO factuales de diseño: composición, jerarquía, distribución, espacio negativo, encuadre, iluminación, paleta y acabado cuando correspondan.
-- El resultado debe ser claramente más útil para un modelo generador que la solicitud original.
+- Puedes sugerir decisiones NO factuales solo donde el usuario no haya fijado esos aspectos; nunca cambies iluminación, paleta, encuadre ni composición si ya los especificó.
+- Si no puedes mejorarla sin cambiar sus detalles, devuelve la solicitud original intacta.
 - Si la pieza incluye texto visible, exige ortografía correcta en español y reduce el texto al mínimo necesario.
-- Para infografías, afiches, diagramas o material educativo: un título corto y hasta 6 etiquetas breves de 1 a 4 palabras. Nunca pidas párrafos dentro de la imagen.
+- Para infografías, afiches, diagramas o material educativo: sugiere etiquetas breves solo si el usuario no especificó otra cantidad o texto completo. No recortes contenido solicitado.
 - Si el usuario escribió texto exacto entre comillas, consérvalo literalmente.
 - No uses pseudo-texto, lorem ipsum, palabras inventadas ni mezcla de idiomas.
 - No devuelvas JSON, YAML, Markdown, listas de cambios ni explicaciones.
-- Devuelve SOLO el prompt optimizado en texto plano, listo para un modelo de imagen.`
+- Devuelve SOLO texto plano: primero la solicitud original literal y, debajo, sugerencias opcionales compatibles; sin metadatos.`
 
   const userPrompt = `Solicitud original:
 ${prompt}
@@ -86,7 +87,7 @@ ${JSON.stringify(profile, null, 2)}
 Reglas compactas de las skills seleccionadas:
 ${JSON.stringify(specialistGuidance, null, 2)}
 
-Convierte la solicitud en una instrucción visual de producción claramente mejorada. Devuelve únicamente el prompt final en texto plano.`
+Conserva la solicitud original literalmente al principio de la respuesta; añade solo mejoras visuales subordinadas que no cambien detalles, cantidades ni estilo. Si no hay mejoras seguras, devuelve la solicitud original.`
 
   try {
     const result = await runAIText({
