@@ -11,7 +11,7 @@ const both = buildGeminiTtsRequest([
   { speaker: "B", text: "Y esta es la segunda voz." },
 ], "dialogue", "es-ES-AlvaroNeural", "es-CL-CatalinaNeural")
 assert.equal(both.contents[0].parts[1].speech_metadata.speaker, "B")
-assert.equal(both.generationConfig.speechConfig.multiSpeakerVoiceConfig?.speakerVoiceConfigs.length, 2)
+assert.equal("multiSpeakerVoiceConfig" in both.generationConfig.speechConfig && both.generationConfig.speechConfig.multiSpeakerVoiceConfig.speakerVoiceConfigs.length, 2)
 
 // Simulador de Google (sin enviar textos ni claves a un proveedor externo).
 const originalFetch = globalThis.fetch
