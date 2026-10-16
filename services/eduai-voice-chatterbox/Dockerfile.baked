@@ -1,3 +1,4 @@
+# syntax=docker/dockerfile:1.7
 # Build-stage weights come ONLY from ModelScope ResembleAI/chatterbox.
 # Runtime container is fully offline regarding model repositories.
 FROM python:3.11-slim AS weights
