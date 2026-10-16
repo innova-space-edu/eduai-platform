@@ -792,7 +792,7 @@ export default function AudioLabVoicesPage() {
               <div className="rounded-2xl border border-purple-500/20 bg-purple-500/5 p-4 text-sm text-sub">
                 <p className="font-semibold text-main">Grabación obligatoria de consentimiento</p>
                 <p className="mt-1">La misma persona de la muestra debe leer exactamente:</p>
-                <p className="mt-2 rounded-xl border border-purple-500/20 bg-app px-3 py-2 font-medium text-main">“Soy titular de esta voz y autorizo a EDUAI a utilizarla para generar audio sintético con el motor de voz que seleccione expresamente, incluido Chatterbox en Kaggle.”</p>
+                <p className="mt-2 rounded-xl border border-purple-500/20 bg-app px-3 py-2 font-medium text-main">“Soy titular de esta voz y autorizo a EDUAI a utilizarla para generar audio sintético con el motor de voz que seleccione expresamente, incluido Chatterbox en Kaggle o Colab.”</p>
                 <p className="mt-2 text-xs text-muted2">La referencia debe contener entre 10 y 30 segundos de voz limpia. Se recomienda WAV mono PCM de 16 bits a 24 kHz.</p>
               </div>
               <div className="flex items-center justify-between"><div><h2 className="font-bold">Biblioteca privada</h2><p className="text-muted2 text-sm">Guardamos la muestra canónica para que futuros motores creen su propio adaptador sin volver a pedirte la voz.</p></div><button onClick={loadVoices} className="rounded-xl border border-soft p-2"><RefreshCw size={14} /></button></div>
