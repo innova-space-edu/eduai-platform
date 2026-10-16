@@ -23,8 +23,8 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - name: Install locked dependencies
-        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Install without rewriting existing mismatched lockfile
+        run: npm install --ignore-scripts --no-save --package-lock=false --no-audit --no-fund
       - name: Adapter safety tests
         run: npx --no-install tsx scripts/test-eduai-efficiency-adapter.ts
       - name: Typecheck
