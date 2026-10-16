@@ -1,0 +1,23 @@
+name: EDUAI Efficiency SSD and Bonsai native preflight
+on:
+  pull_request:
+    paths:
+      - 'training/eduai-local/efficiency/**'
+      - '.github/workflows/eduai-efficiency-storage.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Static compile
+        run: python -m compileall -q training/eduai-local/efficiency
+      - name: Cache and Bonsai native preflight tests
+        run: python -m unittest discover -s training/eduai-local/efficiency -p 'test_*.py' -v
