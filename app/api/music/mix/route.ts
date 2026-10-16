@@ -142,7 +142,7 @@ export async function POST(req: NextRequest) {
     if (score < 0) return [];
     const thumb = item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url || "";
     return [{ score, artistKey: normalized(song.artist), song, track: {
-      id: "youtube-" + id, title: item.snippet?.title || song.title, artist: song.artist,
+      id: "youtube-" + id, title: song.title, artist: song.artist,
       album: "Mix Favorite · YouTube", mood: "energy", duration: durationLabel(duration),
       src: "", cover: thumb || "linear-gradient(135deg,#25f4ff,#43145f)",
       artworkUrl: thumb, externalUrl: "https://www.youtube.com/watch?v=" + id,
