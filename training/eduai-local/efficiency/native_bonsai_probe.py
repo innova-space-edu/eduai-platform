@@ -52,10 +52,11 @@ def preflight(
     record = next((item for item in entries if item["sha256"] == expected), None)
     if record is None or model_id not in record["model_ids"]:
         raise CacheError("El modelo no figura en el caché autorizado con ese ID")
+    if record.get("quantization") != "PTQ1_0":
+        raise CacheError("La primera prueba nativa solo permite Bonsai 2 PTQ1_0")
+    if "PTQ1_0" not in str(record.get("source_name", "")).upper():
+        raise CacheError("El archivo original no declara el formato esperado")
     verified = store.verify(expected)
-    if "PTQ1_0" not in Path(verified["path"]).name.upper():
-        # Internal storage is SHA-named; format must be attested by registry metadata, not file name.
-        pass
     backend = check_binary(binary, binary_sha256, release_id)
     return {
         "model_id": model_id, "model_sha256": expected,
