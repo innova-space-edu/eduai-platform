@@ -130,7 +130,7 @@ Convierte la solicitud en una instrucción visual de producción claramente mejo
       generationAvoided: result.reused,
     }, { headers: HEADERS })
   } catch (error) {
-    console.error("[ImageStudioPro][Optimize]", error)
+    console.error("[ImageStudioPro][Optimize]", error instanceof Error ? error.name : "provider_failure")
     await recordAdminIncident({
       fingerprint: "image:prompt-optimizer:failure",
       category: "runtime", severity: "medium", module: "image-studio-pro",
