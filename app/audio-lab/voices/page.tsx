@@ -57,7 +57,7 @@ type KaggleAudio = {
 
 const KAGGLE_URL_KEY = "eduai_voice_kaggle_notebook_url"
 const KAGGLE_START_URL = "https://www.kaggle.com/code/new"
-const KAGGLE_GUIDE_URL = "https://github.com/innova-space-edu/eduai-platform/blob/main/notebooks/eduai_chatterbox_kaggle.ipynb"
+const KAGGLE_GUIDE_URL = "https://github.com/innova-space-edu/eduai-platform/blob/main/notebooks/eduai_chatterbox_kaggle_python311.ipynb"
 
 function validKaggleNotebookUrl(input: string) {
   try {
