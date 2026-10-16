@@ -10,9 +10,10 @@ La conexión inicial es **manual** y segura: no expone una API pública, no deja
      https://github.com/innova-space-edu/eduai-platform/blob/main/notebooks/eduai_chatterbox_kaggle.ipynb
    - Si Kaggle no puede leer un repositorio privado, descarga el archivo `.ipynb` desde GitHub y utiliza la opción de importar/subir notebook de Kaggle.
 3. Guarda tu notebook con visibilidad **Private**. No guardes muestras vocales o audios en notebooks públicos.
-4. En Kaggle elige **Settings → Accelerator → GPU T4 x2** y **Turn on internet** para descargar las dependencias y el modelo desde ModelScope.
-5. En EDUAI, ve a [Audio Lab → Mis voces](https://eduai.innova-space-edu.cl/audio-lab/voices), desbloquea tu zona protegida y pega en **Guardar enlace** la URL permanente de tu notebook guardado, de formato `https://www.kaggle.com/code/usuario/nombre`.
-6. En adelante, el botón **Abrir mi notebook de Kaggle** abrirá esa misma página en otra pestaña. El enlace se guarda **en ese navegador** (localStorage): tendrás que pegarlo nuevamente en otro PC o navegador.
+4. En Kaggle elige **Settings → Accelerator → GPU T4 x2** y **Settings → Turn on internet** para descargar las dependencias y el modelo desde ModelScope. Si el menú dice «Turn on internet», pulsa esa opción para activarlo y reinicia la sesión.
+5. Ejecuta primero la celda de diagnóstico: las direcciones `pypi.org`, `github.com` y `modelscope.cn` deben indicar `DNS OK`. Si ves `Temporary failure in name resolution`, la instalación **no podrá funcionar** hasta recuperar Internet. Si la opción no está disponible, revisa la verificación de cuenta en https://www.kaggle.com/settings.
+6. En EDUAI, ve a [Audio Lab → Mis voces](https://eduai.innova-space-edu.cl/audio-lab/voices), desbloquea tu zona protegida y pega en **Guardar enlace** la URL permanente de tu notebook guardado, de formato `https://www.kaggle.com/code/usuario/nombre`.
+7. En adelante, el botón **Abrir mi notebook de Kaggle** abrirá esa misma página en otra pestaña. El enlace se guarda **en ese navegador** (localStorage): tendrás que pegarlo nuevamente en otro PC o navegador.
 
 ## Generar voz
 
