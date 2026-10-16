@@ -52,6 +52,34 @@ async def current_user(token: str) -> dict[str, Any]:
     return response.json()
 
 
+async def require_admin_adult(token: str) -> dict[str, Any]:
+    """Los JWT de usuario no permiten saltar la restricción desde la API pública
+    de Cloud Run. La verificación se repite en cada endpoint de replicación.
+    """
+    user = await current_user(token)
+    async with httpx.AsyncClient(timeout=20) as client:
+        role, age = await asyncio.gather(
+            client.post(f"{SUPABASE_URL}/rest/v1/rpc/is_admin",
+                        headers={**auth_headers(token), "Content-Type": "application/json"}, json={}),
+            client.post(f"{SUPABASE_URL}/rest/v1/rpc/is_adult_profile",
+                        headers={**auth_headers(token), "Content-Type": "application/json"}, json={}),
+        )
+    if role.status_code != 200 or age.status_code != 200:
+        raise HTTPException(status_code=503, detail="No se pudo verificar el acceso administrativo a voz")
+    if role.json() is not True or age.json() is not True:
+        raise HTTPException(status_code=403, detail="Clonación vocal solo para administradores mayores de edad")
+    # El gateway es accesible fuera del navegador de EDUAI: exigir sesión
+    # Supabase con el segundo factor MFA ya verificado (aal2).
+    try:
+        encoded = token.split(".")[1]
+        claims = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
+    except (ValueError, IndexError, json.JSONDecodeError):
+        raise HTTPException(status_code=401, detail="Token de sesión inválido")
+    if claims.get("aal") != "aal2":
+        raise HTTPException(status_code=403, detail="Debes verificar el segundo factor antes de replicar una voz")
+    return user
+
+
 async def get_profile(token: str, profile_id: str) -> dict[str, Any]:
     params = {"id": f"eq.{profile_id}", "select": "*", "limit": "1"}
     async with httpx.AsyncClient(timeout=20) as client:
@@ -335,7 +363,7 @@ async def voice_diagnostics() -> dict[str, Any]:
 
 async def prepare_voice(body: ProfileRequest, authorization: str | None = Header(default=None)):
     token = bearer(authorization)
-    user = await current_user(token)
+    user = await require_admin_adult(token)
     profile = await get_profile(token, body.profile_id)
     if profile.get("user_id") != user.get("id"):
         raise HTTPException(status_code=403, detail="Perfil no autorizado")
@@ -494,7 +522,7 @@ async def prepare_voice(body: ProfileRequest, authorization: str | None = Header
 
 async def render_voice(body: RenderRequest, authorization: str | None = Header(default=None)):
     token = bearer(authorization)
-    user = await current_user(token)
+    user = await require_admin_adult(token)
     profile = await get_profile(token, body.profile_id)
     if profile.get("user_id") != user.get("id"):
         raise HTTPException(status_code=403, detail="Perfil no autorizado")
@@ -502,6 +530,8 @@ async def render_voice(body: RenderRequest, authorization: str | None = Header(d
     async def stream():
         try:
             voice_id = profile.get("provider_voice_id")
+            if not profile.get("consent_confirmed") or not profile.get("authorization_confirmed"):
+                raise RuntimeError("La voz no tiene consentimiento y autorización válidos")
             if profile.get("status") != "ready" or not voice_id or not profile.get("internal_use_enabled"):
                 raise RuntimeError("La voz todavía no está lista")
 
@@ -574,7 +604,7 @@ async def render_voice(body: RenderRequest, authorization: str | None = Header(d
 
 async def delete_voice(body: ProfileRequest, authorization: str | None = Header(default=None)):
     token = bearer(authorization)
-    user = await current_user(token)
+    user = await require_admin_adult(token)
     profile = await get_profile(token, body.profile_id)
     if profile.get("user_id") != user.get("id"):
         raise HTTPException(status_code=403, detail="Perfil no autorizado")

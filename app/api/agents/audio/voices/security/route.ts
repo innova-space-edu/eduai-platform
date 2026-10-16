@@ -7,6 +7,7 @@ import {
   getVoiceSecurityToken,
   touchVoiceSecuritySession,
   validateVoiceSecuritySession,
+  checkVoiceAdminEligibility,
 } from "@/lib/audio/voice-security"
 
 export const runtime = "nodejs"
@@ -25,6 +26,8 @@ export async function GET() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ ok: false, authenticated: false }, { status: 401 })
+  const eligibility = await checkVoiceAdminEligibility(supabase, false)
+  if (!eligibility.allowed) return NextResponse.json({ ok: false, error: eligibility.error }, { status: 403 })
 
   const { valid } = await validateVoiceSecuritySession()
   const { data: profile } = await supabase
@@ -45,6 +48,8 @@ export async function POST() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+  const eligibility = await checkVoiceAdminEligibility(supabase)
+  if (!eligibility.allowed) return NextResponse.json({ error: eligibility.error }, { status: 403 })
 
   const { data, error } = await supabase.rpc("open_voice_security_session")
   const row = Array.isArray(data) ? data[0] : null

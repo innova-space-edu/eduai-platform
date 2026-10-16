@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
+import { checkVoiceAdminEligibility } from "@/lib/audio/voice-security"
 
 export const runtime = "nodejs"
 
@@ -7,6 +8,9 @@ export async function POST(req: Request) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: "No autenticado" }, { status: 401 })
+  // El registro de términos no habilita por sí solo a un usuario común.
+  const admin = await checkVoiceAdminEligibility(supabase, false)
+  if (!admin.allowed) return NextResponse.json({ error: admin.error }, { status: 403 })
 
   try {
     const body = await req.json().catch(() => ({}))

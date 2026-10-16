@@ -23,7 +23,7 @@ ALLOWED_ORIGINS = [
     value.strip()
     for value in os.getenv(
         "EDUAI_ALLOWED_ORIGINS",
-        "https://eduaiplatformclon.vercel.app",
+        "https://eduai.innova-space-edu.cl,https://eduaiplatformclon.vercel.app",
     ).split(",")
     if value.strip()
 ]
