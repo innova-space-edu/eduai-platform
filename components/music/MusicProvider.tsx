@@ -17,6 +17,8 @@ import {
   type EduMusicPlaylist,
   type EduMusicTrack,
 } from "@/lib/music/eduai-music-catalog";
+import { MIX_FAVORITE_SEED_ARTISTS } from "@/lib/music/mix-favorite-seed";
+import { chooseMixRequests, inferredMixSong, normalizeArtist, type MixSong } from "@/lib/music/mix-favorite";
 
 type MusicView =
   | "home"
@@ -25,7 +27,8 @@ type MusicView =
   | "playlists"
   | "liked"
   | "queue"
-  | "radio";
+  | "radio"
+  | "mix";
 type RepeatMode = "off" | "one" | "all";
 type OnlineProviderMode = "all" | "full" | "preview" | "youtube";
 
@@ -102,6 +105,14 @@ type MusicContextValue = {
   allTracks: EduMusicTrack[];
   liked: Set<string>;
   favoriteSyncStatus: "local" | "syncing" | "synced";
+  mixFavoriteActive: boolean;
+  mixFavoriteLoading: boolean;
+  mixFavoriteError: string;
+  mixFavoriteArtists: string[];
+  mixFavoriteLearnedCount: number;
+  mixFavoriteTracks: EduMusicTrack[];
+  startMixFavorite: () => void;
+  stopMixFavorite: () => void;
   createOpen: boolean;
   setCreateOpen: (value: boolean | ((prev: boolean) => boolean)) => void;
   newPlaylistName: string;
@@ -150,6 +161,8 @@ const FAVORITES_LEGACY_OWNER_KEY = "eduai_music_favorites_legacy_owner_v1";
 const FAVORITES_PENDING_PREFIX = "eduai_music_favorites_pending_v1_";
 const MUSIC_STORAGE_BUCKET = "multimedia-projects";
 const MUSIC_LIBRARY_FOLDER = "music-library";
+const MIX_FAVORITE_TABLE = "eduai_music_mix_profiles";
+const MIX_LOCAL_PREFIX = "eduai_music_mix_favorite_v1_";
 const EMPTY_MUSIC_TRACK: EduMusicTrack = {
   id: "eduai-music-empty",
   title: "Elige una canción",
@@ -446,6 +459,23 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const favoriteCloudFlushingRef = useRef(false);
   const favoriteLocalRevisionRef = useRef(0);
   const [favoriteSyncStatus, setFavoriteSyncStatus] = useState<"local" | "syncing" | "synced">("local");
+  const [mixFavoriteActive, setMixFavoriteActive] = useState(false);
+  const [mixFavoriteLoading, setMixFavoriteLoading] = useState(false);
+  const [mixFavoriteError, setMixFavoriteError] = useState("");
+  const [mixLearnedSongs, setMixLearnedSongs] = useState<MixSong[]>([]);
+  const [mixArtists, setMixArtists] = useState<string[]>([]);
+  const [mixQueueTracks, setMixQueueTracks] = useState<EduMusicTrack[]>([]);
+  const [mixProfileReady, setMixProfileReady] = useState(false);
+  const mixProfileUserRef = useRef<string | null>(null);
+  const mixLoadSequenceRef = useRef(0);
+  const mixSyncTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mixRefillPendingRef = useRef(false);
+  const mixAdvancePendingRef = useRef(false);
+  const mixActiveRef = useRef(false);
+  const mixCurrentQueueRef = useRef<EduMusicTrack[]>([]);
+  const mixSeenRef = useRef(new Set<string>());
+  useEffect(() => { mixActiveRef.current = mixFavoriteActive; }, [mixFavoriteActive]);
+  useEffect(() => { mixCurrentQueueRef.current = mixQueueTracks; }, [mixQueueTracks]);
 
   const flushFavoriteChanges = useCallback(async (userId: string) => {
     if (favoriteCloudFlushingRef.current) return false;
@@ -601,13 +631,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       ...likedTrackSnapshots,
       ...onlineTracks,
       ...uploadedTracks,
+      ...mixQueueTracks,
     ].forEach((track) => {
       // Fallar en reproducción nunca debe borrar una canción marcada como favorita.
       if (track.source === "youtube" && track.youtubeVideoId && failedYouTubeIds.includes(track.youtubeVideoId) && !likedTrackIds.includes(track.id)) return;
       byId.set(track.id, track);
     });
     return Array.from(byId.values());
-  }, [failedYouTubeIds, likedTrackIds, likedTrackSnapshots, onlineTracks, uploadedTracks]);
+  }, [failedYouTubeIds, likedTrackIds, likedTrackSnapshots, onlineTracks, uploadedTracks, mixQueueTracks]);
 
   const radioTracks = useMemo(
     () => allTracks.filter((track) => track.source === "radio"),
@@ -743,6 +774,72 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     };
   }, [hydrated, syncCloudFavorites]);
 
+
+  // Perfil privado por usuario. El historial del invitado nunca se importa a
+  // una cuenta distinta. Los favoritos existentes se mantienen intactos.
+  useEffect(() => {
+    if (!hydrated) return;
+    let mounted = true;
+    const load = async (userId: string | null) => {
+      const sequence = ++mixLoadSequenceRef.current;
+      if (userId === mixProfileUserRef.current && mixProfileReady) return;
+      setMixProfileReady(false);
+      mixProfileUserRef.current = userId;
+      let saved: { artists?: string[]; tracks?: MixSong[] } = {};
+      try { saved = JSON.parse(localStorage.getItem(MIX_LOCAL_PREFIX + (userId || "guest")) || "{}"); } catch {}
+      let artists = Array.isArray(saved.artists) ? saved.artists : [];
+      let tracks = Array.isArray(saved.tracks) ? saved.tracks : [];
+      if (userId) {
+        const { data, error } = await supabase.from(MIX_FAVORITE_TABLE)
+          .select("artists,tracks").eq("user_id", userId).maybeSingle();
+        if (!error && data) {
+          artists = [...artists, ...(Array.isArray(data.artists) ? data.artists : [])];
+          tracks = [...tracks, ...(Array.isArray(data.tracks) ? data.tracks : [])];
+        }
+      }
+      if (!mounted || sequence !== mixLoadSequenceRef.current) return;
+      setMixArtists(Array.from(new Map(artists.filter((a): a is string =>
+        typeof a === "string" && a.length > 1).map((a) => [normalizeArtist(a), a])).values()).slice(-1000));
+      setMixLearnedSongs(Array.from(new Map(tracks.filter((v): v is MixSong =>
+        typeof v?.artist === "string" && typeof v?.title === "string" && !!v.artist && !!v.title)
+        .map((v) => [normalizeArtist(v.artist) + ":" + normalizeArtist(v.title), v])).values()).slice(-1500));
+      setMixProfileReady(true);
+    };
+    void supabase.auth.getUser().then(({ data }) => load(data.user?.id || null));
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      void load(session?.user?.id || null);
+    });
+    return () => { mounted = false; subscription.unsubscribe(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, supabase]);
+
+  useEffect(() => {
+    if (!hydrated || !mixProfileReady) return;
+    const userId = mixProfileUserRef.current;
+    const profile = { artists: mixArtists.slice(-1000), tracks: mixLearnedSongs.slice(-1500) };
+    try { localStorage.setItem(MIX_LOCAL_PREFIX + (userId || "guest"), JSON.stringify(profile)); } catch {}
+    if (mixSyncTimerRef.current) clearTimeout(mixSyncTimerRef.current);
+    if (!userId) return;
+    mixSyncTimerRef.current = setTimeout(() => {
+      void supabase.from(MIX_FAVORITE_TABLE).upsert({
+        user_id: userId, ...profile, updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" }).then(({ error }) => {
+        if (error) console.warn("[EDUAI Music] El mix se conserva local hasta sincronizar:", error.message);
+      });
+    }, 1200);
+    return () => { if (mixSyncTimerRef.current) clearTimeout(mixSyncTimerRef.current); };
+  }, [hydrated, mixProfileReady, mixArtists, mixLearnedSongs, supabase]);
+
+  const learnMixTracks = useCallback((tracks: EduMusicTrack[]) => {
+    if (!mixProfileReady) return;
+    const songs = tracks.map(inferredMixSong).filter((v): v is MixSong => Boolean(v));
+    if (!songs.length) return;
+    setMixArtists((prev) => Array.from(new Map([...prev, ...songs.map((v) => v.artist)]
+      .map((a) => [normalizeArtist(a), a])).values()).slice(-1000));
+    setMixLearnedSongs((prev) => Array.from(new Map([...prev, ...songs]
+      .map((v) => [normalizeArtist(v.artist) + ":" + normalizeArtist(v.title), v])).values()).slice(-1500));
+  }, [mixProfileReady]);
+
   const playlists = useMemo(() => {
     const likedPlaylist: EduMusicPlaylist = {
       id: "pl-liked",
@@ -811,7 +908,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const visibleTracks = useMemo(() => {
     const q = query.trim().toLowerCase();
-    const source = view === "radio"
+    const source = view === "mix"
+      ? mixQueueTracks
+      : view === "radio"
       ? radioTracks
       : view === "library"
         ? uploadedTracks
@@ -828,7 +927,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           .includes(q);
       return moodOk && queryOk;
     });
-  }, [allTracks, baseTracks, query, radioTracks, selectedMood, uploadedTracks, view]);
+  }, [allTracks, baseTracks, query, radioTracks, selectedMood, uploadedTracks, mixQueueTracks, view]);
 
   useEffect(() => {
     if (!hydrated || typeof window === "undefined") return;
@@ -1073,7 +1172,10 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const playTrack = useCallback(
     (track: EduMusicTrack, _queueFrom?: EduMusicTrack[]) => {
       setHasActiveSession(true);
+      mixActiveRef.current = false;
+      setMixFavoriteActive(false);
       if (track.id !== EMPTY_MUSIC_TRACK.id) {
+        learnMixTracks([track]);
         setRecentIds((prev) => [track.id, ...prev.filter((id) => id !== track.id)].slice(0, 18));
       }
 
@@ -1119,7 +1221,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       setCurrentId(track.id);
       setPlaying(true);
     },
-    [currentId],
+    [currentId, learnMixTracks],
   );
 
   const playPlaylist = useCallback(
@@ -1137,6 +1239,74 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     [allTracks, playlists, selectedPlaylist, selectedPlaylistId],
   );
 
+
+  const refillMixFavorite = useCallback(async () => {
+    if (!mixActiveRef.current || mixRefillPendingRef.current) return;
+    mixRefillPendingRef.current = true;
+    setMixFavoriteLoading(true);
+    setMixFavoriteError("");
+    const prior = mixCurrentQueueRef.current;
+    const requests = chooseMixRequests(
+      mixLearnedSongs, mixArtists, prior.slice(-4).map((track) => track.artist), 3,
+    );
+    try {
+      const response = await fetch("/api/music/mix", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ requests, excludeIds: [...mixSeenRef.current, ...failedYouTubeIds] }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data?.ok) throw new Error(data?.error || "No se pudo ampliar el mix.");
+      if (!mixActiveRef.current) return;
+      const tracks = ((Array.isArray(data.tracks) ? data.tracks : []) as EduMusicTrack[]).filter((track) => {
+        if (!track.youtubeVideoId || mixSeenRef.current.has(track.youtubeVideoId)) return false;
+        mixSeenRef.current.add(track.youtubeVideoId);
+        return true;
+      });
+      if (!tracks.length) {
+        setMixFavoriteError("No encontré nuevos videos reproducibles. Usa Reintentar para consultar otros artistas.");
+        return;
+      }
+      const combined = [...prior, ...tracks].slice(-180);
+      mixCurrentQueueRef.current = combined;
+      setMixQueueTracks(combined);
+      setQueueIds(combined.map((t) => t.id));
+      learnMixTracks(tracks);
+      if (mixAdvancePendingRef.current) {
+        mixAdvancePendingRef.current = false;
+        youtubeTransitionUntilRef.current = Date.now() + 1300;
+        setCurrentId(tracks[0].id);
+        setRecentIds((prev) => [tracks[0].id, ...prev.filter((id) => id !== tracks[0].id)].slice(0, 18));
+        setPlaying(true);
+      }
+    } catch (error) {
+      setMixFavoriteError(error instanceof Error ? error.message : "Error cargando canciones del mix.");
+    } finally {
+      mixRefillPendingRef.current = false;
+      setMixFavoriteLoading(false);
+    }
+  }, [failedYouTubeIds, learnMixTracks, mixArtists, mixLearnedSongs]);
+
+  const startMixFavorite = useCallback(() => {
+    mixActiveRef.current = true;
+    mixAdvancePendingRef.current = true;
+    mixSeenRef.current = new Set<string>();
+    mixCurrentQueueRef.current = [];
+    setMixQueueTracks([]);
+    setQueueIds([]);
+    setMixFavoriteActive(true);
+    setView("mix");
+    setPlaying(false);
+    setCurrentId(undefined);
+    setHasActiveSession(true);
+    void refillMixFavorite();
+  }, [refillMixFavorite]);
+
+  const stopMixFavorite = useCallback(() => {
+    mixActiveRef.current = false;
+    mixAdvancePendingRef.current = false;
+    setMixFavoriteActive(false);
+  }, []);
+
   const nextTrack = useCallback(() => {
     if (isYouTubeQueueTrack(currentTrack)) {
       const now = Date.now();
@@ -1146,6 +1316,26 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       youtubeTransitionUntilRef.current = now + 1400;
     }
     setHasActiveSession(true);
+    if (mixActiveRef.current) {
+      const list = mixCurrentQueueRef.current.filter((track) =>
+        !track.youtubeVideoId || !failedYouTubeIds.includes(track.youtubeVideoId));
+      const index = list.findIndex((t) => t.id === currentId);
+      const artist = normalizeArtist(currentTrack.artist);
+      const next = list.slice(Math.max(0, index + 1))
+        .find((track) => normalizeArtist(track.artist) !== artist);
+      if (next) {
+        youtubeTransitionUntilRef.current = Date.now() + 1200;
+        setCurrentId(next.id);
+        setRecentIds((prev) => [next.id, ...prev.filter((id) => id !== next.id)].slice(0, 18));
+        setPlaying(true);
+        if (list.length - list.indexOf(next) <= 4) void refillMixFavorite();
+      } else {
+        mixAdvancePendingRef.current = true;
+        setPlaying(false);
+        void refillMixFavorite();
+      }
+      return;
+    }
     // En DJ y Videos la cola debe pasar a otra pista aunque el usuario haya
     // dejado activado "repetir una" en una sesión anterior.
     if (repeat === "one" && !isYouTubeQueueTrack(currentTrack)) {
@@ -1207,11 +1397,16 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     } else {
       setPlaying(false);
     }
-  }, [baseTracks, currentId, currentTrack?.source, onlineTracks, queue, repeat, shuffle]);
+  }, [baseTracks, currentId, currentTrack?.source, currentTrack?.artist, onlineTracks, queue, repeat, shuffle, failedYouTubeIds, refillMixFavorite]);
 
   useEffect(() => {
     nextTrackRef.current = nextTrack;
   }, [nextTrack]);
+  useEffect(() => {
+    if (!mixFavoriteActive || mixFavoriteLoading || !mixQueueTracks.length) return;
+    const index = mixQueueTracks.findIndex((t) => t.id === currentId);
+    if (index >= 0 && mixQueueTracks.length - index <= 4) void refillMixFavorite();
+  }, [mixFavoriteActive, mixFavoriteLoading, mixQueueTracks, currentId, refillMixFavorite]);
 
   const prevTrack = useCallback(() => {
     if (isYouTubeQueueTrack(currentTrack)) {
@@ -1323,6 +1518,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
                 setFailedYouTubeIds((prev) => unique([...prev, reportedId]).slice(-80));
               }
               setOnlineError("Ese video no permite reproducción embebida en EDUAI Music. Saltando automáticamente a otra versión disponible.");
+              youtubeTransitionUntilRef.current = 0;
               nextTrackRef.current();
             },
           },
@@ -1368,6 +1564,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
             const failedId = youtubeVideoIdRef.current;
             if (failedId) setFailedYouTubeIds((prev) => unique([...prev, failedId]).slice(-80));
             setOnlineError("YouTube bloqueó o no inició este video dentro de EDUAI Music. Se omitió para mantener la reproducción.");
+            youtubeTransitionUntilRef.current = 0;
             nextTrackRef.current();
           }
         }
@@ -1582,6 +1779,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         const sanitizedTracks = tracks.map(sanitizeStoredTrack).slice(0, 60);
+        learnMixTracks(sanitizedTracks);
         setOnlineTracks(sanitizedTracks);
         // Una búsqueda nueva define un orden de reproducción claro. Así los
         // botones anterior/siguiente recorren el catálogo en el mismo orden
@@ -1595,7 +1793,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         if (requestId === onlineSearchRequestRef.current) setOnlineLoading(false);
       }
     },
-    [onlineProviderMode, onlineQuery, playTrack, query],
+    [onlineProviderMode, onlineQuery, playTrack, query, learnMixTracks],
   );
 
   const searchRadio = useCallback(
@@ -1682,6 +1880,14 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     allTracks,
     liked,
     favoriteSyncStatus,
+    mixFavoriteActive,
+    mixFavoriteLoading,
+    mixFavoriteError,
+    mixFavoriteArtists: [...new Set([...MIX_FAVORITE_SEED_ARTISTS, ...mixArtists])],
+    mixFavoriteLearnedCount: mixLearnedSongs.length,
+    mixFavoriteTracks: mixQueueTracks,
+    startMixFavorite,
+    stopMixFavorite,
     createOpen,
     setCreateOpen,
     newPlaylistName,
