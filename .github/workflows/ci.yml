@@ -76,6 +76,9 @@ jobs:
       - name: Voice same-origin CORS relay regression
         run: npx tsx scripts/test-voice-cors-proxy.ts
 
+      - name: Kaggle and Colab GPU voice bridge regression
+        run: node scripts/test-voice-gpu-bridge.mjs
+
       - name: Manual Kaggle voice regression
         run: node scripts/test-kaggle-manual-voice.mjs
 
