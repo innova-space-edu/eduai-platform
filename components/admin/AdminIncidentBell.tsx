@@ -20,6 +20,7 @@ type Snapshot = {
   providers: Array<{provider:string;capability:string;status:string;checked_at:string}>;
   counts: {open:number;acknowledged:number;high:number;pendingTasks:number};
   limitations: string[]; completeSystemAudit: boolean;
+  recentGenerationFailures?: {total:number;maxRows:number;mayBeTruncated:boolean;byCapability:Record<string,number>;sourceAvailable:boolean};
 };
 
 function elapsed(since: string, now: number) {
@@ -125,6 +126,12 @@ export default function AdminIncidentBell() {
                   <div className="rounded-xl bg-white/5 p-2"><p className="text-xl font-bold">{snapshot.counts.high}</p><p className="text-slate-400">Altas/críticas</p></div>
                   <div className="rounded-xl bg-white/5 p-2"><p className="text-xl font-bold">{snapshot.counts.pendingTasks}</p><p className="text-slate-400">Pendientes</p></div>
                 </div>
+                {snapshot.recentGenerationFailures?.sourceAvailable && (
+                  <p className="mt-3 rounded-xl border border-white/10 p-3 text-[11px] text-slate-300">
+                    Generaciones fallidas (últimas 24 h): <strong>{snapshot.recentGenerationFailures.total}{snapshot.recentGenerationFailures.mayBeTruncated ? "+" : ""}</strong>.
+                    Estos son eventos medidos, no necesariamente incidentes pendientes.
+                  </p>
+                )}
                 {total === 0 && <p className="my-6 text-center text-xs text-slate-400">Sin incidencias registradas ni tareas pendientes. No garantiza que todos los servicios estén operativos.</p>}
                 <div className="mt-4 space-y-2">
                   {sorted.map((i) => (
