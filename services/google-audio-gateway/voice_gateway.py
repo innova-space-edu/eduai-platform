@@ -435,12 +435,15 @@ async def prepare_voice(body: ProfileRequest, authorization: str | None = Header
             if not profile.get("consent_confirmed") or not profile.get("authorization_confirmed"):
                 raise RuntimeError("El perfil no tiene autorización verificable")
 
+            if VOICE_PROVIDER == "chatterbox":
+                await chatterbox_ready()
+
             await patch_profile(token, body.profile_id, {
                 "status": "processing",
                 "processing_progress": 8,
                 "processing_stage": "connecting_google",
                 "processing_error": None,
-                "model_provider": "google-gemini-voice-replication",
+                "model_provider": "chatterbox-multilingual-v3" if VOICE_PROVIDER == "chatterbox" else "google-gemini-voice-replication",
                 "internal_use_enabled": False,
             })
             await add_event(token, user["id"], body.profile_id, "processing_started", {
@@ -450,7 +453,7 @@ async def prepare_voice(body: ProfileRequest, authorization: str | None = Header
             yield sse("progress", {
                 "progress": 8,
                 "stage": "connecting_google",
-                "label": "Conectando con Google Voice Replication",
+                "label": "Preparando Chatterbox GPU" if VOICE_PROVIDER == "chatterbox" else "Conectando con Google Voice Replication",
             })
 
             source_task = asyncio.create_task(storage_download(token, "voice-clones", source_path))
@@ -487,14 +490,17 @@ async def prepare_voice(body: ProfileRequest, authorization: str | None = Header
                 await gemini_delete_voice(old_voice_id)
                 await patch_profile(token, body.profile_id, {"provider_voice_id": None})
 
-            task = asyncio.create_task(
-                gemini_create_voice(profile.get("display_name") or "EduAI Voice", source_wav, consent_wav)
-            )
+            if VOICE_PROVIDER == "chatterbox":
+                task = asyncio.create_task(asyncio.sleep(0, result={"id": f"chatterbox:{body.profile_id}"}))
+            else:
+                task = asyncio.create_task(
+                    gemini_create_voice(profile.get("display_name") or "EduAI Voice", source_wav, consent_wav)
+                )
             progress = 52
             yield sse("progress", {
                 "progress": progress,
                 "stage": "replicating_voice",
-                "label": "Gemini está creando el perfil vocal",
+                "label": "Asociando voz con Chatterbox" if VOICE_PROVIDER == "chatterbox" else "Gemini está creando el perfil vocal",
             })
 
             while not task.done():
@@ -524,9 +530,9 @@ async def prepare_voice(body: ProfileRequest, authorization: str | None = Header
                 "processing_progress": 100,
                 "processing_stage": "ready",
                 "processing_error": None,
-                "model_provider": "google-gemini-voice-replication",
+                "model_provider": "chatterbox-multilingual-v3" if VOICE_PROVIDER == "chatterbox" else "google-gemini-voice-replication",
                 "provider_voice_id": voice_id,
-                "provider_voice_expires_at": expires_at,
+                "provider_voice_expires_at": None if VOICE_PROVIDER == "chatterbox" else expires_at,
                 "internal_use_enabled": True,
                 "canonical_audio_path": canonical_path,
                 "canonical_audio_mime": "audio/wav",
@@ -594,10 +600,13 @@ async def render_voice(body: RenderRequest, authorization: str | None = Header(d
             yield sse("progress", {
                 "progress": 12,
                 "stage": "connecting_google",
-                "label": "Conectando con Gemini TTS",
+                "label": "Conectando con Chatterbox GPU" if voice_id.startswith("chatterbox:") else "Conectando con Gemini TTS",
             })
 
-            task = asyncio.create_task(gemini_render(voice_id, body.text.strip()))
+            task = asyncio.create_task(
+                chatterbox_render(token, profile.get("canonical_audio_path") or "", body.text.strip())
+                if voice_id.startswith("chatterbox:") else gemini_render(voice_id, body.text.strip())
+            )
             progress = 28
             yield sse("progress", {
                 "progress": progress,
