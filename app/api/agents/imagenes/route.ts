@@ -1030,8 +1030,12 @@ export async function POST(req: Request) {
       ? providerOrder(provider, mode)
       : [provider, ...providerOrder("auto", mode).filter((candidate) => candidate !== provider)]
     const textSafeOrder = TEXT_CRITICAL_PROVIDER_ORDER.filter((candidate) => baseOrder.includes(candidate))
-    const order = provider === "auto" && textPriority && textSafeOrder.length
-      ? textSafeOrder
+    const order = textPriority && textSafeOrder.length
+      ? provider === "auto"
+        ? textSafeOrder
+        : allowProviderFallback
+          ? [provider, ...textSafeOrder.filter((candidate) => candidate !== provider)]
+          : baseOrder
       : baseOrder
     const attempts: ProviderAttempt[] = []
     let imageBase64: string | null = null
