@@ -156,6 +156,12 @@ class ArtifactStore:
             raise CacheError("No importar archivos internos del propio caché")
         if not 4 <= source.stat().st_size <= MAX_IMPORT_BYTES:
             raise CacheError("Tamaño fuera de los límites admitidos")
+        actual_source_sha, _ = hash_file(source)
+        if actual_source_sha != digest:
+            raise CacheError("SHA-256 incorrecto; archivo rechazado")
+        with source.open("rb") as stream:
+            if stream.read(4) != b"GGUF":
+                raise CacheError("Cabecera GGUF inválida")
         with self._lock():
             idx = self._read()
             dest = self._file(digest)
