@@ -68,11 +68,12 @@ export default function AdminIncidentBell() {
     void refresh(); // reload on every admin navigation and sign-in/out SPA transition
   }, [pathname, refresh]);
   useEffect(() => {
+    if (!admin) return; // Never poll for students or other non-administrator users.
     const onVisibility = () => { if (!document.hidden) void refresh(); };
     const interval = window.setInterval(() => { if (!document.hidden) void refresh(); }, 120_000);
     document.addEventListener("visibilitychange", onVisibility);
     return () => { window.clearInterval(interval); document.removeEventListener("visibilitychange", onVisibility); };
-  }, [refresh]);
+  }, [refresh, admin]);
   useEffect(() => {
     if (!open) return;
     const listener = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
