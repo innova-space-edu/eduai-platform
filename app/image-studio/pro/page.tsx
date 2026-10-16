@@ -463,6 +463,26 @@ export default function ImageStudioProPage() {
               </label>
             </div>
 
+            <div className="mt-4 rounded-2xl border border-violet-400/20 bg-violet-500/[0.04] p-3">
+              <p className="text-xs font-black text-main">Biblioteca de referencias visuales</p>
+              <p className="mt-1 text-[11px] text-muted2">Elige un diseño o deja que la skill lo detecte. Incluye estilos de videojuegos voxel, cómic, arte retro e infografías.</p>
+              <div className="mt-3 flex max-h-32 flex-wrap gap-1.5 overflow-y-auto">
+                {DESIGN_REFERENCES.map((item) => (
+                  <button key={item.id} type="button" onClick={() => { setReferenceId(item.id); setPlanState(null); }}
+                    aria-pressed={referenceId === item.id}
+                    className={"rounded-full border px-2.5 py-1.5 text-[11px] font-semibold transition " +
+                      (referenceId === item.id ? "border-violet-500 bg-violet-500/15 text-violet-700" : "border-soft bg-app text-muted2 hover:text-main")}>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              <p className="mt-2 text-[11px] text-muted2">Estilo detectado: <strong>{resolveDesignReference(referenceId, prompt).label}</strong></p>
+              <div className="mt-3 space-y-2 text-xs text-main">
+                <label className="flex items-center gap-2"><input type="checkbox" checked={autoOptimize} onChange={(event) => setAutoOptimize(event.target.checked)} /> Optimizar automáticamente al generar (puede consumir créditos IA)</label>
+                <label className="flex items-center gap-2"><input type="checkbox" checked={allowFallback} onChange={(event) => setAllowFallback(event.target.checked)} /> Permitir proveedor alternativo si el elegido falla (puede cambiar el costo)</label>
+              </div>
+            </div>
+
             <div className="mt-4">
               <p className="mb-2 text-[10px] font-black uppercase tracking-[0.14em] text-muted2">Nivel de optimización</p>
               <div className="inline-flex flex-wrap gap-1 rounded-xl border border-soft bg-app p-1">
@@ -549,7 +569,7 @@ export default function ImageStudioProPage() {
               </button>
               <button onClick={generate} disabled={!prompt.trim() || generating} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 via-violet-600 to-fuchsia-600 px-4 py-2.5 text-sm font-black text-white shadow-lg shadow-violet-500/15 disabled:opacity-50">
                 {generating ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
-                {generating ? "Generando…" : "Generar con modelos EDUAI"}
+                {generating ? (optimizationPhase || "Generando…") : "Generar con modelos EDUAI"}
               </button>
             </div>
 
@@ -650,7 +670,7 @@ export default function ImageStudioProPage() {
             <h3 className="text-sm font-black">Cómo trabaja Diseño Pro</h3>
             <div className="mt-4 space-y-2">
               {[
-                "Opcionalmente convierte la solicitud en un brief visual con nivel Ligero, Recomendado o Avanzado.",
+                "Detecta estilos y optimiza automáticamente con las skills visuales, y opcionalmente con IA.",
                 "Clasifica la solicitud y carga solo las skills visuales relevantes.",
                 "Construye VisualBrief y restricciones específicas para la pieza.",
                 "Compila un prompt coherente para el modelo elegido, con reglas estrictas de texto cuando corresponde.",
