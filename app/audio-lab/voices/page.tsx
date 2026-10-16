@@ -84,7 +84,7 @@ export default function AudioLabVoicesPage() {
   const [playingVoiceId, setPlayingVoiceId] = useState("")
   const [voiceRenderProgress, setVoiceRenderProgress] = useState(0)
   const [voiceRenderLabel, setVoiceRenderLabel] = useState("")
-  const [engineStatus, setEngineStatus] = useState<{ ok: boolean; message: string } | null>(null)
+  const [engineStatus, setEngineStatus] = useState<{ ok: boolean; message: string; provider: string } | null>(null)
 
   const refreshSecurity = useCallback(async () => {
     const response = await fetch("/api/agents/audio/voices/security", { cache: "no-store" })
@@ -151,9 +151,10 @@ export default function AudioLabVoicesPage() {
         if (!cancelled) setEngineStatus({
           ok: response.ok && data.ok === true,
           message: String(data.message || "No se pudo consultar el motor vocal."),
+          provider: String(data.provider || "Motor de voz"),
         })
       }).catch(() => {
-        if (!cancelled) setEngineStatus({ ok: false, message: "No se pudo consultar el motor vocal." })
+        if (!cancelled) setEngineStatus({ ok: false, message: "No se pudo consultar el motor vocal.", provider: "Motor de voz" })
       })
     return () => { cancelled = true }
   }, [unlocked, loadVoices])
@@ -331,7 +332,7 @@ export default function AudioLabVoicesPage() {
   async function processVoice(profileId: string) {
     setProcessingVoiceId(profileId)
     setError("")
-    setSuccess("Conectando con Google Voice Replication…")
+    setSuccess("Conectando con el motor de voz autorizado…")
 
     try {
       const response = await fetch("/api/agents/audio/voices/process", {
@@ -361,7 +362,7 @@ export default function AudioLabVoicesPage() {
           : voice))
       })
 
-      setSuccess("Voz lista. La muestra canónica quedó guardada y Gemini creó un identificador vocal reutilizable.")
+      setSuccess("Voz lista. La muestra canónica está protegida y asociada al motor de voz configurado.")
       await loadVoices()
       return true
     } catch (reason: any) {
@@ -475,7 +476,7 @@ export default function AudioLabVoicesPage() {
             <Link href="/audio-lab" className="w-9 h-9 rounded-xl border border-soft flex items-center justify-center text-sub hover:text-main"><ArrowLeft size={15} /></Link>
             <div>
               <h1 className="font-bold text-lg flex items-center gap-2"><ShieldCheck size={18} className="text-purple-500" /> Audio Lab · Mis voces</h1>
-              <p className="text-muted2 text-xs">Exclusivo para administradores mayores de 18 años · Gemini Voice Replication, sin Hugging Face.</p>
+              <p className="text-muted2 text-xs">Exclusivo para administradores mayores de 18 años · clonación privada con consentimiento, sin Hugging Face como servicio.</p>
             </div>
           </div>
           {unlocked && <button onClick={lockSensitiveArea} className="rounded-xl border border-soft px-3 py-2 text-xs text-sub flex items-center gap-2"><LockKeyhole size={14} /> Bloquear ahora</button>}
@@ -502,15 +503,15 @@ export default function AudioLabVoicesPage() {
         : <>
             <section className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-4 flex items-center gap-3"><CheckCircle2 size={18} className="text-emerald-600" /><div><p className="font-semibold text-sm">Zona protegida activa · administrador adulto</p><p className="text-muted2 text-xs">Permanecerá activa hasta cerrar sesión o bloquearla manualmente.</p></div></section>
             <section className={`rounded-2xl border px-4 py-3 text-sm ${engineStatus?.ok ? "border-emerald-500/25 bg-emerald-500/5 text-emerald-700" : "border-amber-500/25 bg-amber-500/5 text-amber-700"}`}>
-              <p className="font-semibold">Motor de voz: Google Gemini · independiente de Hugging Face</p>
-              <p className="mt-1 text-xs">{engineStatus ? engineStatus.message : "Comprobando conexión con Google Voices API..."}</p>
+              <p className="font-semibold">Motor de voz: {engineStatus?.provider || "consultando proveedor"}</p>
+              <p className="mt-1 text-xs">{engineStatus ? engineStatus.message : "Comprobando disponibilidad del motor privado..."}</p>
               <button type="button" onClick={async () => {
                 setEngineStatus(null)
                 try {
                   const response = await fetch("/api/agents/audio/voices/engine", { cache: "no-store" })
                   const data = await response.json().catch(() => ({}))
-                  setEngineStatus({ ok: response.ok && data.ok === true, message: String(data.message || "Motor no disponible") })
-                } catch { setEngineStatus({ ok: false, message: "Motor no disponible" }) }
+                  setEngineStatus({ ok: response.ok && data.ok === true, message: String(data.message || "Motor no disponible"), provider: String(data.provider || "Motor de voz") })
+                } catch { setEngineStatus({ ok: false, message: "Motor no disponible", provider: "Motor de voz" }) }
               }} className="mt-2 text-xs font-semibold underline">Volver a comprobar motor</button>
             </section>
             <section className="rounded-3xl border border-soft p-5 bg-card-soft-theme space-y-4">
@@ -541,7 +542,7 @@ export default function AudioLabVoicesPage() {
                       <p className="mt-1 max-w-xl text-xs text-amber-700">Falta grabar y subir el consentimiento vocal. La muestra anterior se conserva y no necesitas crear otro perfil.</p>
                     )}
                     {voice.processing_error && (/OpenVoice|hf\.co|Hugging Face/i.test(voice.processing_error)
-                      ? <p className="mt-1 max-w-xl text-xs text-amber-700">Aviso antiguo de OpenVoice/Hugging Face: este proveedor ya no se usa. Tras subir el consentimiento podrás procesar la voz con Gemini.</p>
+                      ? <p className="mt-1 max-w-xl text-xs text-amber-700">Aviso antiguo de OpenVoice/Hugging Face: este proveedor ya no se usa. Tras subir el consentimiento podrás procesar la voz cuando Chatterbox esté listo.</p>
                       : <p className="mt-1 max-w-xl text-xs text-red-500">{voice.processing_error}</p>)}
                     {(voice.status === "processing" || processingVoiceId === voice.id) && (
                       <div className="mt-3 max-w-xl">
@@ -581,7 +582,7 @@ export default function AudioLabVoicesPage() {
                     {voice.sample_path && voice.consent_audio_path && voice.status !== "ready" && (
                       <button onClick={() => processVoice(voice.id)} disabled={processingVoiceId === voice.id || engineStatus?.ok !== true} className="rounded-xl border border-purple-500/30 bg-purple-500/10 px-3 py-2 text-xs text-purple-700 flex items-center gap-2 disabled:opacity-50">
                         {processingVoiceId === voice.id ? <Loader2 size={13} className="animate-spin" /> : <Mic2 size={13} />}
-                        {processingVoiceId === voice.id ? "Replicando con Gemini…" : "Replicar voz"}
+                        {processingVoiceId === voice.id ? "Preparando voz…" : "Replicar voz"}
                       </button>
                     )}
                     {voice.status === "ready" && (

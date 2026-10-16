@@ -20,6 +20,8 @@ SUPABASE_URL = os.environ["SUPABASE_URL"].rstrip("/")
 SUPABASE_ANON_KEY = os.environ["SUPABASE_ANON_KEY"]
 GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
 VOICE_MODEL = os.getenv("VOICE_MODEL", "gemini-3.8-flash-tts")
+VOICE_PROVIDER = os.getenv("VOICE_PROVIDER", "gemini").strip().lower()
+CHATTERBOX_ENGINE_URL = os.getenv("CHATTERBOX_ENGINE_URL", "").rstrip("/")
 
 
 class ProfileRequest(BaseModel):
@@ -295,14 +297,62 @@ async def gemini_render(voice_id: str, text: str) -> tuple[bytes, str]:
     raise RuntimeError("Gemini TTS terminó sin audio")
 
 
+async def chatterbox_private_request(path: str, payload: dict | None = None) -> httpx.Response:
+    """Invoke a private Cloud Run GPU service with the gateway service identity."""
+    if not CHATTERBOX_ENGINE_URL.startswith("https://") or ".a.run.app" not in CHATTERBOX_ENGINE_URL:
+        raise RuntimeError("CHATTERBOX_ENGINE_URL no apunta a un servicio Cloud Run privado")
+    from google.auth.transport.requests import Request
+    from google.oauth2.id_token import fetch_id_token
+    identity = await asyncio.to_thread(fetch_id_token, Request(), CHATTERBOX_ENGINE_URL)
+    headers = {"Authorization": f"Bearer {identity}"}
+    timeout = httpx.Timeout(connect=20, read=300, write=40, pool=20)
+    async with httpx.AsyncClient(timeout=timeout) as client:
+        if payload is None:
+            response = await client.get(CHATTERBOX_ENGINE_URL + path, headers=headers)
+        else:
+            response = await client.post(CHATTERBOX_ENGINE_URL + path,
+                                         headers={**headers, "Content-Type": "application/json"}, json=payload)
+    if response.status_code >= 300:
+        raise RuntimeError(
+            f"Motor Chatterbox no disponible (HTTP {response.status_code}); revisa permisos run.invoker y GPU"
+        )
+    return response
+
+
+async def chatterbox_ready() -> None:
+    response = await chatterbox_private_request("/health")
+    if response.json().get("ok") is not True:
+        raise RuntimeError("Chatterbox todavía no tiene los pesos cargados")
+
+
+async def chatterbox_render(token: str, canonical_audio_path: str, text: str) -> tuple[bytes, str]:
+    if not canonical_audio_path:
+        raise RuntimeError("Falta la referencia canónica de la voz")
+    reference = await storage_download(token, "voice-clones", canonical_audio_path)
+    if len(reference) > 3_000_000:
+        raise RuntimeError("Muestra de referencia demasiado grande")
+    response = await chatterbox_private_request("/v1/synthesize", {
+        "reference_wav_b64": base64.b64encode(reference).decode("ascii"),
+        "text": text,
+        "language_id": "es",
+    })
+    if "audio/wav" not in response.headers.get("content-type", "") or len(response.content) > 15_000_000:
+        raise RuntimeError("El motor Chatterbox devolvió audio inválido")
+    return response.content, "audio/wav"
+
+
 async def save_model_asset(token: str, user_id: str, profile_id: str, voice_id: str) -> None:
-    path = f"{user_id}/{profile_id}/google/current.json"
+    local = voice_id.startswith("chatterbox:")
+    provider = "chatterbox-multilingual-v3" if local else "google-gemini"
+    engine = provider if local else VOICE_MODEL
+    asset_kind = "chatterbox" if local else "google"
+    path = f"{user_id}/{profile_id}/{asset_kind}/current.json"
     descriptor = json.dumps({
-        "provider": "google-gemini",
-        "engine": VOICE_MODEL,
+        "provider": provider,
+        "engine": engine,
         "voice_id": voice_id,
-        "storage_mode": "stateful",
-        "ttl": "1 year",
+        "storage_mode": "reference-only" if local else "stateful",
+        "ttl": None if local else "1 year",
     }, ensure_ascii=False).encode("utf-8")
     await storage_upload(token, "voice-model-assets", path, descriptor, "application/json")
 
@@ -314,16 +364,16 @@ async def save_model_asset(token: str, user_id: str, profile_id: str, voice_id: 
     payload = {
         "user_id": user_id,
         "voice_profile_id": profile_id,
-        "engine": VOICE_MODEL,
-        "engine_version": "2026-09",
-        "asset_type": "voice_id",
+        "engine": engine,
+        "engine_version": "v3" if local else "2026-09",
+        "asset_type": "voice_reference" if local else "voice_id",
         "storage_bucket": "voice-model-assets",
         "storage_path": path,
         "metadata": {
-            "provider": "google-gemini",
+            "provider": provider,
             "voice_id": voice_id,
-            "storage_mode": "stateful",
-            "ttl": "1 year",
+            "storage_mode": "reference-only" if local else "stateful",
+            "ttl": None if local else "1 year",
         },
     }
     async with httpx.AsyncClient(timeout=20) as client:
@@ -340,13 +390,19 @@ async def save_model_asset(token: str, user_id: str, profile_id: str, voice_id: 
 async def voice_health() -> dict[str, Any]:
     return {
         "ok": True,
-        "provider": "google-gemini-api",
-        "model": VOICE_MODEL,
+        "provider": "chatterbox-self-hosted" if VOICE_PROVIDER == "chatterbox" else "google-gemini-api",
+        "model": "chatterbox-multilingual-v3" if VOICE_PROVIDER == "chatterbox" else VOICE_MODEL,
         "scale_to_zero": True,
     }
 
 
 async def voice_diagnostics() -> dict[str, Any]:
+    if VOICE_PROVIDER == "chatterbox":
+        try:
+            await chatterbox_ready()
+            return {"ok": True, "status": 200, "provider": "chatterbox-self-hosted", "model": "chatterbox-multilingual-v3"}
+        except Exception:
+            return {"ok": False, "status": 503, "provider": "chatterbox-self-hosted", "model": "chatterbox-multilingual-v3"}
     async with httpx.AsyncClient(timeout=20) as client:
         response = await client.get(
             "https://generativelanguage.googleapis.com/v1beta/voices",
@@ -379,22 +435,25 @@ async def prepare_voice(body: ProfileRequest, authorization: str | None = Header
             if not profile.get("consent_confirmed") or not profile.get("authorization_confirmed"):
                 raise RuntimeError("El perfil no tiene autorización verificable")
 
+            if VOICE_PROVIDER == "chatterbox":
+                await chatterbox_ready()
+
             await patch_profile(token, body.profile_id, {
                 "status": "processing",
                 "processing_progress": 8,
                 "processing_stage": "connecting_google",
                 "processing_error": None,
-                "model_provider": "google-gemini-voice-replication",
+                "model_provider": "chatterbox-multilingual-v3" if VOICE_PROVIDER == "chatterbox" else "google-gemini-voice-replication",
                 "internal_use_enabled": False,
             })
             await add_event(token, user["id"], body.profile_id, "processing_started", {
-                "provider": "google-gemini",
-                "engine": VOICE_MODEL,
+                "provider": "chatterbox" if VOICE_PROVIDER == "chatterbox" else "google-gemini",
+                "engine": "chatterbox-multilingual-v3" if VOICE_PROVIDER == "chatterbox" else VOICE_MODEL,
             })
             yield sse("progress", {
                 "progress": 8,
                 "stage": "connecting_google",
-                "label": "Conectando con Google Voice Replication",
+                "label": "Preparando Chatterbox GPU" if VOICE_PROVIDER == "chatterbox" else "Conectando con Google Voice Replication",
             })
 
             source_task = asyncio.create_task(storage_download(token, "voice-clones", source_path))
@@ -431,14 +490,17 @@ async def prepare_voice(body: ProfileRequest, authorization: str | None = Header
                 await gemini_delete_voice(old_voice_id)
                 await patch_profile(token, body.profile_id, {"provider_voice_id": None})
 
-            task = asyncio.create_task(
-                gemini_create_voice(profile.get("display_name") or "EduAI Voice", source_wav, consent_wav)
-            )
+            if VOICE_PROVIDER == "chatterbox":
+                task = asyncio.create_task(asyncio.sleep(0, result={"id": f"chatterbox:{body.profile_id}"}))
+            else:
+                task = asyncio.create_task(
+                    gemini_create_voice(profile.get("display_name") or "EduAI Voice", source_wav, consent_wav)
+                )
             progress = 52
             yield sse("progress", {
                 "progress": progress,
                 "stage": "replicating_voice",
-                "label": "Gemini está creando el perfil vocal",
+                "label": "Asociando voz con Chatterbox" if VOICE_PROVIDER == "chatterbox" else "Gemini está creando el perfil vocal",
             })
 
             while not task.done():
@@ -468,9 +530,9 @@ async def prepare_voice(body: ProfileRequest, authorization: str | None = Header
                 "processing_progress": 100,
                 "processing_stage": "ready",
                 "processing_error": None,
-                "model_provider": "google-gemini-voice-replication",
+                "model_provider": "chatterbox-multilingual-v3" if VOICE_PROVIDER == "chatterbox" else "google-gemini-voice-replication",
                 "provider_voice_id": voice_id,
-                "provider_voice_expires_at": expires_at,
+                "provider_voice_expires_at": None if VOICE_PROVIDER == "chatterbox" else expires_at,
                 "internal_use_enabled": True,
                 "canonical_audio_path": canonical_path,
                 "canonical_audio_mime": "audio/wav",
@@ -481,8 +543,8 @@ async def prepare_voice(body: ProfileRequest, authorization: str | None = Header
                 "updated_at": now,
             })
             await add_event(token, user["id"], body.profile_id, "ready", {
-                "provider": "google-gemini",
-                "engine": VOICE_MODEL,
+                "provider": "chatterbox" if VOICE_PROVIDER == "chatterbox" else "google-gemini",
+                "engine": "chatterbox-multilingual-v3" if VOICE_PROVIDER == "chatterbox" else VOICE_MODEL,
                 "voice_id": voice_id,
                 "source_seconds": round(source_seconds, 2),
                 "consent_seconds": round(consent_seconds, 2),
@@ -538,10 +600,13 @@ async def render_voice(body: RenderRequest, authorization: str | None = Header(d
             yield sse("progress", {
                 "progress": 12,
                 "stage": "connecting_google",
-                "label": "Conectando con Gemini TTS",
+                "label": "Conectando con Chatterbox GPU" if voice_id.startswith("chatterbox:") else "Conectando con Gemini TTS",
             })
 
-            task = asyncio.create_task(gemini_render(voice_id, body.text.strip()))
+            task = asyncio.create_task(
+                chatterbox_render(token, profile.get("canonical_audio_path") or "", body.text.strip())
+                if voice_id.startswith("chatterbox:") else gemini_render(voice_id, body.text.strip())
+            )
             progress = 28
             yield sse("progress", {
                 "progress": progress,
@@ -576,8 +641,8 @@ async def render_voice(body: RenderRequest, authorization: str | None = Header(d
                 "updated_at": now,
             })
             await add_event(token, user["id"], body.profile_id, "used", {
-                "provider": "google-gemini",
-                "engine": VOICE_MODEL,
+                "provider": "chatterbox" if voice_id.startswith("chatterbox:") else "google-gemini",
+                "engine": "chatterbox-multilingual-v3" if voice_id.startswith("chatterbox:") else VOICE_MODEL,
                 "text_chars": len(body.text),
             })
 

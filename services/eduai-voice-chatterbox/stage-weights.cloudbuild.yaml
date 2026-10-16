@@ -1,0 +1,49 @@
+# Stages only the four Multilingual V3 files needed by from_local().
+# ModelScope is used as an independently hosted source, not Hugging Face.
+timeout: 2400s
+options:
+  logging: CLOUD_LOGGING_ONLY
+steps:
+  - id: download-verified-modelscope
+    name: python:3.11-slim
+    entrypoint: bash
+    args:
+      - -euc
+      - |
+        pip install --no-cache-dir 'modelscope>=1.20,<3'
+        mkdir -p /workspace/weights
+        modelscope download --model ResembleAI/chatterbox \
+          ve.pt \
+          s3gen.pt \
+          t3_mtl23ls_v3.safetensors \
+          grapheme_mtl_merged_expanded_v1.json \
+          --local_dir /workspace/weights
+        python - <<'PY'
+        import hashlib, json
+        from pathlib import Path
+        root = Path('/workspace/weights')
+        names = ('ve.pt','s3gen.pt','t3_mtl23ls_v3.safetensors','grapheme_mtl_merged_expanded_v1.json')
+        hashes = {}
+        for name in names:
+            src = root / name
+            if not src.is_file() or src.stat().st_size < 2048:
+                raise SystemExit(f'ModelScope no entregó pesos válidos: {name}')
+            hashes[name] = hashlib.sha256(src.read_bytes()).hexdigest()
+        (root/'manifest.json').write_text(json.dumps({
+            'source': 'ModelScope ResembleAI/chatterbox',
+            'model': 'Chatterbox Multilingual V3',
+            'license': 'MIT',
+            'files': hashes,
+        }, indent=2))
+        PY
+  - id: upload-to-private-gcs
+    name: gcr.io/google.com/cloudsdktool/google-cloud-cli:stable
+    entrypoint: bash
+    args:
+      - -euc
+      - |
+        for file in ve.pt s3gen.pt t3_mtl23ls_v3.safetensors grapheme_mtl_merged_expanded_v1.json manifest.json; do
+          gcloud storage cp "/workspace/weights/$file" \
+            "gs://scientificbrain-compute-artifacts-260133939682/eduai-voice-models/chatterbox-v3/$file" \
+            --project=scientificbrain-compute --quiet
+        done
