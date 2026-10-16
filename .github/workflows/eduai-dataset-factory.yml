@@ -1,0 +1,36 @@
+name: EDUAI Dataset Factory preflight
+on:
+  pull_request:
+    paths:
+      - 'training/eduai-local/data-factory/**'
+      - 'training/eduai-local/eval-cases.jsonl'
+      - '.github/workflows/eduai-dataset-factory.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dataset-preflight:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Validate without writing
+        run: python training/eduai-local/data-factory/build_dataset.py --check
+      - name: Run regression tests
+        run: python -m unittest discover -s training/eduai-local/data-factory -p 'test_*.py' -v
+      - name: Build and verify manifest
+        run: |
+          python training/eduai-local/data-factory/build_dataset.py
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          m = json.loads(Path('artifacts/ai/dataset-factory-v1/manifest.json').read_text())
+          assert m['production_ready'] is False and m['training_ready'] is False
+          assert m['human_review_pending'] == 54
+          assert [m['splits'][s]['examples'] for s in ('train', 'validation', 'test')] == [36, 9, 9]
+          print('Dataset Factory manifest: experimental checks passed')
+          PY
