@@ -7,6 +7,7 @@ import {
   Copy,
   ExternalLink,
   Home,
+  Heart,
   Library,
   ListMusic,
   Menu,
