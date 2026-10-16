@@ -84,12 +84,19 @@ export default function AudioLabVoicesPage() {
   const [playingVoiceId, setPlayingVoiceId] = useState("")
   const [voiceRenderProgress, setVoiceRenderProgress] = useState(0)
   const [voiceRenderLabel, setVoiceRenderLabel] = useState("")
+  const [engineStatus, setEngineStatus] = useState<{ ok: boolean; message: string } | null>(null)
 
   const refreshSecurity = useCallback(async () => {
     const response = await fetch("/api/agents/audio/voices/security", { cache: "no-store" })
     const data = await response.json().catch(() => ({}))
     if (response.status === 401) {
       router.push("/login")
+      return false
+    }
+    if (response.status === 403) {
+      setUnlocked(false)
+      setLoading(false)
+      setError(data.error || "La clonación vocal requiere una cuenta administradora autorizada y mayor de edad.")
       return false
     }
     const isUnlocked = data.unlocked === true
@@ -135,8 +142,20 @@ export default function AudioLabVoicesPage() {
   }, [refreshSecurity])
 
   useEffect(() => {
-    if (!unlocked) return
+    if (!unlocked) { setEngineStatus(null); return }
     loadVoices()
+    let cancelled = false
+    void fetch("/api/agents/audio/voices/engine", { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json().catch(() => ({}))
+        if (!cancelled) setEngineStatus({
+          ok: response.ok && data.ok === true,
+          message: String(data.message || "No se pudo consultar el motor vocal."),
+        })
+      }).catch(() => {
+        if (!cancelled) setEngineStatus({ ok: false, message: "No se pudo consultar el motor vocal." })
+      })
+    return () => { cancelled = true }
   }, [unlocked, loadVoices])
 
   async function acceptTerms() {
@@ -456,7 +475,7 @@ export default function AudioLabVoicesPage() {
             <Link href="/audio-lab" className="w-9 h-9 rounded-xl border border-soft flex items-center justify-center text-sub hover:text-main"><ArrowLeft size={15} /></Link>
             <div>
               <h1 className="font-bold text-lg flex items-center gap-2"><ShieldCheck size={18} className="text-purple-500" /> Audio Lab · Mis voces</h1>
-              <p className="text-muted2 text-xs">Biblioteca privada, muestra canónica reutilizable y replicación administrada con Gemini Voice Replication.</p>
+              <p className="text-muted2 text-xs">Exclusivo para administradores mayores de 18 años · Gemini Voice Replication, sin Hugging Face.</p>
             </div>
           </div>
           {unlocked && <button onClick={lockSensitiveArea} className="rounded-xl border border-soft px-3 py-2 text-xs text-sub flex items-center gap-2"><LockKeyhole size={14} /> Bloquear ahora</button>}
@@ -481,7 +500,19 @@ export default function AudioLabVoicesPage() {
             <div className="flex gap-2"><input value={totpCode} onChange={(event) => setTotpCode(event.target.value.replace(/\D/g, "").slice(0, 6))} placeholder="Código de 6 dígitos" inputMode="numeric" autoComplete="one-time-code" className="flex-1 rounded-xl border border-soft bg-transparent px-3 py-2 text-sm" /><button onClick={verifyAndUnlock} disabled={mfaLoading || totpCode.length !== 6} className="rounded-xl bg-purple-600 text-white px-4 py-2 text-sm font-semibold disabled:opacity-50">{mfaLoading ? "Verificando…" : "Verificar y desbloquear"}</button></div>
           </section>
         : <>
-            <section className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-4 flex items-center gap-3"><CheckCircle2 size={18} className="text-emerald-600" /><div><p className="font-semibold text-sm">Zona protegida activa</p><p className="text-muted2 text-xs">Permanecerá activa hasta cerrar sesión o bloquearla manualmente.</p></div></section>
+            <section className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-4 flex items-center gap-3"><CheckCircle2 size={18} className="text-emerald-600" /><div><p className="font-semibold text-sm">Zona protegida activa · administrador adulto</p><p className="text-muted2 text-xs">Permanecerá activa hasta cerrar sesión o bloquearla manualmente.</p></div></section>
+            <section className={`rounded-2xl border px-4 py-3 text-sm ${engineStatus?.ok ? "border-emerald-500/25 bg-emerald-500/5 text-emerald-700" : "border-amber-500/25 bg-amber-500/5 text-amber-700"}`}>
+              <p className="font-semibold">Motor de voz: Google Gemini · independiente de Hugging Face</p>
+              <p className="mt-1 text-xs">{engineStatus ? engineStatus.message : "Comprobando conexión con Google Voices API..."}</p>
+              <button type="button" onClick={async () => {
+                setEngineStatus(null)
+                try {
+                  const response = await fetch("/api/agents/audio/voices/engine", { cache: "no-store" })
+                  const data = await response.json().catch(() => ({}))
+                  setEngineStatus({ ok: response.ok && data.ok === true, message: String(data.message || "Motor no disponible") })
+                } catch { setEngineStatus({ ok: false, message: "Motor no disponible" }) }
+              }} className="mt-2 text-xs font-semibold underline">Volver a comprobar motor</button>
+            </section>
             <section className="rounded-3xl border border-soft p-5 bg-card-soft-theme space-y-4">
               <h2 className="font-bold flex items-center gap-2"><Plus size={16} /> Agregar perfil vocal</h2>
               <div className="grid sm:grid-cols-2 gap-3"><input value={displayName} onChange={(event) => setDisplayName(event.target.value)} placeholder="Nombre visible de la voz" className="rounded-xl border border-soft bg-transparent px-3 py-2 text-sm" /><select value={sourceKind} onChange={(event) => setSourceKind(event.target.value as "self" | "authorized_third_party")} className="rounded-xl border border-soft bg-app px-3 py-2 text-sm"><option value="self">Es mi propia voz</option><option value="authorized_third_party">Voz de tercero autorizado</option></select></div>
@@ -506,7 +537,12 @@ export default function AudioLabVoicesPage() {
                       {voice.source_kind === "self" ? "Voz propia" : "Tercero autorizado"} · Estado: {voice.status} · {voice.sample_path ? "referencia lista" : "sin referencia"} · {voice.consent_audio_path ? "consentimiento grabado" : "sin consentimiento de voz"}
                       {voice.model_provider ? ` · ${voice.model_provider}` : ""}
                     </p>
-                    {voice.processing_error && <p className="mt-1 max-w-xl text-xs text-red-500">{voice.processing_error}</p>}
+                    {!voice.consent_audio_path && voice.sample_path && (
+                      <p className="mt-1 max-w-xl text-xs text-amber-700">Falta grabar y subir el consentimiento vocal. La muestra anterior se conserva y no necesitas crear otro perfil.</p>
+                    )}
+                    {voice.processing_error && (/OpenVoice|hf\.co|Hugging Face/i.test(voice.processing_error)
+                      ? <p className="mt-1 max-w-xl text-xs text-amber-700">Aviso antiguo de OpenVoice/Hugging Face: este proveedor ya no se usa. Tras subir el consentimiento podrás procesar la voz con Gemini.</p>
+                      : <p className="mt-1 max-w-xl text-xs text-red-500">{voice.processing_error}</p>)}
                     {(voice.status === "processing" || processingVoiceId === voice.id) && (
                       <div className="mt-3 max-w-xl">
                         <div className="flex items-center justify-between gap-2 text-[11px] text-purple-700">
@@ -543,7 +579,7 @@ export default function AudioLabVoicesPage() {
                       <ShieldCheck size={13} /> {voice.consent_audio_path ? "Reemplazar consentimiento" : "Subir consentimiento"}
                     </button>
                     {voice.sample_path && voice.consent_audio_path && voice.status !== "ready" && (
-                      <button onClick={() => processVoice(voice.id)} disabled={processingVoiceId === voice.id} className="rounded-xl border border-purple-500/30 bg-purple-500/10 px-3 py-2 text-xs text-purple-700 flex items-center gap-2 disabled:opacity-50">
+                      <button onClick={() => processVoice(voice.id)} disabled={processingVoiceId === voice.id || engineStatus?.ok !== true} className="rounded-xl border border-purple-500/30 bg-purple-500/10 px-3 py-2 text-xs text-purple-700 flex items-center gap-2 disabled:opacity-50">
                         {processingVoiceId === voice.id ? <Loader2 size={13} className="animate-spin" /> : <Mic2 size={13} />}
                         {processingVoiceId === voice.id ? "Replicando con Gemini…" : "Replicar voz"}
                       </button>
