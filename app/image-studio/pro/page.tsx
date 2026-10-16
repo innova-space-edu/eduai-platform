@@ -97,6 +97,8 @@ export default function ImageStudioProPage() {
   const [optimizerInfo, setOptimizerInfo] = useState<{ provider?: string; model?: string; reused?: boolean } | null>(null);
   const [optimizationLevel, setOptimizationLevel] = useState<OptimizationLevel>("recommended");
   const [referenceId, setReferenceId] = useState("auto");
+  const [designType, setDesignType] = useState("auto");
+  const [activeResultTab, setActiveResultTab] = useState<"result" | "brief" | "provider" | "incidents" | "suggestions">("result");
   const [autoOptimize, setAutoOptimize] = useState(true);
   const [allowFallback, setAllowFallback] = useState(true);
   const [optimizationPhase, setOptimizationPhase] = useState("");
@@ -210,7 +212,7 @@ export default function ImageStudioProPage() {
         selectedSkills: localRouting.plan.routing.selected_skills,
         primarySkill: localRouting.plan.routing.primary_skill,
         textCritical: requiresAccurateVisualText(localRouting.plan),
-        referenceId, level: optimizationLevel,
+        referenceId, designType, level: optimizationLevel,
       });
       let enhancedPrompt = local.enhanced;
       if (autoOptimize && !optimizationResult) {
@@ -275,6 +277,7 @@ export default function ImageStudioProPage() {
       const data = await response.json().catch(() => ({}));
       if (!response.ok || data.success === false) throw new Error(data.error || ("Error " + response.status));
       setResult({ ...data, imageUrl: data.persistentUrl || data.imageUrl });
+      setActiveResultTab("result");
       setResultAction(data.persistentUrl || data.assetId ? "saved" : null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "No fue posible generar la imagen");
@@ -477,6 +480,16 @@ export default function ImageStudioProPage() {
                 ))}
               </div>
               <p className="mt-2 text-[11px] text-muted2">Estilo detectado: <strong>{resolveDesignReference(referenceId, prompt).label}</strong></p>
+              <label className="mt-3 block text-xs font-semibold">Tipo de pieza
+                <select value={designType} onChange={(event) => {setDesignType(event.target.value);setPlanState(null);}} className="mt-1 w-full rounded-xl border border-soft bg-input-theme px-3 py-2 text-xs">
+                  <option value="auto">Automático según la solicitud</option>
+                  <option value="illustration">Ilustración</option>
+                  <option value="educational">Recurso educativo</option>
+                  <option value="game">Escena de videojuego</option>
+                  <option value="graphic">Póster / diseño gráfico</option>
+                  <option value="photography">Fotografía</option>
+                </select>
+              </label>
               <div className="mt-3 space-y-2 text-xs text-main">
                 <label className="flex items-center gap-2"><input type="checkbox" checked={autoOptimize} onChange={(event) => setAutoOptimize(event.target.checked)} /> Optimizar automáticamente al generar (puede consumir créditos IA)</label>
                 <label className="flex items-center gap-2"><input type="checkbox" checked={allowFallback} onChange={(event) => setAllowFallback(event.target.checked)} /> Permitir proveedor alternativo si el elegido falla (puede cambiar el costo)</label>
@@ -642,6 +655,19 @@ export default function ImageStudioProPage() {
               )}
             </div>
 
+            <div role="tablist" aria-label="Paneles de Diseño Pro" className="flex gap-1 overflow-x-auto border-b border-soft bg-app/50 px-3 py-2">
+              {([
+                ["result", "Resultado"], ["brief", "Brief"], ["provider", "Proveedor"],
+                ["incidents", "Incidencias"], ["suggestions", "Sugerencias"],
+              ] as const).map(([id, label]) => (
+                <button key={id} type="button" role="tab" aria-selected={activeResultTab === id}
+                  onClick={() => setActiveResultTab(id)}
+                  className={"whitespace-nowrap rounded-lg px-3 py-2 text-[11px] font-bold " +
+                    (activeResultTab === id ? "bg-violet-600 text-white" : "text-muted2 hover:bg-violet-500/10")}>{label}</button>
+              ))}
+            </div>
+            {activeResultTab === "result" && (
+              <>
             <div className="grid min-h-[520px] place-items-center bg-[radial-gradient(circle_at_top,_rgba(124,58,237,0.10),_transparent_45%)] p-5">
               {generating ? (
                 <div className="text-center"><Loader2 className="mx-auto h-10 w-10 animate-spin text-violet-500" /><p className="mt-4 text-sm font-black">Diseño Pro está generando</p><p className="mt-1 text-xs text-muted2">Se conserva el fallback y los límites de Image Studio.</p></div>
@@ -662,6 +688,46 @@ export default function ImageStudioProPage() {
                   {result.persistentUrl && <span className="rounded-full bg-blue-500/10 px-2.5 py-1 font-bold text-blue-600">Guardada</span>}
                 </div>
                 {result.optimizedPrompt && <details className="mt-3"><summary className="cursor-pointer text-xs font-bold text-muted2">Prompt compilado usado</summary><p className="mt-2 rounded-xl bg-app p-3 text-xs leading-5 text-muted2">{result.optimizedPrompt}</p></details>}
+              </div>
+            )}
+            </>)}
+            {activeResultTab === "brief" && (
+              <div role="tabpanel" className="min-h-80 space-y-3 p-5 text-xs text-main">
+                <h3 className="text-sm font-black">Brief visual y dirección artística</h3>
+                <p><strong>Solicitud original:</strong> {optimizationResult?.originalPrompt || originalPrompt || prompt}</p>
+                <p><strong>Estilo:</strong> {resolveDesignReference(referenceId, prompt).label}</p>
+                <p><strong>Tipo:</strong> {designType === "auto" ? resolveDesignReference(referenceId, prompt).type : designType}</p>
+                <p><strong>Formato:</strong> {format.label}</p>
+                {optimizationResult?.optimizedPrompt && <p className="whitespace-pre-wrap rounded-xl bg-app p-3"><strong>Prompt optimizado:</strong> {optimizationResult.optimizedPrompt}</p>}
+                {!optimizationResult?.optimizedPrompt && <p>El brief final se completa automáticamente al generar. Pulsa «Analizar con Diseño Pro» para conocer las skills seleccionadas.</p>}
+                {planState && <p><strong>Skills activas:</strong> {planState.plan.routing.selected_skills.join(", ")}</p>}
+              </div>
+            )}
+            {activeResultTab === "provider" && (
+              <div role="tabpanel" className="min-h-80 space-y-3 p-5 text-xs text-main">
+                <h3 className="text-sm font-black">Enrutamiento de proveedores</h3>
+                <p>Preferencia: <strong>{provider === "auto" ? "Selección automática" : provider}</strong></p>
+                <p>Fallback: <strong>{allowFallback ? "Autorizado para Diseño Pro" : "Desactivado"}</strong>. Puede cambiar los costos, el modelo y la calidad.</p>
+                <p>Proveedor utilizado: <strong>{result?.provider || "Aún no generado"}</strong></p>
+                <p>Modelo: <strong>{result?.model || "Sin datos"}</strong></p>
+                {result?.providerOrder?.length ? <p>Orden considerado: {result.providerOrder.join(" → ")}</p> : null}
+                <p>Los errores y cuotas se supervisan mediante el registro administrativo, no se muestran credenciales ni respuestas privadas aquí.</p>
+              </div>
+            )}
+            {activeResultTab === "incidents" && (
+              <div role="tabpanel" className="min-h-80 p-5 text-xs text-main">
+                <h3 className="text-sm font-black">Incidencias de generación</h3>
+                <p className="mt-3 leading-6">{error || "No hay fallos visibles en esta sesión. El historial de incidencias y la antigüedad están disponibles únicamente en la campana de administración Edu Claw."}</p>
+                <p className="mt-3 text-muted2">Cuando un proveedor falla y está permitido, EDUAI intenta otro compatible y registra la incidencia sin duplicarla.</p>
+              </div>
+            )}
+            {activeResultTab === "suggestions" && (
+              <div role="tabpanel" className="min-h-80 space-y-3 p-5 text-xs text-main">
+                <h3 className="text-sm font-black">Sugerencias para el diseño</h3>
+                <p>Incluye el personaje u objeto principal, qué acción realiza, escenario, estilo artístico, iluminación y destino de uso.</p>
+                <p>Para un videojuego de bloques, menciona perspectiva, acción, texturas voxel y fondo de aventura.</p>
+                <p>Para material educativo, proporciona curso y contenidos exactos; revisa fórmulas y rótulos antes de publicar.</p>
+                <p>El motor puede interpretar estilos, pero no garantiza texto o geometría exactos sin revisión.</p>
               </div>
             )}
           </div>
