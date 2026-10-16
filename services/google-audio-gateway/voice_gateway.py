@@ -52,6 +52,25 @@ async def current_user(token: str) -> dict[str, Any]:
     return response.json()
 
 
+async def require_admin_adult(token: str) -> dict[str, Any]:
+    """Los JWT de usuario no permiten saltar la restricción desde la API pública
+    de Cloud Run. La verificación se repite en cada endpoint de replicación.
+    """
+    user = await current_user(token)
+    async with httpx.AsyncClient(timeout=20) as client:
+        role, age = await asyncio.gather(
+            client.post(f"{SUPABASE_URL}/rest/v1/rpc/is_admin",
+                        headers={**auth_headers(token), "Content-Type": "application/json"}, json={}),
+            client.post(f"{SUPABASE_URL}/rest/v1/rpc/is_adult_profile",
+                        headers={**auth_headers(token), "Content-Type": "application/json"}, json={}),
+        )
+    if role.status_code != 200 or age.status_code != 200:
+        raise HTTPException(status_code=503, detail="No se pudo verificar el acceso administrativo a voz")
+    if role.json() is not True or age.json() is not True:
+        raise HTTPException(status_code=403, detail="Clonación vocal solo para administradores mayores de edad")
+    return user
+
+
 async def get_profile(token: str, profile_id: str) -> dict[str, Any]:
     params = {"id": f"eq.{profile_id}", "select": "*", "limit": "1"}
     async with httpx.AsyncClient(timeout=20) as client:
@@ -335,7 +354,7 @@ async def voice_diagnostics() -> dict[str, Any]:
 
 async def prepare_voice(body: ProfileRequest, authorization: str | None = Header(default=None)):
     token = bearer(authorization)
-    user = await current_user(token)
+    user = await require_admin_adult(token)
     profile = await get_profile(token, body.profile_id)
     if profile.get("user_id") != user.get("id"):
         raise HTTPException(status_code=403, detail="Perfil no autorizado")
@@ -494,7 +513,7 @@ async def prepare_voice(body: ProfileRequest, authorization: str | None = Header
 
 async def render_voice(body: RenderRequest, authorization: str | None = Header(default=None)):
     token = bearer(authorization)
-    user = await current_user(token)
+    user = await require_admin_adult(token)
     profile = await get_profile(token, body.profile_id)
     if profile.get("user_id") != user.get("id"):
         raise HTTPException(status_code=403, detail="Perfil no autorizado")
@@ -574,7 +593,7 @@ async def render_voice(body: RenderRequest, authorization: str | None = Header(d
 
 async def delete_voice(body: ProfileRequest, authorization: str | None = Header(default=None)):
     token = bearer(authorization)
-    user = await current_user(token)
+    user = await require_admin_adult(token)
     profile = await get_profile(token, body.profile_id)
     if profile.get("user_id") != user.get("id"):
         raise HTTPException(status_code=403, detail="Perfil no autorizado")
