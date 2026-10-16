@@ -2296,6 +2296,7 @@ function NeonRecentCard({
   const active = music.currentTrack.id === track.id;
   const favorite = music.liked.has(track.id);
   const artwork = track.artworkUrl || track.videoThumbnail || (track.cover?.startsWith("http") ? track.cover : undefined);
+  const externalOnly = Boolean(asExtendedTrack(track)?.externalOnly);
 
   return (
     <div className={cn("neon-recent-card group relative flex h-full min-w-0 flex-col text-left", active && "is-active")}>
@@ -2341,6 +2342,14 @@ function NeonRecentCard({
         <p className="line-clamp-2 text-[11px] font-black leading-[1.2] text-white">{track.title}</p>
         <p className="mt-1 truncate text-[9px] text-slate-400">{track.artist}</p>
       </button>
+      {track.externalUrl && (
+        <a href={track.externalUrl} target="_blank" rel="noopener noreferrer"
+          className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold text-cyan-300 hover:text-cyan-100"
+          title={externalOnly ? "Video no integrable: abrir en YouTube" : "Abrir este video en YouTube"}>
+          <ExternalLink className="h-3 w-3" />
+          {externalOnly ? "Solo YouTube" : "Ver en YouTube"}
+        </a>
+      )}
     </div>
   );
 }
@@ -2355,7 +2364,7 @@ function NeonTrackTable({ tracks }: { tracks: EduMusicTrack[] }) {
       aria-label="Lista desplazable de canciones"
       tabIndex={0}
     >
-      <div className="neon-track-header sticky top-0 z-10 grid grid-cols-[34px_minmax(0,1.4fr)_minmax(90px,.8fr)_minmax(90px,.8fr)_58px_38px] items-center gap-2 bg-[#03101c]/95 px-2 pb-1 text-[8px] font-black uppercase tracking-[.16em] text-slate-500 backdrop-blur-sm">
+      <div className="neon-track-header sticky top-0 z-10 grid grid-cols-[34px_minmax(0,1.4fr)_minmax(90px,.8fr)_minmax(90px,.8fr)_58px_70px] items-center gap-2 bg-[#03101c]/95 px-2 pb-1 text-[8px] font-black uppercase tracking-[.16em] text-slate-500 backdrop-blur-sm">
         <span>#</span>
         <span>Título</span>
         <span>Artista</span>
@@ -2366,11 +2375,12 @@ function NeonTrackTable({ tracks }: { tracks: EduMusicTrack[] }) {
       <div className="space-y-0.5">
         {tracks.map((track, index) => {
           const active = music.currentTrack.id === track.id;
+          const externalOnly = Boolean(asExtendedTrack(track)?.externalOnly);
           return (
             <div
               key={track.id}
               className={cn(
-                "neon-track-row neon-track-grid grid grid-cols-[34px_minmax(0,1.4fr)_minmax(90px,.8fr)_minmax(90px,.8fr)_58px_38px] items-center gap-2 rounded-lg px-2 py-1.5",
+                "neon-track-row neon-track-grid grid grid-cols-[34px_minmax(0,1.4fr)_minmax(90px,.8fr)_minmax(90px,.8fr)_58px_70px] items-center gap-2 rounded-lg px-2 py-1.5",
                 active && "is-active",
               )}
             >
@@ -2389,6 +2399,7 @@ function NeonTrackTable({ tracks }: { tracks: EduMusicTrack[] }) {
                 <Cover track={track} size="xs" />
                 <span className="min-w-0">
                   <span className={cn("block truncate text-[10px] font-black", active ? "text-cyan-200" : "text-white")}>{track.title}</span>
+                  {externalOnly && <span className="block truncate text-[8px] text-amber-300">Solo en YouTube</span>}
                   <span className="block truncate text-[8px] text-slate-500 sm:hidden">{track.artist}</span>
                 </span>
               </button>
@@ -2396,14 +2407,21 @@ function NeonTrackTable({ tracks }: { tracks: EduMusicTrack[] }) {
               <span className="truncate text-[9px] text-slate-300">{track.artist}</span>
               <span className="truncate text-[9px] text-slate-400">{track.album}</span>
               <span className="text-[9px] tabular-nums text-slate-400">{track.duration}</span>
-              <button
-                type="button"
-                onClick={() => music.toggleLike(track.id)}
-                className={cn("mx-auto text-slate-500 hover:text-fuchsia-300", music.liked.has(track.id) && "text-fuchsia-400")}
-                aria-label="Favorito"
-              >
-                <Heart className="h-3.5 w-3.5" fill={music.liked.has(track.id) ? "currentColor" : "none"} />
-              </button>
+              <span className="flex items-center justify-end gap-2">
+                {track.externalUrl && (
+                  <a href={track.externalUrl} target="_blank" rel="noopener noreferrer"
+                    className={cn("text-cyan-400 hover:text-cyan-100", externalOnly && "text-amber-300")}
+                    title={externalOnly ? "No permite inserción: abrir directamente en YouTube" : "Abrir en YouTube"}
+                    aria-label={"Abrir " + track.title + " en YouTube"}>
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                )}
+                <button type="button" onClick={() => music.toggleLike(track.id)}
+                  className={cn("text-slate-500 hover:text-fuchsia-300", music.liked.has(track.id) && "text-fuchsia-400")}
+                  aria-label="Favorito">
+                  <Heart className="h-3.5 w-3.5" fill={music.liked.has(track.id) ? "currentColor" : "none"} />
+                </button>
+              </span>
             </div>
           );
         })}
@@ -2541,6 +2559,7 @@ function NeonMain({
 
   const recentTracks = (music.recentTracks.length ? music.recentTracks : tracks).slice(0, 6);
   const catalogTracks =
+    music.view === "mix" ? [] :
     music.view === "search"
       ? tracks.slice(0, 48)
       : music.view === "home"
@@ -2548,7 +2567,7 @@ function NeonMain({
         : music.view === "liked"
           ? tracks
           : tracks.slice(0, 10);
-  const tableTracks = music.view === "liked" ? tracks : tracks.slice(0, 10);
+  const tableTracks = music.view === "liked" || music.view === "mix" ? tracks : tracks.slice(0, 10);
   const catalogScrollerRef = useRef<HTMLDivElement>(null);
   const catalogPausedRef = useRef(false);
   const catalogKey = catalogTracks.map((track) => track.id).join("|");
@@ -2618,7 +2637,7 @@ function NeonMain({
     music.view === "radio" ? "Explora emisoras sin interrumpir la pista que ya está sonando." :
     music.view === "library" ? "Tus archivos de audio permanecen separados de la reproducción actual." :
     music.view === "liked" ? "Tus canciones favoritas, listas para reproducir cuando quieras." :
-    music.view === "mix" ? "Reproducción aleatoria continua: artistas diferentes, videos oficiales y lyric de cualquier usuario." :
+    music.view === "mix" ? "Explora videos, lyrics, remixes, covers y mixes: reproducción continua y enlaces directos a YouTube." :
     music.view === "queue" ? "Revisa y administra la cola sin cambiar la canción actual." :
     music.view === "playlists" ? "Navega tus playlists; solo cambia la reproducción cuando eliges una pista." :
     music.view === "search" ? "Busca y recorre el catálogo de YouTube manteniendo estable el reproductor." :
@@ -2738,7 +2757,7 @@ function NeonMain({
                     {music.mixFavoriteArtists.length} artistas base y personales · {music.mixFavoriteLearnedCount} canciones aprendidas · {music.mixFavoriteTracks.length} en rotación
                   </p>
                   <p className="mt-1 text-[9px] text-slate-400">
-                    Video oficial o lyric de cualquier canal, sin listas largas ni artistas consecutivos repetidos.
+                    Videos oficiales, lyrics, remixes, covers y mezclas de cualquier canal. Si YouTube bloquea el reproductor, podrás abrirlos allí.
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-2">
@@ -2755,7 +2774,18 @@ function NeonMain({
                   )}
                 </div>
               </div>
-              {music.mixFavoriteLoading && <p className="mt-2 text-[10px] text-cyan-200">Buscando videos reproducibles de distintos artistas...</p>}
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                {music.mixFavoriteActive && (
+                  <button type="button" onClick={music.loadMoreMixFavorite} disabled={music.mixFavoriteLoading}
+                    className="rounded-xl border border-cyan-300/40 bg-cyan-300/10 px-3 py-1.5 text-[10px] font-black text-cyan-100 disabled:opacity-50">
+                    {music.mixFavoriteLoading ? "Buscando..." : "+ Encontrar más canciones"}
+                  </button>
+                )}
+                <span className="text-[9px] text-slate-400">
+                  {music.mixFavoriteTracks.filter((track) => asExtendedTrack(track)?.externalOnly).length} videos disponibles solo en YouTube
+                </span>
+              </div>
+              {music.mixFavoriteLoading && <p className="mt-2 text-[10px] text-cyan-200">Ampliando la lista de artistas y versiones en YouTube...</p>}
               {music.mixFavoriteError && (
                 <div className="mt-2 flex items-center gap-2 text-[10px] text-amber-200">
                   <span className="flex-1">{music.mixFavoriteError}</span>
@@ -2894,7 +2924,7 @@ function NeonMain({
 
             <div className="flex min-h-0 flex-1 flex-col">
               <div className="mb-1.5 flex shrink-0 items-center justify-between">
-                <h2 className="text-[13px] font-black text-white">{music.view === "home" ? "Canciones para ti" : "Canciones"}</h2>
+                <h2 className="text-[13px] font-black text-white">{music.view === "mix" ? "Lista completa · Mix Favorite" : music.view === "home" ? "Canciones para ti" : "Canciones"}</h2>
                 <span className="text-[9px] font-bold text-cyan-300/85">{tableTracks.length} resultados</span>
               </div>
               {tableTracks.length ? (
