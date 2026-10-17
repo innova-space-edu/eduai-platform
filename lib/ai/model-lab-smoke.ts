@@ -32,6 +32,7 @@ function secretFor(provider: string) {
   if (provider === "openrouter") return process.env.OPENROUTER_API_KEY || process.env.OPENROUTER_API_KEY_1 || ""
   if (provider === "together") return process.env.TOGETHER_API_KEY || process.env.TOGETHER_API_KEY_1 || ""
   if (provider === "cerebras") return process.env.CEREBRAS_API_KEY || ""
+  if (provider === "sambanova") return process.env.SAMBANOVA_API_KEY_MODEL_LAB || process.env.SAMBANOVA_API_KEY || ""
   return ""
 }
 
@@ -40,6 +41,7 @@ function endpointFor(provider: string) {
   if (provider === "openrouter") return "https://openrouter.ai/api/v1/chat/completions"
   if (provider === "together") return "https://api.together.xyz/v1/chat/completions"
   if (provider === "cerebras") return "https://api.cerebras.ai/v1/chat/completions"
+  if (provider === "sambanova") return "https://api.sambanova.ai/v1/chat/completions"
   return ""
 }
 
@@ -133,6 +135,6 @@ export async function runModelLabSmoke(provider: string, model: string, capabili
     return { provider, model, supported: false, passed: false, latencyMs: null, statusCode: null, outputMatched: false, detail: "Este candidato requiere un benchmark de modalidad específica (audio, imagen, video o safety)." }
   }
   if (provider === "google") return googleGemini(model)
-  if (["groq", "openrouter", "together", "cerebras"].includes(provider)) return openAICompatible(provider, model)
+  if (["groq", "openrouter", "together", "cerebras", "sambanova"].includes(provider)) return openAICompatible(provider, model)
   return { provider, model, supported: false, passed: false, latencyMs: null, statusCode: null, outputMatched: false, detail: `Proveedor ${provider} aún no tiene adapter de smoke test.` }
 }
