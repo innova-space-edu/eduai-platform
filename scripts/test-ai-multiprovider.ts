@@ -23,11 +23,11 @@ function withEnv(name: string, value: string | undefined, fn: () => void) {
 }
 
 function testProviderOrders() {
-  assert.deepEqual(providerOrderFor("text"), ["google", "groq", "openrouter", "cerebras", "together"])
-  assert.deepEqual(providerOrderFor("structured"), ["google", "groq", "openrouter", "cerebras", "together"])
-  assert.deepEqual(providerOrderFor("long_context"), ["google", "groq", "together", "openrouter", "cerebras"])
+  assert.deepEqual(providerOrderFor("text"), ["google", "groq", "openrouter", "cerebras", "together", "sambanova"])
+  assert.deepEqual(providerOrderFor("structured"), ["google", "groq", "openrouter", "cerebras", "together", "sambanova"])
+  assert.deepEqual(providerOrderFor("long_context"), ["google", "groq", "together", "openrouter", "cerebras", "sambanova"])
   assert.deepEqual(providerOrderFor("research"), ["google", "groq", "openrouter"])
-  assert.deepEqual(providerOrderFor("code"), ["google", "groq", "cerebras", "openrouter", "together"])
+  assert.deepEqual(providerOrderFor("code"), ["google", "groq", "cerebras", "openrouter", "together", "sambanova"])
 }
 
 function testProviderGuards() {
@@ -35,6 +35,7 @@ function testProviderGuards() {
   assert.equal(isCompatibleProviderId("openrouter"), true)
   assert.equal(isCompatibleProviderId("together"), true)
   assert.equal(isCompatibleProviderId("cerebras"), true)
+  assert.equal(isCompatibleProviderId("sambanova"), true)
   assert.equal(isCompatibleProviderId("google"), false)
   assert.equal(isCompatibleProviderId("local"), false)
 
@@ -64,6 +65,9 @@ function testFallbackModels() {
   })
   withEnv("CEREBRAS_TEXT_MODEL", undefined, () => {
     assert.equal(compatibleFallbackModel("cerebras", "text"), "gpt-oss-120b")
+  })
+  withEnv("SAMBANOVA_TEXT_MODEL", undefined, () => {
+    assert.equal(compatibleFallbackModel("sambanova", "text"), "gpt-oss-120b")
   })
   withEnv("GROQ_TEXT_MODEL", undefined, () => {
     assert.deepEqual(

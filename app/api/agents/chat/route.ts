@@ -128,6 +128,7 @@ FORMATO EXACTO:
       messages,
       maxOutputTokens: studyType === "summary" ? 850 : 1300,
       preferredProvider: "groq",
+      fallbackToDefault: true,
       context: {
         userId: user.id,
         module: "study-tutor",

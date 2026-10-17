@@ -1,7 +1,7 @@
 import type { AICapability, AIProviderId } from "../capabilities"
 import type { GatewayMessage } from "./google"
 
-export type CompatibleProvider = Extract<AIProviderId, "groq" | "openrouter" | "together" | "cerebras">
+export type CompatibleProvider = Extract<AIProviderId, "groq" | "openrouter" | "together" | "cerebras" | "sambanova">
 
 export type CompatibleTextResult = {
   text: string
@@ -19,27 +19,75 @@ const ENDPOINTS: Record<CompatibleProvider, string> = {
   openrouter: "https://openrouter.ai/api/v1/chat/completions",
   together: "https://api.together.xyz/v1/chat/completions",
   cerebras: "https://api.cerebras.ai/v1/chat/completions",
+  sambanova: "https://api.sambanova.ai/v1/chat/completions",
 }
 
-function apiKey(provider: CompatibleProvider): string | null {
-  switch (provider) {
-    case "groq":
-      return process.env.GROQ_API_KEY || null
-    case "openrouter":
-      return process.env.OPENROUTER_API_KEY || null
-    case "together":
-      return process.env.TOGETHER_API_KEY || null
-    case "cerebras":
-      return process.env.CEREBRAS_API_KEY || null
-  }
+// Sólo se aceptan nombres de módulos conocidos: un identificador enviado por un
+// cliente nunca se transforma directamente en un nombre arbitrario de secreto.
+const MODULE_KEYS: Record<string, string> = {
+  "model-lab": "MODEL_LAB",
+  "claw": "CLAW",
+  "educador": "EDUCADOR",
+  "examenes": "EXAMENES",
+  "exams": "EXAMENES",
+  "mira": "MIRA",
+  "traductor": "TRADUCTOR",
+  "planificacion": "PLANIFICACION",
+  "planning": "PLANIFICACION",
+  "notebook": "NOTEBOOK",
+  "chat-paper": "CHAT_PAPER",
+  "agentes": "AGENTES",
+  "agents": "AGENTES",
+  "image-studio": "IMAGE_STUDIO",
+  "audio-lab": "AUDIO_LAB",
+  "creator": "CREATOR",
+  "matematico": "MATEMATICO",
+  "study-tutor": "TUTOR",
+  "model-lab-research": "MODEL_LAB",
+}
+
+const KEY_NAMES: Record<CompatibleProvider, string> = {
+  groq: "GROQ_API_KEY",
+  openrouter: "OPENROUTER_API_KEY",
+  together: "TOGETHER_API_KEY",
+  cerebras: "CEREBRAS_API_KEY",
+  sambanova: "SAMBANOVA_API_KEY",
+}
+
+export function compatibleModuleSuffix(module?: string | null): string | undefined {
+  // Se preserva la procedencia real del módulo (p. ej. "claw-chat-stream",
+  // "educador-parvularia-jornada-1", "exam-generate", "planner-semanal").
+  const name = module?.trim().toLowerCase() || ""
+  const suffix = MODULE_KEYS[name]
+    || (name.startsWith("claw-") ? "CLAW" : undefined)
+    || (name.startsWith("educador-") ? "EDUCADOR" : undefined)
+    || (name.startsWith("exam-") || name.startsWith("examen-") ? "EXAMENES" : undefined)
+    || (name.startsWith("mira-") ? (name.includes("traductor") ? "TRADUCTOR" : "MIRA") : undefined)
+    || (name.startsWith("planner-") || name.startsWith("planificador-") ? "PLANIFICACION" : undefined)
+    || (name.startsWith("notebook-") ? "NOTEBOOK" : undefined)
+    || (name.startsWith("chat-paper-") ? "CHAT_PAPER" : undefined)
+    || (name.startsWith("image-studio-") ? "IMAGE_STUDIO" : undefined)
+    || (name.startsWith("audio-lab-") ? "AUDIO_LAB" : undefined)
+    || (name.startsWith("creator-") ? "CREATOR" : undefined)
+  return suffix
+}
+
+function apiKey(provider: CompatibleProvider, module?: string | null): string | null {
+  // No enviar datos de EDUAI a SambaNova sin activación explícita.
+  if (provider === "sambanova" && process.env.EDUAI_SAMBANOVA_ENABLED !== "true") return null
+
+  const base = KEY_NAMES[provider]
+  const suffix = compatibleModuleSuffix(module)
+  const scoped = suffix ? process.env[`${base}_${suffix}`]?.trim() : ""
+  return scoped || process.env[base]?.trim() || null
 }
 
 export function isCompatibleProviderId(provider: AIProviderId): provider is CompatibleProvider {
-  return provider === "groq" || provider === "openrouter" || provider === "together" || provider === "cerebras"
+  return provider === "groq" || provider === "openrouter" || provider === "together" || provider === "cerebras" || provider === "sambanova"
 }
 
-export function hasCompatibleProvider(provider: AIProviderId): provider is CompatibleProvider {
-  return isCompatibleProviderId(provider) && Boolean(apiKey(provider))
+export function hasCompatibleProvider(provider: AIProviderId, module?: string | null): provider is CompatibleProvider {
+  return isCompatibleProviderId(provider) && Boolean(apiKey(provider, module))
 }
 
 export function compatibleFallbackModel(
@@ -61,6 +109,10 @@ export function compatibleFallbackModel(
       return process.env.TOGETHER_TEXT_MODEL || "Qwen/Qwen3.5-9B"
     case "cerebras":
       return process.env.CEREBRAS_TEXT_MODEL || "gpt-oss-120b"
+    case "sambanova":
+      return capability === "structured"
+        ? process.env.SAMBANOVA_STRUCTURED_MODEL || process.env.SAMBANOVA_TEXT_MODEL || "gpt-oss-120b"
+        : process.env.SAMBANOVA_TEXT_MODEL || "gpt-oss-120b"
   }
 }
 
@@ -91,6 +143,8 @@ export function compatibleModelCandidates(
         "openai/gpt-oss-20b",
       )
     }
+  } else if (provider === "sambanova") {
+    candidates.push(compatibleFallbackModel(provider, capability), "gpt-oss-120b", "Meta-Llama-3.3-70B-Instruct")
   } else {
     candidates.push(compatibleFallbackModel(provider, capability))
   }
@@ -186,8 +240,9 @@ async function compatibleFetch(input: {
   maxOutputTokens?: number
   structuredSchema?: Record<string, unknown>
   stream?: boolean
+  module?: string | null
 }) {
-  const key = apiKey(input.provider)
+  const key = apiKey(input.provider, input.module)
   if (!key) throw new Error(`No hay API key configurada para ${input.provider}`)
 
   const response = await fetch(ENDPOINTS[input.provider], {
@@ -213,6 +268,7 @@ export async function generateCompatibleText(input: {
   messages: GatewayMessage[]
   maxOutputTokens?: number
   structuredSchema?: Record<string, unknown>
+  module?: string | null
 }): Promise<CompatibleTextResult> {
   const response = await compatibleFetch(input)
   const data = (await response.json()) as {
@@ -234,6 +290,7 @@ export async function streamCompatibleText(input: {
   model: string
   messages: GatewayMessage[]
   maxOutputTokens?: number
+  module?: string | null
 }): Promise<ReadableStream<Uint8Array>> {
   const response = await compatibleFetch({ ...input, stream: true })
   if (!response.body) throw new Error(`${input.provider}: respuesta streaming sin body`)

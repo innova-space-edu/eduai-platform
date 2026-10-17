@@ -82,6 +82,7 @@ Mantén el formato markdown. Hazlo más claro, fluido y educativo. Máximo 10% m
         capability: "text",
         maxOutputTokens: 1500,
         preferredProvider: "groq",
+        fallbackToDefault: true,
         context: { ...aiContext, module: "notebook-summary-polish" },
         supabase,
       })

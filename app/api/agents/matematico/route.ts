@@ -79,6 +79,7 @@ Responde siempre en español.`,
       capability: "text",
       maxOutputTokens: 3000,
       preferredProvider: "google",
+      fallbackToDefault: true,
       context: {
         userId: user.id,
         module: "matematico",
