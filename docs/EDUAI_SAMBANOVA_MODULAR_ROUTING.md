@@ -33,6 +33,8 @@ SAMBANOVA_API_KEY_AGENTES=
 SAMBANOVA_API_KEY_IMAGE_STUDIO=
 SAMBANOVA_API_KEY_AUDIO_LAB=
 SAMBANOVA_API_KEY_CREATOR=
+SAMBANOVA_API_KEY_MATEMATICO=
+SAMBANOVA_API_KEY_TUTOR=
 
 # Activación explícita sólo tras pruebas de privacidad, costes y conectividad.
 EDUAI_SAMBANOVA_ENABLED=false
@@ -44,6 +46,20 @@ SAMBANOVA_STRUCTURED_MODEL=gpt-oss-120b
 SambaNova y colocarlas en secretos servidor. Nunca almacenarlas en el código,
 en Supabase expuesto al navegador, en localStorage ni en una solicitud cliente.
 Las cuotas de SambaNova son por cuenta y modelo, no por cantidad de claves.
+
+Cada módulo puede además utilizar su propio **orden de proveedores**, definido con
+`EDUAI_AI_PROVIDER_ORDER_<MODULO>_<CAPABILITY>`, por ejemplo:
+
+```env
+EDUAI_AI_PROVIDER_ORDER_CLAW_TEXT=groq,sambanova,google,openrouter
+EDUAI_AI_PROVIDER_ORDER_EXAMENES_TEXT=google,sambanova,groq
+EDUAI_AI_PROVIDER_ORDER_NOTEBOOK_LONG_CONTEXT=google,sambanova,openrouter
+```
+
+Si no hay override, se conserva el orden global. Si un override de módulo omite
+Google, se conserva Google al final como respaldo. Las rutas con un proveedor
+preferido solo intentan otros cuando `fallbackToDefault=true`; ese respaldo se
+activa específicamente en Matemático, Traductor Voz, Tutor y pulido de Notebook.
 
 El adaptador OpenAI-compatible también acepta una clave por módulo para otros
 proveedores, con el patrón `GROQ_API_KEY_CLAW`,
