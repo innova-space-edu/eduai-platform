@@ -10,12 +10,14 @@ async function main() {
   const oldEnv = {
     SAMBANOVA_API_KEY: process.env.SAMBANOVA_API_KEY,
     SAMBANOVA_API_KEY_MODEL_LAB: process.env.SAMBANOVA_API_KEY_MODEL_LAB,
+    SAMBANOVA_API_KEY_CLAW: process.env.SAMBANOVA_API_KEY_CLAW,
     EDUAI_SAMBANOVA_ENABLED: process.env.EDUAI_SAMBANOVA_ENABLED,
   }
   const oldFetch = globalThis.fetch
   try {
     process.env.SAMBANOVA_API_KEY = "local-test-general"
     process.env.SAMBANOVA_API_KEY_MODEL_LAB = "local-test-lab"
+    process.env.SAMBANOVA_API_KEY_CLAW = "local-test-claw"
     process.env.EDUAI_SAMBANOVA_ENABLED = "true"
 
     assert.equal(DEFAULT_PROVIDER_ORDER.text[0], "google")
@@ -42,8 +44,9 @@ async function main() {
       messages: [{ role: "user" as const, content: "test" }],
     }
     assert.equal((await generateCompatibleText({ ...request, module: "model-lab" })).text, "EDUAI_OK")
-    assert.equal((await generateCompatibleText({ ...request, module: "claw" })).text, "EDUAI_OK")
-    assert.deepEqual(keys, ["Bearer local-test-lab", "Bearer local-test-general"])
+    assert.equal((await generateCompatibleText({ ...request, module: "claw-chat-stream" })).text, "EDUAI_OK")
+    assert.equal((await generateCompatibleText({ ...request, module: "unknown-module" })).text, "EDUAI_OK")
+    assert.deepEqual(keys, ["Bearer local-test-lab", "Bearer local-test-claw", "Bearer local-test-general"])
 
     process.env.EDUAI_SAMBANOVA_ENABLED = "false"
     assert.equal(hasCompatibleProvider("sambanova"), false)
