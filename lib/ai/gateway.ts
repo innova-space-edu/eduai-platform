@@ -162,6 +162,7 @@ async function executeTextProvider(input: {
   messages: GatewayMessage[]
   maxOutputTokens?: number
   lite?: boolean
+  module?: string | null
   supabase?: SupabaseClient | null
 }): Promise<{ text: string; provider: string; model: string } | null> {
   if (input.provider === "google") {
@@ -203,7 +204,7 @@ async function executeTextProvider(input: {
     return null
   }
 
-  if (hasCompatibleProvider(input.provider)) {
+  if (hasCompatibleProvider(input.provider, input.module)) {
     const selected = await providerRuntimeModel({
       supabase: input.supabase,
       provider: input.provider,
@@ -221,6 +222,7 @@ async function executeTextProvider(input: {
           model,
           messages: input.messages,
           maxOutputTokens: input.maxOutputTokens,
+          module: input.module,
         })
       } catch (error) {
         lastError = error
@@ -359,6 +361,7 @@ export async function runAIText(input: {
         messages: input.messages,
         maxOutputTokens: input.maxOutputTokens,
         lite: input.lite,
+        module: input.context?.module,
         supabase: input.supabase,
       })
 
@@ -568,7 +571,7 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
           }
           if (!result && lastError) throw lastError
         }
-      } else if (hasCompatibleProvider(provider)) {
+      } else if (hasCompatibleProvider(provider, input.context?.module)) {
         const selected = await providerRuntimeModel({
           supabase: input.supabase,
           provider,
@@ -586,6 +589,7 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
                 messages: input.messages,
                 maxOutputTokens: input.maxOutputTokens,
                 structuredSchema: input.schema,
+                module: input.context?.module,
               })
               result = {
                 text: response.text,
@@ -715,7 +719,7 @@ export async function streamAIText(input: {
         })
       }
 
-      if (hasCompatibleProvider(provider)) {
+      if (hasCompatibleProvider(provider, input.context?.module)) {
         const selected = await providerRuntimeModel({
           supabase: input.supabase,
           provider,
@@ -727,6 +731,7 @@ export async function streamAIText(input: {
           model: selected.model,
           messages: input.messages,
           maxOutputTokens: input.maxOutputTokens,
+          module: input.context?.module,
         })
       }
 
