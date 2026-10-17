@@ -27,6 +27,7 @@ import {
 import {
   compatibleFallbackModel,
   compatibleModelCandidates,
+  compatibleModuleSuffix,
   generateCompatibleText,
   hasCompatibleProvider,
   isCompatibleBillingError,
@@ -55,9 +56,16 @@ function providerOrder(
   capability: AICapability,
   preferred?: AIProviderId | null,
   fallbackToDefault = false,
+  module?: string | null,
 ): AIProviderId[] {
   const envName = envNameForCapability(capability)
-  const defaults = providerOrderFor(capability, process.env[envName])
+  const moduleSuffix = compatibleModuleSuffix(module)
+  // Override privado opcional por herramienta, con Google disponible como reserva.
+  const perModuleEnv = moduleSuffix ? process.env[`EDUAI_AI_PROVIDER_ORDER_${moduleSuffix}_${capability.toUpperCase()}`] : undefined
+  const requestedOrder = providerOrderFor(capability, perModuleEnv || process.env[envName])
+  const defaults = perModuleEnv && !requestedOrder.includes("google")
+    ? [...requestedOrder, "google" as const]
+    : requestedOrder
   if (!preferred) return defaults
   return fallbackToDefault
     ? [preferred, ...defaults.filter((provider) => provider !== preferred)]
@@ -339,7 +347,7 @@ export async function runAIText(input: {
   }
 
   const errors: string[] = []
-  for (const provider of providerOrder(capability, input.preferredProvider, input.fallbackToDefault)) {
+  for (const provider of providerOrder(capability, input.preferredProvider, input.fallbackToDefault, input.context?.module)) {
     if (Date.now() >= deadlineAt - 3_000) {
       errors.push("gateway: presupuesto de tiempo agotado antes de intentar otro proveedor")
       break
@@ -521,7 +529,7 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
     })
   }
 
-  const order = providerOrder(capability, input.preferredProvider)
+  const order = providerOrder(capability, input.preferredProvider, false, input.context?.module)
   const errors: string[] = []
 
   for (const provider of order) {
@@ -692,7 +700,7 @@ export async function streamAIText(input: {
     })
   }
 
-  for (const provider of providerOrder("text", input.preferredProvider, input.fallbackToDefault)) {
+  for (const provider of providerOrder("text", input.preferredProvider, input.fallbackToDefault, input.context?.module)) {
     try {
       if (!input.fastPath) {
         await assertAccess({
