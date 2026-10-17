@@ -57,7 +57,20 @@ function apiKey(provider: CompatibleProvider, module?: string | null): string | 
   if (provider === "sambanova" && process.env.EDUAI_SAMBANOVA_ENABLED !== "true") return null
 
   const base = KEY_NAMES[provider]
-  const suffix = module ? MODULE_KEYS[module.trim().toLowerCase()] : undefined
+  // Se preserva la procedencia real del módulo (p. ej. "claw-chat-stream",
+  // "educador-parvularia-jornada-1", "exam-generate", "planner-semanal").
+  const name = module?.trim().toLowerCase() || ""
+  const suffix = MODULE_KEYS[name]
+    || (name.startsWith("claw-") ? "CLAW" : undefined)
+    || (name.startsWith("educador-") ? "EDUCADOR" : undefined)
+    || (name.startsWith("exam-") || name.startsWith("examen-") ? "EXAMENES" : undefined)
+    || (name.startsWith("mira-") ? (name.includes("traductor") ? "TRADUCTOR" : "MIRA") : undefined)
+    || (name.startsWith("planner-") || name.startsWith("planificador-") ? "PLANIFICACION" : undefined)
+    || (name.startsWith("notebook-") ? "NOTEBOOK" : undefined)
+    || (name.startsWith("chat-paper-") ? "CHAT_PAPER" : undefined)
+    || (name.startsWith("image-studio-") ? "IMAGE_STUDIO" : undefined)
+    || (name.startsWith("audio-lab-") ? "AUDIO_LAB" : undefined)
+    || (name.startsWith("creator-") ? "CREATOR" : undefined)
   const scoped = suffix ? process.env[`${base}_${suffix}`]?.trim() : ""
   return scoped || process.env[base]?.trim() || null
 }
