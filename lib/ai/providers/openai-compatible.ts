@@ -41,6 +41,8 @@ const MODULE_KEYS: Record<string, string> = {
   "image-studio": "IMAGE_STUDIO",
   "audio-lab": "AUDIO_LAB",
   "creator": "CREATOR",
+  "matematico": "MATEMATICO",
+  "study-tutor": "TUTOR",
   "model-lab-research": "MODEL_LAB",
 }
 
