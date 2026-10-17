@@ -231,6 +231,7 @@ export async function POST(req: Request) {
       messages,
       capability: "text",
       preferredProvider: "groq",
+      fallbackToDefault: true,
       lite: true,
       maxOutputTokens: mode === "conversation" ? 320 : 500,
       context: {
