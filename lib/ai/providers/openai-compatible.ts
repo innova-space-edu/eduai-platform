@@ -52,11 +52,7 @@ const KEY_NAMES: Record<CompatibleProvider, string> = {
   sambanova: "SAMBANOVA_API_KEY",
 }
 
-function apiKey(provider: CompatibleProvider, module?: string | null): string | null {
-  // No enviar datos de EDUAI a SambaNova sin activación explícita.
-  if (provider === "sambanova" && process.env.EDUAI_SAMBANOVA_ENABLED !== "true") return null
-
-  const base = KEY_NAMES[provider]
+export function compatibleModuleSuffix(module?: string | null): string | undefined {
   // Se preserva la procedencia real del módulo (p. ej. "claw-chat-stream",
   // "educador-parvularia-jornada-1", "exam-generate", "planner-semanal").
   const name = module?.trim().toLowerCase() || ""
@@ -71,6 +67,15 @@ function apiKey(provider: CompatibleProvider, module?: string | null): string | 
     || (name.startsWith("image-studio-") ? "IMAGE_STUDIO" : undefined)
     || (name.startsWith("audio-lab-") ? "AUDIO_LAB" : undefined)
     || (name.startsWith("creator-") ? "CREATOR" : undefined)
+  return suffix
+}
+
+function apiKey(provider: CompatibleProvider, module?: string | null): string | null {
+  // No enviar datos de EDUAI a SambaNova sin activación explícita.
+  if (provider === "sambanova" && process.env.EDUAI_SAMBANOVA_ENABLED !== "true") return null
+
+  const base = KEY_NAMES[provider]
+  const suffix = compatibleModuleSuffix(module)
   const scoped = suffix ? process.env[`${base}_${suffix}`]?.trim() : ""
   return scoped || process.env[base]?.trim() || null
 }
