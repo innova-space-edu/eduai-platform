@@ -16,7 +16,7 @@ import {
 import { useEduAIMusic } from "@/components/music/MusicProvider"
 
 type VoicePhase = "idle" | "requesting" | "listening" | "processing" | "speaking" | "error"
-export type VoiceMode = "translate" | "conversation"
+export type VoiceMode = "translate" | "conversation" | "tutor"
 export type VoiceLanguage = "auto" | "es" | "en"
 type LanguageCode = "es" | "en"
 type HistoryItem = { role: "user" | "assistant"; content: string }
@@ -30,6 +30,7 @@ type VoiceTurn = {
   targetCode: LanguageCode
   sourceLanguage: string
   targetLanguage: string
+  lesson?: { feedbackEs: string; correctedEnglish: string; practiceEnglish: string }
 }
 
 type Props = {
@@ -166,7 +167,7 @@ async function normalizeVoiceBlob(blob: Blob): Promise<Blob> {
   }
 }
 
-function browserSpeak(text: string, lang: LanguageCode, onEnd: () => void) {
+function browserSpeak(text: string, lang: LanguageCode, onEnd: () => void, voiceURI?: string, speed = 1) {
   if (!("speechSynthesis" in window)) {
     onEnd()
     return
@@ -175,9 +176,9 @@ function browserSpeak(text: string, lang: LanguageCode, onEnd: () => void) {
   window.speechSynthesis.cancel()
   const utterance = new SpeechSynthesisUtterance(plainSpeechText(text))
   utterance.lang = LANGUAGE_META[lang].speech
-  utterance.rate = 1
+  utterance.rate = speed
   utterance.pitch = 1
-  const voice = speechVoice(lang)
+  const voice = (voiceURI ? window.speechSynthesis.getVoices().find((item) => item.voiceURI === voiceURI) : undefined) || speechVoice(lang)
   if (voice) utterance.voice = voice
   utterance.onend = onEnd
   utterance.onerror = onEnd
@@ -205,6 +206,10 @@ export default function MiraVoicePopup({
   const [muteOutput, setMuteOutput] = useState(false)
   const [audioLevel, setAudioLevel] = useState(0)
   const [detectedLanguage, setDetectedLanguage] = useState<LanguageCode | null>(null)
+  const [fixedEnglish, setFixedEnglish] = useState(true)
+  const [availableVoices, setAvailableVoices] = useState<SpeechSynthesisVoice[]>([])
+  const [voiceURI, setVoiceURI] = useState("")
+  const [speechRate, setSpeechRate] = useState(0.9)
 
   const recorderRef = useRef<MediaRecorder | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
@@ -222,6 +227,13 @@ export default function MiraVoicePopup({
   const beginListeningRef = useRef<() => Promise<void>>(async () => {})
   const musicWasPlayingRef = useRef(false)
 
+  useEffect(() => {
+    if (!("speechSynthesis" in window)) return
+    const update = () => setAvailableVoices(window.speechSynthesis.getVoices())
+    update()
+    window.speechSynthesis.addEventListener("voiceschanged", update)
+    return () => window.speechSynthesis.removeEventListener("voiceschanged", update)
+  }, [])
   useEffect(() => { openRef.current = open }, [open])
   useEffect(() => { autoContinueRef.current = autoContinue }, [autoContinue])
   useEffect(() => { muteOutputRef.current = muteOutput }, [muteOutput])
@@ -271,8 +283,8 @@ export default function MiraVoicePopup({
       window.setTimeout(resumeAfterSpeech, 120)
       return
     }
-    browserSpeak(text, lang, resumeAfterSpeech)
-  }, [resumeAfterSpeech])
+    browserSpeak(text, lang, resumeAfterSpeech, voiceURI, speechRate)
+  }, [resumeAfterSpeech, voiceURI, speechRate])
 
   const processAudio = useCallback(async (blob: Blob) => {
     const generation = generationRef.current
@@ -299,8 +311,9 @@ export default function MiraVoicePopup({
             : "webm"
       formData.append("audio", uploadBlob, `mira-turn.${extension}`)
       formData.append("mode", onConversationTurn ? "transcribe" : mode)
-      formData.append("language", language)
-      if (!onConversationTurn && mode === "conversation" && historyRef.current.length) {
+      formData.append("language", mode === "tutor" ? "en" : language)
+      if (mode === "translate" && fixedEnglish) formData.append("targetLanguage", "en")
+      if (!onConversationTurn && (mode === "conversation" || mode === "tutor") && historyRef.current.length) {
         formData.append("history", JSON.stringify(historyRef.current))
       }
 
@@ -330,6 +343,7 @@ export default function MiraVoicePopup({
       if (!original) throw new Error("No pude reconocer lo que dijiste.")
       if (!responseText) throw new Error("No se recibió una respuesta de voz.")
 
+      const lesson = mode === "tutor" && data.lesson ? data.lesson as VoiceTurn["lesson"] : undefined
       const nextTurn: VoiceTurn = {
         id: `${Date.now()}-${turns.length}`,
         mode: onConversationTurn ? "conversation" : mode,
@@ -339,10 +353,11 @@ export default function MiraVoicePopup({
         targetCode,
         sourceLanguage: String(data.sourceLanguage || `Tú · ${LANGUAGE_META[sourceCode].label}`),
         targetLanguage,
+        lesson,
       }
 
       setTurns((current) => [...current, nextTurn].slice(-4))
-      if (!onConversationTurn && mode === "conversation") {
+      if (!onConversationTurn && (mode === "conversation" || mode === "tutor")) {
         historyRef.current = [
           ...historyRef.current,
           { role: "user", content: original },
@@ -350,13 +365,13 @@ export default function MiraVoicePopup({
         ].slice(-8) as HistoryItem[]
       }
 
-      playResponse(responseText, targetCode)
+      playResponse(lesson?.practiceEnglish || responseText, lesson ? "en" : targetCode)
     } catch (cause) {
       if (!openRef.current || generation !== generationRef.current) return
       setError(cause instanceof Error ? cause.message : "No se pudo procesar la conversación.")
       setPhase("error")
     }
-  }, [assistantLabel, language, mode, onConversationTurn, playResponse, turns.length])
+  }, [assistantLabel, language, mode, fixedEnglish, onConversationTurn, playResponse, turns.length])
 
   const stopRecording = useCallback(() => {
     const recorder = recorderRef.current
@@ -551,7 +566,8 @@ export default function MiraVoicePopup({
   }
 
   const activeCode: LanguageCode = language === "en" ? "en" : language === "es" ? "es" : detectedLanguage || "es"
-  const translateTarget = oppositeLanguage(activeCode)
+  const translateTarget = fixedEnglish ? "en" : oppositeLanguage(activeCode)
+  const speechVoices = availableVoices.filter((voice) => voice.lang.toLowerCase().startsWith(mode === "tutor" || (mode === "translate" && fixedEnglish) ? "en" : translateTarget))
   const waveformActive = phase === "listening" || phase === "speaking"
   const latestTurn = turns[turns.length - 1]
 
@@ -572,7 +588,7 @@ export default function MiraVoicePopup({
           role="dialog"
           aria-modal="false"
           aria-label="MIRA conversación en vivo"
-          className="fixed bottom-36 right-5 z-[90] w-[min(92vw,430px)] overflow-hidden rounded-[28px] border border-cyan-300/20 bg-[#08111f]/[0.97] text-white shadow-[0_28px_90px_rgba(2,8,23,.55)] backdrop-blur-2xl max-sm:bottom-28 max-sm:left-3 max-sm:right-3 max-sm:w-auto"
+          className="fixed bottom-36 right-5 z-[90] max-h-[min(82vh,760px)] overflow-y-auto w-[min(92vw,430px)] rounded-[28px] border border-cyan-300/20 bg-[#08111f]/[0.97] text-white shadow-[0_28px_90px_rgba(2,8,23,.55)] backdrop-blur-2xl max-sm:bottom-28 max-sm:left-3 max-sm:right-3 max-sm:w-auto"
         >
           <div className="border-b border-white/10 px-4 py-3.5">
             <div className="flex items-start justify-between gap-3">
@@ -595,7 +611,7 @@ export default function MiraVoicePopup({
             </div>
 
             {!conversationOnly && (
-              <div className="mt-3 grid grid-cols-2 gap-1 rounded-2xl border border-white/10 bg-white/[0.035] p-1">
+              <div className="mt-3 grid grid-cols-3 gap-1 rounded-2xl border border-white/10 bg-white/[0.035] p-1">
                 <button
                   type="button"
                   onClick={() => selectMode("translate")}
@@ -610,6 +626,7 @@ export default function MiraVoicePopup({
                 >
                   <MessageCircle size={13} /> Conversación
                 </button>
+                <button type="button" onClick={() => selectMode("tutor")} className={`flex items-center justify-center gap-1 rounded-xl px-2 py-2 text-[11px] font-bold transition ${mode === "tutor" ? "bg-emerald-400 text-slate-950" : "text-slate-400 hover:bg-white/[0.06] hover:text-white"}`}>Profesor inglés</button>
               </div>
             )}
 
@@ -634,6 +651,25 @@ export default function MiraVoicePopup({
                 </span>
               )}
             </div>
+            {!conversationOnly && mode === "translate" && (
+              <label className="mt-2 flex items-center gap-2 text-[11px] text-slate-200"><input type="checkbox" checked={fixedEnglish} onChange={(e) => { resetConversation(); setFixedEnglish(e.target.checked); setVoiceURI("") }} className="accent-cyan-400" /> Traducir siempre al inglés (sin alternar idiomas)</label>
+            )}
+            {!conversationOnly && (mode === "translate" || mode === "tutor") && (
+              <div className="mt-3 grid grid-cols-[1fr_auto] items-end gap-2">
+                <label className="min-w-0 text-[10px] text-slate-300">Voz para el inglés
+                  <select aria-label="Seleccionar voz inglesa" value={voiceURI} onChange={(event) => setVoiceURI(event.target.value)} className="mt-1 w-full rounded-xl border border-white/15 bg-slate-900 px-2 py-2 text-xs text-white">
+                    <option value="">Automática (según dispositivo)</option>
+                    {speechVoices.map((voice) => <option key={voice.voiceURI} value={voice.voiceURI}>{voice.name} · {voice.lang}</option>)}
+                  </select>
+                </label>
+                <label className="text-[10px] text-slate-300">Velocidad
+                  <select aria-label="Velocidad de voz" value={speechRate} onChange={(event) => setSpeechRate(Number(event.target.value))} className="mt-1 rounded-xl border border-white/15 bg-slate-900 px-2 py-2 text-xs text-white">
+                    <option value={0.75}>Lenta</option><option value={0.9}>Normal</option><option value={1}>Rápida</option>
+                  </select>
+                </label>
+              </div>
+            )}
+            {!conversationOnly && mode === "tutor" && <p className="mt-2 text-[10px] text-slate-400">Pronuncia una oración en inglés. MIRA corrige el texto reconocido y propone una frase para repetir. No realiza evaluación acústica de fonemas.</p>}
           </div>
 
           <div className="px-4 pb-4 pt-3">
@@ -680,9 +716,7 @@ export default function MiraVoicePopup({
             <div className="mt-3 text-center">
               <p className="text-sm font-black text-white">{PHASE_COPY[phase]}</p>
               <p className="mt-1 text-[11px] leading-relaxed text-slate-400">
-                {mode === "conversation"
-                  ? "Habla naturalmente. MIRA detecta español o inglés, responde y vuelve a escuchar."
-                  : "Habla en español o inglés. MIRA detecta el idioma y traduce al otro idioma."}
+                {mode === "conversation" ? "Habla naturalmente. MIRA responde y vuelve a escuchar." : mode === "tutor" ? "Practica inglés. MIRA corrige tu frase y reproduce una versión natural." : fixedEnglish ? "Habla en español; MIRA lo traducirá siempre al inglés." : "MIRA traduce entre español e inglés."}
               </p>
             </div>
 
@@ -701,6 +735,7 @@ export default function MiraVoicePopup({
                 <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.07] px-3 py-2.5">
                   <div className="text-[9px] font-black uppercase tracking-[0.15em] text-cyan-300">{latestTurn.targetLanguage}</div>
                   <p className="mt-1 max-h-20 overflow-y-auto text-[11px] leading-relaxed text-white">{latestTurn.responseText}</p>
+                  {latestTurn.lesson && <div className="mt-2 border-t border-white/10 pt-2 text-[11px]"><p className="font-semibold text-emerald-200">Versión natural: {latestTurn.lesson.correctedEnglish}</p><p className="mt-1 text-cyan-100">Repite: {latestTurn.lesson.practiceEnglish}</p><button type="button" onClick={() => { window.speechSynthesis.cancel(); browserSpeak(latestTurn.lesson!.practiceEnglish, "en", () => {}, voiceURI, speechRate) }} className="mt-2 rounded-full border border-cyan-300/40 px-3 py-1.5 text-cyan-100">🔊 Escuchar de nuevo</button></div>}
                 </div>
               </div>
             )}
