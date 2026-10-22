@@ -30,7 +30,7 @@ type VoiceTurn = {
   targetCode: LanguageCode
   sourceLanguage: string
   targetLanguage: string
-  lesson?: { feedbackEs: string; correctedEnglish: string; practiceEnglish: string }
+  lesson?: { feedbackEs: string; correctedEnglish: string; pronunciationEs: string; tipEs: string; practiceEnglish: string }
 }
 
 type Props = {
@@ -735,7 +735,7 @@ export default function MiraVoicePopup({
                 <div className="rounded-2xl border border-cyan-300/15 bg-cyan-400/[0.07] px-3 py-2.5">
                   <div className="text-[9px] font-black uppercase tracking-[0.15em] text-cyan-300">{latestTurn.targetLanguage}</div>
                   <p className="mt-1 max-h-20 overflow-y-auto text-[11px] leading-relaxed text-white">{latestTurn.responseText}</p>
-                  {latestTurn.lesson && <div className="mt-2 border-t border-white/10 pt-2 text-[11px]"><p className="font-semibold text-emerald-200">Versión natural: {latestTurn.lesson.correctedEnglish}</p><p className="mt-1 text-cyan-100">Repite: {latestTurn.lesson.practiceEnglish}</p><button type="button" onClick={() => { window.speechSynthesis.cancel(); browserSpeak(latestTurn.lesson!.practiceEnglish, "en", () => {}, voiceURI, speechRate) }} className="mt-2 rounded-full border border-cyan-300/40 px-3 py-1.5 text-cyan-100">🔊 Escuchar de nuevo</button></div>}
+                  {latestTurn.lesson && <div className="mt-2 border-t border-white/10 pt-2 text-[11px]"><p className="font-semibold text-emerald-200">Versión natural: {latestTurn.lesson.correctedEnglish}</p><p className="mt-1 text-cyan-100">Cómo se pronuncia (aproximado): {latestTurn.lesson.pronunciationEs}</p><p className="mt-1 text-slate-200">Consejo: {latestTurn.lesson.tipEs}</p><p className="mt-1 text-cyan-100">Escucha y repite: {latestTurn.lesson.practiceEnglish}</p><button type="button" onClick={() => { window.speechSynthesis.cancel(); browserSpeak(latestTurn.lesson!.practiceEnglish, "en", () => {}, voiceURI, speechRate) }} className="mt-2 rounded-full border border-cyan-300/40 px-3 py-1.5 text-cyan-100">🔊 Escuchar de nuevo</button></div>}
                 </div>
               </div>
             )}

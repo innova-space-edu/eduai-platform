@@ -215,7 +215,12 @@ export async function POST(req: Request) {
 
     const messages = mode === "tutor"
       ? [
-          { role: "system" as const, content: `Eres MIRA, profesora de inglés para hispanohablantes. El texto procede de reconocimiento de voz y NO permite medir fonemas ni asignar una puntuación acústica. Detecta errores gramaticales, vocabulario, orden y frases poco naturales; ofrece corrección amable y práctica. Si la frase es correcta, dilo claramente. Responde SOLO un objeto JSON válido con estas claves string: "feedbackEs" (explicación corta en español, sin Markdown), "correctedEnglish" (oración natural corregida en inglés), "practiceEnglish" (una frase inglesa breve para que la persona repita). Si lo dicho está en español, enseña cómo expresarlo en inglés. No afirmes haber medido el acento o pronunciación acústica; menciona que el reconocimiento de voz puede no reflejar exactamente cómo sonó. Usa contexto previo cuando ayude.` },
+          { role: "system" as const, content: `Eres MIRA, una profesora de inglés para personas hispanohablantes. Toda la retroalimentación pedagógica debe estar en ESPAÑOL claro, excepto los ejemplos de inglés.
+El mensaje del alumno proviene de reconocimiento automático de voz; NO tienes medidas acústicas reales de pronunciación ni puedes asegurar qué fonemas pronunció mal. Nunca inventes errores fonéticos específicos ni puntuaciones.
+Cuando haya errores gramaticales o frases poco naturales, explica en español QUÉ dijo, QUÉ debe corregir y POR QUÉ, con una indicación didáctica y alentadora, pero sin elogios vacíos. Cuando la frase esté bien, confírmalo y ofrece una mejora breve solo si corresponde.
+Entrega la versión inglesa correcta, una guía aproximada de pronunciación para hispanohablantes (separando sílabas y marcando la sílaba tónica, sin prometer exactitud fonética), y una frase breve en inglés que pueda escuchar y repetir. Da una indicación articulatoria en español solo si está justificada por la frase, como la diferencia entre th y t; evita afirmaciones sobre el audio capturado.
+Devuelve EXCLUSIVAMENTE JSON válido con cinco propiedades string: "feedbackEs" (explicación y corrección en español), "correctedEnglish" (frase inglesa correcta), "pronunciationEs" (guía pedagógica aproximada de cómo pronunciar correctedEnglish, en español), "tipEs" (consejo breve de pronunciación en español, sin calificar el audio), "practiceEnglish" (frase correcta en inglés para repetir).
+Si la entrada está en español, ofrece su expresión natural en inglés. No traduzcas los nombres de las propiedades y no uses Markdown.` },
           ...history,
           { role: "user" as const, content: original },
         ]
@@ -252,13 +257,13 @@ export async function POST(req: Request) {
     })
 
     let responseText = cleanResponse(String(result.data || result.text || "")).slice(0, 2200)
-    let lesson: { feedbackEs: string; correctedEnglish: string; practiceEnglish: string } | undefined
+    let lesson: { feedbackEs: string; correctedEnglish: string; pronunciationEs: string; tipEs: string; practiceEnglish: string } | undefined
     if (mode === "tutor") {
       try {
         const raw = responseText.replace(/^```(?:json)?\s*/i, "").replace(/```$/i, "").trim()
         const parsed = JSON.parse(raw)
-        if (typeof parsed.feedbackEs !== "string" || typeof parsed.correctedEnglish !== "string" || typeof parsed.practiceEnglish !== "string") throw new Error("Formato inválido")
-        lesson = { feedbackEs: parsed.feedbackEs.slice(0, 1300), correctedEnglish: parsed.correctedEnglish.slice(0, 500), practiceEnglish: parsed.practiceEnglish.slice(0, 500) }
+        if (typeof parsed.feedbackEs !== "string" || typeof parsed.correctedEnglish !== "string" || typeof parsed.practiceEnglish !== "string" || typeof parsed.pronunciationEs !== "string" || typeof parsed.tipEs !== "string") throw new Error("Formato inválido")
+        lesson = { feedbackEs: parsed.feedbackEs.slice(0, 1300), correctedEnglish: parsed.correctedEnglish.slice(0, 500), practiceEnglish: parsed.practiceEnglish.slice(0, 500), pronunciationEs: parsed.pronunciationEs.slice(0, 500), tipEs: parsed.tipEs.slice(0, 500) }
         responseText = lesson.feedbackEs
       } catch {
         return Response.json({ error: "No pude preparar la corrección. Intenta decir la frase otra vez." }, { status: 502 })
