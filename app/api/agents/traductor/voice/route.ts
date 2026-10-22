@@ -8,7 +8,7 @@ export const maxDuration = 60
 const MAX_AUDIO_BYTES = 12 * 1024 * 1024
 const MAX_HISTORY_ITEMS = 8
 
-type VoiceMode = "translate" | "conversation" | "transcribe"
+type VoiceMode = "translate" | "conversation" | "transcribe" | "tutor"
 type LanguageCode = "es" | "en"
 type LanguagePreference = LanguageCode | "auto"
 type HistoryItem = { role: "user" | "assistant"; content: string }
@@ -25,6 +25,7 @@ function oppositeLanguage(language: LanguageCode): LanguageCode {
 function normalizeMode(value: FormDataEntryValue | null): VoiceMode {
   if (value === "conversation") return "conversation"
   if (value === "transcribe") return "transcribe"
+  if (value === "tutor") return "tutor"
   return "translate"
 }
 
@@ -180,6 +181,7 @@ export async function POST(req: Request) {
     const mode = normalizeMode(formData.get("mode"))
     const languagePreference = normalizeLanguage(formData.get("language"))
     const history = parseHistory(formData.get("history"))
+    const fixedEnglish = formData.get("targetLanguage") === "en"
 
     if (!(audio instanceof File)) return Response.json({ error: "No se recibió audio." }, { status: 400 })
     if (audio.size === 0) return Response.json({ error: "La grabación está vacía." }, { status: 400 })
@@ -206,12 +208,18 @@ export async function POST(req: Request) {
       })
     }
 
-    const targetCode = mode === "translate" ? oppositeLanguage(sourceCode) : sourceCode
+    const targetCode = mode === "tutor" || (mode === "translate" && fixedEnglish) ? "en" : mode === "translate" ? oppositeLanguage(sourceCode) : sourceCode
     const targetLanguage = mode === "conversation"
       ? `MIRA · ${LANGUAGE[targetCode].label}`
       : LANGUAGE[targetCode].label
 
-    const messages = mode === "conversation"
+    const messages = mode === "tutor"
+      ? [
+          { role: "system" as const, content: `Eres MIRA, profesora de inglés para hispanohablantes. El texto procede de reconocimiento de voz y NO permite medir fonemas ni asignar una puntuación acústica. Detecta errores gramaticales, vocabulario, orden y frases poco naturales; ofrece corrección amable y práctica. Si la frase es correcta, dilo claramente. Responde SOLO un objeto JSON válido con estas claves string: "feedbackEs" (explicación corta en español, sin Markdown), "correctedEnglish" (oración natural corregida en inglés), "practiceEnglish" (una frase inglesa breve para que la persona repita). Si lo dicho está en español, enseña cómo expresarlo en inglés. No afirmes haber medido el acento o pronunciación acústica; menciona que el reconocimiento de voz puede no reflejar exactamente cómo sonó. Usa contexto previo cuando ayude.` },
+          ...history,
+          { role: "user" as const, content: original },
+        ]
+      : mode === "conversation"
       ? [
           { role: "system" as const, content: conversationPrompt(sourceCode) },
           ...history,
@@ -236,14 +244,26 @@ export async function POST(req: Request) {
       maxOutputTokens: mode === "conversation" ? 320 : 500,
       context: {
         userId: user.id,
-        module: mode === "conversation" ? "mira-live-conversation" : "mira-live-translate",
+        module: mode === "conversation" ? "mira-live-conversation" : mode === "tutor" ? "mira-english-tutor" : "mira-live-translate",
         reusePolicy: mode === "translate" ? "exact_private" : "never",
         visibility: "private",
       },
       supabase,
     })
 
-    const responseText = cleanResponse(result.data).slice(0, 2200)
+    let responseText = cleanResponse(String(result.data || result.text || "")).slice(0, 2200)
+    let lesson: { feedbackEs: string; correctedEnglish: string; practiceEnglish: string } | undefined
+    if (mode === "tutor") {
+      try {
+        const raw = responseText.replace(/^```(?:json)?\s*/i, "").replace(/```$/i, "").trim()
+        const parsed = JSON.parse(raw)
+        if (typeof parsed.feedbackEs !== "string" || typeof parsed.correctedEnglish !== "string" || typeof parsed.practiceEnglish !== "string") throw new Error("Formato inválido")
+        lesson = { feedbackEs: parsed.feedbackEs.slice(0, 1300), correctedEnglish: parsed.correctedEnglish.slice(0, 500), practiceEnglish: parsed.practiceEnglish.slice(0, 500) }
+        responseText = lesson.feedbackEs
+      } catch {
+        return Response.json({ error: "No pude preparar la corrección. Intenta decir la frase otra vez." }, { status: 502 })
+      }
+    }
     if (!responseText) {
       return Response.json({
         error: mode === "conversation" ? "No se pudo generar la respuesta de MIRA." : "No se pudo generar la traducción.",
@@ -255,6 +275,7 @@ export async function POST(req: Request) {
       original,
       responseText,
       translated: responseText,
+      lesson,
       reply: responseText,
       sourceCode,
       targetCode,
