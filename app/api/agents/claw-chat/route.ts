@@ -18,6 +18,7 @@ import { getEnabledTools } from "@/lib/superagent/tool-registry";
 import { EDUAI_PAGES, searchEduAIPages } from "@/lib/superagent/eduai-map";
 import { getEduAIPlatformKnowledgeContext } from "@/lib/eduai/platform-knowledge";
 import { normalizeChatText } from "@/lib/text/normalize-chat-text";
+import { resolveClawPaperContext } from "@/lib/superagent/claw-paper-context";
 
 type RouteSuggestion = { label: string; href: string; emoji: string };
 
@@ -33,6 +34,8 @@ type ClawAttachment = {
   kind?: string
   text?: string
   warnings?: string[]
+  filePath?: string
+  documentId?: string
 }
 
 type PageContext = {
@@ -111,15 +114,16 @@ function buildSuggestions(reply: string, message: string, toolUsed?: string) {
 
 function safeAttachments(value: unknown): ClawAttachment[] {
   if (!Array.isArray(value)) return []
-  let remaining = 90_000
+  let remaining = 12_000
   const result: ClawAttachment[] = []
 
   for (const raw of value.slice(0, 6)) {
-    if (!raw || typeof raw !== "object" || remaining <= 0) continue
+    if (!raw || typeof raw !== "object") continue
     const item = raw as Record<string, unknown>
     const name = typeof item.name === "string" ? item.name.slice(0, 180) : "Archivo"
     const text = typeof item.text === "string" ? normalizeChatText(item.text).slice(0, remaining) : ""
-    if (!text) continue
+    const filePath = typeof item.filePath === "string" ? item.filePath.slice(0, 350) : undefined
+    if (!text && !filePath) continue
     remaining -= text.length
     result.push({
       id: typeof item.id === "string" ? item.id.slice(0, 100) : undefined,
@@ -127,6 +131,8 @@ function safeAttachments(value: unknown): ClawAttachment[] {
       mimeType: typeof item.mimeType === "string" ? item.mimeType.slice(0, 120) : undefined,
       kind: typeof item.kind === "string" ? item.kind.slice(0, 60) : undefined,
       text,
+      filePath,
+      documentId: typeof item.documentId === "string" ? item.documentId.slice(0, 100) : undefined,
       warnings: Array.isArray(item.warnings) ? item.warnings.map(String).slice(0, 5) : undefined,
     })
   }
@@ -244,7 +250,10 @@ export async function POST(req: NextRequest) {
     const displayName = typeof userName === "string" && userName.trim() && userName.trim().toLowerCase() !== "usuario" ? userName.trim().slice(0, 100) : undefined;
     const platformKnowledge = await getEduAIPlatformKnowledgeContext(supabase, cleanMessage, messages);
     const safeFiles = safeAttachments(attachments);
-    const sourceContext = attachmentContext(safeFiles);
+    const paperReferences = safeFiles.filter(item => item.kind === "paper-reference" && item.filePath);
+    const paperContext = await resolveClawPaperContext(supabase, user.id, cleanMessage, paperReferences);
+    const sourceContext = [attachmentContext(safeFiles.filter(item => !!item.text)), paperContext]
+      .filter(Boolean).join("\n\n").slice(0, 30000);
 
     const coreContext: CoreContext = {
       currentPage: inferredPath,
