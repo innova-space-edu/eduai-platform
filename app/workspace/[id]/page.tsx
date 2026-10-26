@@ -9,8 +9,10 @@ import {
   Layers, ExternalLink, Edit3, Check, X, FolderKanban,
   Upload, Bold, Italic, List, Heading2, Save,
   Link2, ChevronDown, ChevronUp, Download, Copy,
-  Sparkles, Loader2, FilePlus, ImagePlus, Wand2
+  Sparkles, Loader2, FilePlus, ImagePlus, Wand2,
+  MessageCircle, LayoutGrid, BookOpenText, AppWindow, ChevronRight
 } from "lucide-react"
+import WorkspaceAssistant from "@/components/workspace/WorkspaceAssistant"
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface Project {
@@ -202,7 +204,26 @@ function NewItemModal({
       if (upErr) throw new Error(`Error subiendo archivo: ${upErr.message}`)
       const { data: { publicUrl } } = supabase.storage.from("workspace-files").getPublicUrl(path)
       const type = file.type.startsWith("image/") ? "image" : file.type.startsWith("audio/") ? "audio" : "file"
-      await saveItem(type, title || file.name, content, publicUrl, { originalName: file.name, size: file.size, mimeType: file.type })
+      let extractedText = ""
+      let extractionNote = "Formato sin extracción de texto"
+      if (/\.(pdf|docx|txt|md|csv)$/i.test(file.name)) {
+        try {
+          const response = await fetch("/api/workspace/" + encodeURIComponent(projectId) + "/extract", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ storagePath: path }),
+          })
+          const result = await response.json()
+          if (!response.ok) throw new Error(result.error || "Extracción no disponible")
+          extractedText = typeof result.text === "string" ? result.text : ""
+          extractionNote = result.reason || (extractedText ? "Texto extraído" : "Sin texto seleccionable")
+        } catch (cause: unknown) {
+          extractionNote = cause instanceof Error ? cause.message : "No se pudo extraer texto"
+        }
+      }
+      await saveItem(type, title || file.name, extractedText || content, publicUrl, {
+        originalName: file.name, size: file.size, mimeType: file.type, storagePath: path,
+        extractionStatus: extractedText ? "ready" : "unavailable", extractionNote,
+      })
     } catch (e: any) { setError(e.message) }
     finally { setLoading(false) }
   }
@@ -491,6 +512,7 @@ export default function WorkspaceProjectPage() {
   const [nameValue,   setNameValue]   = useState("")
   const [search,      setSearch]      = useState("")
   const [filter,      setFilter]      = useState("all")
+  const [section,     setSection]     = useState<"all" | "notes" | "files" | "tools" | "chat">("all")
 
   useEffect(() => { loadProject() }, [id])
 
@@ -529,9 +551,23 @@ export default function WorkspaceProjectPage() {
   const filtered = items.filter(item => {
     const matchSearch = search === "" || item.title.toLowerCase().includes(search.toLowerCase()) || item.content_text?.toLowerCase().includes(search.toLowerCase())
     const matchFilter = filter === "all" || item.item_type === filter
-    return matchSearch && matchFilter
+    const matchSection = section === "notes" ? ["note", "document"].includes(item.item_type)
+      : section === "files" ? !["note", "document"].includes(item.item_type) : true
+    return matchSearch && matchFilter && matchSection
   })
 
+  const notes = items.filter(item => ["note", "document"].includes(item.item_type))
+  const resources = items.filter(item => !["note", "document"].includes(item.item_type))
+  const workspaceApps = [
+    { name: "Creator Hub", detail: "Documentos, infografías y presentaciones", href: "/creator-hub", icon: "🎨" },
+    { name: "Cuadernos IA", detail: "Investigación con fuentes", href: "/notebooks", icon: "📚" },
+    { name: "Pizarra interactiva", detail: "Ideas y mapas visuales", href: "/pizarra-interactiva", icon: "✏️" },
+    { name: "Redactor EDUAI", detail: "Escritura y revisión de textos", href: "/redactor", icon: "📝" },
+    { name: "Investigador", detail: "Investigar y organizar información", href: "/investigador", icon: "🔎" },
+    { name: "Repositorio", detail: "Recursos educativos", href: "/repositorio", icon: "🗂️" },
+    { name: "Image Studio", detail: "Imágenes para materiales", href: "/image-studio", icon: "🖼️" },
+    { name: "Audio Lab", detail: "Voz y grabaciones", href: "/audio-lab", icon: "🎧" },
+  ]
   // Tipos únicos presentes
   const presentTypes = [...new Set(items.map(i => i.item_type))]
 
