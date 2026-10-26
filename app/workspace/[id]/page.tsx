@@ -394,6 +394,44 @@ function ViewItemModal({
   const [saving,  setSaving]  = useState(false)
   const [saved,   setSaved]   = useState(false)
   const [copied,  setCopied]  = useState(false)
+  const [reindexing, setReindexing] = useState(false)
+  const [reindexError, setReindexError] = useState("")
+
+  async function handleReindex() {
+    setReindexing(true)
+    setReindexError("")
+    try {
+      const marker = "/storage/v1/object/public/workspace-files/"
+      const pathname = item.content_url ? new URL(item.content_url).pathname : ""
+      const index = pathname.indexOf(marker)
+      const storagePath = typeof item.metadata?.storagePath === "string"
+        ? item.metadata.storagePath
+        : index >= 0 ? decodeURIComponent(pathname.slice(index + marker.length)) : ""
+      if (!storagePath) throw new Error("La ubicación del archivo no está disponible")
+      const response = await fetch("/api/workspace/" + encodeURIComponent(item.project_id) + "/extract", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storagePath }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || "No se pudo procesar")
+      if (!result.text) throw new Error(result.reason || "No se encontró texto")
+      const combinedText = content.trim() ? content.trim() + "\n\n" + result.text : result.text
+      const { data, error } = await supabase.from("workspace_items")
+        .update({
+          content_text: combinedText,
+          metadata: { ...item.metadata, storagePath, extractionStatus: "ready", extractionNote: "Texto extraído" },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", item.id).eq("project_id", item.project_id).select("*").single()
+      if (error || !data) throw new Error(error?.message || "No se pudo guardar el texto")
+      setContent(combinedText)
+      onSave(data)
+    } catch (cause: unknown) {
+      setReindexError(cause instanceof Error ? cause.message : "No se pudo indexar")
+    } finally {
+      setReindexing(false)
+    }
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -470,7 +508,19 @@ function ViewItemModal({
           )}
 
           {isEditable ? (
-            <RichTextEditor value={content} onChange={setContent} minRows={12} />
+            <>
+              <RichTextEditor value={content} onChange={setContent} minRows={12} />
+              {item.item_type === "file" && /\.(pdf|docx|txt|md|csv)$/i.test(String(item.metadata?.originalName || item.title)) && item.metadata?.extractionStatus !== "ready" && (
+                <div className="mt-3">
+                  <button type="button" onClick={handleReindex} disabled={reindexing}
+                    className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium bg-teal-600/10 text-teal-700 dark:text-teal-300 hover:bg-teal-600/20 disabled:opacity-50">
+                    {reindexing ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                    {reindexing ? "Leyendo archivo…" : "Incorporar texto del archivo al asistente"}
+                  </button>
+                  {reindexError && <p role="alert" className="mt-2 text-xs text-red-400">{reindexError}</p>}
+                </div>
+              )}
+            </>
           ) : (
             content && (
               <div className="rounded-2xl p-4 border border-medium bg-card-soft-theme">
