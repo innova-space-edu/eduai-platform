@@ -1151,7 +1151,43 @@ export function getToolsByCategory(
   return TOOL_REGISTRY.filter((t) => t.enabled && t.category === category);
 }
 
-/** Detecta qué tool usar según el texto del mensaje del usuario */
+/**
+ * Una mención de "música" no implica que se solicite una playlist.
+ *
+ * Ej.: "Necesito una reunión con la directora por la sala de música"
+ * es una solicitud administrativa, NO una petición para escuchar canciones.
+ * Priorizamos una acción explícita de escuchar/recomendar sobre palabras sueltas.
+ */
+export function isMusicListeningRequest(message: string): boolean {
+  const normalized = message.toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Música como espacio, asignatura o proyecto físico no debe disparar el reproductor.
+  const text = normalized.replace(
+    /\b(?:sala|salon|aula|clase|asignatura|departamento|proyecto|taller|laboratorio|equipamiento|infraestructura|profesor|profesora)\s+(?:de\s+)?musica\b/g,
+    " ",
+  );
+
+  const trackTerms = /\b(?:musica|cancion(?:es)?|playlist(?:s)?|lista(?:s)? de reproduccion|lo[ -]?fi|pistas? instrumentales?)\b/;
+  if (!trackTerms.test(text)) return false;
+
+  // Pedidos explícitos: "recomiéndame música", "pon lo-fi", "escuchar canciones".
+  const trackFirst = /\b(?:musica|cancion(?:es)?|playlist(?:s)?|lo[ -]?fi)\b[^.!?;\n]{0,75}\b(?:recomiendas?|sugieres?|escuchar|reproducir|poner|ponme)\b/;
+  const explicitWant = /\b(?:quiero|necesito|me gustaria|busco)\s+(?:(?:escuchar|oir|poner|reproducir)\s+)?(?:(?:una?|algo de|unas?|algunas?|varias?|pistas? de|lista de)\s+)?\b(?:musica|cancion(?:es)?|playlist(?:s)?|lo[ -]?fi)\b/;
+  const focusWithMusic = /\b(?:estudiar|concentrarme|trabajar|relajarme)\s+con\s+musica\b/;
+
+  // "Recomienda estrategias para enseñar música" tampoco pide canciones.
+  const otherObject = /\b(?:estrategias?|actividades?|ideas?|propuestas?|proyectos?|tecnologias?|equipamiento|presupuesto|informes?|reuniones?|ensenar|ensenanza|clases?|asignaturas?|curriculo|curriculum|planificaciones?|presentacion(?:es)?|materiales?|metodologias?)\b/;
+  const actionAndTrack = /\b(?:recomienda(?:me|s)?|recomendar(?:me)?|recomiendas|sugiere(?:me|s)?|sugerir(?:me)?|pon(?:me)?|reproduce|reproducir|escuchar|oir|escuchemos|dame|buscame|busco|elige|selecciona|armame|prepara(?:me)?)\b([^.!?;\n]{0,95})\b(?:musica|cancion(?:es)?|playlist(?:s)?|lo[ -]?fi|pistas? instrumentales?)\b/g;
+  const clearPlaybackAction = [...text.matchAll(actionAndTrack)]
+    .some((match) => !otherObject.test(match[1]));
+  return clearPlaybackAction || trackFirst.test(text) || explicitWant.test(text) || focusWithMusic.test(text);
+}
+
+/** Detecta qué herramienta ejecutar por la intención expresada en el mensaje. */
 export function detectToolFromMessage(message: string): ToolName | null {
   const m = message.toLowerCase();
 
@@ -1174,9 +1210,7 @@ export function detectToolFromMessage(message: string): ToolName | null {
     )
   )
     return "generate_edu_video";
-  if (
-    /m[uú]sica|focus|concentraci[oó]n|pomodoro|estudiar con m[uú]sica/i.test(m)
-  )
+  if (isMusicListeningRequest(message))
     return "recommend_focus_music";
   if (/podcast|micro.?podcast|episodio de audio/i.test(m)) return "generate_podcast";
   if (/narr(a|ar|e)|escuchar|lee en voz|audio/i.test(m)) return "narrate_text";

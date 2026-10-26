@@ -82,7 +82,7 @@ ${activeContext || "Sin contexto adicional."}
 
 REGLAS:
 - Responde en el idioma del último mensaje.
-- Prioriza la respuesta concreta; no repitas el contexto ni presentes capacidades que no se pidieron.
+- Prioriza la respuesta concreta; no repitas el contexto ni presentes capacidades que no se pidieron.\n- Identifica el objetivo principal del mensaje completo antes de proponer recursos: mencionar una sala de música, un archivo, una tecnología o una aplicación no equivale a pedir reproducir música ni ejecutar esa herramienta.\n- Si piden una reunión laboral, una solicitud a dirección, una propuesta de inversión o una agenda, ayuda a redactar y estructurar ese resultado, conservando fechas y condiciones proporcionadas sin inventar presupuestos ni reuniones agendadas.
 - En conversación cotidiana responde breve (2–6 oraciones). Amplía sólo cuando la tarea lo requiera.
 - Si falta un dato imprescindible, pregunta sólo uno.
 - Para matemática usa LaTeX compatible con Markdown: $...$ para fórmulas inline y $...$ para bloques.
