@@ -478,7 +478,7 @@ function ViewItemModal({
             <button onClick={handleDownload} className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main transition-all" title="Descargar">
               <Download size={14} />
             </button>
-            <button onClick={() => { onDelete(item.id); onClose() }}
+            <button onClick={() => onDelete(item.id)}
               className="w-8 h-8 flex items-center justify-center rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all" title="Eliminar">
               <Trash2 size={14} />
             </button>
@@ -567,8 +567,8 @@ export default function WorkspaceProjectPage() {
 
   useEffect(() => { loadProject() }, [id])
 
-  async function loadProject() {
-    setLoading(true)
+  async function loadProject(quiet = false) {
+    if (!quiet) setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push("/login"); return }
 
@@ -836,7 +836,7 @@ export default function WorkspaceProjectPage() {
           </>)}
         </main>
         <aside className={"min-w-0 xl:sticky xl:top-28 " + (section === "chat" ? "block" : "hidden xl:block")}>
-          <WorkspaceAssistant projectId={project.id} projectName={project.name} onSaved={loadProject} />
+          <WorkspaceAssistant projectId={project.id} projectName={project.name} onSaved={() => { void loadProject(true) }} />
         </aside>
       </div>
     </div>
