@@ -1171,13 +1171,13 @@ export function isMusicListeningRequest(message: string): boolean {
     " ",
   );
 
-  const trackTerms = /\b(?:musica|canciones?|playlist(?:s)?|lista(?:s)? de reproduccion|lo[ -]?fi|pistas? instrumentales?)\b/;
+  const trackTerms = /\b(?:musica|cancion(?:es)?|playlist(?:s)?|lista(?:s)? de reproduccion|lo[ -]?fi|pistas? instrumentales?)\b/;
   if (!trackTerms.test(text)) return false;
 
   // Pedidos explícitos: "recomiéndame música", "pon lo-fi", "escuchar canciones".
-  const playRequest = /\b(?:recomienda(?:me|s)?|recomendar(?:me)?|recomiendas|sugiere(?:me|s)?|sugerir(?:me)?|pon(?:me)?|reproduce|reproducir|escuchar|oir|escuchemos|dame|buscame|busco|elige|selecciona|armame|prepara(?:me)?)\b[^.!?;\n]{0,95}\b(?:musica|canciones?|playlist(?:s)?|lo[ -]?fi|pistas? instrumentales?)\b/;
-  const trackFirst = /\b(?:musica|canciones?|playlist(?:s)?|lo[ -]?fi)\b[^.!?;\n]{0,75}\b(?:recomiendas?|sugieres?|escuchar|reproducir|poner|ponme)\b/;
-  const explicitWant = /\b(?:quiero|necesito|me gustaria|busco)\s+(?:(?:escuchar|oir|poner|reproducir)\s+)?(?:(?:una?|algo de|unas?|algunas?|varias?|pistas? de|lista de)\s+)?\b(?:musica|canciones?|playlist(?:s)?|lo[ -]?fi)\b/;
+  const playRequest = /\b(?:recomienda(?:me|s)?|recomendar(?:me)?|recomiendas|sugiere(?:me|s)?|sugerir(?:me)?|pon(?:me)?|reproduce|reproducir|escuchar|oir|escuchemos|dame|buscame|busco|elige|selecciona|armame|prepara(?:me)?)\b[^.!?;\n]{0,95}\b(?:musica|cancion(?:es)?|playlist(?:s)?|lo[ -]?fi|pistas? instrumentales?)\b/;
+  const trackFirst = /\b(?:musica|cancion(?:es)?|playlist(?:s)?|lo[ -]?fi)\b[^.!?;\n]{0,75}\b(?:recomiendas?|sugieres?|escuchar|reproducir|poner|ponme)\b/;
+  const explicitWant = /\b(?:quiero|necesito|me gustaria|busco)\s+(?:(?:escuchar|oir|poner|reproducir)\s+)?(?:(?:una?|algo de|unas?|algunas?|varias?|pistas? de|lista de)\s+)?\b(?:musica|cancion(?:es)?|playlist(?:s)?|lo[ -]?fi)\b/;
   const focusWithMusic = /\b(?:estudiar|concentrarme|trabajar|relajarme)\s+con\s+musica\b/;
 
   return playRequest.test(text) || trackFirst.test(text) || explicitWant.test(text) || focusWithMusic.test(text);
