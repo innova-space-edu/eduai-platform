@@ -396,6 +396,7 @@ function ViewItemModal({
   const [copied,  setCopied]  = useState(false)
   const [reindexing, setReindexing] = useState(false)
   const [reindexError, setReindexError] = useState("")
+  const [indexed, setIndexed] = useState(false)
 
   async function handleReindex() {
     setReindexing(true)
@@ -425,6 +426,7 @@ function ViewItemModal({
         .eq("id", item.id).eq("project_id", item.project_id).select("*").single()
       if (error || !data) throw new Error(error?.message || "No se pudo guardar el texto")
       setContent(combinedText)
+      setIndexed(true)
       onSave(data)
     } catch (cause: unknown) {
       setReindexError(cause instanceof Error ? cause.message : "No se pudo indexar")
@@ -510,7 +512,7 @@ function ViewItemModal({
           {isEditable ? (
             <>
               <RichTextEditor value={content} onChange={setContent} minRows={12} />
-              {item.item_type === "file" && /\.(pdf|docx|txt|md|csv)$/i.test(String(item.metadata?.originalName || item.title)) && item.metadata?.extractionStatus !== "ready" && (
+              {item.item_type === "file" && /\.(pdf|docx|txt|md|csv)$/i.test(String(item.metadata?.originalName || item.title)) && item.metadata?.extractionStatus !== "ready" && !indexed && (
                 <div className="mt-3">
                   <button type="button" onClick={handleReindex} disabled={reindexing}
                     className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium bg-teal-600/10 text-teal-700 dark:text-teal-300 hover:bg-teal-600/20 disabled:opacity-50">
