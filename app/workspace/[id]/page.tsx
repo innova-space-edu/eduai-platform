@@ -586,9 +586,15 @@ export default function WorkspaceProjectPage() {
   }
 
   async function deleteItem(itemId: string) {
-    await supabase.from("workspace_items").delete().eq("id", itemId)
-    setItems(prev => prev.filter(i => i.id !== itemId))
-    setViewItem(null)
+    if (!window.confirm("¿Eliminar este material? Esta acción no se puede deshacer.")) return
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { error } = await supabase.from("workspace_items").delete()
+      .eq("id", itemId).eq("project_id", id).eq("user_id", user.id)
+    if (!error) {
+      setItems(prev => prev.filter(i => i.id !== itemId))
+      setViewItem(null)
+    }
   }
 
   async function saveProjectName() {
@@ -622,7 +628,7 @@ export default function WorkspaceProjectPage() {
   const color = project.color || "#4338ca"
 
   return (
-    <div className="min-h-screen bg-app">
+    <div className="min-h-screen bg-app" style={{ backgroundImage: "radial-gradient(circle at 12% 3%, rgba(45, 212, 191, .10), transparent 38%), radial-gradient(circle at 90% 12%, rgba(167, 139, 250, .09), transparent 34%)" }}>
 
       {/* Modales */}
       {showNew && (
