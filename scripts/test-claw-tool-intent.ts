@@ -21,6 +21,10 @@ const nonMusicalRequests = [
   "Dame una propuesta de equipamiento musical para el aula",
   "Planifiquemos la infraestructura de una sala de música y su acústica",
   "Mejoremos el mobiliario del departamento de música",
+  "Recomienda estrategias para enseñar música en el colegio",
+  "Dame una propuesta pedagógica para la asignatura de música",
+  "Pon una presentación sobre música en la reunión",
+  "Sugiere tecnologías para la enseñanza de música",
 ]
 
 const genuineMusicRequests = [
