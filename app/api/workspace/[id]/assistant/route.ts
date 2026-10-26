@@ -74,23 +74,24 @@ export async function POST(request: NextRequest, { params }: Params) {
     const index = items.slice(0, 150).map((item) =>
       "- " + item.title.slice(0, 110) + " (" + item.item_type + (item.content_text?.trim() ? ", texto disponible" : ", sin texto extraído") + ")",
     ).join("\n")
-    const selected: WorkspaceSource[] = []
+    const overview = action !== "chat" || /resum|síntes|sintes|general|todo el proyecto/i.test(message)
+    const selected: Array<{ item: WorkspaceSource; excerpt: string }> = []
     let budget = 33000
     for (const { item } of ranked) {
-      if (selected.length >= 28 || budget <= 200) break
-      const excerpt = (item.content_text || "").trim().slice(0, 4500)
+      if (selected.length >= (overview ? 60 : 24) || budget <= 200) break
+      const excerpt = (item.content_text || "").trim().slice(0, Math.min(budget, overview ? 1000 : 3500))
       if (!excerpt && selected.length >= 10) continue
-      selected.push(item)
-      budget -= Math.min(excerpt.length, budget)
+      selected.push({ item, excerpt })
+      budget -= excerpt.length
     }
-    const sources = selected.map((item, index) => {
-      const excerpt = (item.content_text || "").trim().slice(0, 4500)
-      return [
-        "[FUENTE " + (index + 1) + "] " + item.title.slice(0, 180),
-        "Tipo: " + item.item_type,
-        "Contenido: " + (excerpt || "[Solo se conoce el nombre o la descripción. No se extrajo el contenido del archivo.]"),
-      ].join("\n")
-    }).join("\n\n---\n\n")
+    const indexedCount = items.filter((item) => !!item.content_text?.trim()).length
+    const selectedTextCount = selected.filter(({ excerpt }) => !!excerpt).length
+    const limited = items.length >= 500 || items.length > 150 || selectedTextCount < indexedCount
+    const sources = selected.map(({ item, excerpt }, index) => [
+      "[FUENTE " + (index + 1) + "] " + item.title.slice(0, 180),
+      "Tipo: " + item.item_type,
+      "Contenido: " + (excerpt || "[Solo se conoce el nombre o la descripción. No se extrajo el contenido del archivo.]"),
+    ].join("\n")).join("\n\n---\n\n")
 
     const instruction = [
       "Eres el asistente de conversación de un único proyecto del Workspace EDUAI.",
@@ -105,7 +106,8 @@ export async function POST(request: NextRequest, { params }: Params) {
       action === "summary" ? "OBJETIVO: redacta un resumen estructurado, con conclusiones y próximos pasos únicamente cuando las fuentes lo permitan." : "",
       action === "document" ? "OBJETIVO: redacta un documento autocontenido en Markdown, con título, secciones y conclusiones, según el pedido." : "",
       "Proyecto: " + project.name + ". Descripción: " + (project.description || "Sin descripción"),
-      "Total de materiales consultados: " + items.length + (items.length === 500 ? " (límite de consulta alcanzado)" : ""),
+      "Materiales en la consulta: " + items.length + ". Con texto disponible: " + indexedCount + ". Fragmentos incluidos: " + selectedTextCount + ".",
+      limited ? "AVISO: parte del contenido quedó fuera por límites de contexto. No describas el resultado como exhaustivo; ofrece trabajar por notas concretas." : "",
       "Índice de materiales:\n" + (index || "Proyecto sin materiales"),
       "Textos de las fuentes seleccionadas:\n" + (sources || "Todavía no hay textos legibles."),
     ].filter(Boolean).join("\n\n")
@@ -129,10 +131,11 @@ export async function POST(request: NextRequest, { params }: Params) {
     })
     return NextResponse.json({
       text: result.data,
-      sourceTitles: selected.filter((source) => !!source.content_text?.trim()).slice(0, 8).map((source) => source.title),
-      indexedCount: items.filter((item) => !!item.content_text?.trim()).length,
+      sourceTitles: selected.filter(({ excerpt }) => !!excerpt).slice(0, 8).map(({ item }) => item.title),
+      indexedCount,
+      selectedTextCount,
       totalCount: items.length,
-      limited: items.length === 500,
+      limited,
     })
   } catch (cause: unknown) {
     console.error("[Workspace assistant]", cause)
