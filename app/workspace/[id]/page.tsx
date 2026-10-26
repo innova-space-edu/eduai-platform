@@ -13,6 +13,7 @@ import {
   MessageCircle, LayoutGrid, BookOpenText, AppWindow, ChevronRight
 } from "lucide-react"
 import WorkspaceAssistant from "@/components/workspace/WorkspaceAssistant"
+import WorkspaceNavigator, { WorkspaceApps } from "@/components/workspace/WorkspaceNavigator"
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface Project {
@@ -558,16 +559,6 @@ export default function WorkspaceProjectPage() {
 
   const notes = items.filter(item => ["note", "document"].includes(item.item_type))
   const resources = items.filter(item => !["note", "document"].includes(item.item_type))
-  const workspaceApps = [
-    { name: "Creator Hub", detail: "Documentos, infografías y presentaciones", href: "/creator-hub", icon: "🎨" },
-    { name: "Cuadernos IA", detail: "Investigación con fuentes", href: "/notebooks", icon: "📚" },
-    { name: "Pizarra interactiva", detail: "Ideas y mapas visuales", href: "/pizarra-interactiva", icon: "✏️" },
-    { name: "Redactor EDUAI", detail: "Escritura y revisión de textos", href: "/redactor", icon: "📝" },
-    { name: "Investigador", detail: "Investigar y organizar información", href: "/investigador", icon: "🔎" },
-    { name: "Repositorio", detail: "Recursos educativos", href: "/repositorio", icon: "🗂️" },
-    { name: "Image Studio", detail: "Imágenes para materiales", href: "/image-studio", icon: "🖼️" },
-    { name: "Audio Lab", detail: "Voz y grabaciones", href: "/audio-lab", icon: "🎧" },
-  ]
   // Tipos únicos presentes
   const presentTypes = [...new Set(items.map(i => i.item_type))]
 
@@ -598,7 +589,7 @@ export default function WorkspaceProjectPage() {
 
       {/* Header */}
       <header className="sticky top-0 z-20 border-b border-soft bg-header-theme backdrop-blur-xl">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-[1600px] mx-auto px-4 py-3 flex items-center gap-3">
           <Link href="/workspace"
             className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main transition-all flex-shrink-0">
             <ArrowLeft size={15} />
@@ -639,7 +630,7 @@ export default function WorkspaceProjectPage() {
 
         {/* Barra de búsqueda y filtros */}
         {items.length > 0 && (
-          <div className="max-w-5xl mx-auto px-4 pb-3 flex items-center gap-3">
+          <div className="max-w-[1600px] mx-auto px-4 pb-3 flex items-center gap-3">
             <input
               value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Buscar en el workspace..."
@@ -668,7 +659,24 @@ export default function WorkspaceProjectPage() {
         )}
       </header>
 
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-[1600px] mx-auto px-3 sm:px-5 py-5 lg:py-7 grid grid-cols-1 md:grid-cols-[225px_minmax(0,1fr)] xl:grid-cols-[230px_minmax(0,1fr)_350px] 2xl:grid-cols-[250px_minmax(0,1fr)_390px] gap-4 lg:gap-5 items-start">
+        <WorkspaceNavigator
+          section={section}
+          onSection={value => { setSection(value); setFilter("all") }}
+          onNew={() => setShowNew(true)}
+          onOpenItem={itemId => setViewItem(items.find(item => item.id === itemId) || null)}
+          items={items}
+          icon={project.icon}
+        />
+        <main className={"min-w-0 rounded-[26px] border border-teal-900/10 dark:border-white/10 bg-white/65 dark:bg-slate-900/45 backdrop-blur-sm p-4 sm:p-5 lg:p-6 shadow-sm " + (section === "chat" ? "hidden xl:block" : "")}>
+          <div className="mb-6 rounded-[22px] px-5 py-6 bg-gradient-to-br from-teal-50/90 via-sky-50/65 to-violet-50/75 dark:from-teal-900/20 dark:via-slate-900/70 dark:to-violet-900/20 border border-teal-900/5 dark:border-white/5">
+            <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-teal-700 dark:text-teal-300 font-semibold"><Sparkles size={13} /> Espacio tranquilo</p>
+            <h2 className="mt-2 font-semibold text-xl text-slate-800 dark:text-slate-100">{section === "tools" ? "Tus herramientas" : section === "notes" ? "Notas y documentos" : section === "files" ? "Archivos y recursos" : "Tu espacio de ideas"}</h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{section === "tools" ? "Accede a las aplicaciones que ya tienes en EDUAI." : "Tus ideas y materiales están organizados aquí. Sin ruido, sin prisa."}</p>
+          </div>
+          {section === "tools" && <WorkspaceApps />}
+          {section !== "tools" && (<>
+
 
         {/* Empty state */}
         {items.length === 0 && (
@@ -769,6 +777,11 @@ export default function WorkspaceProjectPage() {
             <p className="text-muted2 text-sm">Sin resultados para "{search}"</p>
           </div>
         )}
+          </>)}
+        </main>
+        <aside className={"min-w-0 xl:sticky xl:top-28 " + (section === "chat" ? "block" : "hidden xl:block")}>
+          <WorkspaceAssistant projectId={project.id} projectName={project.name} onSaved={loadProject} />
+        </aside>
       </div>
     </div>
   )
