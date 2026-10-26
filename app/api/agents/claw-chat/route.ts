@@ -67,7 +67,10 @@ function inferRouteSuggestions(reply: string, userMessage: string) {
     if (route && !suggestions.some((item) => item.href === route.href)) suggestions.push(route);
   };
 
-  const needsMusicPlayback = isMusicListeningRequest(userMessage);
+  const isMusicNavigation = /\b(?:abre|abrir|entra|entrar|acceder|llevame|visita|visitar|donde esta)\b[^.!?;\n]{0,70}\b(?:eduai music|modulo de musica|musica)\b/i.test(
+    userMessage.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
+  );
+  const needsMusicPlayback = isMusicListeningRequest(userMessage) || isMusicNavigation;
   for (const page of searchEduAIPages(`${userMessage} ${reply}`, 6)) {
     if (page.key === "music" && !needsMusicPlayback) continue;
     add({ label: page.label, href: page.href, emoji: page.emoji });
