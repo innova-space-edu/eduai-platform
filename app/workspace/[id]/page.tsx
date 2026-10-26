@@ -9,8 +9,11 @@ import {
   Layers, ExternalLink, Edit3, Check, X, FolderKanban,
   Upload, Bold, Italic, List, Heading2, Save,
   Link2, ChevronDown, ChevronUp, Download, Copy,
-  Sparkles, Loader2, FilePlus, ImagePlus, Wand2
+  Sparkles, Loader2, FilePlus, ImagePlus, Wand2,
+  MessageCircle, LayoutGrid, BookOpenText, AppWindow, ChevronRight
 } from "lucide-react"
+import WorkspaceAssistant from "@/components/workspace/WorkspaceAssistant"
+import WorkspaceNavigator, { WorkspaceApps } from "@/components/workspace/WorkspaceNavigator"
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 interface Project {
@@ -202,7 +205,26 @@ function NewItemModal({
       if (upErr) throw new Error(`Error subiendo archivo: ${upErr.message}`)
       const { data: { publicUrl } } = supabase.storage.from("workspace-files").getPublicUrl(path)
       const type = file.type.startsWith("image/") ? "image" : file.type.startsWith("audio/") ? "audio" : "file"
-      await saveItem(type, title || file.name, content, publicUrl, { originalName: file.name, size: file.size, mimeType: file.type })
+      let extractedText = ""
+      let extractionNote = "Formato sin extracción de texto"
+      if (/\.(pdf|docx|txt|md|csv)$/i.test(file.name)) {
+        try {
+          const response = await fetch("/api/workspace/" + encodeURIComponent(projectId) + "/extract", {
+            method: "POST", headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ storagePath: path }),
+          })
+          const result = await response.json()
+          if (!response.ok) throw new Error(result.error || "Extracción no disponible")
+          extractedText = typeof result.text === "string" ? result.text : ""
+          extractionNote = result.reason || (extractedText ? "Texto extraído" : "Sin texto seleccionable")
+        } catch (cause: unknown) {
+          extractionNote = cause instanceof Error ? cause.message : "No se pudo extraer texto"
+        }
+      }
+      await saveItem(type, title || file.name, extractedText || content, publicUrl, {
+        originalName: file.name, size: file.size, mimeType: file.type, storagePath: path,
+        extractionStatus: extractedText ? "ready" : "unavailable", extractionNote,
+      })
     } catch (e: any) { setError(e.message) }
     finally { setLoading(false) }
   }
@@ -372,6 +394,46 @@ function ViewItemModal({
   const [saving,  setSaving]  = useState(false)
   const [saved,   setSaved]   = useState(false)
   const [copied,  setCopied]  = useState(false)
+  const [reindexing, setReindexing] = useState(false)
+  const [reindexError, setReindexError] = useState("")
+  const [indexed, setIndexed] = useState(false)
+
+  async function handleReindex() {
+    setReindexing(true)
+    setReindexError("")
+    try {
+      const marker = "/storage/v1/object/public/workspace-files/"
+      const pathname = item.content_url ? new URL(item.content_url).pathname : ""
+      const index = pathname.indexOf(marker)
+      const storagePath = typeof item.metadata?.storagePath === "string"
+        ? item.metadata.storagePath
+        : index >= 0 ? decodeURIComponent(pathname.slice(index + marker.length)) : ""
+      if (!storagePath) throw new Error("La ubicación del archivo no está disponible")
+      const response = await fetch("/api/workspace/" + encodeURIComponent(item.project_id) + "/extract", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ storagePath }),
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || "No se pudo procesar")
+      if (!result.text) throw new Error(result.reason || "No se encontró texto")
+      const combinedText = content.trim() ? content.trim() + "\n\n" + result.text : result.text
+      const { data, error } = await supabase.from("workspace_items")
+        .update({
+          content_text: combinedText,
+          metadata: { ...item.metadata, storagePath, extractionStatus: "ready", extractionNote: "Texto extraído" },
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", item.id).eq("project_id", item.project_id).select("*").single()
+      if (error || !data) throw new Error(error?.message || "No se pudo guardar el texto")
+      setContent(combinedText)
+      setIndexed(true)
+      onSave(data)
+    } catch (cause: unknown) {
+      setReindexError(cause instanceof Error ? cause.message : "No se pudo indexar")
+    } finally {
+      setReindexing(false)
+    }
+  }
 
   async function handleSave() {
     setSaving(true)
@@ -418,7 +480,7 @@ function ViewItemModal({
             <button onClick={handleDownload} className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main transition-all" title="Descargar">
               <Download size={14} />
             </button>
-            <button onClick={() => { onDelete(item.id); onClose() }}
+            <button onClick={() => onDelete(item.id)}
               className="w-8 h-8 flex items-center justify-center rounded-xl bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-all" title="Eliminar">
               <Trash2 size={14} />
             </button>
@@ -448,7 +510,19 @@ function ViewItemModal({
           )}
 
           {isEditable ? (
-            <RichTextEditor value={content} onChange={setContent} minRows={12} />
+            <>
+              <RichTextEditor value={content} onChange={setContent} minRows={12} />
+              {item.item_type === "file" && /\.(pdf|docx|txt|md|csv)$/i.test(String(item.metadata?.originalName || item.title)) && item.metadata?.extractionStatus !== "ready" && !indexed && (
+                <div className="mt-3">
+                  <button type="button" onClick={handleReindex} disabled={reindexing}
+                    className="flex items-center gap-2 rounded-xl px-3 py-2 text-xs font-medium bg-teal-600/10 text-teal-700 dark:text-teal-300 hover:bg-teal-600/20 disabled:opacity-50">
+                    {reindexing ? <Loader2 size={13} className="animate-spin" /> : <Sparkles size={13} />}
+                    {reindexing ? "Leyendo archivo…" : "Incorporar texto del archivo al asistente"}
+                  </button>
+                  {reindexError && <p role="alert" className="mt-2 text-xs text-red-400">{reindexError}</p>}
+                </div>
+              )}
+            </>
           ) : (
             content && (
               <div className="rounded-2xl p-4 border border-medium bg-card-soft-theme">
@@ -491,11 +565,12 @@ export default function WorkspaceProjectPage() {
   const [nameValue,   setNameValue]   = useState("")
   const [search,      setSearch]      = useState("")
   const [filter,      setFilter]      = useState("all")
+  const [section,     setSection]     = useState<"all" | "notes" | "files" | "tools" | "chat">("all")
 
   useEffect(() => { loadProject() }, [id])
 
-  async function loadProject() {
-    setLoading(true)
+  async function loadProject(quiet = false) {
+    if (!quiet) setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push("/login"); return }
 
@@ -513,9 +588,15 @@ export default function WorkspaceProjectPage() {
   }
 
   async function deleteItem(itemId: string) {
-    await supabase.from("workspace_items").delete().eq("id", itemId)
-    setItems(prev => prev.filter(i => i.id !== itemId))
-    setViewItem(null)
+    if (!window.confirm("¿Eliminar este material? Esta acción no se puede deshacer.")) return
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { error } = await supabase.from("workspace_items").delete()
+      .eq("id", itemId).eq("project_id", id).eq("user_id", user.id)
+    if (!error) {
+      setItems(prev => prev.filter(i => i.id !== itemId))
+      setViewItem(null)
+    }
   }
 
   async function saveProjectName() {
@@ -529,9 +610,13 @@ export default function WorkspaceProjectPage() {
   const filtered = items.filter(item => {
     const matchSearch = search === "" || item.title.toLowerCase().includes(search.toLowerCase()) || item.content_text?.toLowerCase().includes(search.toLowerCase())
     const matchFilter = filter === "all" || item.item_type === filter
-    return matchSearch && matchFilter
+    const matchSection = section === "notes" ? ["note", "document"].includes(item.item_type)
+      : section === "files" ? !["note", "document"].includes(item.item_type) : true
+    return matchSearch && matchFilter && matchSection
   })
 
+  const notes = items.filter(item => ["note", "document"].includes(item.item_type))
+  const resources = items.filter(item => !["note", "document"].includes(item.item_type))
   // Tipos únicos presentes
   const presentTypes = [...new Set(items.map(i => i.item_type))]
 
@@ -545,7 +630,7 @@ export default function WorkspaceProjectPage() {
   const color = project.color || "#4338ca"
 
   return (
-    <div className="min-h-screen bg-app">
+    <div className="min-h-screen bg-app" style={{ backgroundImage: "radial-gradient(circle at 12% 3%, rgba(45, 212, 191, .10), transparent 38%), radial-gradient(circle at 90% 12%, rgba(167, 139, 250, .09), transparent 34%)" }}>
 
       {/* Modales */}
       {showNew && (
@@ -562,7 +647,7 @@ export default function WorkspaceProjectPage() {
 
       {/* Header */}
       <header className="sticky top-0 z-20 border-b border-soft bg-header-theme backdrop-blur-xl">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-[1600px] mx-auto px-4 py-3 flex items-center gap-3">
           <Link href="/workspace"
             className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main transition-all flex-shrink-0">
             <ArrowLeft size={15} />
@@ -603,7 +688,7 @@ export default function WorkspaceProjectPage() {
 
         {/* Barra de búsqueda y filtros */}
         {items.length > 0 && (
-          <div className="max-w-5xl mx-auto px-4 pb-3 flex items-center gap-3">
+          <div className="max-w-[1600px] mx-auto px-4 pb-3 flex items-center gap-3">
             <input
               value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Buscar en el workspace..."
@@ -632,7 +717,24 @@ export default function WorkspaceProjectPage() {
         )}
       </header>
 
-      <div className="max-w-5xl mx-auto px-4 py-6">
+      <div className="max-w-[1600px] mx-auto px-3 sm:px-5 py-5 lg:py-7 grid grid-cols-1 md:grid-cols-[225px_minmax(0,1fr)] xl:grid-cols-[230px_minmax(0,1fr)_350px] 2xl:grid-cols-[250px_minmax(0,1fr)_390px] gap-4 lg:gap-5 items-start">
+        <WorkspaceNavigator
+          section={section}
+          onSection={value => { setSection(value); setFilter("all") }}
+          onNew={() => setShowNew(true)}
+          onOpenItem={itemId => setViewItem(items.find(item => item.id === itemId) || null)}
+          items={items}
+          icon={project.icon}
+        />
+        <main className={"min-w-0 rounded-[26px] border border-teal-900/10 dark:border-white/10 bg-white/65 dark:bg-slate-900/45 backdrop-blur-sm p-4 sm:p-5 lg:p-6 shadow-sm " + (section === "chat" ? "hidden xl:block" : "")}>
+          <div className="mb-6 rounded-[22px] px-5 py-6 bg-gradient-to-br from-teal-50/90 via-sky-50/65 to-violet-50/75 dark:from-teal-900/20 dark:via-slate-900/70 dark:to-violet-900/20 border border-teal-900/5 dark:border-white/5">
+            <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.16em] text-teal-700 dark:text-teal-300 font-semibold"><Sparkles size={13} /> Espacio tranquilo</p>
+            <h2 className="mt-2 font-semibold text-xl text-slate-800 dark:text-slate-100">{section === "tools" ? "Tus herramientas" : section === "notes" ? "Notas y documentos" : section === "files" ? "Archivos y recursos" : "Tu espacio de ideas"}</h2>
+            <p className="mt-1.5 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{section === "tools" ? "Accede a las aplicaciones que ya tienes en EDUAI." : "Tus ideas y materiales están organizados aquí. Sin ruido, sin prisa."}</p>
+          </div>
+          {section === "tools" && <WorkspaceApps />}
+          {section !== "tools" && (<>
+
 
         {/* Empty state */}
         {items.length === 0 && (
@@ -733,6 +835,11 @@ export default function WorkspaceProjectPage() {
             <p className="text-muted2 text-sm">Sin resultados para "{search}"</p>
           </div>
         )}
+          </>)}
+        </main>
+        <aside className={"min-w-0 xl:sticky xl:top-28 " + (section === "chat" ? "block" : "hidden xl:block")}>
+          <WorkspaceAssistant projectId={project.id} projectName={project.name} onSaved={() => { void loadProject(true) }} />
+        </aside>
       </div>
     </div>
   )

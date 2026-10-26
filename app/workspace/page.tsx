@@ -234,13 +234,16 @@ export default function WorkspacePage() {
   }
 
   async function deleteProject(id: string) {
-    await supabase.from("projects").delete().eq("id", id)
-    setProjects(prev => prev.filter(p => p.id !== id))
+    if (!window.confirm("¿Eliminar este proyecto y sus materiales? Esta acción no se puede deshacer.")) return
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { error } = await supabase.from("projects").delete().eq("id", id).eq("user_id", user.id)
+    if (!error) setProjects(prev => prev.filter(p => p.id !== id))
   }
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-app">
+    <div className="min-h-screen bg-app" style={{ backgroundImage: "radial-gradient(circle at 12% 3%, rgba(45, 212, 191, .10), transparent 38%), radial-gradient(circle at 90% 12%, rgba(167, 139, 250, .09), transparent 34%)" }}>
 
       {showCreate && (
         <CreateProjectModal
@@ -251,7 +254,7 @@ export default function WorkspacePage() {
 
       {/* Header */}
       <header className="sticky top-0 z-20 border-b backdrop-blur-xl" style={{ background: "var(--bg-header)", borderColor: "var(--border-soft)" }}>
-        <div className="max-w-3xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
           <Link
             href="/dashboard"
             className="w-8 h-8 flex items-center justify-center rounded-xl transition-all flex-shrink-0 text-sub hover:text-main" style={{ background: "var(--bg-card-soft)", border: "1px solid var(--border-soft)" }}
@@ -278,11 +281,12 @@ export default function WorkspacePage() {
         </div>
       </header>
 
-      <div className="max-w-3xl mx-auto px-4 py-8 flex flex-col gap-4">
+      <div className="max-w-5xl mx-auto px-4 py-8 flex flex-col gap-4">
 
         {/* Intro */}
-        <div className="animate-fade-in">
-          <h2 className="text-main font-semibold text-lg mb-1">Tus proyectos</h2>
+        <div className="animate-fade-in rounded-[26px] px-6 py-7 border border-emerald-700/10 dark:border-white/10 bg-gradient-to-br from-teal-50/90 via-sky-50/70 to-violet-50/80 dark:from-teal-900/20 dark:via-slate-900 dark:to-violet-900/20">
+          <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-teal-700 dark:text-teal-300 mb-2">✦ Tu lugar para crear</p>
+          <h2 className="text-main font-semibold text-xl mb-1">Tus proyectos, a tu ritmo</h2>
           <p className="text-muted2 text-sm">
             Organiza todo tu trabajo en proyectos. Guarda imágenes, transcripciones, presentaciones y más en un solo lugar.
           </p>
