@@ -1180,7 +1180,7 @@ export function isMusicListeningRequest(message: string): boolean {
   const focusWithMusic = /\b(?:estudiar|concentrarme|trabajar|relajarme)\s+con\s+musica\b/;
 
   // "Recomienda estrategias para enseñar música" tampoco pide canciones.
-  const otherObject = /\b(?:estrategias?|actividades?|ideas?|propuestas?|proyectos?|tecnologias?|equipamiento|presupuesto|informes?|reuniones?|ensenar|ensenanza|clases?|asignaturas?|curriculo|curriculum|planificaciones?|presentaciones?|materiales?|metodologias?)\b/;
+  const otherObject = /\b(?:estrategias?|actividades?|ideas?|propuestas?|proyectos?|tecnologias?|equipamiento|presupuesto|informes?|reuniones?|ensenar|ensenanza|clases?|asignaturas?|curriculo|curriculum|planificaciones?|presentacion(?:es)?|materiales?|metodologias?)\b/;
   const actionAndTrack = /\b(?:recomienda(?:me|s)?|recomendar(?:me)?|recomiendas|sugiere(?:me|s)?|sugerir(?:me)?|pon(?:me)?|reproduce|reproducir|escuchar|oir|escuchemos|dame|buscame|busco|elige|selecciona|armame|prepara(?:me)?)\b([^.!?;\n]{0,95})\b(?:musica|cancion(?:es)?|playlist(?:s)?|lo[ -]?fi|pistas? instrumentales?)\b/g;
   const clearPlaybackAction = [...text.matchAll(actionAndTrack)]
     .some((match) => !otherObject.test(match[1]));
