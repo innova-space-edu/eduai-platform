@@ -14,7 +14,7 @@ import {
 } from "@/lib/superagent/superagent-core";
 import type { CoreContext, CoreMessage } from "@/lib/superagent/superagent-core";
 import { streamAIText, type GatewayMessage } from "@/lib/ai/gateway";
-import { getEnabledTools } from "@/lib/superagent/tool-registry";
+import { getEnabledTools, isMusicListeningRequest } from "@/lib/superagent/tool-registry";
 import { EDUAI_PAGES, searchEduAIPages } from "@/lib/superagent/eduai-map";
 import { getEduAIPlatformKnowledgeContext } from "@/lib/eduai/platform-knowledge";
 import { normalizeChatText } from "@/lib/text/normalize-chat-text";
@@ -67,11 +67,14 @@ function inferRouteSuggestions(reply: string, userMessage: string) {
     if (route && !suggestions.some((item) => item.href === route.href)) suggestions.push(route);
   };
 
+  const needsMusicPlayback = isMusicListeningRequest(userMessage);
   for (const page of searchEduAIPages(`${userMessage} ${reply}`, 6)) {
+    if (page.key === "music" && !needsMusicPlayback) continue;
     add({ label: page.label, href: page.href, emoji: page.emoji });
   }
 
   for (const page of EDUAI_PAGES) {
+    if (page.key === "music" && !needsMusicPlayback) continue;
     if (reply.includes(page.href)) {
       add({ label: page.label, href: page.href, emoji: page.emoji });
     }
