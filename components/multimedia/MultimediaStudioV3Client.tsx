@@ -1718,6 +1718,26 @@ export default function MultimediaStudioV3Client() {
                   Crossfade automático
                 </button>
               </>}
+              <div className="rounded-lg border border-violet-400/20 bg-black/20 p-2">
+                <div className="mb-2 flex items-center justify-between">
+                  <strong className="text-[10px] text-violet-200">Efectos de audio · DSP local</strong>
+                  <button onClick={() => updateClip(selectedClip.id, { audioEffects: { ...DEFAULT_AUDIO_EFFECTS } })} className="rounded bg-white/10 px-2 py-1 text-[9px]">Restablecer</button>
+                </div>
+                {([
+                  ["lowDb", "Graves", -18, 18, 1],
+                  ["midDb", "Medios", -18, 18, 1],
+                  ["highDb", "Agudos", -18, 18, 1],
+                  ["highpassHz", "Filtro de graves (Hz)", 20, 500, 10],
+                  ["compression", "Compresión", 0, 1, 0.05],
+                  ["pan", "Balance L/R", -1, 1, 0.05],
+                  ["gainDb", "Ganancia (dB)", -18, 18, 1],
+                ] as const).map(([key, title, min, max, step]) => (
+                  <label key={key} className="mb-2 block">
+                    {title} · {(selectedClip.audioEffects?.[key] ?? DEFAULT_AUDIO_EFFECTS[key]).toFixed(key === "compression" || key === "pan" ? 2 : 0)}
+                    <input aria-label={title} type="range" min={min} max={max} step={step} value={selectedClip.audioEffects?.[key] ?? DEFAULT_AUDIO_EFFECTS[key]} onChange={(event) => updateClip(selectedClip.id, { audioEffects: { ...DEFAULT_AUDIO_EFFECTS, ...selectedClip.audioEffects, [key]: Number(event.target.value) } })} className="mt-1 w-full accent-violet-400" />
+                  </label>
+                ))}
+              </div>
               <div className="flex flex-wrap gap-2"><button onClick={() => updateClip(selectedClip.id, { muted: !selectedClip.muted })} className={`rounded-lg px-2 py-1 ${selectedClip.muted ? "bg-rose-500/20 text-rose-200" : "bg-white/5"}`}>{selectedClip.muted ? "Silenciado" : "Audio activo"}</button>{selectedAsset?.kind === "video" && <button disabled={extractingAudio} onClick={separateSelectedVideoAudio} className="rounded-lg border border-cyan-400/20 bg-cyan-500/10 px-2 py-1 text-cyan-100 disabled:opacity-50"><AudioLines size={11} className="mr-1 inline" />{extractingAudio ? "Separando…" : "Separar audio"}</button>}</div>
             </div>}
 
