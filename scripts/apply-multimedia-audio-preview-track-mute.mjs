@@ -32,8 +32,8 @@ replaceOnce(
 );
 
 replaceOnce(
-  '    audioRefs.current.forEach((audio) => audio.pause());\n  }, []);',
-  '    audioRefs.current.forEach((audio) => audio.pause());\n    assetPreviewRef.current?.pause();\n  }, []);',
+  '    audioRefs.current.forEach((audio) => audio.pause());',
+  '    audioRefs.current.forEach((audio) => audio.pause());\n    assetPreviewRef.current?.pause();',
   "limpieza de preescucha",
 );
 
@@ -131,10 +131,10 @@ replaceOnce(
 );
 
 replaceOnce(
-  '                  {!asset.missing && <button title="Agregar a la línea de tiempo" onClick={() => addAssetToTimeline(asset)} className="rounded-lg bg-white/10 p-1.5 hover:bg-white/20"><Plus size={13} /></button>}',
+  '                  {!asset.missing && <button title="Agregar a la línea de tiempo" onClick={() => void importAssetWithMode(asset)} className="rounded-lg bg-white/10 p-1.5 hover:bg-white/20"><Plus size={13} /></button>}',
   [
     '                  {!asset.missing && (asset.kind === "audio" || asset.kind === "music") && <button title={assetPreviewId === asset.id && assetPreviewPlaying ? "Pausar preescucha" : "Reproducir preescucha"} aria-label={assetPreviewId === asset.id && assetPreviewPlaying ? \`Pausar \${asset.name}\` : \`Reproducir \${asset.name}\`} onClick={() => void toggleAssetPreview(asset)} className={\`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition \${assetPreviewId === asset.id && assetPreviewPlaying ? "border-cyan-400/35 bg-cyan-500/20 text-cyan-200" : "border-white/10 bg-white/5 text-slate-300 hover:bg-white/10"}\`}>{assetPreviewId === asset.id && assetPreviewPlaying ? <Pause size={12} /> : <Play size={12} />}</button>}',
-    '                  {!asset.missing && <button title="Agregar a la línea de tiempo" onClick={() => addAssetToTimeline(asset)} className="rounded-lg bg-white/10 p-1.5 hover:bg-white/20"><Plus size={13} /></button>}',
+    '                  {!asset.missing && <button title="Agregar a la línea de tiempo" onClick={() => void importAssetWithMode(asset)} className="rounded-lg bg-white/10 p-1.5 hover:bg-white/20"><Plus size={13} /></button>}',
   ].join("\n"),
   "botón Play/Pausa por audio",
 );
