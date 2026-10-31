@@ -716,7 +716,11 @@ export default function MultimediaStudioV3Client() {
       });
     }
 
-    if (incoming.length) setAssets((current) => [...current, ...incoming]);
+    if (incoming.length) {
+      const nextAssets = [...assetsRef.current, ...incoming];
+      assetsRef.current = nextAssets;
+      setAssets(nextAssets);
+    }
     if (videoImportMode !== "original") {
       let position = playhead;
       for (const asset of incoming.filter((item) => item.kind === "video")) {
