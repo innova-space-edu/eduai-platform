@@ -28,6 +28,30 @@ export function createAudioEffectsChain(
   for (let index = 1; index < nodes.length; index++) nodes[index - 1].connect(nodes[index]);
   nodes[nodes.length - 1].connect(destination);
 
+  // Parallel wet paths keep the dry signal intact and work in OfflineAudioContext.
+  const delay = context.createDelay(1);
+  delay.delayTime.value = 0.27;
+  const echoWet = context.createGain();
+  makeup.connect(delay);
+  delay.connect(echoWet);
+  echoWet.connect(destination);
+
+  const convolver = context.createConvolver();
+  const reverbWet = context.createGain();
+  const length = Math.round(context.sampleRate * 0.65);
+  const impulse = context.createBuffer(2, length, context.sampleRate);
+  for (let channel = 0; channel < 2; channel++) {
+    const samples = impulse.getChannelData(channel);
+    for (let i = 0; i < length; i++) {
+      const t = i / length;
+      samples[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 3);
+    }
+  }
+  convolver.buffer = impulse;
+  makeup.connect(convolver);
+  convolver.connect(reverbWet);
+  reverbWet.connect(destination);
+
   const setOptions = (incoming?: Partial<AudioEffects>) => {
     const fx = { ...DEFAULT_AUDIO_EFFECTS, ...incoming };
     const db = (value: number) => Math.max(-24, Math.min(24, Number(value) || 0));
@@ -43,6 +67,8 @@ export function createAudioEffectsChain(
     compressor.release.value = 0.15;
     panner.pan.value = Math.max(-1, Math.min(1, fx.pan || 0));
     makeup.gain.value = Math.pow(10, db(fx.gainDb) / 20);
+    echoWet.gain.value = Math.max(0, Math.min(1, fx.echo || 0)) * 0.45;
+    reverbWet.gain.value = Math.max(0, Math.min(1, fx.reverb || 0)) * 0.55;
   };
   setOptions(options);
   return {
@@ -50,6 +76,10 @@ export function createAudioEffectsChain(
     disconnect: () => {
       try { source.disconnect(highpass); } catch { /* element may already be gone */ }
       nodes.forEach((node) => node.disconnect());
+      delay.disconnect();
+      echoWet.disconnect();
+      convolver.disconnect();
+      reverbWet.disconnect();
     },
   };
 }
