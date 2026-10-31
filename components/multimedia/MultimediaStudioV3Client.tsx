@@ -1309,7 +1309,7 @@ export default function MultimediaStudioV3Client() {
       const videoBlob = await response.blob();
       const wav = await extractAudioFromMedia(videoBlob, {
         start: clip.offset,
-        end: clip.offset + clip.duration,
+        end: clip.offset + clip.duration * clipSpeed(clip),
       });
       const baseName = asset.name.replace(/\.[^.]+$/, "") || "video";
       const audioAsset: StudioAsset = {
@@ -1317,7 +1317,7 @@ export default function MultimediaStudioV3Client() {
         name: `${baseName}-audio.wav`,
         kind: "audio",
         url: URL.createObjectURL(wav),
-        duration: clip.duration,
+        duration: clip.duration * clipSpeed(clip),
         source: "separated-video",
         exportable: true,
         local: true,
@@ -1469,6 +1469,16 @@ export default function MultimediaStudioV3Client() {
               <span className="text-[9px] leading-4 text-slate-400">{supportedMediaSummary()}</span>
               <input type="file" multiple accept={MEDIA_ACCEPT} className="hidden" onChange={handleFiles} />
             </label>
+            <label className="block text-[10px] text-slate-300">
+              Al importar video
+              <select aria-label="Modo de importación de video" value={videoImportMode} onChange={(event) => setVideoImportMode(event.target.value as typeof videoImportMode)} className="mt-1 w-full rounded-lg border border-cyan-400/20 bg-[#0b1020] px-2 py-2 text-xs">
+                <option value="original">Conservar audio integrado (manual)</option>
+                <option value="separate">Separar audio y video automáticamente</option>
+                <option value="video">Solo video, sin sonido</option>
+                <option value="audio">Solo extraer audio</option>
+              </select>
+              <span className="mt-1 block text-slate-500">Los modos nuevos añaden los medios a la línea de tiempo.</span>
+            </label>
             <div className="space-y-2">
               {assets.filter((asset) => asset.source === "local" || asset.missing).map((asset) => (
                 <div key={asset.id} className={`flex items-center gap-2 rounded-xl border p-2 ${asset.missing ? "border-amber-500/30 bg-amber-500/5" : "border-white/10 bg-black/20"}`}>
@@ -1477,7 +1487,7 @@ export default function MultimediaStudioV3Client() {
                     <p className="truncate text-[11px]">{asset.name}</p>
                     <p className="text-[9px] text-slate-500">{asset.missing ? "Falta volver a enlazar" : `${asset.extension?.toUpperCase() || asset.kind} · ${fmt(asset.duration)}${asset.normalizedMime ? " · MIME corregido" : ""}`}</p>
                   </div>
-                  {!asset.missing && <button onClick={() => addAssetToTimeline(asset)} className="rounded-lg bg-white/10 p-1.5 hover:bg-white/20"><Plus size={13} /></button>}
+                  {!asset.missing && <button onClick={() => void importAssetWithMode(asset)} className="rounded-lg bg-white/10 p-1.5 hover:bg-white/20"><Plus size={13} /></button>}
                 </div>
               ))}
               {!assets.some((asset) => asset.source === "local" || asset.missing) && <p className="py-8 text-center text-xs text-slate-500">Aún no hay archivos locales.</p>}
