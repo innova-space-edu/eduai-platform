@@ -1397,6 +1397,40 @@ export default function MultimediaStudioV3Client() {
     await separateVideoClip(clip, asset);
   }
 
+  async function normalizeSelectedAudioPeak() {
+    const clip = selectedClip;
+    const asset = selectedAsset;
+    if (!clip || !asset || (asset.kind !== "audio" && asset.kind !== "music") || !asset.url) {
+      setNotice("Primero separa o selecciona un clip de audio para normalizarlo.");
+      return;
+    }
+    let ctx: AudioContext | null = null;
+    try {
+      setNotice("Analizando los picos de la pista de audio…");
+      const response = await fetch(asset.url);
+      if (!response.ok) throw new Error("No se pudo leer la pista de audio.");
+      const data = await response.arrayBuffer();
+      if (data.byteLength > 150 * 1024 * 1024) throw new Error("El archivo supera el límite de 150 MB para normalización local.");
+      ctx = new AudioContext();
+      const buffer = await ctx.decodeAudioData(data);
+      let peak = 0;
+      for (let ch = 0; ch < buffer.numberOfChannels; ch++) {
+        const samples = buffer.getChannelData(ch);
+        for (let i = 0; i < samples.length; i++) peak = Math.max(peak, Math.abs(samples[i]));
+      }
+      if (peak < 0.00001) throw new Error("No se detectó una señal audible.");
+      const gainDb = Math.max(-18, Math.min(18, 20 * Math.log10(0.95 / peak)));
+      updateClip(clip.id, {
+        audioEffects: { ...DEFAULT_AUDIO_EFFECTS, ...clip.audioEffects, gainDb: Number(gainDb.toFixed(2)) },
+      });
+      setNotice("Normalización de pico aplicada a -0,45 dBFS. Puedes ajustar la ganancia en Audio Pro.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "No se pudo normalizar el audio.");
+    } finally {
+      if (ctx) await ctx.close().catch(() => undefined);
+    }
+  }
+
   async function exportFrame() {
     if (!previewRef.current) return;
     try {
@@ -1725,6 +1759,7 @@ export default function MultimediaStudioV3Client() {
               <div className="rounded-lg border border-violet-400/20 bg-black/20 p-2">
                 <div className="mb-2 flex items-center justify-between">
                   <strong className="text-[10px] text-violet-200">Efectos de audio · DSP local</strong>
+                  {(selectedAsset?.kind === "audio" || selectedAsset?.kind === "music") && <button onClick={() => void normalizeSelectedAudioPeak()} className="rounded bg-cyan-500/15 px-2 py-1 text-[9px] text-cyan-100">Normalizar pico</button>}
                   <button onClick={() => updateClip(selectedClip.id, { audioEffects: { ...DEFAULT_AUDIO_EFFECTS } })} className="rounded bg-white/10 px-2 py-1 text-[9px]">Restablecer</button>
                 </div>
                 {([
@@ -1735,6 +1770,8 @@ export default function MultimediaStudioV3Client() {
                   ["compression", "Compresión", 0, 1, 0.05],
                   ["pan", "Balance L/R", -1, 1, 0.05],
                   ["gainDb", "Ganancia (dB)", -18, 18, 1],
+                  ["reverb", "Reverberación", 0, 1, 0.05],
+                  ["echo", "Eco", 0, 1, 0.05],
                 ] as const).map(([key, title, min, max, step]) => (
                   <label key={key} className="mb-2 block">
                     {title} · {(selectedClip.audioEffects?.[key] ?? DEFAULT_AUDIO_EFFECTS[key]).toFixed(key === "compression" || key === "pan" ? 2 : 0)}
