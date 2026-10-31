@@ -43,6 +43,7 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { createAudioEffectsChain } from "@/lib/multimedia/audio-effects";
 import { exportProjectWav } from "@/lib/multimedia/audio";
 import { convertAudioBlobToMp3, extractAudioFromMedia } from "@/lib/multimedia/media-convert";
 import {
@@ -69,6 +70,8 @@ import {
 } from "@/lib/multimedia/media-formats";
 import {
   audioFadeFactor,
+  clipSpeed,
+  DEFAULT_AUDIO_EFFECTS,
   createMediaClip,
   createTextClip,
   interpolateClip,
@@ -218,7 +221,7 @@ function clipStyle(clip: TimelineClip, playhead: number, width: number) {
   return {
     opacity: clamp(animated.opacity * transition.opacity, 0, 1),
     transform: `translate(${animated.transform.x + transition.slide * width}px, ${animated.transform.y}px) scale(${animated.transform.scale}) rotate(${animated.transform.rotation}deg)`,
-    filter: `brightness(${clip.filter.brightness}) contrast(${clip.filter.contrast}) saturate(${clip.filter.saturation}) blur(${clip.filter.blur}px) grayscale(${clip.filter.grayscale}) sepia(${clip.filter.sepia})`,
+    filter: `brightness(${clip.filter.brightness}) contrast(${clip.filter.contrast}) saturate(${clip.filter.saturation}) blur(${clip.filter.blur}px) grayscale(${clip.filter.grayscale}) sepia(${clip.filter.sepia}) hue-rotate(${clip.filter.hueRotate || 0}deg) invert(${clip.filter.invert || 0})`,
   };
 }
 
@@ -268,12 +271,18 @@ export default function MultimediaStudioV3Client() {
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [autoSaveStatus, setAutoSaveStatus] = useState("Guarda una vez para activar el autoguardado.");
   const [extractingAudio, setExtractingAudio] = useState(false);
+  const [videoImportMode, setVideoImportMode] = useState<"original" | "separate" | "video" | "audio">("original");
   const [pointerAction, setPointerAction] = useState<PointerAction | null>(null);
 
   const previewRef = useRef<HTMLDivElement | null>(null);
   const timelineScrollRef = useRef<HTMLDivElement | null>(null);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
   const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const audioGraphsRef = useRef(new Map<string, {
+    element: HTMLMediaElement;
+    chain: ReturnType<typeof createAudioEffectsChain>;
+  }>());
   const rafRef = useRef<number | null>(null);
   const autosaveBusyRef = useRef(false);
   const playbackAnchor = useRef({ playhead: 0, time: 0 });
@@ -403,6 +412,9 @@ export default function MultimediaStudioV3Client() {
       if (asset.local && asset.url.startsWith("blob:")) URL.revokeObjectURL(asset.url);
     });
     audioRefs.current.forEach((audio) => audio.pause());
+    audioGraphsRef.current.forEach((entry) => entry.chain.disconnect());
+    audioGraphsRef.current.clear();
+    if (audioContextRef.current) void audioContextRef.current.close();
   }, []);
 
   useEffect(() => {
@@ -434,7 +446,8 @@ export default function MultimediaStudioV3Client() {
       if (!element) continue;
       const isActive = playhead >= clip.start && playhead < clip.start + clip.duration;
       if (!isActive) { element.pause(); continue; }
-      const wanted = clip.offset + playhead - clip.start;
+      const wanted = clip.offset + (playhead - clip.start) * clipSpeed(clip);
+      element.playbackRate = clipSpeed(clip);
       if (Math.abs(element.currentTime - wanted) > 0.2) element.currentTime = Math.max(0, wanted);
       const animated = interpolateClip(clip, playhead - clip.start);
       const transition = transitionFactor(clip, playhead - clip.start);
@@ -465,7 +478,8 @@ export default function MultimediaStudioV3Client() {
           if (/^https?:/i.test(asset.url)) element.crossOrigin = "anonymous";
           audioRefs.current.set(clip.id, element);
         }
-        const wanted = clip.offset + playhead - clip.start;
+        const wanted = clip.offset + (playhead - clip.start) * clipSpeed(clip);
+        element.playbackRate = clipSpeed(clip);
         if (Math.abs(element.currentTime - wanted) > 0.22) element.currentTime = Math.max(0, wanted);
         const animated = interpolateClip(clip, playhead - clip.start);
         const transition = transitionFactor(clip, playhead - clip.start);
@@ -476,6 +490,35 @@ export default function MultimediaStudioV3Client() {
     }
     audioRefs.current.forEach((audio, clipId) => { if (!active.has(clipId)) audio.pause(); });
   }, [assetMap, playhead, playing, project]);
+
+  useEffect(() => {
+    const allClips = project.tracks.flatMap((track) => track.clips);
+    for (const clip of allClips) {
+      const effects = { ...DEFAULT_AUDIO_EFFECTS, ...clip.audioEffects };
+      const active = Object.keys(DEFAULT_AUDIO_EFFECTS).some((key) =>
+        Math.abs((effects as Record<string, number>)[key] - (DEFAULT_AUDIO_EFFECTS as Record<string, number>)[key]) > 0.001,
+      );
+      const existing = audioGraphsRef.current.get(clip.id);
+      if (!active && !existing) continue;
+      const element = videoRefs.current.get(clip.id) || audioRefs.current.get(clip.id);
+      if (!element) continue;
+      try {
+        if (!audioContextRef.current || audioContextRef.current.state === "closed") audioContextRef.current = new AudioContext();
+        if (!existing || existing.element !== element) {
+          existing?.chain.disconnect();
+          const ctx = audioContextRef.current;
+          const source = ctx.createMediaElementSource(element);
+          audioGraphsRef.current.set(clip.id, {
+            element,
+            chain: createAudioEffectsChain(ctx, source, ctx.destination, effects),
+          });
+        } else existing.chain.setOptions(effects);
+      } catch (error) {
+        console.warn("No se pudo activar la cadena de audio para un clip:", error);
+      }
+    }
+    if (playing && audioContextRef.current?.state === "suspended") void audioContextRef.current.resume().catch(() => undefined);
+  }, [project, playhead, playing]);
 
   useEffect(() => {
     function keyHandler(event: KeyboardEvent) {
@@ -623,6 +666,7 @@ export default function MultimediaStudioV3Client() {
     setPlayhead(clip.start);
     const trackName = (newTrack || projectRef.current.tracks.find((track) => track.id === trackId))?.name || trackId;
     setNotice(`${asset.name} agregado a ${trackName} en ${fmt(clip.start)}.`);
+    return clip;
   }
 
   async function createAssetsFromFiles(files: File[]) {
@@ -737,7 +781,7 @@ export default function MultimediaStudioV3Client() {
       id: uid("clip"),
       start: playhead,
       duration: clip.duration - local,
-      offset: clip.offset + (clip.clipType === "media" ? local : 0),
+      offset: clip.offset + (clip.clipType === "media" ? local * clipSpeed(clip) : 0),
       keyframes: clip.keyframes.filter((frame) => frame.time >= local).map((frame) => ({ ...frame, id: uid("kf"), time: frame.time - local })),
     };
     commitProject((current) => ({
@@ -759,7 +803,7 @@ export default function MultimediaStudioV3Client() {
     updateClip(clip.id, {
       start: playhead,
       duration: clip.duration - local,
-      offset: clip.clipType === "media" ? clip.offset + local : clip.offset,
+      offset: clip.clipType === "media" ? clip.offset + local * clipSpeed(clip) : clip.offset,
     });
     setNotice("Inicio recortado al cabezal.");
   }
@@ -777,7 +821,7 @@ export default function MultimediaStudioV3Client() {
     if (clip.clipType !== "media" || !clip.assetId) return Number.POSITIVE_INFINITY;
     const asset = assetMap.get(clip.assetId);
     if (!asset || asset.kind === "image") return Number.POSITIVE_INFINITY;
-    return Math.max(0.05, asset.duration - clip.offset);
+    return Math.max(0.05, (asset.duration - clip.offset) / clipSpeed(clip));
   }
 
   function snapTime(value: number, clipId: string, movingDuration = 0) {
@@ -838,7 +882,7 @@ export default function MultimediaStudioV3Client() {
       updateClip(clip.id, {
         start: pointerAction.originalStart + applied,
         duration: pointerAction.originalDuration - applied,
-        offset: clip.clipType === "media" ? Math.max(0, pointerAction.originalOffset + applied) : pointerAction.originalOffset,
+        offset: clip.clipType === "media" ? Math.max(0, pointerAction.originalOffset + applied * clipSpeed(clip)) : pointerAction.originalOffset,
       }, false);
       return;
     }
