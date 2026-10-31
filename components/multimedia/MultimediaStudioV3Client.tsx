@@ -717,6 +717,13 @@ export default function MultimediaStudioV3Client() {
     }
 
     if (incoming.length) setAssets((current) => [...current, ...incoming]);
+    if (videoImportMode !== "original") {
+      let position = playhead;
+      for (const asset of incoming.filter((item) => item.kind === "video")) {
+        await importAssetWithMode(asset, position, videoImportMode);
+        position += asset.duration;
+      }
+    }
     const accepted = incoming.length + relinked;
     setNotice(rejected.length
       ? `${accepted} archivo(s) aceptados. ${rejected.length} requieren conversión: ${rejected.slice(0, 2).join(" · ")}`
@@ -1356,6 +1363,34 @@ export default function MultimediaStudioV3Client() {
     } finally {
       setExtractingAudio(false);
     }
+  }
+
+  async function separateSelectedVideoAudio() {
+    if (selectedClip && selectedAsset) await separateVideoClip(selectedClip, selectedAsset);
+    else setNotice("Selecciona un clip de video para separar el audio.");
+  }
+
+  async function importAssetWithMode(
+    asset: StudioAsset,
+    position = playhead,
+    mode: "original" | "separate" | "video" | "audio" = videoImportMode,
+  ) {
+    if (asset.kind !== "video" || mode === "original") {
+      addAssetToTimeline(asset, position);
+      return;
+    }
+    if (mode === "audio") {
+      const draft = createMediaClip(asset, "video-main", Math.max(0, position));
+      await separateVideoClip(draft, asset, true);
+      return;
+    }
+    const clip = addAssetToTimeline(asset, position);
+    if (!clip) return;
+    if (mode === "video") {
+      updateClip(clip.id, { muted: true });
+      return;
+    }
+    await separateVideoClip(clip, asset);
   }
 
   async function exportFrame() {
