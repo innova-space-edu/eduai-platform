@@ -1,4 +1,5 @@
 import type { MediaAsset, MultimediaProject, TimelineClip } from "./types";
+import { createAudioEffectsChain } from "./audio-effects";
 import { audioFadeFactor, interpolateClip, projectDuration, transitionFactor } from "./types";
 
 export async function buildWaveform(url: string, buckets = 96) {
@@ -114,13 +115,14 @@ export async function exportProjectWav(project: MultimediaProject, assets: Media
     const source = context.createBufferSource();
     const gain = context.createGain();
     source.buffer = buffer;
-    source.connect(gain);
+    createAudioEffectsChain(context, source, gain, clip.audioEffects);
     gain.connect(context.destination);
+    source.playbackRate.value = Math.max(0.25, Math.min(4, clip.speed || 1));
 
     const start = Math.max(0, clip.start);
     const offset = Math.max(0, Math.min(clip.offset, Math.max(0, buffer.duration - 0.01)));
     const available = Math.max(0.01, buffer.duration - offset);
-    const clipDuration = Math.max(0.01, Math.min(clip.duration, available));
+    const clipDuration = Math.max(0.01, Math.min(clip.duration, available / source.playbackRate.value));
     const steps = Math.max(8, Math.min(160, Math.ceil(clipDuration * 12)));
     const trackAudible = !track.muted && (!hasSoloTracks || Boolean(track.solo));
     gain.gain.setValueAtTime(gainAt(clip, 0, trackAudible), start);
@@ -128,7 +130,7 @@ export async function exportProjectWav(project: MultimediaProject, assets: Media
       const local = (clipDuration * step) / steps;
       gain.gain.linearRampToValueAtTime(gainAt(clip, local, trackAudible), start + local);
     }
-    source.start(start, offset, clipDuration);
+    source.start(start, offset, clipDuration * source.playbackRate.value);
   }
 
   const rendered = await context.startRendering();
