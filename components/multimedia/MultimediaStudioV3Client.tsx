@@ -1700,6 +1700,13 @@ export default function MultimediaStudioV3Client() {
             {selectedClip.clipType === "media" && <label>Offset / recorte de fuente · {fmt(selectedClip.offset)}<input type="range" min={0} max={Math.max(0, (selectedAsset?.duration || selectedClip.duration) - 0.05)} step={0.01} value={Math.min(selectedClip.offset, Math.max(0, (selectedAsset?.duration || selectedClip.duration) - 0.05))} onChange={(event) => updateClip(selectedClip.id, { offset: Number(event.target.value) })} className="mt-1 w-full accent-cyan-500" /></label>}
 
             {selectedTrack && (selectedTrack.kind === "audio" || selectedTrack.kind === "music" || selectedTrack.kind === "video") && <div className="space-y-3 rounded-xl border border-violet-400/15 bg-violet-500/5 p-3">
+              {selectedAsset?.kind !== "image" && <label className="block">Velocidad · {clipSpeed(selectedClip).toFixed(2)}×
+                <input aria-label="Velocidad del clip" type="range" min={0.25} max={4} step={0.05} value={clipSpeed(selectedClip)} onChange={(event) => {
+                  const speed = Number(event.target.value);
+                  const available = Math.max(0.05, ((selectedAsset?.duration || selectedClip.duration) - selectedClip.offset) / speed);
+                  updateClip(selectedClip.id, { speed, duration: Math.max(0.05, Math.min(selectedClip.duration * clipSpeed(selectedClip) / speed, available)) });
+                }} className="mt-1 w-full accent-cyan-400" />
+              </label>}
               <label>Volumen · {Math.round(selectedClip.volume * 100)}%<input type="range" min={0} max={1} step={0.01} value={selectedClip.volume} onChange={(event) => updateClip(selectedClip.id, { volume: Number(event.target.value) })} className="w-full accent-violet-500" /></label>
               {(selectedTrack.kind === "audio" || selectedTrack.kind === "music") && <>
                 <label className="block">Pista<select value={selectedClip.trackId} onChange={(event) => moveClipToTrack(selectedClip.id, event.target.value)} className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1020] px-2 py-1.5">{project.tracks.filter((track) => track.kind === selectedTrack.kind).map((track) => <option key={track.id} value={track.id}>{track.name}</option>)}</select></label>
