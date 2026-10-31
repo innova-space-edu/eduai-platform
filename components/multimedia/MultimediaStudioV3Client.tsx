@@ -1287,10 +1287,8 @@ export default function MultimediaStudioV3Client() {
     }
   }
 
-  async function separateSelectedVideoAudio() {
-    const clip = selectedClip;
-    const asset = selectedAsset;
-    if (!clip || !asset || asset.kind !== "video" || !asset.url) {
+  async function separateVideoClip(clip: TimelineClip, asset: StudioAsset, onlyAudio = false) {
+    if (asset.kind !== "video" || !asset.url) {
       setNotice("Selecciona un clip de video para separar su audio.");
       return;
     }
@@ -1336,6 +1334,8 @@ export default function MultimediaStudioV3Client() {
         audioClip.muted = false;
         audioClip.audioFadeIn = clip.audioFadeIn || 0;
         audioClip.audioFadeOut = clip.audioFadeOut || 0;
+        audioClip.audioEffects = { ...DEFAULT_AUDIO_EFFECTS };
+        audioClip.speed = clipSpeed(clip);
         createdClipId = audioClip.id;
 
         let tracks = current.tracks.map((track) => ({
@@ -1350,7 +1350,7 @@ export default function MultimediaStudioV3Client() {
       });
 
       if (createdClipId) setSelectedClipId(createdClipId);
-      setNotice("Audio separado: el video original quedó silenciado y el audio está en una pista independiente.");
+      setNotice(onlyAudio ? "Audio extraído e importado a una pista independiente." : "Audio separado: el video quedó silenciado y las pistas están sincronizadas.");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "No se pudo separar el audio de este video.");
     } finally {
