@@ -1,3 +1,5 @@
+import { createAudioEffectsChain } from "./audio-effects";
+import { clipSpeed } from "./types";
 import type { MediaAsset, MultimediaProject, TimelineClip } from "./types";
 import { audioFadeFactor, interpolateClip, projectDuration, transitionFactor } from "./types";
 
@@ -71,6 +73,8 @@ function filterCss(clip: TimelineClip) {
     `blur(${filter.blur}px)`,
     `grayscale(${filter.grayscale})`,
     `sepia(${filter.sepia})`,
+    `hue-rotate(${filter.hueRotate || 0}deg)`,
+    `invert(${filter.invert || 0})`,
   ].join(" ");
 }
 
@@ -206,7 +210,7 @@ export async function exportProjectVideo(project: MultimediaProject, assets: Med
     try {
       const source = audioContext.createMediaElementSource(element);
       gain = audioContext.createGain();
-      source.connect(gain);
+      createAudioEffectsChain(audioContext, source, gain, clip.audioEffects);
       gain.connect(audioDestination);
     } catch {
       warnings.push(`El audio de ${asset.name} no admite mezcla por CORS.`);
@@ -254,7 +258,8 @@ export async function exportProjectVideo(project: MultimediaProject, assets: Med
               const media = mediaEntries.find((entry) => entry.clip.id === clip.id && entry.element instanceof HTMLVideoElement);
               if (media) {
                 const video = media.element as HTMLVideoElement;
-                seek(video, clip.offset + local);
+                video.playbackRate = clipSpeed(clip);
+                seek(video, clip.offset + local * clipSpeed(clip));
                 if (video.paused) void video.play().catch(() => undefined);
                 if (video.readyState >= 2) drawCover(ctx, video, video.videoWidth, video.videoHeight, project.width, project.height, clip, local);
               }
@@ -278,7 +283,8 @@ export async function exportProjectVideo(project: MultimediaProject, assets: Med
           ? Math.max(0, animated.volume * transition.opacity * audioFadeFactor(entry.clip, Math.max(0, local)))
           : 0;
         if (isActive) {
-          seek(entry.element, entry.clip.offset + local);
+          entry.element.playbackRate = clipSpeed(entry.clip);
+          seek(entry.element, entry.clip.offset + local * clipSpeed(entry.clip));
           if (entry.element.paused) void entry.element.play().catch(() => undefined);
         } else if (!entry.element.paused) entry.element.pause();
       }
