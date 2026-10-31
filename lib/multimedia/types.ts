@@ -1,8 +1,8 @@
 export type MediaKind = "video" | "audio" | "image" | "music";
 export type TrackKind = "video" | "overlay" | "text" | "audio" | "music";
 export type TransitionKind = "none" | "fade" | "slide-left" | "slide-right";
-export type AudioEffects = { lowDb: number; midDb: number; highDb: number; highpassHz: number; compression: number; pan: number; gainDb: number };
-export const DEFAULT_AUDIO_EFFECTS: AudioEffects = { lowDb: 0, midDb: 0, highDb: 0, highpassHz: 20, compression: 0, pan: 0, gainDb: 0 };
+export type AudioEffects = { lowDb: number; midDb: number; highDb: number; highpassHz: number; compression: number; pan: number; gainDb: number; reverb: number; echo: number };
+export const DEFAULT_AUDIO_EFFECTS: AudioEffects = { lowDb: 0, midDb: 0, highDb: 0, highpassHz: 20, compression: 0, pan: 0, gainDb: 0, reverb: 0, echo: 0 };
 export function clipSpeed(clip: TimelineClip): number { return Math.max(0.25, Math.min(4, Number(clip.speed) || 1)); }
 
 export type MediaAsset = {
