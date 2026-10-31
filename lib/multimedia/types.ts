@@ -1,6 +1,9 @@
 export type MediaKind = "video" | "audio" | "image" | "music";
 export type TrackKind = "video" | "overlay" | "text" | "audio" | "music";
 export type TransitionKind = "none" | "fade" | "slide-left" | "slide-right";
+export type AudioEffects = { lowDb: number; midDb: number; highDb: number; highpassHz: number; compression: number; pan: number; gainDb: number };
+export const DEFAULT_AUDIO_EFFECTS: AudioEffects = { lowDb: 0, midDb: 0, highDb: 0, highpassHz: 20, compression: 0, pan: 0, gainDb: 0 };
+export function clipSpeed(clip: TimelineClip): number { return Math.max(0.25, Math.min(4, Number(clip.speed) || 1)); }
 
 export type MediaAsset = {
   id: string;
@@ -23,6 +26,8 @@ export type VisualFilter = {
   blur: number;
   grayscale: number;
   sepia: number;
+  hueRotate: number;
+  invert: number;
 };
 
 export type ClipTransform = {
@@ -65,6 +70,8 @@ export type TimelineClip = {
   muted: boolean;
   audioFadeIn: number;
   audioFadeOut: number;
+  speed?: number;
+  audioEffects?: AudioEffects;
   transform: ClipTransform;
   filter: VisualFilter;
   transitionIn: TransitionKind;
@@ -102,6 +109,8 @@ export const DEFAULT_FILTER: VisualFilter = {
   blur: 0,
   grayscale: 0,
   sepia: 0,
+  hueRotate: 0,
+  invert: 0,
 };
 
 export const DEFAULT_TRANSFORM: ClipTransform = {
@@ -160,6 +169,8 @@ export function createMediaClip(asset: MediaAsset, trackId: string, start: numbe
     muted: false,
     audioFadeIn: 0,
     audioFadeOut: 0,
+    speed: 1,
+    audioEffects: { ...DEFAULT_AUDIO_EFFECTS },
     transform: { ...DEFAULT_TRANSFORM },
     filter: { ...DEFAULT_FILTER },
     transitionIn: "none",
@@ -220,6 +231,8 @@ function normalizeClip(clip: any): TimelineClip {
     muted: Boolean(clip?.muted),
     audioFadeIn: Math.max(0, Math.min(duration / 2, Number(clip?.audioFadeIn || 0))),
     audioFadeOut: Math.max(0, Math.min(duration / 2, Number(clip?.audioFadeOut || 0))),
+    speed: Math.max(0.25, Math.min(4, Number(clip?.speed) || 1)),
+    audioEffects: { ...DEFAULT_AUDIO_EFFECTS, ...(clip?.audioEffects || {}) },
     transform: { ...DEFAULT_TRANSFORM, ...(clip?.transform || {}) },
     filter: { ...DEFAULT_FILTER, ...(clip?.filter || {}) },
     transitionIn: clip?.transitionIn || "none",
