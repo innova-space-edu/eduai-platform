@@ -105,9 +105,9 @@ replaceOnce(
 );
 
 replaceOnce(
-  '                  {!asset.missing && <button onClick={() => addAssetToTimeline(asset)} className="rounded-lg bg-white/10 p-1.5 hover:bg-white/20"><Plus size={13} /></button>}',
+  '                  {!asset.missing && <button onClick={() => void importAssetWithMode(asset)} className="rounded-lg bg-white/10 p-1.5 hover:bg-white/20"><Plus size={13} /></button>}',
   [
-    '                  {!asset.missing && <button title="Agregar a la línea de tiempo" onClick={() => addAssetToTimeline(asset)} className="rounded-lg bg-white/10 p-1.5 hover:bg-white/20"><Plus size={13} /></button>}',
+    '                  {!asset.missing && <button title="Agregar a la línea de tiempo" onClick={() => void importAssetWithMode(asset)} className="rounded-lg bg-white/10 p-1.5 hover:bg-white/20"><Plus size={13} /></button>}',
     '                  <button title="Eliminar archivo del proyecto" onClick={() => removeAsset(asset)} className="rounded-lg bg-rose-500/10 p-1.5 text-rose-300 hover:bg-rose-500/20"><Trash2 size={13} /></button>',
   ].join("\n"),
   "botón para borrar archivos",
