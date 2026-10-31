@@ -271,6 +271,7 @@ export default function MultimediaStudioV3Client() {
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [autoSaveStatus, setAutoSaveStatus] = useState("Guarda una vez para activar el autoguardado.");
   const [extractingAudio, setExtractingAudio] = useState(false);
+  const [generatingSubtitles, setGeneratingSubtitles] = useState(false);
   const [videoImportMode, setVideoImportMode] = useState<"original" | "separate" | "video" | "audio">("original");
   const [pointerAction, setPointerAction] = useState<PointerAction | null>(null);
 
@@ -1431,6 +1432,72 @@ export default function MultimediaStudioV3Client() {
     }
   }
 
+  async function generateSubtitlesForSelected() {
+    const clip = selectedClip;
+    const asset = selectedAsset;
+    if (!clip || !asset || !asset.url || (asset.kind !== "video" && asset.kind !== "audio" && asset.kind !== "music")) {
+      setNotice("Selecciona un clip de video o audio para generar subtítulos.");
+      return;
+    }
+    setGeneratingSubtitles(true);
+    setPlaying(false);
+    setNotice("Preparando audio para subtítulos automáticos…");
+    try {
+      const response = await fetch(asset.url);
+      if (!response.ok) throw new Error("No se pudo leer el archivo de origen.");
+      const blob = await response.blob();
+      const region = await extractAudioFromMedia(blob, {
+        start: clip.offset,
+        end: clip.offset + clip.duration * clipSpeed(clip),
+      });
+      const mp3 = await convertAudioBlobToMp3(region, 64_000);
+      if (mp3.size > 3 * 1024 * 1024) throw new Error("La selección es demasiado larga para subtítulos directos. Divide el clip en segmentos más cortos.");
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+        reader.onerror = () => reject(new Error("No se pudo preparar el audio."));
+        reader.readAsDataURL(mp3);
+      });
+      setNotice("Generando subtítulos con el procesador de Audio Lab…");
+      const result = await fetch("/api/agents/audio/pipeline", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          audioBase64: base64,
+          fileName: "multimedia-subtitles.mp3",
+          fileSizeBytes: mp3.size,
+          mimeType: "audio/mpeg",
+          options: { mode: "quick", preciseSubtitles: true, detectLanguage: true },
+        }),
+      });
+      const data = await result.json();
+      if (!result.ok || !data?.success) throw new Error(data?.error || "No fue posible transcribir el audio.");
+      const generated = (Array.isArray(data.segments) ? data.segments : []).slice(0, 1000).flatMap((segment: { start: number; end: number; text: string }) => {
+        const text = String(segment.text || "").trim();
+        const start = Number(segment.start);
+        const end = Number(segment.end);
+        if (!text || !Number.isFinite(start) || !Number.isFinite(end) || end <= start) return [];
+        const subtitle = createTextClip(clip.start + start / clipSpeed(clip), text);
+        subtitle.duration = Math.max(0.1, Math.min((end - start) / clipSpeed(clip), clip.duration));
+        return [subtitle];
+      });
+      if (!generated.length) throw new Error("La transcripción no devolvió marcas de tiempo utilizables.");
+      commitProject((current) => ({
+        ...current,
+        tracks: current.tracks.map((track) =>
+          track.kind === "text" && track.id === "text-main"
+            ? { ...track, clips: [...track.clips, ...generated] }
+            : track,
+        ),
+      }));
+      setNotice(generated.length + " subtítulos generados. Revisa su precisión antes de exportar.");
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "No se pudieron generar los subtítulos.");
+    } finally {
+      setGeneratingSubtitles(false);
+    }
+  }
+
   async function exportFrame() {
     if (!previewRef.current) return;
     try {
@@ -1729,6 +1796,7 @@ export default function MultimediaStudioV3Client() {
           {!selectedClip ? <div className="py-16 text-center text-xs text-slate-500">Selecciona un clip. Luego puedes moverlo, recortarlo, dividirlo y editar sus propiedades.</div> : <div className="space-y-4 text-[10px]">
             <div className="rounded-xl border border-white/10 bg-black/20 p-3"><p className="truncate font-semibold text-slate-200">{selectedClip.clipType === "text" ? selectedClip.textStyle?.text : selectedAsset?.name || "Recurso"}</p><p className="mt-1 text-slate-500">{selectedClip.trackId} · {fmt(selectedClip.start)} → {fmt(selectedClip.start + selectedClip.duration)}</p></div>
 
+            {selectedClip.clipType === "media" && (selectedAsset?.kind === "video" || selectedAsset?.kind === "audio" || selectedAsset?.kind === "music") && <button disabled={generatingSubtitles} onClick={() => void generateSubtitlesForSelected()} className="w-full rounded-lg border border-amber-400/25 bg-amber-500/10 p-2 text-amber-100 disabled:opacity-50">{generatingSubtitles ? "Transcribiendo…" : "Subtítulos automáticos · Audio Lab IA"}</button>}
             <div className="grid grid-cols-2 gap-2">
               <label>Inicio<input type="number" step="0.05" min={0} value={Number(selectedClip.start.toFixed(2))} onChange={(event) => updateClip(selectedClip.id, { start: Math.max(0, Number(event.target.value)) })} className="mt-1 w-full rounded-lg border border-white/10 bg-black/20 px-2 py-1.5" /></label>
               <label>Duración<input type="number" step="0.05" min={0.05} value={Number(selectedClip.duration.toFixed(2))} onChange={(event) => updateClip(selectedClip.id, { duration: Math.max(0.05, Math.min(Number(event.target.value), sourceMaxDuration(selectedClip))) })} className="mt-1 w-full rounded-lg border border-white/10 bg-black/20 px-2 py-1.5" /></label>
