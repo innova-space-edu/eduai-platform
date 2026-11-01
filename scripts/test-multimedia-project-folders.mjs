@@ -28,3 +28,17 @@ need(library, 'duplicateProject', 'duplicación de proyectos');
 need(migration, 'create table if not exists public.multimedia_projects', 'tabla cloud');
 need(migration, "'multimedia-projects'", 'storage cloud');
 console.log('[multimedia-folders] OK · carpetas, MP3/WAV, borrado, biblioteca, nube y autoguardado');
+
+const exporter = fs.readFileSync("lib/multimedia/export-media.ts", "utf8");
+need(store, "protectMultimediaDraft", "respaldo no destructivo del borrador");
+need(store, "listMultimediaDraftRecovery", "lista de snapshots recuperables");
+need(store, "if (local && (local.project.updatedAt ||", "recuperar copia local más reciente");
+need(store, "const browserCopy = localById.get(rawAsset.id)", "recuperar blobs locales cuando falla la nube");
+need(store, "let localSaveError: unknown = null;", "guardar en nube aun si navegador alcanza la cuota");
+need(client, "if (!draftHydrated) return;", "no sobreescribir borrador antes de hidratar");
+need(client, "restoreRecoverySnapshot", "abrir snapshots recuperables");
+need(client, "workingAssets", "enlace multiparchivo coherente");
+need(client, "Solo navegador (nube pendiente)", "informar el guardado exclusivamente local");
+need(exporter, "No se puede exportar todavía: falta volver a enlazar", "bloquear exportación incompleta");
+need(exporter, "blob.size < 1024", "detectar exportación vacía");
+console.log("[multimedia-folders] Rescate local/cloud, borradores y exportación verificados");
