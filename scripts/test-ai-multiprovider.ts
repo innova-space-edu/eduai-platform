@@ -52,7 +52,7 @@ function testFallbackModels() {
     assert.equal(compatibleFallbackModel("groq", "text"), "openai/gpt-oss-120b")
   })
   withEnv("GROQ_RESEARCH_MODEL", undefined, () => {
-    assert.equal(compatibleFallbackModel("groq", "research"), "groq/compound")
+    assert.equal(compatibleFallbackModel("groq", "research"), "openai/gpt-oss-120b")
   })
   withEnv("OPENROUTER_TEXT_MODEL", undefined, () => {
     withEnv("OPENROUTER_STRUCTURED_MODEL", undefined, () => {
@@ -72,8 +72,19 @@ function testFallbackModels() {
   withEnv("GROQ_TEXT_MODEL", undefined, () => {
     assert.deepEqual(
       compatibleModelCandidates("groq", "long_context", "llama-3.3-70b-versatile"),
-      ["openai/gpt-oss-120b", "qwen/qwen3.6-27b", "openai/gpt-oss-20b"],
+      ["openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b"],
     )
+  })
+}
+
+function testRetiredModelEnvFallback() {
+  withEnv("GROQ_TEXT_MODEL", "llama-3.3-70b-versatile", () => {
+    assert.equal(compatibleFallbackModel("groq", "text"), "openai/gpt-oss-120b")
+    assert.ok(!compatibleModelCandidates("groq", "text", "llama-3.3-70b-versatile").includes("llama-3.3-70b-versatile"))
+  })
+  withEnv("GROQ_RESEARCH_MODEL", "groq/compound", () => {
+    assert.equal(compatibleFallbackModel("groq", "research"), "openai/gpt-oss-120b")
+    assert.ok(!compatibleModelCandidates("groq", "research").includes("groq/compound"))
   })
 }
 
@@ -106,6 +117,7 @@ function main() {
   testProviderOrders()
   testProviderGuards()
   testFallbackModels()
+  testRetiredModelEnvFallback()
   testStructuredParsing()
   testGatewayWiring()
   testVertexWiring()

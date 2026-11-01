@@ -1,3 +1,4 @@
+import { resolveGroqTextModel } from "@/lib/ai/groq-models"
 import Groq from "groq-sdk"
 import { createClient } from "@/lib/supabase/server"
 import { NextResponse } from "next/server"
@@ -77,7 +78,7 @@ export async function POST(req: Request) {
 
   try {
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: resolveGroqTextModel(),
       messages: [
         {
           role: "system",

@@ -1,5 +1,6 @@
 import type { AICapability, AIProviderId } from "../capabilities"
 import type { GatewayMessage } from "./google"
+import { GROQ_FAST_MODEL, GROQ_QUALITY_MODEL, GROQ_REASONING_MODEL, isRetiredGroqModel, resolveGroqTextModel, resolveGroqResearchModel } from "../groq-models"
 
 export type CompatibleProvider = Extract<AIProviderId, "groq" | "openrouter" | "together" | "cerebras" | "sambanova">
 
@@ -8,11 +9,6 @@ export type CompatibleTextResult = {
   provider: CompatibleProvider
   model: string
 }
-
-const RETIRED_GROQ_MODELS = new Set([
-  "llama-3.1-8b-instant",
-  "llama-3.3-70b-versatile",
-])
 
 const ENDPOINTS: Record<CompatibleProvider, string> = {
   groq: "https://api.groq.com/openai/v1/chat/completions",
@@ -97,9 +93,9 @@ export function compatibleFallbackModel(
   switch (provider) {
     case "groq":
       if (capability === "research") {
-        return process.env.GROQ_RESEARCH_MODEL || "groq/compound"
+        return resolveGroqResearchModel()
       }
-      return process.env.GROQ_TEXT_MODEL || "openai/gpt-oss-120b"
+      return resolveGroqTextModel()
     case "openrouter":
       if (capability === "structured") {
         return process.env.OPENROUTER_STRUCTURED_MODEL || process.env.OPENROUTER_TEXT_MODEL || "openrouter/free"
@@ -124,24 +120,15 @@ export function compatibleModelCandidates(
   const candidates: string[] = []
 
   const selected = selectedModel?.trim() || ""
-  if (selected && !(provider === "groq" && RETIRED_GROQ_MODELS.has(selected))) {
+  if (selected && !(provider === "groq" && isRetiredGroqModel(selected))) {
     candidates.push(selected)
   }
 
   if (provider === "groq") {
     if (capability === "research") {
-      candidates.push(
-        process.env.GROQ_RESEARCH_MODEL || "",
-        "groq/compound",
-        "groq/compound-mini",
-      )
+      candidates.push(resolveGroqResearchModel(), GROQ_FAST_MODEL)
     } else {
-      candidates.push(
-        process.env.GROQ_TEXT_MODEL || "",
-        "openai/gpt-oss-120b",
-        "qwen/qwen3.6-27b",
-        "openai/gpt-oss-20b",
-      )
+      candidates.push(resolveGroqTextModel(), GROQ_QUALITY_MODEL, GROQ_FAST_MODEL, GROQ_REASONING_MODEL)
     }
   } else if (provider === "sambanova") {
     candidates.push(compatibleFallbackModel(provider, capability), "gpt-oss-120b", "Meta-Llama-3.3-70B-Instruct")
@@ -149,7 +136,7 @@ export function compatibleModelCandidates(
     candidates.push(compatibleFallbackModel(provider, capability))
   }
 
-  return Array.from(new Set(candidates.map((value) => value.trim()).filter(Boolean)))
+  return Array.from(new Set(candidates.map((value) => value.trim()).filter((value) => Boolean(value) && !(provider === "groq" && isRetiredGroqModel(value)))))
 }
 
 export function isCompatibleBillingError(error: unknown): boolean {

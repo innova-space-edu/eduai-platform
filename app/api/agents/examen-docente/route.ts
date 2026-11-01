@@ -1,3 +1,4 @@
+import { resolveGroqTextModel } from "@/lib/ai/groq-models"
 // src/app/api/agents/examen-docente/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { randomUUID } from "crypto"
@@ -533,7 +534,7 @@ Responde con este JSON exacto:
 
   try {
     // ── Intentar con Gemini ───────────────────────────────────────────────
-    const geminiModels = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"]
+    const geminiModels = ["gemini-3.8-flash", "gemini-3.6-flash", "gemini-2.5-flash"]
     let geminiOk = false
 
     for (const model of geminiModels) {
@@ -581,7 +582,7 @@ Responde con este JSON exacto:
       const groq  = new Groq({ apiKey: groqKey })
 
       const groqRes = await groq.chat.completions.create({
-        model:           "llama-3.3-70b-versatile",
+        model:           resolveGroqTextModel(),
         max_tokens:      2048,
         temperature:     0.2,
         response_format: { type: "json_object" },

@@ -1,3 +1,4 @@
+import { isRetiredGroqModel } from "@/lib/ai/groq-models"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient as createServerClient } from "@/lib/supabase/server"
 import { createClient as createAdminClient } from "@supabase/supabase-js"
@@ -93,6 +94,9 @@ export async function PATCH(request: NextRequest) {
     if (!target) return NextResponse.json({ error: "Modelo no registrado" }, { status: 404, headers: HEADERS })
 
     const typedTarget = target as ModelRow
+    if (provider === "groq" && isRetiredGroqModel(model) && action !== "disable") {
+      return NextResponse.json({ error: "Este modelo de Groq fue retirado; selecciona GPT-OSS o Qwen 3.8." }, { status: 409, headers: HEADERS })
+    }
 
     if (action === "disable") {
       if (typedTarget.is_default) {

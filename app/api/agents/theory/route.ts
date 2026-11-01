@@ -1,3 +1,4 @@
+import { resolveGroqTextModel } from "@/lib/ai/groq-models"
 import Groq from "groq-sdk"
 import { createClient } from "@/lib/supabase/server"
 
@@ -66,7 +67,7 @@ Sé conciso pero completo. No excedas 700 palabras en total.`
 
   try {
     const stream = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: resolveGroqTextModel(),
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }

@@ -1,3 +1,4 @@
+import { resolveGroqTextModel } from "@/lib/ai/groq-models"
 // src/lib/content-processor.ts
 import { buildDesignPromptDirective, getDesignTemplateSummary } from "@/lib/design-templates/registry"
 // v3 — Gemini 2.5 Flash + responseSchema + prompts potenciados + contexto extendido 12K
@@ -913,7 +914,7 @@ async function callGemini20Fallback(
   apiKey: string
 ): Promise<any> {
   const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`,
     {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -952,7 +953,7 @@ async function callGroqFallback(systemPrompt: string, userPrompt: string): Promi
       Authorization: `Bearer ${groqKey}`,
     },
     body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
+      model: resolveGroqTextModel(),
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -1016,7 +1017,7 @@ REGLAS CRÍTICAS:
     try {
       const data = await callGemini20Fallback(systemPrompt, userPrompt, apiKey)
       console.log(`[Creator] Gemini 2.0 Flash OK para ${outputFormat}`)
-      return { success: true, data, format: outputFormat, provider: "gemini-2.0-flash" }
+      return { success: true, data, format: outputFormat, provider: "gemini-3.5-flash-lite" }
     } catch (err20: any) {
       console.warn(`[Creator] Gemini 2.0 Flash falló (${err20.message}), intentando Groq...`)
       try {

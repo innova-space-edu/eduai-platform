@@ -1,3 +1,4 @@
+import { resolveGroqTextModel, GROQ_FAST_MODEL, GROQ_REASONING_MODEL } from "@/lib/ai/groq-models"
 // app/api/agents/exam-generate/route.ts
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
@@ -8,10 +9,9 @@ export const runtime = "nodejs"
 export const maxDuration = 120
 
 const GROQ_MODELS = [
-  // Modelos activos de Groq. Evitar modelos decommissioned como mixtral-8x7b-32768 y gemma2-9b-it.
-  "llama-3.3-70b-versatile",
-  "llama-3.1-8b-instant",
-  "openai/gpt-oss-20b",
+  resolveGroqTextModel(),
+  GROQ_FAST_MODEL,
+  GROQ_REASONING_MODEL,
 ]
 
 const GROQ_MAX_TOKENS = 3200

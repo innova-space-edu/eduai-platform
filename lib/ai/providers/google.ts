@@ -74,7 +74,7 @@ export function googleModel(kind: "text" | "lite" | "image" | "video"): string {
       return process.env.GOOGLE_VIDEO_MODEL_PRIMARY || "veo-3.1-generate-preview"
     case "text":
     default:
-      return process.env.GOOGLE_TEXT_MODEL_PRIMARY || process.env.GEMINI_TEXT_MODEL_PRIMARY || "gemini-3.6-flash"
+      return process.env.GOOGLE_TEXT_MODEL_PRIMARY || process.env.GEMINI_TEXT_MODEL_PRIMARY || "gemini-3.8-flash"
   }
 }
 
