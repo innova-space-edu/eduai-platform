@@ -172,6 +172,13 @@ export async function exportProjectVideo(project: MultimediaProject, assets: Med
 
   const assetMap = new Map(assets.map((asset) => [asset.id, asset]));
   const clips = project.tracks.flatMap((track) => track.clips);
+  const unavailable = Array.from(new Set(clips.filter((clip) => clip.clipType === "media" && clip.assetId)
+    .map((clip) => assetMap.get(clip.assetId!))
+    .filter((asset): asset is MediaAsset | undefined => !asset || asset.missing || !asset.url || asset.exportable === false)
+    .map((asset) => asset?.name || "archivo no encontrado")));
+  if (unavailable.length) throw new Error(`No se puede exportar todavía: falta volver a enlazar ${unavailable.length} recurso(s) (${unavailable.slice(0, 3).join(", ")}). Carga los originales para recuperar tu video.`);
+  if (!clips.length || duration <= 0) throw new Error("El proyecto no contiene clips exportables.");
+
   const soloTrackIds = new Set(project.tracks.filter((track) => Boolean(track.solo)).map((track) => track.id));
   const trackById = new Map(project.tracks.map((track) => [track.id, track]));
   const trackAudible = (trackId: string) => {
@@ -297,6 +304,13 @@ export async function exportProjectVideo(project: MultimediaProject, assets: Med
 
   recorder.stop();
   const blob = await finished;
+  if (blob.size < 1024) {
+    mediaEntries.forEach((entry) => entry.element.pause());
+    videoStream.getTracks().forEach((track) => track.stop());
+    audioDestination.stream.getTracks().forEach((track) => track.stop());
+    await audioContext.close();
+    throw new Error("El navegador generó un video vacío. Prueba exportar en WebM o cambia temporalmente la resolución del proyecto a Full HD.");
+  }
   mediaEntries.forEach((entry) => entry.element.pause());
   videoStream.getTracks().forEach((track) => track.stop());
   audioDestination.stream.getTracks().forEach((track) => track.stop());
@@ -313,5 +327,5 @@ export function downloadBlob(blob: Blob, filename: string) {
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 5000);
+  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
 }

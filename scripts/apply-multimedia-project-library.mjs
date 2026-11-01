@@ -5,6 +5,13 @@ let source = fs.readFileSync(path, "utf8");
 
 function replaceOnce(before, after, label) {
   if (source.includes(after)) return;
+  // The recovery-capable editor keeps the video export's project/asset refs
+  // current and shows truthful local/cloud storage status. Do not revert it
+  // to an older generated template during Next.js prebuild.
+  if (label === "cast de formato de video"
+    && source.includes('exportProjectVideo(projectRef.current, assetsRef.current, { format: exportFormat')) return;
+  if (label === "mensaje de persistencia"
+    && source.includes("El guardado conserva una copia local y, si la conexión y la cuota lo permiten")) return;
   if (!source.includes(before)) throw new Error(`[multimedia-library] No se encontró ${label}`);
   source = source.replace(before, after);
 }

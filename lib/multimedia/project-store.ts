@@ -8,6 +8,7 @@ const FOLDER_STORE = "folders";
 const CLOUD_BUCKET = "multimedia-projects";
 const ACTIVE_PROJECT_KEY = "eduai.multimedia.active-project.v1";
 const HIDDEN_ASSETS_KEY = "eduai.multimedia.hidden-assets.v1";
+const DRAFT_RECOVERY_KEY = "eduai.multimedia.recovery-snapshots.v1";
 
 export type PersistableStudioAsset = MediaAsset & {
   mime?: string;
@@ -42,6 +43,44 @@ type CloudProjectRow = {
 };
 
 type ActiveProjectPointer = { savedId: string; projectId: string };
+export type MultimediaDraftRecovery = { id: string; savedAt: string; title: string; clipCount: number; payload: string };
+
+export function listMultimediaDraftRecovery(): MultimediaDraftRecovery[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(DRAFT_RECOVERY_KEY) || "[]");
+    return Array.isArray(parsed)
+      ? parsed.filter((entry): entry is MultimediaDraftRecovery =>
+          Boolean(entry && typeof entry === "object" && typeof entry.payload === "string" && typeof entry.id === "string"))
+      : [];
+  } catch { return []; }
+}
+
+/** Save an independent JSON snapshot before touching an existing draft.
+ * This function never deletes the original draft, even if storage is full.
+ */
+export function protectMultimediaDraft(payload: string): boolean {
+  if (typeof window === "undefined" || !payload) return false;
+  try {
+    const parsed = JSON.parse(payload);
+    const project = parsed?.project;
+    if (!project || !Array.isArray(project.tracks)) return false;
+    const snapshots = listMultimediaDraftRecovery();
+    if (snapshots.some((entry) => entry.payload === payload)) return true;
+    const snapshot: MultimediaDraftRecovery = {
+      id: `recovery-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      savedAt: new Date().toISOString(),
+      title: String(project.title || "Borrador multimedia"),
+      clipCount: project.tracks.reduce((sum: number, track: { clips?: unknown[] }) => sum + (track.clips?.length || 0), 0),
+      payload,
+    };
+    window.localStorage.setItem(DRAFT_RECOVERY_KEY, JSON.stringify([snapshot, ...snapshots].slice(0, 8)));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 
 export type SavedProjectSummary = Pick<SavedProjectRecord, "id" | "title" | "createdAt" | "updatedAt" | "folderId"> & {
   assetCount: number;
@@ -154,12 +193,13 @@ async function cloudContext() {
 
 async function assetToStored(asset: PersistableStudioAsset, previous?: StoredAsset): Promise<StoredAsset> {
   let blob: Blob | undefined = previous?.blob;
-  if (asset.local && asset.url && !blob) {
+  if (asset.local && asset.url) {
+    // Prefer a newly relinked file over a cached Blob with the same asset ID.
     try {
       const response = await fetch(asset.url);
       if (response.ok) blob = await response.blob();
     } catch {
-      blob = undefined;
+      // A previously saved Blob is safer than losing the asset on a transient read failure.
     }
   }
   return { ...asset, url: asset.local ? "" : asset.url, missing: asset.local ? !blob : Boolean(asset.missing), blob };
@@ -300,8 +340,13 @@ export async function listSavedMultimediaProjects(): Promise<SavedProjectSummary
     assetCount: Array.isArray(row.assets) ? row.assets.length : 0,
     storage: "cloud" as const,
   }));
+  const localById = new Map(local.map((item) => [item.id, item]));
+  const merged = cloud.map((item) => {
+    const localCopy = localById.get(item.id);
+    return localCopy && localCopy.updatedAt > item.updatedAt ? localCopy : item;
+  });
   const seen = new Set(cloud.map((item) => item.id));
-  return [...cloud, ...local.filter((item) => !seen.has(item.id))].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  return [...merged, ...local.filter((item) => !seen.has(item.id))].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 }
 
 export async function listMultimediaProjectFolders(): Promise<MultimediaProjectFolder[]> {
@@ -363,11 +408,20 @@ export async function saveMultimediaProject(project: MultimediaProject, assets: 
   const active = getActiveProjectPointer();
   const id = existingId || (active?.projectId === project.id ? active.savedId : null) || `saved-${crypto.randomUUID()}`;
   const persistedAssets = assetsForPersistence(project, assets);
-  const localSummary = await saveLocalProject(project, persistedAssets, id, folderId);
-  setActiveProjectPointer(id, project.id);
-
+  let localSummary: SavedProjectSummary | null = null;
+  let localSaveError: unknown = null;
+  try {
+    localSummary = await saveLocalProject(project, persistedAssets, id, folderId);
+  } catch (error) {
+    // Full browser quota must not prevent a cloud upload.
+    localSaveError = error;
+  }
   const ctx = await cloudContext();
-  if (!ctx) return localSummary;
+  if (!ctx) {
+    if (!localSummary) throw localSaveError || new Error("No se pudo guardar el proyecto en este dispositivo.");
+    setActiveProjectPointer(id, project.id);
+    return localSummary;
+  }
 
   try {
     const { data: previousRow } = await ctx.supabase
@@ -419,7 +473,7 @@ export async function saveMultimediaProject(project: MultimediaProject, assets: 
       updated_at: now,
     }, { onConflict: "id" });
     if (error) throw error;
-
+    setActiveProjectPointer(id, project.id);
     return {
       id,
       title: project.title || "Proyecto multimedia",
@@ -430,7 +484,11 @@ export async function saveMultimediaProject(project: MultimediaProject, assets: 
       storage: "cloud",
     };
   } catch (error) {
-    console.warn("[multimedia] El guardado en nube falló; se conservó la copia local.", error);
+    if (!localSummary) {
+      throw new Error(`No se pudo guardar ni en el navegador ni en EDUAI. Nube: ${error instanceof Error ? error.message : String(error)}. Navegador: ${localSaveError instanceof Error ? localSaveError.message : "sin copia local"}.`);
+    }
+    setActiveProjectPointer(id, project.id);
+    console.warn("[multimedia] Guardado solo en navegador. La sincronización en nube falló:", error);
     return localSummary;
   }
 }
@@ -456,6 +514,8 @@ export async function moveMultimediaProjectToFolder(id: string, folderId: string
 }
 
 export async function loadMultimediaProject(id: string): Promise<RestoredProject> {
+  // Keep the browser's own media Blobs available before fetching metadata.
+  const local = await loadLocalProject(id).catch(() => null);
   const ctx = await cloudContext();
   if (ctx) {
     const { data, error } = await ctx.supabase
@@ -464,22 +524,35 @@ export async function loadMultimediaProject(id: string): Promise<RestoredProject
       .eq("user_id", ctx.user.id)
       .eq("id", id)
       .maybeSingle();
+
     if (!error && data) {
       const row = data as CloudProjectRow;
+      // Never replace a more recent local edit with an older cloud revision.
+      if (local && (local.project.updatedAt || "") > row.updated_at) return local;
+
+      const localById = new Map(local?.assets.map((asset) => [asset.id, asset]) || []);
       const assets: PersistableStudioAsset[] = [];
       for (const rawAsset of Array.isArray(row.assets) ? row.assets : []) {
+        let restored: PersistableStudioAsset;
         if (rawAsset.cloudPath) {
           const { data: signed, error: signedError } = await ctx.supabase.storage.from(CLOUD_BUCKET).createSignedUrl(rawAsset.cloudPath, 60 * 60 * 6);
-          assets.push({ ...rawAsset, url: signedError ? "" : signed?.signedUrl || "", local: false, missing: Boolean(signedError || !signed?.signedUrl) });
+          restored = { ...rawAsset, url: signedError ? "" : signed?.signedUrl || "", local: false, missing: Boolean(signedError || !signed?.signedUrl) };
         } else {
-          assets.push({ ...rawAsset, local: false, missing: !rawAsset.url && Boolean(rawAsset.missing) });
+          restored = { ...rawAsset, local: false, missing: !rawAsset.url || Boolean(rawAsset.missing) };
         }
+        const browserCopy = localById.get(rawAsset.id);
+        if (restored.missing && browserCopy?.url && !browserCopy.missing) {
+          // Only substitute an actual local file, never a stale empty placeholder.
+          restored = { ...browserCopy, missing: false };
+        }
+        assets.push(restored);
       }
       setActiveProjectPointer(row.id, row.project.id);
       return { id: row.id, folderId: row.folder_id || null, project: structuredClone(row.project), assets, storage: "cloud" };
     }
   }
-  return loadLocalProject(id);
+  if (local) return local;
+  throw new Error("No se encontró el proyecto en la nube ni en este navegador. Comprueba el perfil del navegador y los respaldos disponibles.");
 }
 
 export async function deleteMultimediaProject(id: string) {

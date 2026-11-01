@@ -53,10 +53,13 @@ import {
   deleteMultimediaProjectFolder,
   listMultimediaProjectFolders,
   listSavedMultimediaProjects,
+  listMultimediaDraftRecovery,
+  protectMultimediaDraft,
   loadMultimediaProject,
   moveMultimediaProjectToFolder,
   saveMultimediaProject,
   type MultimediaProjectFolder,
+  type MultimediaDraftRecovery,
   type SavedProjectSummary,
 } from "@/lib/multimedia/project-store";
 import AudioWaveformCanvas from "@/components/multimedia/AudioWaveformCanvas";
@@ -269,6 +272,9 @@ export default function MultimediaStudioV3Client() {
   const [newFolderName, setNewFolderName] = useState("");
   const [savingProject, setSavingProject] = useState(false);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [draftHydrated, setDraftHydrated] = useState(false);
+  const [draftRecovery, setDraftRecovery] = useState<MultimediaDraftRecovery[]>([]);
+  const lastDraftBackupRef = useRef(0);
   const [autoSaveStatus, setAutoSaveStatus] = useState("Guarda una vez para activar el autoguardado.");
   const [extractingAudio, setExtractingAudio] = useState(false);
   const [generatingSubtitles, setGeneratingSubtitles] = useState(false);
@@ -326,7 +332,7 @@ export default function MultimediaStudioV3Client() {
             : [saved, ...current];
           return next.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
         });
-        setAutoSaveStatus(`Guardado automático · ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
+        setAutoSaveStatus(`${saved.storage === "cloud" ? "Nube y navegador" : "Solo navegador (nube pendiente)"} · ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
       } catch (error) {
         setAutoSaveStatus(error instanceof Error ? `Autoguardado: ${error.message}` : "No se pudo autoguardar.");
       } finally {
@@ -382,31 +388,48 @@ export default function MultimediaStudioV3Client() {
 
   useEffect(() => {
     const saved = window.localStorage.getItem("eduai.multimedia.draft.v3");
-    if (!saved) return;
-    try {
-      const parsed = JSON.parse(saved);
-      const nextProject = normalizeProject(parsed.project);
-      const nextAssets: StudioAsset[] = Array.isArray(parsed.assets)
-        ? parsed.assets.map((asset: StudioAsset) => asset.local ? { ...asset, url: "", missing: true } : asset)
-        : [];
-      projectRef.current = nextProject;
-      setProject(nextProject);
-      setAssets(nextAssets);
-      setNotice(nextAssets.some((asset) => asset.missing)
-        ? "Borrador recuperado. Vuelve a enlazar los archivos locales por nombre."
-        : "Borrador recuperado automáticamente.");
-    } catch {
-      window.localStorage.removeItem("eduai.multimedia.draft.v3");
+    if (saved) {
+      protectMultimediaDraft(saved);
+      try {
+        const parsed = JSON.parse(saved);
+        const nextProject = normalizeProject(parsed.project);
+        const nextAssets: StudioAsset[] = Array.isArray(parsed.assets)
+          ? parsed.assets.map((asset: StudioAsset) => asset.local ? { ...asset, url: "", missing: true } : asset)
+          : [];
+        projectRef.current = nextProject;
+        assetsRef.current = nextAssets;
+        setProject(nextProject);
+        setAssets(nextAssets);
+        setNotice(nextAssets.some((asset) => asset.missing)
+          ? "Borrador conservado. Selecciona los archivos originales para volver a enlazarlos."
+          : "Borrador recuperado automáticamente.");
+      } catch {
+        // Never delete a corrupt draft: it may be the only remaining recovery source.
+        setNotice("Hay un borrador antiguo que no se pudo leer. Descarga un respaldo antes de modificarlo.");
+      }
     }
+    setDraftRecovery(listMultimediaDraftRecovery());
+    setDraftHydrated(true);
   }, []);
 
   useEffect(() => {
+    if (!draftHydrated) return; // Prevent the initial empty project from overwriting a real draft.
     const timer = window.setTimeout(() => {
       const safeAssets = assets.map((asset) => asset.local ? { ...asset, url: "", missing: true } : asset);
-      window.localStorage.setItem("eduai.multimedia.draft.v3", JSON.stringify({ project, assets: safeAssets }));
+      try {
+        const previous = window.localStorage.getItem("eduai.multimedia.draft.v3");
+        if (previous && Date.now() - lastDraftBackupRef.current > 60_000) {
+          protectMultimediaDraft(previous);
+          lastDraftBackupRef.current = Date.now();
+          setDraftRecovery(listMultimediaDraftRecovery());
+        }
+        window.localStorage.setItem("eduai.multimedia.draft.v3", JSON.stringify({ project, assets: safeAssets }));
+      } catch {
+        setAutoSaveStatus("Sin espacio para el borrador automático; descarga Proyecto JSON.");
+      }
     }, 450);
     return () => window.clearTimeout(timer);
-  }, [assets, project]);
+  }, [assets, project, draftHydrated]);
 
   useEffect(() => () => {
     assetsRef.current.forEach((asset) => {
@@ -673,6 +696,7 @@ export default function MultimediaStudioV3Client() {
   async function createAssetsFromFiles(files: File[]) {
     const incoming: StudioAsset[] = [];
     const rejected: string[] = [];
+    const workingAssets = [...assetsRef.current];
     let relinked = 0;
 
     for (const original of files) {
@@ -684,12 +708,14 @@ export default function MultimediaStudioV3Client() {
       const normalized = normalizeMediaFile(original, inspection);
       const url = URL.createObjectURL(normalized);
       const kind = inspection.kind;
-      const previous = assetsRef.current.find((asset) => asset.missing && asset.name === original.name && asset.kind === kind);
-      if (previous) {
-        setAssets((current) => current.map((asset) => asset.id === previous.id ? {
-          ...asset,
+      const previousIndex = workingAssets.findIndex((asset) =>
+        asset.missing && asset.name.normalize("NFC").toLowerCase() === original.name.normalize("NFC").toLowerCase() && asset.kind === kind);
+      if (previousIndex >= 0) {
+        const previous = workingAssets[previousIndex];
+        workingAssets[previousIndex] = {
+          ...previous,
           url,
-          duration: inspection.duration || asset.duration,
+          duration: inspection.duration || previous.duration,
           mime: inspection.mime,
           extension: inspection.extension,
           compatibility: inspection.compatibility,
@@ -697,11 +723,11 @@ export default function MultimediaStudioV3Client() {
           missing: false,
           local: true,
           exportable: true,
-        } : asset));
+        };
         relinked += 1;
         continue;
       }
-      incoming.push({
+      const added: StudioAsset = {
         id: uid("asset"),
         name: original.name,
         kind,
@@ -714,13 +740,14 @@ export default function MultimediaStudioV3Client() {
         extension: inspection.extension,
         compatibility: inspection.compatibility,
         normalizedMime: inspection.normalizedMime,
-      });
+      };
+      incoming.push(added);
+      workingAssets.push(added);
     }
 
-    if (incoming.length) {
-      const nextAssets = [...assetsRef.current, ...incoming];
-      assetsRef.current = nextAssets;
-      setAssets(nextAssets);
+    if (incoming.length || relinked) {
+      assetsRef.current = workingAssets;
+      setAssets(workingAssets);
     }
     if (videoImportMode !== "original") {
       let position = playhead;
@@ -1126,7 +1153,7 @@ export default function MultimediaStudioV3Client() {
     setPlaying(false);
     setNotice(`Exportando ${exportFormat.toUpperCase()}…`);
     try {
-      const result = await exportProjectVideo(project, assets, { format: exportFormat, onProgress: setExportProgress });
+      const result = await exportProjectVideo(projectRef.current, assetsRef.current, { format: exportFormat as ExportFormat, onProgress: setExportProgress });
       downloadBlob(result.blob, `${safeFilename(project.title)}.${result.format}`);
       const fallback = result.format !== exportFormat ? ` ${exportFormat.toUpperCase()} no está disponible; se usó ${result.format.toUpperCase()}.` : "";
       const warning = result.warnings.length ? ` ${result.warnings.slice(0, 2).join(" ")}` : "";
@@ -1192,12 +1219,45 @@ export default function MultimediaStudioV3Client() {
       setCurrentFolderId(saved.folderId);
       await refreshSavedProjects();
       setAutoSaveStatus(`Guardado · ${new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`);
-      setNotice("Proyecto guardado. Los cambios siguientes se guardarán automáticamente.");
+      setNotice(saved.storage === "cloud"
+        ? "Proyecto y archivos guardados en la nube EDUAI. Autoguardado activo."
+        : "Proyecto guardado solo en este navegador. Revisa la sincronización con la nube; descarga un respaldo JSON.");
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "No se pudo guardar el proyecto en este navegador.");
     } finally {
       autosaveBusyRef.current = false;
       setSavingProject(false);
+    }
+  }
+
+  function restoreRecoverySnapshot(snapshot: MultimediaDraftRecovery) {
+    if (!window.confirm(`¿Abrir el respaldo del ${new Date(snapshot.savedAt).toLocaleString()}? El proyecto actual se conservará como respaldo antes de cambiar.`)) return;
+    const active = window.localStorage.getItem("eduai.multimedia.draft.v3");
+    const clipsNow = projectRef.current.tracks.flatMap((track) => track.clips).length;
+    if (clipsNow > 0 && (!active || !protectMultimediaDraft(active))) {
+      setNotice("No se pudo respaldar la edición actual. Descarga Proyecto JSON antes de abrir otro borrador.");
+      return;
+    }
+    try {
+      const parsed = JSON.parse(snapshot.payload);
+      const next = normalizeProject(parsed.project);
+      const restoredAssets: StudioAsset[] = Array.isArray(parsed.assets)
+        ? parsed.assets.map((asset: StudioAsset) => asset.local ? { ...asset, url: "", missing: true } : asset)
+        : [];
+      projectRef.current = next;
+      assetsRef.current = restoredAssets;
+      setProject(next);
+      setAssets(restoredAssets);
+      setSavedProjectId(null); // Never overwrite a saved cloud/local project when restoring a draft.
+      setCurrentFolderId(null);
+      setSelectedClipId(null);
+      setPlayhead(0);
+      setUndoStack([]);
+      setRedoStack([]);
+      setDraftRecovery(listMultimediaDraftRecovery());
+      setNotice("Borrador restaurado. Enlaza los archivos originales y guarda una copia nueva en EDUAI.");
+    } catch {
+      setNotice("El respaldo no se pudo leer. Se mantuvo el proyecto actual.");
     }
   }
 
@@ -1555,7 +1615,8 @@ export default function MultimediaStudioV3Client() {
                 <option value="3840x2160">4K 16:9</option>
               </select>
             </label>
-            <button onClick={() => downloadProject(project, assets)} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10"><Save size={14} className="mr-1 inline" />Proyecto</button>
+            <button disabled={savingProject} onClick={() => void saveProjectHere()} className="rounded-xl border border-cyan-400/30 bg-cyan-500/15 px-3 py-2 text-xs font-semibold text-cyan-100 disabled:opacity-50"><Save size={14} className="mr-1 inline" />{savingProject ? "Guardando…" : "Guardar en EDUAI"}</button>
+            <button onClick={() => downloadProject(project, assets)} title="Guardar copia del proyecto en este computador" className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10">JSON</button>
             <select value={exportFormat} onChange={(event) => setExportFormat(event.target.value as ExportFormat)} className="rounded-xl border border-white/10 bg-[#0b1020] px-2 py-2 text-xs">
               <option value="mp4">MP4{formatSupport.mp4 ? "" : " → WebM"}</option>
               <option value="webm">WebM</option>
@@ -1597,6 +1658,10 @@ export default function MultimediaStudioV3Client() {
               </select>
               <span className="mt-1 block text-slate-500">Los modos nuevos añaden los medios a la línea de tiempo.</span>
             </label>
+            {assets.some((asset) => asset.missing) && <div className="rounded-lg border border-amber-400/25 bg-amber-500/10 p-2 text-[10px] text-amber-100">
+              Hay {assets.filter((asset) => asset.missing).length} recurso(s) sin enlazar. Selecciona sus archivos originales en «Cargar o arrastrar» (puedes elegir varios a la vez). Se conservarán los cortes y posiciones de la línea de tiempo.
+              <button className="mt-1 block underline" onClick={() => setTab("project")}>Ver respaldos recuperables</button>
+            </div>}
             <div className="space-y-2">
               {assets.filter((asset) => asset.source === "local" || asset.missing).map((asset) => (
                 <div key={asset.id} className={`flex items-center gap-2 rounded-xl border p-2 ${asset.missing ? "border-amber-500/30 bg-amber-500/5" : "border-white/10 bg-black/20"}`}>
@@ -1655,7 +1720,19 @@ export default function MultimediaStudioV3Client() {
             </div>
             <button disabled={savingProject} onClick={saveProjectHere} className="w-full rounded-xl border border-cyan-400/25 bg-cyan-500/15 p-3 font-semibold text-cyan-100 disabled:opacity-50"><Save size={14} className="mr-1 inline" />{savingProject ? "Guardando…" : savedProjectId ? "Guardar ahora" : "Guardar en EDUAI"}</button>
             <div className="rounded-xl border border-white/10 bg-black/20 p-2.5"><label className="flex items-center justify-between gap-2 text-[10px]"><span><b className="text-slate-200">Autoguardado</b><span className="mt-0.5 block text-[9px] text-slate-500">{autoSaveStatus}</span></span><input type="checkbox" checked={autoSaveEnabled} onChange={(event) => setAutoSaveEnabled(event.target.checked)} className="h-4 w-4 accent-cyan-500" /></label></div>
-            <p className="text-[9px] leading-4 text-slate-500">Después del primer guardado, cada edición se actualiza automáticamente en este navegador.</p>
+            <p className="text-[9px] leading-4 text-slate-500">El guardado conserva una copia local y, si la conexión y la cuota lo permiten, una copia en Supabase. El estado indica dónde se completó.</p>
+            <div className="rounded-xl border border-amber-400/20 bg-amber-500/5 p-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-[10px] font-semibold text-amber-100">Rescatar borradores · {draftRecovery.length}</span>
+                <button className="text-[9px] text-cyan-300" onClick={() => setDraftRecovery(listMultimediaDraftRecovery())}>Buscar</button>
+              </div>
+              <p className="mt-1 text-[9px] text-slate-400">Respaldos del navegador actual. Ninguno se elimina al restaurar otro.</p>
+              {draftRecovery.map((snapshot) => <div key={snapshot.id} className="mt-2 flex items-center gap-2 rounded-lg bg-black/20 p-2">
+                <span className="min-w-0 flex-1 truncate text-[9px]">{snapshot.title} · {snapshot.clipCount} clips · {new Date(snapshot.savedAt).toLocaleString()}</span>
+                <button onClick={() => downloadBlob(new Blob([snapshot.payload], { type: "application/json" }), `${safeFilename(snapshot.title)}-rescate.json`)} className="rounded bg-white/10 px-2 py-1 text-[9px]">JSON</button>
+                <button onClick={() => restoreRecoverySnapshot(snapshot)} className="rounded bg-cyan-600/25 px-2 py-1 text-[9px] text-cyan-100">Restaurar</button>
+              </div>)}
+            </div>
 
             <div className="space-y-2 rounded-xl border border-white/10 bg-black/20 p-2">
               <div className="flex items-center justify-between gap-2"><span className="text-[10px] font-semibold text-slate-200">Mis proyectos · {savedProjects.length}</span><div className="flex gap-2"><button onClick={() => void refreshSavedProjects()} className="text-[9px] text-cyan-300">Actualizar</button>{savedProjects.length > 0 && <button onClick={() => void clearSavedProjects()} className="text-[9px] text-rose-300">Borrar todos</button>}</div></div>
