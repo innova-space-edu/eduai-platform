@@ -165,6 +165,11 @@ function getActiveProjectPointer(): ActiveProjectPointer | null {
   return null;
 }
 
+/** Read-only pointer to the most recent saved project in this browser profile. */
+export function getActiveSavedMultimediaProjectId(): string | null {
+  return getActiveProjectPointer()?.savedId || null;
+}
+
 function setActiveProjectPointer(savedId: string, projectId: string) {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(ACTIVE_PROJECT_KEY, JSON.stringify({ savedId, projectId } satisfies ActiveProjectPointer));

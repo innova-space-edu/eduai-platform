@@ -8,6 +8,7 @@ export type ExportFormat = "mp4" | "webm";
 type ExportOptions = {
   format?: ExportFormat;
   onProgress?: (value: number) => void;
+  maxDimension?: number; // Safe 1080p output for large 4K projects, without changing the project itself.
 };
 
 type ClipMedia = {
@@ -29,7 +30,9 @@ function recorderMime(format: ExportFormat) {
   const mp4 = ["video/mp4;codecs=avc1.42E01E,mp4a.40.2", "video/mp4"];
   const webm = ["video/webm;codecs=vp9,opus", "video/webm;codecs=vp8,opus", "video/webm"];
   const candidates = format === "mp4" ? [...mp4, ...webm] : webm;
-  return candidates.find((mime) => MediaRecorder.isTypeSupported(mime)) || "video/webm";
+  const supported = candidates.find((mime) => MediaRecorder.isTypeSupported(mime));
+  if (!supported) throw new Error("Este navegador no tiene un codificador de video compatible. Actualiza Edge/Chrome o prueba WebM en otro navegador.");
+  return supported;
 }
 
 function seek(element: HTMLMediaElement, time: number) {
@@ -41,9 +44,11 @@ function seek(element: HTMLMediaElement, time: number) {
 function waitForMedia(element: HTMLMediaElement) {
   if (element.readyState >= 1) return Promise.resolve();
   return new Promise<void>((resolve, reject) => {
+    const timer = window.setTimeout(() => fail(), 20000);
     const done = () => { cleanup(); resolve(); };
-    const fail = () => { cleanup(); reject(new Error("No se pudo cargar un recurso multimedia para exportar.")); };
+    const fail = () => { cleanup(); reject(new Error("No se pudo cargar el medio para exportar. Reabre el proyecto para renovar los enlaces de Supabase.")); };
     const cleanup = () => {
+      window.clearTimeout(timer);
       element.removeEventListener("loadedmetadata", done);
       element.removeEventListener("error", fail);
     };
@@ -165,8 +170,10 @@ export async function exportProjectVideo(project: MultimediaProject, assets: Med
   if (!window.MediaRecorder) throw new Error("Este navegador no admite exportación de video con MediaRecorder.");
   const duration = projectDuration(project);
   const canvas = document.createElement("canvas");
-  canvas.width = project.width;
-  canvas.height = project.height;
+  const maxDimension = options.maxDimension || 1920;
+  const scale = Math.min(1, maxDimension / Math.max(project.width, project.height));
+  canvas.width = Math.max(2, Math.round((project.width * scale) / 2) * 2);
+  canvas.height = Math.max(2, Math.round((project.height * scale) / 2) * 2);
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("No se pudo crear el lienzo de exportación.");
 
@@ -225,7 +232,11 @@ export async function exportProjectVideo(project: MultimediaProject, assets: Med
     mediaEntries.push({ clip, asset, element, gain });
   }
 
-  const videoStream = canvas.captureStream(project.fps || 30);
+  if (warnings.some((warning) => warning.startsWith("No se pudo exportar") || warning.startsWith("No se pudo exportar la imagen"))) {
+    await audioContext.close();
+    throw new Error(`No se pudieron cargar recursos del proyecto: ${warnings.slice(0, 3).join(" ")} Reabre el proyecto desde la biblioteca.`);
+  }
+  const videoStream = canvas.captureStream(Math.min(30, project.fps || 30));
   const combined = new MediaStream([...videoStream.getVideoTracks(), ...audioDestination.stream.getAudioTracks()]);
   const requested = options.format || "mp4";
   const mimeType = recorderMime(requested);
@@ -235,9 +246,13 @@ export async function exportProjectVideo(project: MultimediaProject, assets: Med
   try { recorder = new MediaRecorder(combined, { mimeType, videoBitsPerSecond: 8_000_000 }); }
   catch { recorder = new MediaRecorder(combined); }
   recorder.ondataavailable = (event) => { if (event.data.size) chunks.push(event.data); };
+  let recorderFailed = false;
   const finished = new Promise<Blob>((resolve, reject) => {
-    recorder.onerror = () => reject(new Error("Falló la grabación del video."));
-    recorder.onstop = () => resolve(new Blob(chunks, { type: recorder.mimeType || mimeType }));
+    recorder.onerror = () => { recorderFailed = true; reject(new Error("El codificador del navegador falló. Exporta en 1080p o prueba WebM.")); };
+    recorder.onstop = () => {
+      if (recorderFailed || chunks.length === 0) reject(new Error("El navegador terminó sin producir datos de video."));
+      else resolve(new Blob(chunks, { type: recorder.mimeType || mimeType }));
+    };
   });
 
   await audioContext.resume();
@@ -248,6 +263,7 @@ export async function exportProjectVideo(project: MultimediaProject, assets: Med
     const frame = () => {
       const elapsed = Math.min(duration, (performance.now() - startedAt) / 1000);
       options.onProgress?.(duration ? elapsed / duration : 1);
+      ctx.setTransform(scale, 0, 0, scale, 0, 0);
       ctx.fillStyle = "#050816";
       ctx.fillRect(0, 0, project.width, project.height);
 
@@ -302,7 +318,7 @@ export async function exportProjectVideo(project: MultimediaProject, assets: Med
     requestAnimationFrame(frame);
   });
 
-  recorder.stop();
+  if (recorder.state === "recording") recorder.stop();
   const blob = await finished;
   if (blob.size < 1024) {
     mediaEntries.forEach((entry) => entry.element.pause());
@@ -315,6 +331,34 @@ export async function exportProjectVideo(project: MultimediaProject, assets: Med
   videoStream.getTracks().forEach((track) => track.stop());
   audioDestination.stream.getTracks().forEach((track) => track.stop());
   await audioContext.close();
+  // MediaRecorder can encode WebM even when the user requested MP4.
+  // Convert with Mediabunny (already installed) when WebCodecs supports H.264/AAC.
+  // If conversion isn't possible, preserve the valid WebM instead of losing the export.
+  if (requested === "mp4" && actualFormat === "webm") {
+    try {
+      const { Input, Output, BlobSource, BufferTarget, Mp4OutputFormat, Conversion, ALL_FORMATS } = await import("mediabunny");
+      const target = new BufferTarget();
+      const input = new Input({ source: new BlobSource(blob), formats: ALL_FORMATS });
+      const output = new Output({ target, format: new Mp4OutputFormat() });
+      const conversion = await Conversion.init({
+        input, output,
+        video: { codec: "avc" },
+        audio: { codec: "aac" },
+      });
+      if (conversion.isValid && conversion.discardedTracks.length === 0) {
+        conversion.onProgress = (progress) => options.onProgress?.(0.95 + progress * 0.05);
+        await conversion.execute();
+        if (target.buffer && target.buffer.byteLength > 1024) {
+          const mp4 = new Blob([new Uint8Array(target.buffer)], { type: "video/mp4" });
+          options.onProgress?.(1);
+          return { blob: mp4, format: "mp4" as ExportFormat, mimeType: "video/mp4", warnings };
+        }
+      }
+      warnings.push("MP4 no pudo codificarse en este dispositivo. Se descargó WebM para no perder el video.");
+    } catch (error) {
+      warnings.push(`Conversión a MP4 no compatible: ${error instanceof Error ? error.message : String(error)}. Se descargó WebM.`);
+    }
+  }
   options.onProgress?.(1);
   return { blob, format: actualFormat, mimeType: blob.type || mimeType, warnings };
 }

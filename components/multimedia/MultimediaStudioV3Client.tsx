@@ -53,6 +53,7 @@ import {
   deleteMultimediaProjectFolder,
   listMultimediaProjectFolders,
   listSavedMultimediaProjects,
+  getActiveSavedMultimediaProjectId,
   listMultimediaDraftRecovery,
   protectMultimediaDraft,
   loadMultimediaProject,
@@ -264,6 +265,7 @@ export default function MultimediaStudioV3Client() {
   const [exporting, setExporting] = useState(false);
   const [exportProgress, setExportProgress] = useState(0);
   const [exportFormat, setExportFormat] = useState<ExportFormat>("mp4");
+  const [exportMaxDimension, setExportMaxDimension] = useState(1920);
   const [savedProjects, setSavedProjects] = useState<SavedProjectSummary[]>([]);
   const [savedFolders, setSavedFolders] = useState<MultimediaProjectFolder[]>([]);
   const [savedProjectId, setSavedProjectId] = useState<string | null>(null);
@@ -308,7 +310,28 @@ export default function MultimediaStudioV3Client() {
 
   useEffect(() => { projectRef.current = project; }, [project]);
   useEffect(() => { assetsRef.current = assets; }, [assets]);
-  useEffect(() => { void refreshSavedProjects(); }, []);
+  useEffect(() => {
+    void refreshSavedProjects();
+    const requestedProjectId = new URLSearchParams(window.location.search).get("project");
+    if (requestedProjectId) void openSavedProject(requestedProjectId);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (!draftHydrated) return;
+    if (new URLSearchParams(window.location.search).has("project")) return;
+    const activeSavedId = getActiveSavedMultimediaProjectId();
+    if (!activeSavedId) return;
+    try {
+      const draft = JSON.parse(window.localStorage.getItem("eduai.multimedia.draft.v3") || "null");
+      // Do not replace a different unsaved draft with an old saved project.
+      const draftClips = Array.isArray(draft?.project?.tracks)
+        ? draft.project.tracks.reduce((sum: number, track: { clips?: unknown[] }) => sum + (track.clips?.length || 0), 0) : 0;
+      if (draftClips && draft?.project?.id !== projectRef.current.id) return;
+      void openSavedProject(activeSavedId);
+    } catch {
+      // The corrupt draft remains untouched for manual recovery.
+    }
+  }, [draftHydrated]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!savedProjectId) {
@@ -1151,13 +1174,13 @@ export default function MultimediaStudioV3Client() {
     setExporting(true);
     setExportProgress(0);
     setPlaying(false);
-    setNotice(`Exportando ${exportFormat.toUpperCase()}…`);
+    setNotice(`Preparando exportación ${exportFormat.toUpperCase()} (máximo ${exportMaxDimension}px)… El proyecto original no se modifica.`);
     try {
-      const result = await exportProjectVideo(projectRef.current, assetsRef.current, { format: exportFormat as ExportFormat, onProgress: setExportProgress });
+      const result = await exportProjectVideo(projectRef.current, assetsRef.current, { format: exportFormat as ExportFormat, maxDimension: exportMaxDimension, onProgress: setExportProgress });
       downloadBlob(result.blob, `${safeFilename(project.title)}.${result.format}`);
       const fallback = result.format !== exportFormat ? ` ${exportFormat.toUpperCase()} no está disponible; se usó ${result.format.toUpperCase()}.` : "";
       const warning = result.warnings.length ? ` ${result.warnings.slice(0, 2).join(" ")}` : "";
-      setNotice(`Exportación completada.${fallback}${warning}`);
+      setNotice(`Video descargado (${result.format.toUpperCase()}) a resolución de exportación hasta ${exportMaxDimension}px.${fallback}${warning}`);
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "No se pudo exportar el video.");
     } finally {
@@ -1618,8 +1641,13 @@ export default function MultimediaStudioV3Client() {
             <button disabled={savingProject} onClick={() => void saveProjectHere()} className="rounded-xl border border-cyan-400/30 bg-cyan-500/15 px-3 py-2 text-xs font-semibold text-cyan-100 disabled:opacity-50"><Save size={14} className="mr-1 inline" />{savingProject ? "Guardando…" : "Guardar en EDUAI"}</button>
             <button onClick={() => downloadProject(project, assets)} title="Guardar copia del proyecto en este computador" className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10">JSON</button>
             <select value={exportFormat} onChange={(event) => setExportFormat(event.target.value as ExportFormat)} className="rounded-xl border border-white/10 bg-[#0b1020] px-2 py-2 text-xs">
-              <option value="mp4">MP4{formatSupport.mp4 ? "" : " → WebM"}</option>
+              <option value="mp4">MP4{formatSupport.mp4 ? "" : " (conversión)"}</option>
               <option value="webm">WebM</option>
+            </select>
+            <select aria-label="Resolución de exportación" value={exportMaxDimension} onChange={(event) => setExportMaxDimension(Number(event.target.value))} className="rounded-xl border border-white/10 bg-[#0b1020] px-2 py-2 text-xs" title="No modifica la resolución del proyecto guardado">
+              <option value={1280}>HD · exportación ligera</option>
+              <option value={1920}>Full HD · recomendado</option>
+              <option value={3840}>4K · mayor consumo</option>
             </select>
             <button disabled={exporting} onClick={exportVideo} className="rounded-xl bg-cyan-600 px-3 py-2 text-xs font-semibold hover:bg-cyan-500 disabled:opacity-50"><Download size={14} className="mr-1 inline" />{exporting ? `${Math.round(exportProgress * 100)}%` : "Exportar"}</button>
           </div>
