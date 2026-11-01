@@ -1153,7 +1153,7 @@ export default function MultimediaStudioV3Client() {
     setPlaying(false);
     setNotice(`Exportando ${exportFormat.toUpperCase()}…`);
     try {
-      const result = await exportProjectVideo(projectRef.current, assetsRef.current, { format: exportFormat, onProgress: setExportProgress });
+      const result = await exportProjectVideo(projectRef.current, assetsRef.current, { format: exportFormat as ExportFormat, onProgress: setExportProgress });
       downloadBlob(result.blob, `${safeFilename(project.title)}.${result.format}`);
       const fallback = result.format !== exportFormat ? ` ${exportFormat.toUpperCase()} no está disponible; se usó ${result.format.toUpperCase()}.` : "";
       const warning = result.warnings.length ? ` ${result.warnings.slice(0, 2).join(" ")}` : "";
