@@ -193,12 +193,13 @@ async function cloudContext() {
 
 async function assetToStored(asset: PersistableStudioAsset, previous?: StoredAsset): Promise<StoredAsset> {
   let blob: Blob | undefined = previous?.blob;
-  if (asset.local && asset.url && !blob) {
+  if (asset.local && asset.url) {
+    // Prefer a newly relinked file over a cached Blob with the same asset ID.
     try {
       const response = await fetch(asset.url);
       if (response.ok) blob = await response.blob();
     } catch {
-      blob = undefined;
+      // A previously saved Blob is safer than losing the asset on a transient read failure.
     }
   }
   return { ...asset, url: asset.local ? "" : asset.url, missing: asset.local ? !blob : Boolean(asset.missing), blob };

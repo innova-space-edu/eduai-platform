@@ -1615,7 +1615,8 @@ export default function MultimediaStudioV3Client() {
                 <option value="3840x2160">4K 16:9</option>
               </select>
             </label>
-            <button onClick={() => downloadProject(project, assets)} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10"><Save size={14} className="mr-1 inline" />Proyecto</button>
+            <button disabled={savingProject} onClick={() => void saveProjectHere()} className="rounded-xl border border-cyan-400/30 bg-cyan-500/15 px-3 py-2 text-xs font-semibold text-cyan-100 disabled:opacity-50"><Save size={14} className="mr-1 inline" />{savingProject ? "Guardando…" : "Guardar en EDUAI"}</button>
+            <button onClick={() => downloadProject(project, assets)} title="Guardar copia del proyecto en este computador" className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10">JSON</button>
             <select value={exportFormat} onChange={(event) => setExportFormat(event.target.value as ExportFormat)} className="rounded-xl border border-white/10 bg-[#0b1020] px-2 py-2 text-xs">
               <option value="mp4">MP4{formatSupport.mp4 ? "" : " → WebM"}</option>
               <option value="webm">WebM</option>
