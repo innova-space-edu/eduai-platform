@@ -1,3 +1,4 @@
+import { resolveGroqTextModel } from "./ai/groq-models"
 /**
  * AI Router v3 — EduAI Platform
  * ─────────────────────────────────────────────────────────────
@@ -27,9 +28,9 @@ interface AIResponse {
 }
 
 // ── MODELOS ───────────────────────────────────────────────
-const GEMINI_FLASH      = "gemini-2.5-flash"        // razonamiento + calidad
-const GEMINI_FLASH_LITE = "gemini-2.5-flash-lite"   // rápido + barato
-const GROQ_MODEL        = "llama-3.3-70b-versatile"
+const GEMINI_FLASH      = process.env.GEMINI_TEXT_MODEL_PRIMARY || "gemini-3.8-flash"        // razonamiento + calidad
+const GEMINI_FLASH_LITE = process.env.GEMINI_TEXT_MODEL_LITE || "gemini-3.5-flash-lite"   // rápido + barato
+const GROQ_MODEL        = resolveGroqTextModel()
 
 // ── GROQ ─────────────────────────────────────────────────
 async function callGroq(messages: Message[], maxTokens = 2000): Promise<AIResponse> {
@@ -147,11 +148,7 @@ export async function callGeminiStream(
 
 // ── OPENROUTER ───────────────────────────────────────────
 async function callOpenRouter(messages: Message[], maxTokens = 2000): Promise<AIResponse> {
-  const models = [
-    "meta-llama/llama-3.3-70b-instruct:free",
-    "google/gemma-2-27b-it:free",
-    "mistralai/mistral-7b-instruct:free",
-  ]
+  const models = [process.env.OPENROUTER_TEXT_MODEL || "openrouter/free"]
   for (const model of models) {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",

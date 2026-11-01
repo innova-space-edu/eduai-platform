@@ -1,32 +1,7 @@
-/**
- * lib/ai-router-v5.ts
- * AI Router v5 — Todos los proveedores gratuitos 2026
- *
- * PROVEEDORES GRATUITOS (sin tarjeta, indefinidos):
- * ─────────────────────────────────────────────────
- * 1. Groq          → Llama 3.3 70B / Llama 4 Scout / Kimi K2 / Qwen3 32B
- *                    30 RPM gratis · sub-100ms latencia · sin expiración
- * 2. Gemini Flash  → Gemini 2.5 Flash · 1,500 req/día · 1M contexto
- * 3. OpenRouter    → moonshotai/kimi-k2:free · deepseek/deepseek-r1:free
- *                    qwen/qwen3-32b:free · meta-llama/llama-3.3-70b-instruct:free
- * 4. Cerebras      → Llama 3.3 70B · 1M tokens/día · 2,000 tok/seg
- *
- * ESTRATEGIA DE ROUTING:
- * ─────────────────────
- * "fast"         → Groq Llama 3.3 70B (sub-100ms)
- * "coding"       → Kimi K2 vía Groq (1T params, líder en coding/agentic)
- * "reasoning"    → Kimi K2 vía OpenRouter free (131K contexto, reasoning avanzado)
- * "long_context" → Gemini Flash (1M contexto, multimodal)
- * "vision"       → Gemini Flash (multimodal, gratis)
- * "batch"        → Cerebras (1M tokens/día, máximo throughput)
- * "general"      → Gemini Flash → Groq → Kimi K2 → OpenRouter
- *
- * ENV VARS NECESARIAS:
- * ────────────────────
- * GROQ_API_KEY        (existente)
- * GEMINI_API_KEY      (existente)
- * OPENROUTER_API_KEY  (existente) ← usado para Kimi K2 free
- * CEREBRAS_API_KEY    (NUEVO — gratis en cerebras.ai)
+import { resolveGroqTextModel, GROQ_FAST_MODEL, GROQ_REASONING_MODEL } from "./ai/groq-models"
+/** AI Router v5 — model IDs verified for November 2026.
+ * Groq uses GPT-OSS and Qwen 3.8. OpenRouter free routing is dynamic.
+ * Actual access and quotas depend on each API key.
  */
 
 // ── Re-exportar todo de v4 para compatibilidad ──────────────────────────────
@@ -84,32 +59,31 @@ export interface AIv5Response extends AIResponse {
 
 /** Groq: ultra rápido, gratis, sin tarjeta */
 const GROQ_MODELS = {
-  llama70b:  "llama-3.3-70b-versatile",     // Modelo principal, 30 RPM
-  llama4:    "llama-4-scout-17b-16e-instruct", // Más nuevo, más rápido
-  kimi:      "moonshotai/kimi-k2",           // Kimi K2 en Groq (si disponible)
-  qwen3:     "qwen-qwq-32b",                // Razonamiento con Qwen
-  llama8b:   "llama-3.1-8b-instant",        // Respuestas instantáneas
+  quality: resolveGroqTextModel(),
+  fast: GROQ_FAST_MODEL,
+  coding: "openai/gpt-oss-120b",
+  reasoning: GROQ_REASONING_MODEL,
 }
 
 /** Gemini: 1,500 req/día, 1M contexto, multimodal */
 const GEMINI_MODELS = {
-  flash:     process.env.GEMINI_TEXT_MODEL_PRIMARY  || "gemini-2.5-flash",
-  flashLite: process.env.GEMINI_TEXT_MODEL_LITE     || "gemini-2.5-flash-lite",
+  flash:     process.env.GEMINI_TEXT_MODEL_PRIMARY  || "gemini-3.8-flash",
+  flashLite: process.env.GEMINI_TEXT_MODEL_LITE     || "gemini-3.5-flash-lite",
 }
 
 /** OpenRouter: modelos :free gratuitos indefinidos */
 const OR_FREE_MODELS = {
-  kimiK2:    "moonshotai/kimi-k2:free",                 // 1T params, 131K ctx
-  deepseekR1:"deepseek/deepseek-r1:free",               // Razonamiento avanzado
-  qwen3:     "qwen/qwen3-32b:free",                     // Chino/multilingüe
-  llama70b:  "meta-llama/llama-3.3-70b-instruct:free",  // Llama gratis
-  geminiExp: "google/gemini-2.0-flash-exp:free",        // Gemini experimental
+  kimiK2: "openrouter/free",
+  deepseekR1: "openrouter/free",
+  qwen3: "openrouter/free",
+  llama70b: "openrouter/free",
+  geminiExp: "openrouter/free",
 }
 
 /** Cerebras: 1M tokens/día, 2000 tok/seg */
 const CEREBRAS_MODELS = {
-  llama70b: "llama3.3-70b",
-  llama8b:  "llama3.1-8b",
+  llama70b: "gpt-oss-120b",
+  llama8b: "gpt-oss-120b",
 }
 
 // ── Llamadas a proveedores ────────────────────────────────────────────────────
@@ -260,7 +234,7 @@ export async function callAIv5(
   // ── Forzar proveedor (testing) ──────────────────────────────────────────
   if (forceProvider) {
     const res = await {
-      groq:        () => callGroqV5(msgs, GROQ_MODELS.llama70b, maxTokens),
+      groq:        () => callGroqV5(msgs, GROQ_MODELS.quality, maxTokens),
       gemini:      () => callGeminiV5(msgs, GEMINI_MODELS.flash, maxTokens),
       openrouter:  () => callOpenRouterV5(msgs, openrouterModel ?? OR_FREE_MODELS.kimiK2, maxTokens),
       cerebras:    () => callCerebrasV5(msgs, CEREBRAS_MODELS.llama70b, maxTokens),
@@ -276,17 +250,17 @@ export async function callAIv5(
 
     // Ultra rápido: Groq primero (sub-100ms), Cerebras fallback
     fast: [
-      () => callGroqV5(msgs, GROQ_MODELS.llama4,    maxTokens),
-      () => callGroqV5(msgs, GROQ_MODELS.llama70b,  maxTokens),
+      () => callGroqV5(msgs, GROQ_MODELS.fast,    maxTokens),
+      () => callGroqV5(msgs, GROQ_MODELS.quality,  maxTokens),
       () => callCerebrasV5(msgs, CEREBRAS_MODELS.llama8b, maxTokens),
       () => callGeminiV5(msgs, GEMINI_MODELS.flashLite, maxTokens),
     ],
 
     // Coding/Agentic: Kimi K2 es el líder en 2026
     coding: [
-      () => callGroqV5(msgs, GROQ_MODELS.kimi, maxTokens),          // Kimi en Groq
+      () => callGroqV5(msgs, GROQ_MODELS.coding, maxTokens),          // Kimi en Groq
       () => callOpenRouterV5(msgs, OR_FREE_MODELS.kimiK2, maxTokens), // Kimi free OR
-      () => callGroqV5(msgs, GROQ_MODELS.llama70b, maxTokens),      // Llama fallback
+      () => callGroqV5(msgs, GROQ_MODELS.quality, maxTokens),      // Llama fallback
       () => callGeminiV5(msgs, GEMINI_MODELS.flash, maxTokens),     // Gemini fallback
     ],
 
@@ -294,7 +268,7 @@ export async function callAIv5(
     reasoning: [
       () => callOpenRouterV5(msgs, OR_FREE_MODELS.kimiK2,    maxTokens),
       () => callOpenRouterV5(msgs, OR_FREE_MODELS.deepseekR1, maxTokens),
-      () => callGroqV5(msgs, GROQ_MODELS.qwen3, maxTokens),
+      () => callGroqV5(msgs, GROQ_MODELS.reasoning, maxTokens),
       () => callGeminiV5(msgs, GEMINI_MODELS.flash, maxTokens),
     ],
 
@@ -302,7 +276,7 @@ export async function callAIv5(
     long_context: [
       () => callGeminiV5(msgs, GEMINI_MODELS.flash, Math.min(maxTokens, 8000)),
       () => callOpenRouterV5(msgs, OR_FREE_MODELS.kimiK2, maxTokens), // 131K ctx
-      () => callGroqV5(msgs, GROQ_MODELS.llama70b, maxTokens),
+      () => callGroqV5(msgs, GROQ_MODELS.quality, maxTokens),
     ],
 
     // Visión/Multimodal: Gemini Flash
@@ -314,14 +288,14 @@ export async function callAIv5(
     // Batch (muchas requests): Cerebras (1M tokens/día)
     batch: [
       () => callCerebrasV5(msgs, CEREBRAS_MODELS.llama70b, maxTokens),
-      () => callGroqV5(msgs, GROQ_MODELS.llama70b, maxTokens),
+      () => callGroqV5(msgs, GROQ_MODELS.quality, maxTokens),
       () => callGeminiV5(msgs, GEMINI_MODELS.flashLite, maxTokens),
     ],
 
     // General: cadena completa ordenada por calidad/límites
     general: [
       () => callGeminiV5(msgs, GEMINI_MODELS.flash, maxTokens),     // 1,500/día, 1M ctx
-      () => callGroqV5(msgs, GROQ_MODELS.llama70b, maxTokens),      // 30 RPM, sub-100ms
+      () => callGroqV5(msgs, GROQ_MODELS.quality, maxTokens),      // 30 RPM, sub-100ms
       () => callOpenRouterV5(msgs, OR_FREE_MODELS.kimiK2, maxTokens),// Kimi free
       () => callOpenRouterV5(msgs, OR_FREE_MODELS.llama70b, maxTokens),
       () => callCerebrasV5(msgs, CEREBRAS_MODELS.llama70b, maxTokens),
@@ -380,7 +354,7 @@ export async function streamAIv5(
     const Groq = (await import("groq-sdk")).default
     const groq = new Groq({ apiKey: process.env.GROQ_API_KEY })
 
-    const model = task === "coding" ? GROQ_MODELS.kimi : GROQ_MODELS.llama70b
+    const model = task === "coding" ? GROQ_MODELS.coding : GROQ_MODELS.quality
 
     const stream = await groq.chat.completions.create({
       model,
@@ -465,7 +439,7 @@ export function getAvailableProviders(): {
 /** Qué modelo se usará para una tarea (sin ejecutar la llamada) */
 export function getModelForTask(task: AITaskType): { provider: string; model: string } {
   const map: Record<AITaskType, { provider: string; model: string }> = {
-    fast:         { provider: "Groq",       model: GROQ_MODELS.llama4       },
+    fast:         { provider: "Groq",       model: GROQ_MODELS.fast       },
     coding:       { provider: "Groq/Kimi",  model: "Kimi K2"                },
     reasoning:    { provider: "OpenRouter", model: OR_FREE_MODELS.kimiK2    },
     long_context: { provider: "Gemini",     model: GEMINI_MODELS.flash      },

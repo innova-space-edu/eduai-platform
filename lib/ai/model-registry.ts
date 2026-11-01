@@ -1,3 +1,4 @@
+import { isRetiredGroqModel } from "./groq-models"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { AICapability, AIProviderId } from "./capabilities"
 
@@ -34,7 +35,8 @@ function cacheKey(provider: AIProviderId, capability: AICapability) {
   return `${provider}:${capability}`
 }
 
-function activeAt(row: ProviderModelRow, now = Date.now()) {
+function activeAt(row: ProviderModelRow, provider: AIProviderId, now = Date.now()) {
+  if (provider === "groq" && isRetiredGroqModel(row.model)) return false
   if (!row.is_enabled) return false
   if (!row.shutdown_at) return true
   const shutdown = new Date(row.shutdown_at).getTime()
@@ -83,7 +85,7 @@ export async function resolveProviderModel(input: {
     }
 
     const rows = ((data || []) as ProviderModelRow[])
-      .filter((row) => activeAt(row))
+      .filter((row) => activeAt(row, input.provider))
       .sort(sortRows)
 
     const selected = rows[0]

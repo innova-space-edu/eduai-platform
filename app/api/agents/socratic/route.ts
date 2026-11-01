@@ -1,3 +1,4 @@
+import { resolveGroqTextModel } from "@/lib/ai/groq-models"
 import Groq from "groq-sdk"
 import { createClient } from "@/lib/supabase/server"
 
@@ -63,7 +64,7 @@ Extensión máxima: 170 palabras.`
 
   try {
     const stream = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: resolveGroqTextModel(),
       messages,
       stream: true,
       temperature: 0.72,

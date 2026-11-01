@@ -1,3 +1,4 @@
+import { resolveGroqTextModel } from "@/lib/ai/groq-models"
 import Groq from "groq-sdk"
 import { createClient } from "@/lib/supabase/server"
 
@@ -62,7 +63,7 @@ La pregunta debe ser específica sobre el tema, no genérica.`
 
   try {
     const completion = await groq.chat.completions.create({
-      model: "llama-3.3-70b-versatile",
+      model: resolveGroqTextModel(),
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt }

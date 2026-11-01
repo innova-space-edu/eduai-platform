@@ -1,3 +1,4 @@
+import { resolveGroqTextModel } from "./ai/groq-models"
 /**
  * lib/ai-router-v4.ts
  * AI Router v4 — actualizado con separación de keys para texto / imagen / prompt optimizer
@@ -73,10 +74,10 @@ export function getEducadorModelStrategy(task: EducadorTask): {
   }
 }
 
-const GEMINI_FLASH = process.env.GEMINI_TEXT_MODEL_PRIMARY || "gemini-2.5-flash"
-const GEMINI_FLASH_LITE = process.env.GEMINI_TEXT_MODEL_LITE || "gemini-2.5-flash-lite"
-const GEMINI_IMAGE_MODEL = process.env.GEMINI_IMAGE_MODEL_PRIMARY || "gemini-2.0-flash-preview-image-generation"
-const GROQ_MODEL = process.env.GROQ_TEXT_MODEL || "llama-3.3-70b-versatile"
+const GEMINI_FLASH = process.env.GEMINI_TEXT_MODEL_PRIMARY || "gemini-3.8-flash"
+const GEMINI_FLASH_LITE = process.env.GEMINI_TEXT_MODEL_LITE || "gemini-3.5-flash-lite"
+const GEMINI_IMAGE_MODEL = process.env.GEMINI_IMAGE_MODEL_PRIMARY || "gemini-3.1-flash-image"
+const GROQ_MODEL = resolveGroqTextModel()
 
 function getGeminiTextKey(): string {
   const key = pickFromPool(getGeminiTextKeys())

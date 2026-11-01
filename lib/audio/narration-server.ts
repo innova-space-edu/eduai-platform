@@ -1,3 +1,4 @@
+import { resolveGroqTextModel } from "@/lib/ai/groq-models"
 import Groq from "groq-sdk"
 import { NextResponse } from "next/server"
 import { EdgeTTS, Constants } from "@andresaya/edge-tts"
@@ -177,7 +178,7 @@ async function createScriptFromPrompt(prompt: string, style: AudioStyle) {
     : "Eres un guionista de audio educativo. Crea un guion breve en español para una sola voz. Sin markdown, sin listas técnicas, sin acotaciones. Duración objetivo: 45 a 90 segundos. Texto natural, claro, amable y listo para narrar."
 
   const completion = await groq.chat.completions.create({
-    model: process.env.AUDIO_SCRIPT_MODEL || "llama-3.3-70b-versatile",
+    model: resolveGroqTextModel(process.env.AUDIO_SCRIPT_MODEL),
     messages: [
       { role: "system", content: system },
       { role: "user", content: cleanPrompt },

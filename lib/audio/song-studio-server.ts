@@ -1,3 +1,4 @@
+import { resolveGroqTextModel } from "@/lib/ai/groq-models"
 import Groq from "groq-sdk"
 import { NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
@@ -99,7 +100,7 @@ async function composeSongPlan(input: {
       : `Conserva el sentido de esta letra y mejórala para que sea cantable. Idea o contexto: ${input.prompt}\n\nLetra:\n${input.lyrics}`
 
     const completion = await groq.chat.completions.create({
-      model: process.env.AUDIO_SONG_COMPOSER_MODEL || "llama-3.3-70b-versatile",
+      model: resolveGroqTextModel(process.env.AUDIO_SONG_COMPOSER_MODEL),
       temperature: 0.72,
       max_tokens: 1800,
       response_format: { type: "json_object" },
