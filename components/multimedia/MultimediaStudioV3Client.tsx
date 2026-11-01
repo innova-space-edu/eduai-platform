@@ -53,7 +53,7 @@ import {
   deleteMultimediaProjectFolder,
   listMultimediaProjectFolders,
   listSavedMultimediaProjects,
-  getActiveSavedMultimediaProjectId,
+  getActiveSavedMultimediaProjectPointer,
   listMultimediaDraftRecovery,
   protectMultimediaDraft,
   loadMultimediaProject,
@@ -319,15 +319,15 @@ export default function MultimediaStudioV3Client() {
   useEffect(() => {
     if (!draftHydrated) return;
     if (new URLSearchParams(window.location.search).has("project")) return;
-    const activeSavedId = getActiveSavedMultimediaProjectId();
-    if (!activeSavedId) return;
+    const activePointer = getActiveSavedMultimediaProjectPointer();
+    if (!activePointer) return;
     try {
       const draft = JSON.parse(window.localStorage.getItem("eduai.multimedia.draft.v3") || "null");
       // Do not replace a different unsaved draft with an old saved project.
       const draftClips = Array.isArray(draft?.project?.tracks)
         ? draft.project.tracks.reduce((sum: number, track: { clips?: unknown[] }) => sum + (track.clips?.length || 0), 0) : 0;
-      if (draftClips && draft?.project?.id !== projectRef.current.id) return;
-      void openSavedProject(activeSavedId);
+      if (draftClips && draft?.project?.id !== activePointer.projectId) return;
+      void openSavedProject(activePointer.savedId);
     } catch {
       // The corrupt draft remains untouched for manual recovery.
     }

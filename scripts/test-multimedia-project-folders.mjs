@@ -43,10 +43,10 @@ need(exporter, "No se puede exportar todavía: falta volver a enlazar", "bloquea
 need(exporter, "blob.size < 1024", "detectar exportación vacía");
 console.log("[multimedia-folders] Rescate local/cloud, borradores y exportación verificados");
 
-need(client, "getActiveSavedMultimediaProjectId", "reapertura tras actualizar página");
+need(client, "getActiveSavedMultimediaProjectPointer", "reapertura tras actualizar página");
 need(client, "setExportMaxDimension", "selector de exportación segura 1080p");
 need(client, "maxDimension: exportMaxDimension", "renderización adaptativa de exportación");
-need(store, "export function getActiveSavedMultimediaProjectId", "recuperar puntero activo sin modificar datos");
+need(store, "export function getActiveSavedMultimediaProjectPointer", "recuperar puntero activo sin modificar datos");
 need(exporter, "const scale = Math.min(1, maxDimension", "reducción de lienzo 4K en exportación");
 need(exporter, "Conversion.init", "conversión real de WebM a MP4 mediante Mediabunny");
 console.log("[multimedia-export-recovery] OK · reapertura de proyecto, Full HD y conversión MP4");
