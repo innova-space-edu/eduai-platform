@@ -1225,7 +1225,7 @@ export default function MultimediaStudioV3Client() {
     label: string,
     render: (snapshot: MultimediaProject, media: StudioAsset[], filename: string) => Promise<string>,
   ) {
-    if (exportingRef.current || creatingProjectRef.current) return;
+    if (exportingRef.current || creatingProjectRef.current || savingProject) return;
     if (extractingAudio || generatingSubtitles) {
       setNotice("Finaliza primero el procesamiento de audio o subtítulos antes de exportar.");
       return;
@@ -1298,7 +1298,7 @@ export default function MultimediaStudioV3Client() {
   }
 
   async function newMultimediaProject() {
-    if (exportingRef.current || creatingProjectRef.current) return;
+    if (exportingRef.current || creatingProjectRef.current || savingProject) return;
     creatingProjectRef.current = true;
     setSavingProject(true);
     setPlaying(false);
@@ -1731,14 +1731,15 @@ export default function MultimediaStudioV3Client() {
 
   async function exportFrame() {
     if (!previewRef.current) return;
-    try {
-      const dataUrl = await toPng(previewRef.current, { cacheBust: true, pixelRatio: 2 });
+    await runLockedExport("fotograma PNG", async (_snapshot, _media, filename) => {
+      const preview = previewRef.current;
+      if (!preview) throw new Error("No se encontró la vista previa del fotograma.");
+      const dataUrl = await toPng(preview, { cacheBust: true, pixelRatio: 2 });
       const response = await fetch(dataUrl);
-      downloadBlob(await response.blob(), `${safeFilename(project.title)}-${Math.round(playhead * 10)}.png`);
-      setNotice("Fotograma PNG exportado.");
-    } catch {
-      setNotice("No se pudo exportar el fotograma; alguna fuente remota puede bloquear CORS.");
-    }
+      if (!response.ok) throw new Error("No se pudo procesar el fotograma.");
+      downloadBlob(await response.blob(), `${filename}-fotograma-${Math.round(playhead * 10)}.png`);
+      return "Fotograma PNG descargado como archivo independiente.";
+    });
   }
 
   function addKeyframe() {
