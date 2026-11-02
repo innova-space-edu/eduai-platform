@@ -17,6 +17,8 @@ import {
   Pause,
   Play,
   Plus,
+  FilePlus2,
+  LockKeyhole,
   Redo2,
   Save,
   Scissors,
@@ -100,6 +102,7 @@ type StudioAsset = MediaAsset & {
   downloadUrl?: string;
   width?: number;
   height?: number;
+  cloudPath?: string;
 };
 
 type MusicResult = {
@@ -273,6 +276,11 @@ export default function MultimediaStudioV3Client() {
   const [folderFilter, setFolderFilter] = useState("all");
   const [newFolderName, setNewFolderName] = useState("");
   const [savingProject, setSavingProject] = useState(false);
+  const exportingRef = useRef(false);
+  const creatingProjectRef = useRef(false);
+  const savedProjectIdRef = useRef<string | null>(null);
+  const pendingSaveRef = useRef<Promise<unknown>>(Promise.resolve());
+  const exportDialogRef = useRef<HTMLDivElement>(null);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const [draftHydrated, setDraftHydrated] = useState(false);
   const [draftRecovery, setDraftRecovery] = useState<MultimediaDraftRecovery[]>([]);
@@ -309,6 +317,17 @@ export default function MultimediaStudioV3Client() {
   const formatSupport = useMemo(() => supportedVideoFormats(), []);
 
   useEffect(() => { projectRef.current = project; }, [project]);
+  useEffect(() => { savedProjectIdRef.current = savedProjectId; }, [savedProjectId]);
+  useEffect(() => {
+    if (!exporting) return;
+    exportDialogRef.current?.focus();
+    const confirmUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = ""; // Browser decides whether to display a leave-page confirmation.
+    };
+    window.addEventListener("beforeunload", confirmUnload);
+    return () => window.removeEventListener("beforeunload", confirmUnload);
+  }, [exporting]);
   useEffect(() => { assetsRef.current = assets; }, [assets]);
   useEffect(() => {
     void refreshSavedProjects();
@@ -343,12 +362,13 @@ export default function MultimediaStudioV3Client() {
       return;
     }
 
+    if (exportingRef.current || creatingProjectRef.current) return;
     setAutoSaveStatus("Cambios pendientes…");
     const timer = window.setTimeout(async () => {
-      if (autosaveBusyRef.current) return;
+      if (autosaveBusyRef.current || exportingRef.current || creatingProjectRef.current) return;
       autosaveBusyRef.current = true;
       try {
-        const saved = await saveMultimediaProject(projectRef.current, assetsRef.current, savedProjectId, currentFolderId);
+        const saved = await persistProjectSnapshot(projectRef.current, assetsRef.current, savedProjectId, currentFolderId);
         setSavedProjects((current) => {
           const next = current.some((item) => item.id === saved.id)
             ? current.map((item) => item.id === saved.id ? saved : item)
@@ -367,6 +387,7 @@ export default function MultimediaStudioV3Client() {
   }, [project, assets, savedProjectId, currentFolderId, autoSaveEnabled]);
 
   const commitProject = useCallback((updater: (current: MultimediaProject) => MultimediaProject, recordHistory = true) => {
+    if (exportingRef.current || creatingProjectRef.current) return;
     const current = projectRef.current;
     if (recordHistory) {
       setUndoStack((stack) => [...stack.slice(-(MAX_HISTORY - 1)), cloneProject(current)]);
@@ -388,6 +409,7 @@ export default function MultimediaStudioV3Client() {
   }, [commitProject]);
 
   function undo() {
+    if (exportingRef.current) return;
     const previous = undoStack.at(-1);
     if (!previous) return;
     setUndoStack((stack) => stack.slice(0, -1));
@@ -399,6 +421,7 @@ export default function MultimediaStudioV3Client() {
   }
 
   function redo() {
+    if (exportingRef.current) return;
     const nextProject = redoStack.at(-1);
     if (!nextProject) return;
     setRedoStack((stack) => stack.slice(0, -1));
@@ -569,6 +592,11 @@ export default function MultimediaStudioV3Client() {
 
   useEffect(() => {
     function keyHandler(event: KeyboardEvent) {
+      if (exportingRef.current || creatingProjectRef.current) {
+        if (["Space", "Delete", "Backspace", "ArrowLeft", "ArrowRight"].includes(event.code)
+          || (event.ctrlKey || event.metaKey) && ["z", "y", "d", "s"].includes(event.key.toLowerCase())) event.preventDefault();
+        return;
+      }
       const target = event.target as HTMLElement | null;
       if (target?.matches("input, textarea, select, [contenteditable=true]")) return;
       if (event.code === "Space") { event.preventDefault(); setPlaying((value) => !value); return; }
@@ -1144,12 +1172,15 @@ export default function MultimediaStudioV3Client() {
   }
 
   async function loadProject(event: ChangeEvent<HTMLInputElement>) {
+    if (exportingRef.current || creatingProjectRef.current) return;
     const file = event.target.files?.[0];
     event.target.value = "";
     if (!file) return;
     try {
       const parsed = JSON.parse(await file.text());
-      const nextProject = normalizeProject(parsed.project || parsed);
+      // Importing an existing JSON must create a separate editable project,
+      // never write back to the imported source ID.
+      const nextProject = { ...normalizeProject(parsed.project || parsed), id: `media-${crypto.randomUUID()}`, createdAt: new Date().toISOString() };
       const nextAssets: StudioAsset[] = Array.isArray(parsed.assets)
         ? parsed.assets.map((asset: StudioAsset) => asset.local || !asset.url ? { ...asset, url: "", missing: true } : asset)
         : [];
@@ -1158,6 +1189,7 @@ export default function MultimediaStudioV3Client() {
       projectRef.current = nextProject;
       setProject(nextProject);
       setAssets(nextAssets);
+      savedProjectIdRef.current = null;
       setSavedProjectId(null);
       setCurrentFolderId(null);
       setAutoSaveStatus("Guarda una vez para activar el autoguardado.");
@@ -1169,51 +1201,169 @@ export default function MultimediaStudioV3Client() {
     }
   }
 
-  async function exportVideo() {
-    if (!clips.length) { setNotice("Agrega al menos un clip antes de exportar."); return; }
+  /**
+   * Serialize all writes to prevent an autosave from finishing after a manual
+   * save/new-project/export with an older snapshot and overwriting that version.
+   */
+  function persistProjectSnapshot(
+    snapshot: MultimediaProject,
+    media: StudioAsset[],
+    id: string | null | undefined,
+    folder: string | null | undefined,
+  ): Promise<SavedProjectSummary> {
+    const next = pendingSaveRef.current.catch(() => undefined)
+      .then(() => saveMultimediaProject(snapshot, media, id, folder));
+    pendingSaveRef.current = next;
+    return next;
+  }
+
+  /**
+   * Each export saves its own parent project before rendering. The UI is inert
+   * until the exported Blob has been downloaded or the operation has failed.
+   * Separate projects get independent saved IDs; export filenames never collide.
+   */
+  async function runLockedExport(
+    label: string,
+    render: (snapshot: MultimediaProject, media: StudioAsset[], filename: string) => Promise<string>,
+  ) {
+    if (exportingRef.current || creatingProjectRef.current || savingProject) return;
+    if (extractingAudio || generatingSubtitles) {
+      setNotice("Finaliza primero el procesamiento de audio o subtítulos antes de exportar.");
+      return;
+    }
+    exportingRef.current = true;
     setExporting(true);
     setExportProgress(0);
     setPlaying(false);
-    setNotice(`Preparando exportación ${exportFormat.toUpperCase()} (máximo ${exportMaxDimension}px)… El proyecto original no se modifica.`);
+    setPointerAction(null);
+    const snapshot = cloneProject(projectRef.current);
+    const media = assetsRef.current.map((asset) => ({ ...asset }));
     try {
-      const result = await exportProjectVideo(projectRef.current, assetsRef.current, { format: exportFormat as ExportFormat, maxDimension: exportMaxDimension, onProgress: setExportProgress });
-      downloadBlob(result.blob, `${safeFilename(project.title)}.${result.format}`);
-      const fallback = result.format !== exportFormat ? ` ${exportFormat.toUpperCase()} no está disponible; se usó ${result.format.toUpperCase()}.` : "";
-      const warning = result.warnings.length ? ` ${result.warnings.slice(0, 2).join(" ")}` : "";
-      setNotice(`Video descargado (${result.format.toUpperCase()}) a resolución de exportación hasta ${exportMaxDimension}px.${fallback}${warning}`);
+      if (!snapshot.tracks.some((track) => track.clips.length)) {
+        throw new Error("Agrega contenido a este proyecto antes de exportar.");
+      }
+      setNotice(`Guardando “${snapshot.title}” en su propio proyecto antes de exportar...`);
+      const saved = await persistProjectSnapshot(snapshot, media, savedProjectIdRef.current, currentFolderId);
+      savedProjectIdRef.current = saved.id;
+      setSavedProjectId(saved.id);
+      setSavedProjects((current) => [
+        saved, ...current.filter((item) => item.id !== saved.id),
+      ].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)));
+      setExportProgress(0.02);
+      setAutoSaveStatus(saved.storage === "cloud"
+        ? "Proyecto guardado en nube y navegador antes de exportar."
+        : "Proyecto guardado solo en navegador; descarga también una copia JSON.");
+      setNotice(`Exportando ${label}… No se puede modificar el proyecto durante este proceso.`);
+      const suffix = new Date().toISOString().replace(/[:.]/g, "-");
+      const filename = `${safeFilename(snapshot.title)}-${safeFilename(saved.id)}-${suffix}`;
+      const resultMessage = await render(snapshot, media, filename);
+      setExportProgress(1);
+      setNotice(`${resultMessage} ${saved.storage === "cloud" ? "Proyecto guardado en EDUAI." : "Proyecto conservado solo en este navegador; guarda también el JSON."}`);
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "No se pudo exportar el video.");
+      setNotice(error instanceof Error ? `No se pudo completar la exportación: ${error.message}. El proyecto no se ha borrado.` : "No se pudo completar la exportación. El proyecto permanece guardado.");
     } finally {
+      exportingRef.current = false;
       setExporting(false);
     }
+  }
+
+  async function exportVideo() {
+    await runLockedExport(exportFormat.toUpperCase(), async (snapshot, media, filename) => {
+      const result = await exportProjectVideo(snapshot, media, {
+        format: exportFormat as ExportFormat,
+        maxDimension: exportMaxDimension,
+        onProgress: (progress) => setExportProgress(0.02 + progress * 0.98),
+      });
+      downloadBlob(result.blob, `${filename}.${result.format}`);
+      const fallback = result.format !== exportFormat ? ` El navegador generó ${result.format.toUpperCase()} en lugar de ${exportFormat.toUpperCase()}.` : "";
+      return `Video exportado como ${result.format.toUpperCase()} en un archivo independiente.${fallback} ${result.warnings.slice(0, 2).join(" ")}`;
+    });
   }
 
   async function exportWav() {
-    setExporting(true);
-    setNotice("Mezclando audio…");
-    try {
-      const blob = await exportProjectWav(project, assets);
-      downloadBlob(blob, `${safeFilename(project.title)}.wav`);
-      setNotice("WAV exportado correctamente.");
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "No se pudo exportar WAV.");
-    } finally {
-      setExporting(false);
-    }
+    await runLockedExport("WAV", async (snapshot, media, filename) => {
+      const blob = await exportProjectWav(snapshot, media);
+      downloadBlob(blob, `${filename}.wav`);
+      return "Audio WAV exportado como archivo independiente.";
+    });
   }
 
   async function exportMp3() {
-    setExporting(true);
-    setNotice("Mezclando pistas y codificando MP3…");
-    try {
-      const wav = await exportProjectWav(projectRef.current, assetsRef.current);
+    await runLockedExport("MP3", async (snapshot, media, filename) => {
+      const wav = await exportProjectWav(snapshot, media);
+      setExportProgress(0.55);
       const mp3 = await convertAudioBlobToMp3(wav);
-      downloadBlob(mp3, `${safeFilename(projectRef.current.title)}.mp3`);
-      setNotice("MP3 exportado correctamente a 192 kbps.");
+      downloadBlob(mp3, `${filename}.mp3`);
+      return "Audio MP3 exportado como archivo independiente.";
+    });
+  }
+
+  async function newMultimediaProject() {
+    if (exportingRef.current || creatingProjectRef.current || savingProject) return;
+    creatingProjectRef.current = true;
+    setSavingProject(true);
+    setPlaying(false);
+    setPointerAction(null);
+    const previous = cloneProject(projectRef.current);
+    const previousAssets = [...assetsRef.current];
+    try {
+      const hasContent = previousAssets.length > 0 || previous.tracks.some((track) => track.clips.length > 0)
+        || Boolean(savedProjectIdRef.current);
+      let previousStoredOnlyLocally = false;
+      let previousSaved: SavedProjectSummary | null = null;
+      if (hasContent) {
+        setNotice("Guardando el proyecto actual antes de crear uno nuevo…");
+        const old = await persistProjectSnapshot(previous, previousAssets, savedProjectIdRef.current, currentFolderId);
+        previousSaved = old;
+        savedProjectIdRef.current = old.id;
+        setSavedProjectId(old.id);
+        previousStoredOnlyLocally = old.storage !== "cloud";
+        // Retain a metadata-only rescue snapshot in addition to the full project save.
+        protectMultimediaDraft(JSON.stringify({
+          project: previous,
+          assets: previousAssets.map((asset) => ({ ...asset, url: asset.local ? "" : asset.url, missing: Boolean(asset.local && !asset.cloudPath) })),
+        }));
+      }
+      const next: MultimediaProject = {
+        ...makeProject(),
+        id: `media-${crypto.randomUUID()}`,
+        title: `Proyecto ${new Date().toLocaleString("es-CL", { dateStyle: "short", timeStyle: "short" })}`,
+      };
+      // Persist the empty project immediately, even before the first clip.
+      // This allows a refresh to restore the correct, newly created project.
+      const created = await persistProjectSnapshot(next, [], null, null);
+      projectRef.current = next;
+      assetsRef.current = [];
+      savedProjectIdRef.current = created.id;
+      setProject(next);
+      setAssets([]);
+      setSavedProjectId(created.id);
+      setCurrentFolderId(null);
+      setSelectedClipId(null);
+      setPlayhead(0);
+      setUndoStack([]);
+      setRedoStack([]);
+      setFolderFilter("all");
+      setTab("files");
+      setSavedProjects((current) => [
+        created,
+        ...(previousSaved ? [previousSaved] : []),
+        ...current.filter((item) => item.id !== created.id && item.id !== previousSaved?.id),
+      ].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)));
+      // An old ?project= parameter must never reopen a previous project on refresh.
+      const url = new URL(window.location.href);
+      url.searchParams.set("project", created.id);
+      window.history.replaceState(null, "", url.pathname + url.search + url.hash);
+      setAutoSaveStatus(created.storage === "cloud" ? "Nuevo proyecto guardado en EDUAI." : "Nuevo proyecto guardado solo en este navegador.");
+      setNotice(previousStoredOnlyLocally
+        ? "Nuevo proyecto creado por separado. El anterior permanece en este navegador, pero su sincronización a la nube está pendiente."
+        : "Nuevo proyecto creado y guardado por separado. El anterior continúa en Mis proyectos.");
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : "No se pudo exportar MP3.");
+      // Never clear the editor if either the old save or the new record fails.
+      setNotice(error instanceof Error ? `No se creó otro proyecto: ${error.message}. Se conservó el actual.` : "No se creó otro proyecto. Se conservó el actual.");
     } finally {
-      setExporting(false);
+      creatingProjectRef.current = false;
+      setSavingProject(false);
     }
   }
 
@@ -1232,12 +1382,13 @@ export default function MultimediaStudioV3Client() {
   }
 
   async function saveProjectHere() {
-    if (autosaveBusyRef.current) return;
+    if (exportingRef.current || creatingProjectRef.current || savingProject) return;
     autosaveBusyRef.current = true;
     setSavingProject(true);
     setNotice("Guardando proyecto y archivos multimedia en EDUAI…");
     try {
-      const saved = await saveMultimediaProject(projectRef.current, assetsRef.current, savedProjectId, currentFolderId);
+      const saved = await persistProjectSnapshot(projectRef.current, assetsRef.current, savedProjectIdRef.current, currentFolderId);
+      savedProjectIdRef.current = saved.id;
       setSavedProjectId(saved.id);
       setCurrentFolderId(saved.folderId);
       await refreshSavedProjects();
@@ -1254,6 +1405,7 @@ export default function MultimediaStudioV3Client() {
   }
 
   function restoreRecoverySnapshot(snapshot: MultimediaDraftRecovery) {
+    if (exportingRef.current || creatingProjectRef.current) return;
     if (!window.confirm(`¿Abrir el respaldo del ${new Date(snapshot.savedAt).toLocaleString()}? El proyecto actual se conservará como respaldo antes de cambiar.`)) return;
     const active = window.localStorage.getItem("eduai.multimedia.draft.v3");
     const clipsNow = projectRef.current.tracks.flatMap((track) => track.clips).length;
@@ -1271,6 +1423,7 @@ export default function MultimediaStudioV3Client() {
       assetsRef.current = restoredAssets;
       setProject(next);
       setAssets(restoredAssets);
+      savedProjectIdRef.current = null;
       setSavedProjectId(null); // Never overwrite a saved cloud/local project when restoring a draft.
       setCurrentFolderId(null);
       setSelectedClipId(null);
@@ -1285,6 +1438,7 @@ export default function MultimediaStudioV3Client() {
   }
 
   async function openSavedProject(id: string) {
+    if (exportingRef.current || creatingProjectRef.current) return;
     setPlaying(false);
     try {
       const restored = await loadMultimediaProject(id);
@@ -1297,6 +1451,7 @@ export default function MultimediaStudioV3Client() {
       assetsRef.current = nextAssets;
       setProject(nextProject);
       setAssets(nextAssets);
+      savedProjectIdRef.current = restored.id;
       setSavedProjectId(restored.id);
       setCurrentFolderId(restored.folderId);
       setSelectedClipId(null);
@@ -1583,14 +1738,15 @@ export default function MultimediaStudioV3Client() {
 
   async function exportFrame() {
     if (!previewRef.current) return;
-    try {
-      const dataUrl = await toPng(previewRef.current, { cacheBust: true, pixelRatio: 2 });
+    await runLockedExport("fotograma PNG", async (_snapshot, _media, filename) => {
+      const preview = previewRef.current;
+      if (!preview) throw new Error("No se encontró la vista previa del fotograma.");
+      const dataUrl = await toPng(preview, { cacheBust: true, pixelRatio: 2 });
       const response = await fetch(dataUrl);
-      downloadBlob(await response.blob(), `${safeFilename(project.title)}-${Math.round(playhead * 10)}.png`);
-      setNotice("Fotograma PNG exportado.");
-    } catch {
-      setNotice("No se pudo exportar el fotograma; alguna fuente remota puede bloquear CORS.");
-    }
+      if (!response.ok) throw new Error("No se pudo procesar el fotograma.");
+      downloadBlob(await response.blob(), `${filename}-fotograma-${Math.round(playhead * 10)}.png`);
+      return "Fotograma PNG descargado como archivo independiente.";
+    });
   }
 
   function addKeyframe() {
@@ -1613,13 +1769,14 @@ export default function MultimediaStudioV3Client() {
   const activeVisualClips = visualTracks.flatMap((track) => track.clips).filter((clip) => playhead >= clip.start && playhead < clip.start + clip.duration);
 
   return (
-    <div className="min-h-screen bg-[#050816] text-slate-100">
+    <>
+    <div className="min-h-screen bg-[#050816] text-slate-100" inert={exporting ? true : undefined} aria-hidden={exporting}>
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#070b18]/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1900px] flex-wrap items-center gap-2 px-3 py-2 lg:px-5">
           <Link href="/agentes" className="flex h-9 w-9 items-center justify-center rounded-xl border border-white/10 bg-white/5 hover:bg-white/10"><ArrowLeft size={17} /></Link>
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-cyan-500 to-violet-600"><Film size={18} /></div>
           <div className="min-w-[220px] flex-1">
-            <input value={project.title} onChange={(event) => setProject((current) => ({ ...current, title: event.target.value }))} className="w-full bg-transparent text-sm font-semibold outline-none" />
+            <input value={project.title} onChange={(event) => { if (exportingRef.current) return; commitProject((current) => ({ ...current, title: event.target.value })); }} className="w-full bg-transparent text-sm font-semibold outline-none" />
             <p className="text-[10px] text-slate-400">Editor Multimedia V3 · {project.width}×{project.height} · {project.fps} fps · contenido {fmt(duration)}</p>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
@@ -1638,7 +1795,9 @@ export default function MultimediaStudioV3Client() {
                 <option value="3840x2160">4K 16:9</option>
               </select>
             </label>
-            <button disabled={savingProject} onClick={() => void saveProjectHere()} className="rounded-xl border border-cyan-400/30 bg-cyan-500/15 px-3 py-2 text-xs font-semibold text-cyan-100 disabled:opacity-50"><Save size={14} className="mr-1 inline" />{savingProject ? "Guardando…" : "Guardar en EDUAI"}</button>
+            <button disabled={savingProject || exporting} onClick={() => void newMultimediaProject()} title="Guardar el proyecto actual y crear otro independiente" className="rounded-xl border border-emerald-400/30 bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-emerald-100 disabled:opacity-50"><FilePlus2 size={14} className="mr-1 inline" />Nuevo proyecto</button>
+            <button disabled={savingProject || exporting} onClick={() => void saveProjectHere()} className="rounded-xl border border-cyan-400/30 bg-cyan-500/15 px-3 py-2 text-xs font-semibold text-cyan-100 disabled:opacity-50"><Save size={14} className="mr-1 inline" />{savingProject ? "Guardando…" : "Guardar en EDUAI"}</button>
+            <Link href="/multimedia-studio/projects" className="rounded-xl border border-violet-400/20 bg-violet-500/10 px-3 py-2 text-xs font-semibold text-violet-100"><FolderOpen size={14} className="mr-1 inline" />Abrir biblioteca de proyectos</Link>
             <button onClick={() => downloadProject(project, assets)} title="Guardar copia del proyecto en este computador" className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs hover:bg-white/10">JSON</button>
             <select value={exportFormat} onChange={(event) => setExportFormat(event.target.value as ExportFormat)} className="rounded-xl border border-white/10 bg-[#0b1020] px-2 py-2 text-xs">
               <option value="mp4">MP4{formatSupport.mp4 ? "" : " (conversión)"}</option>
@@ -1746,7 +1905,7 @@ export default function MultimediaStudioV3Client() {
               <label className="block text-[10px] text-slate-300">Carpeta del proyecto<select value={currentFolderId || ""} onChange={(event) => setCurrentFolderId(event.target.value || null)} className="mt-1 w-full rounded-lg border border-white/10 bg-[#0b1020] px-2 py-2 text-[10px]"><option value="">Sin carpeta</option>{savedFolders.map((folder) => <option key={folder.id} value={folder.id}>{folder.name}</option>)}</select></label>
               <div className="flex gap-1"><input value={newFolderName} onChange={(event) => setNewFolderName(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") void createProjectFolder(); }} placeholder="Nueva carpeta" className="min-w-0 flex-1 rounded-lg border border-white/10 bg-black/20 px-2 py-1.5 text-[10px] outline-none" /><button onClick={() => void createProjectFolder()} disabled={!newFolderName.trim()} className="rounded-lg bg-cyan-500/15 px-2 text-[10px] text-cyan-100 disabled:opacity-40">Crear</button></div>
             </div>
-            <button disabled={savingProject} onClick={saveProjectHere} className="w-full rounded-xl border border-cyan-400/25 bg-cyan-500/15 p-3 font-semibold text-cyan-100 disabled:opacity-50"><Save size={14} className="mr-1 inline" />{savingProject ? "Guardando…" : savedProjectId ? "Guardar ahora" : "Guardar en EDUAI"}</button>
+            <button disabled={savingProject || exporting} onClick={saveProjectHere} className="w-full rounded-xl border border-cyan-400/25 bg-cyan-500/15 p-3 font-semibold text-cyan-100 disabled:opacity-50"><Save size={14} className="mr-1 inline" />{savingProject ? "Guardando…" : savedProjectId ? "Guardar ahora" : "Guardar en EDUAI"}</button>
             <div className="rounded-xl border border-white/10 bg-black/20 p-2.5"><label className="flex items-center justify-between gap-2 text-[10px]"><span><b className="text-slate-200">Autoguardado</b><span className="mt-0.5 block text-[9px] text-slate-500">{autoSaveStatus}</span></span><input type="checkbox" checked={autoSaveEnabled} onChange={(event) => setAutoSaveEnabled(event.target.checked)} className="h-4 w-4 accent-cyan-500" /></label></div>
             <p className="text-[9px] leading-4 text-slate-500">El guardado conserva una copia local y, si la conexión y la cuota lo permiten, una copia en Supabase. El estado indica dónde se completó.</p>
             <div className="rounded-xl border border-amber-400/20 bg-amber-500/5 p-2.5">
@@ -1972,5 +2131,25 @@ export default function MultimediaStudioV3Client() {
         </aside>
       </div>
     </div>
+    {exporting && <div
+      ref={exportDialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Exportación en curso, edición bloqueada"
+      tabIndex={-1}
+      className="fixed inset-0 z-[200] flex items-center justify-center bg-[#050816]/95 p-5 backdrop-blur-md outline-none"
+    >
+      <div className="w-full max-w-md rounded-2xl border border-cyan-400/25 bg-[#101829] p-6 text-center shadow-2xl">
+        <LockKeyhole size={32} className="mx-auto mb-3 text-cyan-300" />
+        <h2 className="text-lg font-semibold text-white">Exportando proyecto</h2>
+        <p className="mt-2 text-sm text-slate-300">La edición, eliminación y cambio de proyecto están bloqueados hasta finalizar la exportación.</p>
+        <div className="mt-5 h-3 overflow-hidden rounded-full bg-white/10" role="progressbar" aria-valuenow={Math.round(exportProgress * 100)} aria-valuemin={0} aria-valuemax={100}>
+          <div className="h-full rounded-full bg-cyan-500 transition-[width]" style={{ width: `${Math.round(exportProgress * 100)}%` }} />
+        </div>
+        <p className="mt-3 text-sm font-semibold text-cyan-100">{Math.round(exportProgress * 100)}%</p>
+        <p className="mt-2 text-xs text-slate-400">No cierres ni recargues esta pestaña durante la exportación. El proyecto se guardó antes de comenzar a generar el archivo.</p>
+      </div>
+    </div>}
+    </>
   );
 }

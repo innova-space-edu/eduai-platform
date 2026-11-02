@@ -50,3 +50,19 @@ need(store, "export function getActiveSavedMultimediaProjectPointer", "recuperar
 need(exporter, "const scale = Math.min(1, maxDimension", "reducción de lienzo 4K en exportación");
 need(exporter, "Conversion.init", "conversión real de WebM a MP4 mediante Mediabunny");
 console.log("[multimedia-export-recovery] OK · reapertura de proyecto, Full HD y conversión MP4");
+
+
+need(client, "async function newMultimediaProject()", "botón y flujo de proyecto nuevo");
+need(client, "id: `media-${crypto.randomUUID()}`", "identidad independiente de cada proyecto");
+need(client, "const created = await persistProjectSnapshot(next, [], null, null)", "guardar proyecto nuevo inmediatamente");
+need(client, "const old = await persistProjectSnapshot(previous, previousAssets", "guardar anterior antes de cambiar");
+need(client, "window.history.replaceState", "eliminar referencia URL al proyecto anterior");
+need(client, "async function runLockedExport(", "bloqueo de exportación único");
+need(client, "const saved = await persistProjectSnapshot(snapshot, media", "guardado obligatorio antes de exportar");
+need(client, "pendingSaveRef.current.catch(", "guardado serializado ante autoguardado");
+need(client, "const filename = `${safeFilename(snapshot.title)}", "archivos exportados separados");
+need(client, "inert={exporting ? true : undefined}", "inhabilitar edición durante exportación");
+need(client, "aria-modal=\"true\"", "indicador accesible exportando");
+need(client, "if (exportingRef.current || creatingProjectRef.current)", "bloqueo de operaciones durante exportación");
+need(client, "window.addEventListener(\"beforeunload\", confirmUnload)", "protección de recarga durante exportación");
+console.log("[multimedia-export-isolation] OK · proyectos individuales y bloqueo de edición");
