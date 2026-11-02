@@ -102,6 +102,7 @@ type StudioAsset = MediaAsset & {
   downloadUrl?: string;
   width?: number;
   height?: number;
+  cloudPath?: string;
 };
 
 type MusicResult = {
