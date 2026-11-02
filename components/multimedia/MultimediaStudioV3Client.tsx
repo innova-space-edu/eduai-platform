@@ -1309,9 +1309,13 @@ export default function MultimediaStudioV3Client() {
       const hasContent = previousAssets.length > 0 || previous.tracks.some((track) => track.clips.length > 0)
         || Boolean(savedProjectIdRef.current);
       let previousStoredOnlyLocally = false;
+      let previousSaved: SavedProjectSummary | null = null;
       if (hasContent) {
         setNotice("Guardando el proyecto actual antes de crear uno nuevo…");
         const old = await persistProjectSnapshot(previous, previousAssets, savedProjectIdRef.current, currentFolderId);
+        previousSaved = old;
+        savedProjectIdRef.current = old.id;
+        setSavedProjectId(old.id);
         previousStoredOnlyLocally = old.storage !== "cloud";
         // Retain a metadata-only rescue snapshot in addition to the full project save.
         protectMultimediaDraft(JSON.stringify({
@@ -1341,7 +1345,9 @@ export default function MultimediaStudioV3Client() {
       setFolderFilter("all");
       setTab("files");
       setSavedProjects((current) => [
-        created, ...current.filter((item) => item.id !== created.id),
+        created,
+        ...(previousSaved ? [previousSaved] : []),
+        ...current.filter((item) => item.id !== created.id && item.id !== previousSaved?.id),
       ].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)));
       // An old ?project= parameter must never reopen a previous project on refresh.
       const url = new URL(window.location.href);
