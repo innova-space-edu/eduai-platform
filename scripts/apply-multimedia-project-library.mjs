@@ -11,6 +11,8 @@ function replaceOnce(before, after, label) {
   if (label === "cast de formato de video"
     && (source.includes('exportProjectVideo(projectRef.current, assetsRef.current, { format: exportFormat')
       || (source.includes("runLockedExport(") && source.includes("exportProjectVideo(snapshot, media, {")))) return;
+  if (label === "enlace a biblioteca"
+    && source.includes('href="/multimedia-studio/projects"')) return;
   if (label === "mensaje de persistencia"
     && source.includes("El guardado conserva una copia local y, si la conexión y la cuota lo permiten")) return;
   if (!source.includes(before)) throw new Error(`[multimedia-library] No se encontró ${label}`);
