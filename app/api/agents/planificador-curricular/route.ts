@@ -242,7 +242,7 @@ export async function POST(req: NextRequest) {
   const selectedUnit = units.find((unit) => unit.id === unidadId)
   const oaContext = buildSelectedOAContext({ nivel, curso, asignatura }, selectedOAIds, unidadId || undefined)
   const horizonText = buildPlanningHorizonText(tiempo, sesiones, duracionMinutos, periodoLabel)
-  const teacherIdea = [actividadGeneral, unidadesDeclaradas, message].filter(Boolean).join("\n")
+  const teacherIdea = [...new Set([actividadGeneral, unidadesDeclaradas].filter(Boolean))].join("\n")
   const formatInstruction = buildFormatInstruction(tiempo, cfg.generarAgenteDia !== false)
 
   try {
@@ -257,7 +257,7 @@ export async function POST(req: NextRequest) {
   const reusableDocument = await reusePlanning({ supabase, userId: user.id, identity: documentIdentity, forceNew: forceNewGeneration })
   if (reusableDocument) return NextResponse.json(reusableDocument)
   const privateDocumentReferences = await planningReferences({ supabase, level: nivel, course: curso, subject: asignatura,
-    oaIds: selectedOAIds, topic: teacherIdea, enabled: !forceNewGeneration })
+    oaIds: selectedOAIds, topic: [teacherIdea, message].filter(Boolean).join("\n"), enabled: !forceNewGeneration })
 
   const systemPrompt = `Eres APl, Agente Planificador Curricular de EduAI para Chile.
 
@@ -301,7 +301,7 @@ UNIDADES DECLARADAS POR EL DOCENTE:
 ${unidadesDeclaradas || "No especificadas."}
 
 IDEA / ACTIVIDAD GENERAL DEL DOCENTE:
-${truncate(teacherIdea || "El docente pide una planificación básica con los datos seleccionados.", 1800)}
+${truncate(actividadGeneral || "Usa la solicitud del mensaje del docente.", 1800)}
 
 FORMATO OBLIGATORIO:
 ${formatInstruction}`
@@ -335,6 +335,8 @@ ${formatInstruction}`
 
     const documentResponse = {
       text: result.data,
+      optimization: { version: 2, gatewayRequests: 1, freshResults: result.reused ? 0 : 1,
+        inputCharacters: aiMessages.reduce((sum, item) => sum + item.content.length, 0) },
       provider: result.provider,
       model: result.model,
       reused: result.reused,

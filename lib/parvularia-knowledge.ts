@@ -88,6 +88,7 @@ type BuildKnowledgeArgs = {
   journeyOAIds?: string[][]
   journeyOATIds?: string[][]
   candidateLimit?: number
+  activeJourneyIndices?: number[]
 }
 
 function normalize(value: string) {
@@ -398,6 +399,7 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
   const recentSamples = collectRecentSamples(saved, history)
   const usedIds = new Set<string>()
   const selectedByJourney = journeySpecs.map((spec, index) => {
+    if (args.activeJourneyIndices && !args.activeJourneyIndices.includes(index)) return []
     const available = bank.activities.filter((activity) =>
       !usedIds.has(activity.id) && compatibleParvulariaReference(activity, requestedLevels, spec.nucleus))
     const picked = selectDiverseCandidates(available, recentSamples, reusedIds,
@@ -407,6 +409,9 @@ export async function buildParvulariaKnowledgeContext(args: BuildKnowledgeArgs):
   })
   const selected = selectedByJourney.flat()
   const journeyCoverage = selectedByJourney.map((items, index) => {
+    if (args.activeJourneyIndices && !args.activeJourneyIndices.includes(index)) return {
+      nucleus: journeySpecs[index].nucleus, selected: 0, required: 0, missingLevels: [], needsWeb: false,
+    }
     const missingLevels = requestedLevels.filter((level) =>
       !items.some((activity) => compatibleParvulariaReference(activity, [level], journeySpecs[index].nucleus)))
     return { nucleus: journeySpecs[index].nucleus, selected: items.length,
@@ -598,33 +603,41 @@ export async function rememberParvulariaGeneration(args: {
 export function evaluateParvulariaNovelty(
   generatedContent: string,
   recentContentSamples: string[],
+  options: { reviewJourneyIndices?: number[] } = {},
 ) {
-  const generatedFragments = fingerprintSentences(generatedContent, true)
-  if (!generatedFragments.length) {
-    return { passed: true, maxSimilarity: 0, comparedFragments: generatedFragments.length }
-  }
-
+  let fragments: Array<{ journey: number; text: string }> = []
+  try {
+    const parsed = JSON.parse(generatedContent) as { filas?: unknown[] }
+    if (Array.isArray(parsed.filas)) fragments = parsed.filas.flatMap((row, journey) =>
+      fingerprintSentences(JSON.stringify({ filas: [row] }), true).map((text) => ({ journey, text })))
+  } catch { /* Unstructured compatibility path below. */ }
+  if (!fragments.length) fragments = fingerprintSentences(generatedContent, true).map((text) => ({ journey: 0, text }))
+  const review = new Set(options.reviewJourneyIndices || [...new Set(fragments.map((item) => item.journey))])
   const recentSets = recentContentSamples.map((sample) => tokenSet(sample))
+  const generatedSets = fragments.map((fragment) => tokenSet(fragment.text))
+  const affected = new Set<number>()
   let maxSimilarity = 0
-
-  for (const fragment of generatedFragments) {
-    const set = tokenSet(fragment)
-    for (const recent of recentSets) {
-      maxSimilarity = Math.max(maxSimilarity, jaccard(set, recent))
-    }
-  }
-
   let withinDocumentSimilarity = 0
-  const generatedSets = generatedFragments.map((fragment) => tokenSet(fragment))
-  for (let i = 0; i < generatedSets.length; i += 1) {
-    for (let j = i + 1; j < generatedSets.length; j += 1) {
-      withinDocumentSimilarity = Math.max(withinDocumentSimilarity, jaccard(generatedSets[i], generatedSets[j]))
+  for (let i = 0; i < fragments.length; i += 1) {
+    if (review.has(fragments[i].journey)) {
+      for (const recent of recentSets) {
+        const similarity = jaccard(generatedSets[i], recent)
+        maxSimilarity = Math.max(maxSimilarity, similarity)
+        if (similarity >= 0.58) affected.add(fragments[i].journey)
+      }
+    }
+    for (let j = 0; j < i; j += 1) {
+      if (!review.has(fragments[i].journey) && !review.has(fragments[j].journey)) continue
+      const similarity = jaccard(generatedSets[i], generatedSets[j])
+      withinDocumentSimilarity = Math.max(withinDocumentSimilarity, similarity)
+      if (similarity >= 0.72) affected.add(review.has(fragments[i].journey) ? fragments[i].journey : fragments[j].journey)
     }
   }
   return {
-    passed: maxSimilarity < 0.58 && withinDocumentSimilarity < 0.72,
+    passed: affected.size === 0,
+    affectedJourneyIndices: [...affected].sort(),
     withinDocumentSimilarity: Math.round(withinDocumentSimilarity * 1000) / 1000,
     maxSimilarity: Math.round(maxSimilarity * 1000) / 1000,
-    comparedFragments: generatedFragments.length,
+    comparedFragments: fragments.filter((item) => review.has(item.journey)).length,
   }
 }

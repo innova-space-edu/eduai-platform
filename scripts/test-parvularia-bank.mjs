@@ -15,6 +15,8 @@ const ranges=[]
 const db={from(table){let range=[0,0];return{select(){return this},eq(){return this},order(){return this},limit(){return this},range(a,b){range=[a,b];return this},then(resolve,reject){if(table==='parvularia_activity_bank')ranges.push(range);return Promise.resolve({data:table==='parvularia_activity_bank'?rows.slice(range[0],range[1]+1):[],error:null}).then(resolve,reject)}}},rpc:async()=>({data:[],error:null})}
 const bank=await readParvulariaBank(db);assert.equal(bank.activities.length,650);assert.equal(bank.complete,true);assert.deepEqual(ranges,[[0,249],[250,499],[500,749]])
 const ctx=await buildParvulariaKnowledgeContext({supabase:db,userId:'owner',course:levels[0],topic:'familia',message:'conversar',journeyNuclei:[nucleus,'Pensamiento matemático','Lenguajes artísticos'],selectedOAIds:[],selectedOATIds:[],candidateLimit:9})
+const focused=await buildParvulariaKnowledgeContext({supabase:db,userId:'owner',course:levels[0],topic:'familia',message:'conversar',journeyNuclei:[nucleus,'Pensamiento matemático','Lenguajes artísticos'],selectedOAIds:[],selectedOATIds:[],candidateLimit:9,activeJourneyIndices:[1]})
+assert.equal(focused.journeyCoverage[0].needsWeb,false);assert.equal(focused.journeyCoverage[2].needsWeb,false);assert.equal(focused.journeyCoverage[1].needsWeb,true)
 assert.equal(ctx.bankScannedCount,650);assert.equal(ctx.journeyCoverage[1].needsWeb,true);assert.equal(ctx.journeyReferenceCounts[1],0);assert.equal(ctx.journeyReferenceCounts[2],0)
 assert.ok(ctx.journeyPrompts[0].includes('Desarrollo detallado'))
 const repeated=JSON.stringify({filas:[{experienciaAprendizaje:'Inicio: encuentro\nDesarrollo:\nLunes 1: '+activity('x').experience_text+'\nMartes 2: '+activity('x').experience_text+'\nFinalización: cierre'}]})

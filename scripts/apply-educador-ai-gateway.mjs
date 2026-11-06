@@ -11,7 +11,9 @@ let source = fs.readFileSync(routePath, "utf8")
 let changed = false
 
 function replaceRequired(oldText, newText, label) {
-  if (source.includes(newText)) return
+  const withoutMetrics = source.replace(/^[ \t]*(?:planningGenerationCalls \+= 1|if \(![A-Za-z]+\.reused\) planningFreshResults \+= 1)\n/gm, "")
+  const withoutTracking = withoutMetrics.replaceAll("messages: recordPlanningPrompt([", "messages: [").replace(/(\n[ \t]*)\]\),(\n[ \t]*capability:)/g, "$1],$2")
+  if (source.includes(newText) || withoutTracking.includes(newText)) return
   if (!source.includes(oldText)) throw new Error(`[educador-ai-gateway] No se encontró ${label}`)
   source = source.replace(oldText, newText)
   changed = true

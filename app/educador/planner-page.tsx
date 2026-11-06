@@ -505,39 +505,12 @@ export default function PlannerPage() {
   }
   function generationPrompt() {
     if (isParvularia) {
-      const selectedOAContext = selectedOA.map((oa) => `${oa.codigoOficial || oa.id}: ${oa.texto}`).join("\n")
-      const journeyOAContext = config.parvulariaJourneyOAIds.map((ids, index) => {
-        const nucleo = config.parvulariaJourneyNucleos[index] || config.asignatura
-        const options = parvulariaJourneyOAOptions[index] || []
-        const assigned = ids
-          .map((id) => options.find((oa) => oa.id === id))
-          .filter(Boolean)
-          .map((oa) => `${oa!.codigoOficial || oa!.id}: ${oa!.texto}`)
-          .join(" | ")
-        const oatOptionsForJourney = parvulariaJourneyOATOptions[index] || []
-        const assignedOAT = (config.parvulariaJourneyOATIds[index] || [])
-          .map((id) => oatOptionsForJourney.find((oat) => oat.id === id))
-          .filter(Boolean)
-          .map((oat) => `${oat!.description || oat!.id} [${oat!.nucleo || "Núcleo transversal"}]: ${oat!.label}`)
-          .join(" | ")
-        const ambitoJornada = getParvulariaAmbitoForCurso(config.curso, nucleo) || "Ámbito no identificado"
-        return `Jornada ${index + 1} · ${ambitoJornada} · ${nucleo}\nOA: ${assigned || "SIN OA ASIGNADO"}\nOAT: ${assignedOAT || "SIN OAT COMPLEMENTARIO"}`
-      }).join("\n\n")
       return [
-        `Genera la planificación de Educación Parvularia ${config.tiempoPlanificacion} para ${config.curso} con un núcleo y OA específicos para cada jornada.`,
-        `Periodo: ${buildParvulariaDateLabel(config.fechaInicioParvularia, config.fechaFinParvularia || config.fechaInicioParvularia)}.`,
-        `Educadora: ${config.educadoraParvularia}. Asistentes: ${config.asistentesParvularia}.`,
-        "Usa la plantilla institucional de siete columnas de Educación Parvularia y completa todos sus campos.",
-        "El documento debe contener exactamente tres planificaciones/jornadas diarias independientes. Cada jornada toma su foco exclusivamente del núcleo, OA y OAT seleccionados para ella.",
-        "En semanal y quincenal crea tres actividades diferentes para cada día hábil: una actividad por cada jornada.",
-        "En TODOS los horizontes, cada actividad del Desarrollo debe ser una oración pedagógica completa y breve, no un título: aproximadamente 100-180 caracteres de contenido con acción del párvulo, material o estímulo, forma de exploración/mediación y propósito o respuesta observable.",
-        "No organices por horas pedagógicas, número de clases ni minutos; distribuye las experiencias de acuerdo con el período, la jornada y el ritmo del grupo.",
-        selectedOAContext ? `OA seleccionados:\n${selectedOAContext}` : "",
-        journeyOAContext ? `ASIGNACIÓN OBLIGATORIA DE NÚCLEO, OA Y OAT POR JORNADA:\n${journeyOAContext}\nCada fila debe usar exactamente el ámbito/núcleo, OA y OAT asignados a esa jornada. No copies OAT entre jornadas salvo que el docente los haya seleccionado expresamente en más de una.` : "",
-        config.parvulariaHeterogenea ? `DESARROLLO POR EDAD OBLIGATORIO: dentro de cada una de las 3 jornadas separa el Desarrollo en dos bloques completos: "${config.curso}" y "${config.parvulariaSegundoCurso}". En semanal/quincenal repite todas las fechas en ambos bloques con actividades diferentes y ajustadas al desarrollo de cada nivel. No uses una experiencia común seguida de adaptaciones breves.` : "",
-        config.contexto.trim() ? `Contexto del docente: ${config.contexto.trim()}` : "Propón experiencias pertinentes, lúdicas y aplicables al subnivel.",
-        config.parvulariaHeterogenea ? `Sala heterogénea: ${config.curso} con ${config.parvulariaSegundoCurso}. Motivo: ${config.parvulariaMotivoFusion || "organización pedagógica"}.` : "",
-      ].filter(Boolean).join("\n")
+        `Genera la planificación parvularia ${config.tiempoPlanificacion} con los datos y OA/OAT seleccionados en la configuración.`,
+        "Entrega tres jornadas completas y distintas, respetando el período, los subniveles y la plantilla institucional.",
+        "Cada actividad debe desarrollar preparación, acción infantil, mediación, cierre y evidencia observable (350-650 caracteres).",
+        "Prioriza el contexto de la educadora y el juego; no distribuyas por horas ni minutos.",
+      ].join("\n")
     }
     if (institutionalMacro) {
       const distribution = config.weeklyOAPlan.map((week) => {
@@ -575,7 +548,7 @@ export default function PlannerPage() {
     let progressTimer: number | null = null
 
     const readProgress = async () => {
-      if (!generationRunId) return
+      if (!generationRunId || document.hidden) return
       try {
         const response = await fetch(`/api/agents/educador?runId=${encodeURIComponent(generationRunId)}`, { cache: "no-store" })
         if (!response.ok) return
@@ -602,7 +575,7 @@ export default function PlannerPage() {
         label: PARVULARIA_GENERATION_PHASES[0],
         detail: "Preparando la recuperación curricular y pedagógica.",
       })
-      progressTimer = window.setInterval(() => { void readProgress() }, 900)
+      progressTimer = window.setInterval(() => { void readProgress() }, 3000)
     }
 
     try {
@@ -630,7 +603,7 @@ export default function PlannerPage() {
       }
       if (data?.generationAvoided) setStatus("Documento recuperado de tu biblioteca: se evitó generar nuevamente con IA.")
       else if (data?.learning?.referenceCount) setStatus(`Se aprovecharon ${data.learning.referenceCount} documentos propios como referencia.`)
-      setMessages((previous) => [...previous, { role: "assistant", content: data.text, provider: data.provider, webSources: data.parvulariaKnowledge?.webSources || [], learning: data.learning }])
+      setMessages((previous) => [...previous, { role: "assistant", content: data.text, provider: data.provider, webSources: data.parvulariaKnowledge?.webSources?.length ? data.parvulariaKnowledge.webSources : data.optimization?.partial ? latest?.webSources || [] : [], learning: data.learning }])
       setStep(4)
       setRefinement("")
     } catch (error) {
@@ -942,7 +915,7 @@ export default function PlannerPage() {
     </div>
   )
 
-  const result = latest && <div className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-emerald-700 bg-emerald-50 p-4"><div><p className="text-xs font-black uppercase text-emerald-800">Planificación generada</p><p className="mt-1 font-black">{isParvularia ? `Educación Parvularia · ${config.curso}` : `${mode.label} · ${config.curso}`}</p></div><div className="flex flex-wrap gap-2"><button onClick={editPlanning} className="rounded-xl border-2 border-slate-700 bg-white px-3 py-2 text-xs font-black">← Editar datos</button>{isParvularia && <button onClick={saveAndEdit} disabled={saving} className="rounded-xl border-2 border-sky-700 bg-sky-700 px-3 py-2 text-xs font-black text-white disabled:opacity-50">{saving ? "Abriendo editor…" : "✏️ Editar planificación"}</button>}{!isParvularia && <button onClick={copy} className="rounded-xl border-2 border-blue-700 bg-white px-3 py-2 text-xs font-black text-blue-800">{copied ? "✓ Copiado" : "📋 Copiar"}</button>}<button onClick={save} disabled={saving} className="rounded-xl border-2 border-emerald-700 bg-white px-3 py-2 text-xs font-black text-emerald-800">{saving ? "Guardando…" : "💾 Guardar"}</button><button onClick={exportPdf} disabled={exporting} className="rounded-xl border-2 border-amber-700 bg-white px-3 py-2 text-xs font-black text-amber-800">{exporting ? "Exportando…" : "📄 Exportar PDF"}</button></div></div><article className="rounded-3xl border-2 border-slate-300 bg-white p-5 md:p-8">{isParvularia ? <ParvulariaPlanningPreview content={latest.content} /> : institutionalMacro ? <SchoolPlanningPreview meta={institutionalMeta()} content={latest.content} /> : <div className="prose prose-slate max-w-none text-sm prose-table:text-xs prose-th:p-3 prose-td:border prose-td:border-slate-300 prose-td:p-3 prose-h2:text-emerald-800 prose-h3:text-indigo-800 prose-th:bg-slate-100"><ReactMarkdown remarkPlugins={[remarkGfm]}>{latest.content}</ReactMarkdown></div>}{Boolean(latest.webSources?.length) && <div className="mt-5 border-t pt-4"><p className="text-sm font-bold">Fuentes web de inspiración</p><ul className="mt-2 space-y-1 text-xs">{latest.webSources?.filter((source) => source.uri.startsWith("https://")).map((source) => <li key={source.uri}><a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline">{source.title}</a></li>)}</ul></div>}{latest.provider && <p className="mt-6 border-t pt-3 text-xs text-slate-500">Generado mediante {latest.provider}</p>}</article><div className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-5"><p className="font-black text-indigo-950">Ajustar planificación con IA</p><div className="mt-3 flex flex-col gap-3 md:flex-row"><textarea value={refinement} onChange={(e) => setRefinement(e.target.value)} placeholder={isParvularia ? "Ej.: agrega más experiencias sensoriales con elementos naturales y refuerza el rol de la familia." : "Ej.: reduce la clase a 45 minutos y agrega una actividad experimental."} className={`${inputClass} min-h-[90px] flex-1 font-normal`} /><button onClick={() => send(refinement, true)} disabled={!refinement.trim() || loading} className="rounded-xl bg-indigo-700 px-5 py-3 font-black text-white disabled:bg-slate-400 md:self-end">Aplicar ajuste</button></div></div></div>
+  const result = latest && <div className="space-y-4"><div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border-2 border-emerald-700 bg-emerald-50 p-4"><div><p className="text-xs font-black uppercase text-emerald-800">Planificación generada</p><p className="mt-1 font-black">{isParvularia ? `Educación Parvularia · ${config.curso}` : `${mode.label} · ${config.curso}`}</p></div><div className="flex flex-wrap gap-2"><button onClick={editPlanning} className="rounded-xl border-2 border-slate-700 bg-white px-3 py-2 text-xs font-black">← Editar datos</button>{isParvularia && <button onClick={saveAndEdit} disabled={saving} className="rounded-xl border-2 border-sky-700 bg-sky-700 px-3 py-2 text-xs font-black text-white disabled:opacity-50">{saving ? "Abriendo editor…" : "✏️ Editar planificación"}</button>}{!isParvularia && <button onClick={copy} className="rounded-xl border-2 border-blue-700 bg-white px-3 py-2 text-xs font-black text-blue-800">{copied ? "✓ Copiado" : "📋 Copiar"}</button>}<button onClick={save} disabled={saving} className="rounded-xl border-2 border-emerald-700 bg-white px-3 py-2 text-xs font-black text-emerald-800">{saving ? "Guardando…" : "💾 Guardar"}</button><button onClick={exportPdf} disabled={exporting} className="rounded-xl border-2 border-amber-700 bg-white px-3 py-2 text-xs font-black text-amber-800">{exporting ? "Exportando…" : "📄 Exportar PDF"}</button></div></div><article className="rounded-3xl border-2 border-slate-300 bg-white p-5 md:p-8">{isParvularia ? <ParvulariaPlanningPreview content={latest.content} /> : institutionalMacro ? <SchoolPlanningPreview meta={institutionalMeta()} content={latest.content} /> : <div className="prose prose-slate max-w-none text-sm prose-table:text-xs prose-th:p-3 prose-td:border prose-td:border-slate-300 prose-td:p-3 prose-h2:text-emerald-800 prose-h3:text-indigo-800 prose-th:bg-slate-100"><ReactMarkdown remarkPlugins={[remarkGfm]}>{latest.content}</ReactMarkdown></div>}{Boolean(latest.webSources?.length) && <div className="mt-5 border-t pt-4"><p className="text-sm font-bold">Fuentes web de inspiración</p><ul className="mt-2 space-y-1 text-xs">{latest.webSources?.filter((source) => source.uri.startsWith("https://")).map((source) => <li key={source.uri}><a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-blue-700 underline">{source.title}</a></li>)}</ul></div>}{latest.provider && <p className="mt-6 border-t pt-3 text-xs text-slate-500">Generado mediante {latest.provider}</p>}</article><div className="rounded-2xl border-2 border-indigo-300 bg-indigo-50 p-5"><p className="font-black text-indigo-950">Ajustar planificación con IA</p><div className="mt-3 flex flex-col gap-3 md:flex-row"><textarea value={refinement} onChange={(e) => setRefinement(e.target.value)} placeholder={isParvularia ? "Ej.: cambia solo los recursos de la jornada 2, o mejora la experiencia de la jornada 1." : "Ej.: reduce la clase a 45 minutos y agrega una actividad experimental."} className={`${inputClass} min-h-[90px] flex-1 font-normal`} /><button onClick={() => send(refinement, true)} disabled={!refinement.trim() || loading} className="rounded-xl bg-indigo-700 px-5 py-3 font-black text-white disabled:bg-slate-400 md:self-end">Aplicar ajuste</button></div></div></div>
 
   const stepFour = <div className="space-y-6"><div><p className="text-xs font-black uppercase tracking-[.18em] text-emerald-700">Paso 4</p><h2 className="mt-1 text-2xl font-black">Revisar y generar</h2></div>{!resultReady && <><div className="grid gap-4 rounded-3xl border-2 border-slate-300 bg-slate-50 p-6 md:grid-cols-2"><div><p className="text-xs font-black uppercase text-slate-500">Planificación</p><p className="mt-1 text-lg font-black">{isParvularia ? "🌸 Educación Parvularia" : institutionalMacro ? "🏫 Cronograma institucional" : `${mode.icon} ${mode.label}`}</p><p className="mt-2 text-sm text-slate-700">{isParvularia ? `${config.tiempoPlanificacion} · ${buildParvulariaDateLabel(config.fechaInicioParvularia, config.fechaFinParvularia || config.fechaInicioParvularia)}` : institutionalMacro ? `${periodLabel} · ${config.weeklyOAPlan.length} semanas` : buildPlanningHorizonText(config.tiempoPlanificacion, config.sesiones, config.duracionMinutos)}</p>{institutionalMacro && <p className="mt-2 text-xs text-slate-600">{config.profesor} · {config.horasSemanales}</p>}{isParvularia && <p className="mt-2 text-xs text-slate-600">{config.educadoraParvularia} · {config.asistentesParvularia} · 3 jornadas diarias</p>}</div><div><p className="text-xs font-black uppercase text-slate-500">{isParvularia ? "Curso y núcleos" : "Curso y asignatura"}</p><p className="mt-1 font-black">{config.curso}</p>{isParvularia ? <div className="mt-1 space-y-1 text-sm text-slate-700">{config.parvulariaJourneyNucleos.map((nucleo, index) => <p key={index}>J{index + 1}: {nucleo || "Sin núcleo"}</p>)}</div> : <p className="mt-1 text-sm text-slate-700">{config.asignatura}</p>}</div><div><p className="text-xs font-black uppercase text-slate-500">Currículum</p><p className="mt-1 text-sm font-bold">{institutionalMacro ? "Distribución OA por semana" : selectedUnit?.label || "Sin unidad específica"}</p><p className="mt-2 text-sm text-slate-700">OA: {selectedOA.map((item) => item.codigoOficial || item.id).join(", ")}</p>{institutionalMacro && <p className="mt-2 text-xs text-slate-600">{config.weeklyOAPlan.filter((week) => week.oaIds.length > 0).length}/{config.weeklyOAPlan.length} semanas completas</p>}</div><div><p className="text-xs font-black uppercase text-slate-500">Idea central</p><p className="mt-1 text-sm text-slate-700">{config.contexto.trim() || "La IA propondrá un contexto pertinente."}</p></div></div><button onClick={() => send(generationPrompt())} disabled={loading || config.selectedOAIds.length === 0 || (isParvularia && (config.parvulariaJourneyNucleos.some((nucleo) => !nucleo) || config.parvulariaJourneyOAIds.some((ids) => ids.length === 0))) || (institutionalMacro && config.weeklyOAPlan.some((week) => week.oaIds.length === 0))} className="w-full rounded-2xl bg-emerald-700 px-6 py-4 font-black text-white shadow-lg hover:bg-emerald-800 disabled:bg-slate-400">{loading ? "Generando planificación…" : "✨ Generar planificación"}</button></>}{loading && (isParvularia ? (
   <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50 p-5 text-emerald-950">

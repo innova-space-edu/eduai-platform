@@ -16,7 +16,8 @@ function forbidText(value, label) {
 
 requireText('import { runAIText } from "@/lib/ai/gateway"', "AI Gateway")
 requireText('runAIStructured as runAIStructuredGateway', "salida estructurada por jornada")
-requireText('schema: PARVULARIA_JOURNEY_SCHEMA', "schema obligatorio por jornada")
+requireText('schema: isFieldEdit ?', "schema restringido en ajustes parciales")
+requireText(': PARVULARIA_JOURNEY_SCHEMA,', "schema completo obligatorio por jornada")
 requireText('runAIStructured as runAIStructuredGateway', "gateway estructurado por jornada")
 requireText('import { assertAICapabilityAllowed } from "@/lib/ai/access-policy"', "policy guard")
 requireText('await assertAICapabilityAllowed({', "invocación tipada del policy guard")
@@ -34,3 +35,4 @@ forbidText('let result = await callAI(aiMessages', "generación principal legacy
 forbidText('const repaired = await callAI([', "reparación legacy")
 
 console.log("[test-educador-ai-gateway] Educador usa AI Gateway, policy tipada, permisos y reutilización")
+
