@@ -15,7 +15,7 @@ export async function searchMissingParvulariaIdeas(input: {
     levels: item.missingLevels.length ? item.missingLevels : input.levels, curriculum: input.curriculum[index] || "" }] : [])
   if (!gaps.length) return empty("bank_sufficient")
   // Queries contain public curriculum only: never teacher names, children, school or saved documents.
-  const fingerprint = generationFingerprint({ module: "parvularia-web-gap-v1", gaps })
+  const fingerprint = generationFingerprint({ capability: "text", payload: { module: "parvularia-web-gap-v1", gaps } })
   const requestId = await recordGenerationStart({ supabase: input.supabase, userId: input.userId,
     capability: "text", fingerprint, module: "educador-parvularia-web", reusePolicy: "exact_private",
     requestJson: { gaps: gaps.map(({ journey, nucleus, levels }) => ({ journey, nucleus, levels })) } })
