@@ -1,0 +1,241 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "1° Medio",
+    "asignatura": "Inglés",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — texto normativo publicado en Ley Chile (BCN)",
+    "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "numeracion_normativa",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      1
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-comunicacion-oral",
+      "nombre": "COMUNICACIÓN ORAL",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Demostrar comprensión de ideas generales e información explícita en textos orales adaptados y auténticos simples, literarios y no literarios, en diversos formatos audiovisuales (como exposiciones orales, conversaciones, descripciones, instrucciones y procedimientos, avisos publicitarios, entrevistas, noticieros, anécdotas, narraciones, canciones), acerca de temas variados (experiencias personales, temas de otras asignaturas, del contexto inmediato, de actualidad e interés global o de otras culturas) y que contienen las funciones del año.",
+          "eje": "COMUNICACIÓN ORAL",
+          "referencia_lineas": [
+            4600,
+            4600
+          ],
+          "id": "IN1M-OA-01",
+          "codigo_oficial": "IN1M OA 01",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Identificar palabras, frases y expresiones clave, expresiones idiomáticas de uso más recurrente, combinaciones frecuentes de palabras (collocations), vocabulario temático, conectores (later, last, so that, although, both y los del año anterior), sonidos vocales largos y cortos (feet/fit), combinaciones iniciales /tr/ y /dr/ (tree/dress), sonido inicial /j/ (year, yes) y sonido final –tion, (/ʃ/ como en vacation), en textos orales en diversos formatos o al participar en interacciones cotidianas y conversaciones en la clase.",
+          "eje": "COMUNICACIÓN ORAL",
+          "referencia_lineas": [
+            4601,
+            4601
+          ],
+          "id": "IN1M-OA-02",
+          "codigo_oficial": "IN1M OA 02",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Identificar en los textos escuchados:\n- propósito o finalidad del texto, tema e ideas relevantes\n- ideas generales en textos sobre temas menos conocidos\n- información específica y detalles clave asociados a personas, sus acciones y opiniones, lugares, tiempo, hablantes y situaciones\n- relaciones de contraste y problema-solución entre ideas",
+          "eje": "COMUNICACIÓN ORAL",
+          "referencia_lineas": [
+            4602,
+            4610
+          ],
+          "id": "IN1M-OA-03",
+          "codigo_oficial": "IN1M OA 03",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Seleccionar y usar estrategias para apoyar la comprensión de los textos escuchados:\n- hacer predicciones\n- escuchar con un propósito\n- usar conocimientos previos\n- hacer inferencias con el apoyo de claves contextuales (tema, participantes, apoyo visual) y pistas fonológicas (entonación, acentuación)\n- focalizar la atención en expresiones o frases clave\n- utilizar apoyos como gestos del hablante y entonación\n- pedir repetición o clarificación en interacciones\n- confirmar predicciones\n- resumir algunas ideas relevantes con apoyo\n- preguntar para confirmar comprensión",
+          "eje": "COMUNICACIÓN ORAL",
+          "referencia_lineas": [
+            4612,
+            4631
+          ],
+          "id": "IN1M-OA-04",
+          "codigo_oficial": "IN1M OA 04",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Presentar información en forma oral, usando recursos multimodales que refuercen el mensaje en forma creativa acerca de temas variados (como experiencias personales, temas de otras asignaturas, otras culturas, problemas globales y textos leídos o escuchados), demostrando:\n- conocimiento del contenido y coherencia en la organización de ideas\n- uso apropiado de las funciones del lenguaje y vocabulario del nivel . uso apropiado de sonidos del idioma, como sonidos vocales largos y cortos (feet/fit), combinaciones iniciales /tr/ y /dr/ (tree/dress), sonido inicial /j/ (year, yes) y sonido final –tion (/ʃ/ como en vacation)\n- tener conciencia de audiencia, contexto y propósito",
+          "eje": "COMUNICACIÓN ORAL",
+          "referencia_lineas": [
+            4632,
+            4637
+          ],
+          "id": "IN1M-OA-05",
+          "codigo_oficial": "IN1M OA 05",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 6,
+          "descripcion": "Participar en interacciones y exposiciones, recurriendo a las siguientes estrategias para expresarse con claridad y fluidez:\n- Antes de hablar: practicar presentación, organizar la información clave en diagramas, hacer conexiones o establecer relaciones\n- Al hablar: parafrasear, usar sinónimos y expresiones de uso frecuente (chunks), usar rellenos temporales (por ejemplo: I mean...; I see...), activar uso de conectores, autocorregirse con ayuda\n- Después de hablar: identificar debilidades, establecer metas, registrar errores y corregirlos con ayuda de recursos",
+          "eje": "COMUNICACIÓN ORAL",
+          "referencia_lineas": [
+            4639,
+            4644
+          ],
+          "id": "IN1M-OA-06",
+          "codigo_oficial": "IN1M OA 06",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 7,
+          "descripcion": "Reaccionar a textos leídos o escuchados por medio de exposiciones orales o en discusiones y conversaciones grupales en las que:\n- hacen conexiones con otras asignaturas, la lengua materna y su cultura, la vida cotidiana, experiencias personales y otras culturas, con frecuencia; por ejemplo: I used to...; I have been/seen/learned/read...\n- explican relación entre ideas o información; por ejemplo: although...; first..., then..., finally...; if...; for example...; ...but...\n- expresan sentimientos, interpretaciones o puntos de vista; por ejemplo: In my opinion...; according to...\n- generan preguntas o hipótesis en forma generalmente correcta; por ejemplo: how long has he...? Have they...?",
+          "eje": "COMUNICACIÓN ORAL",
+          "referencia_lineas": [
+            4645,
+            4652
+          ],
+          "id": "IN1M-OA-07",
+          "codigo_oficial": "IN1M OA 07",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 8,
+          "descripcion": "Demostrar conocimiento y uso del lenguaje en conversaciones, discusiones y exposiciones por medio de las siguientes funciones:\n- expresar cantidades, contar y enumerar; por ejemplo: two/four thousand/ one million; enough/no money/time\n- identificar y describir lugares, ocupaciones y personas (cualidades); por ejemplo: it's very busy/crowded; he is interested in.../ it is interesting; she is good at...; it's a basketball court; she's a very organized person\n- expresarse con claridad usando palabras y expresiones de uso común, sinónimos y palabras compuestas; por ejemplo: part-time job; apply for a job; what's it like?; why don't we...?; nice to meet you; talk about; for example; chopstick\n- identificar y describir objetos en detalle; por ejemplo: it's an old wooden musical instrument\n- señalar frecuencia, grado y tiempo de acciones; por ejemplo: he has worked here since 2010; I studied French five years ago; I go to the bank once a month; she is quite/really shy\n- describir hábitos pasados, por ejemplo, I used to work at the coffee shop, but now I work at a department store\n- describir acciones pasadas que continúan en el presente; por ejemplo: I have saved money to buy a bike; I have never seen that program; Have you ever eaten insects? I have studied for three days\n- solicitar y dar información sobre duración de una actividad; por ejemplo: how long have you been friends? (for)2 years/since 2010\n- describir predicciones, necesidades, promesas y posibilidades; por ejemplo: he shall be here; you needn't hurry; it might snow; It will probably rain tomorrow\n- confirmar información; por ejemplo: it's nice, isn't it?; your brother wasn't at school, was he?; you go to the pool on Fridays, don't you?; she will come tomorrow, won't she?\n- entregar información esencial o adicional; por ejemplo: Simon is the boy who lives next door; the science book, which I borrowed from the library, is very interesting\n- unir ideas; por ejemplo: although it's cheap I'm not sure; both Luis and Tomás are my neighbors; I'll talk to you later;...and last he played the piano; he learned English so that he could speak with foreigners\n- describir procesos y acciones realizadas en las que el agente es desconocido o no es importante; por ejemplo: the money was found on the floor; rooms are cleaned daily; plastic is produced from oil",
+          "eje": "COMUNICACIÓN ORAL",
+          "referencia_lineas": [
+            4654,
+            4675
+          ],
+          "id": "IN1M-OA-08",
+          "codigo_oficial": "IN1M OA 08",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "id": "eje-comprension-de-lectura",
+      "nombre": "COMPRENSIÓN DE LECTURA",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 9,
+          "descripcion": "Demostrar comprensión de ideas generales e información explícita en textos adaptados y auténticos simples, en formato impreso o digital, acerca de temas variados (como temas de interés de los alumnos, temas de otras asignaturas, del contexto inmediato, de actualidad e interés global, de otras culturas y algunos temas menos conocidos) y que contienen las funciones del año.",
+          "eje": "COMPRENSIÓN DE LECTURA",
+          "referencia_lineas": [
+            4678,
+            4678
+          ],
+          "id": "IN1M-OA-09",
+          "codigo_oficial": "IN1M OA 09",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 10,
+          "descripcion": "Demostrar comprensión de textos no literarios (como descripciones, artículos de revista, procedimientos, avisos publicitarios, catálogos, emails, diálogos, páginas web, biografías, gráficos, reseñas, noticias) al identificar:\n- propósito o finalidad del texto\n- idea principal, información específica y detalles\n- relaciones de contraste y problema-solución entre ideas\n- palabras y frases clave, expresiones idiomáticas y de uso frecuente y vocabulario temático\n- combinaciones frecuentes de palabras (collocations), conectores (later, last, so that, although, both y los del año anterior) y palabras derivadas de otras por medio del prefijo ir-, dis-; sufijos: -er, -ist, -ess en nombres de ocupaciones, y –ful",
+          "eje": "COMPRENSIÓN DE LECTURA",
+          "referencia_lineas": [
+            4679,
+            4688
+          ],
+          "id": "IN1M-OA-10",
+          "codigo_oficial": "IN1M OA 10",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 11,
+          "descripcion": "Demostrar comprensión de textos literarios (como canciones o poemas, tiras cómicas, cuentos breves y simples, novelas adaptadas, mitos o leyendas breves y simples) al identificar:\n- el tema como idea general del texto, personajes, caracterización, entorno (tiempo, lugar), trama (inicio, desarrollo, final), problema–solución\n- palabras y frases clave, expresiones idiomáticas y de uso frecuente, vocabulario temático",
+          "eje": "COMPRENSIÓN DE LECTURA",
+          "referencia_lineas": [
+            4690,
+            4693
+          ],
+          "id": "IN1M-OA-11",
+          "codigo_oficial": "IN1M OA 11",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 12,
+          "descripcion": "Seleccionar y usar estrategias para apoyar la comprensión de los textos leídos:\n- pre lectura: leer con un propósito, hacer predicciones, usar conocimientos previos\n- lectura: hacer lectura rápida y lectura focalizada, hacer inferencias, releer, identificar elementos organizacionales del texto (título, subtítulo, diagramas)\n- post lectura: confirmar predicciones, usar organizadores gráficos, releer, recontar, resumir, preguntar para confirmar información",
+          "eje": "COMPRENSIÓN DE LECTURA",
+          "referencia_lineas": [
+            4695,
+            4700
+          ],
+          "id": "IN1M-OA-12",
+          "codigo_oficial": "IN1M OA 12",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "id": "eje-expresion-escrita",
+      "nombre": "EXPRESIÓN ESCRITA",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 13,
+          "descripcion": "Escribir historias e información relevante, usando diversos recursos multimodales en forma atractiva y novedosa que refuercen el mensaje en textos variados acerca de temas como:\n- experiencias personales\n- contenidos interdisciplinarios\n- aspectos de interés global\n- cultura de otros países\n- textos leídos",
+          "eje": "EXPRESIÓN ESCRITA",
+          "referencia_lineas": [
+            4704,
+            4713
+          ],
+          "id": "IN1M-OA-13",
+          "codigo_oficial": "IN1M OA 13",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 14,
+          "descripcion": "Escribir una variedad de textos, como cuentos, correos electrónicos, folletos, rimas, descripciones, biografías, instrucciones, artículos, cartas, resúmenes y diario personal (journal), utilizando los pasos del proceso de escritura (organizar ideas, redactar, revisar, editar, publicar), ocasionalmente con apoyo de acuerdo a un criterio de evaluación, recurriendo a herramientas como el procesador de textos y diccionario en línea.",
+          "eje": "EXPRESIÓN ESCRITA",
+          "referencia_lineas": [
+            4714,
+            4714
+          ],
+          "id": "IN1M-OA-14",
+          "codigo_oficial": "IN1M OA 14",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 15,
+          "descripcion": "Escribir para explicar, expresar opiniones y narrar, usando:\n- variedad de palabras, oraciones y estructuras aprendidas y de otros contextos\n- conectores variados\n- correcta ortografía de palabras de uso frecuente en forma consistente\n- puntuación apropiada (apóstrofo)",
+          "eje": "EXPRESIÓN ESCRITA",
+          "referencia_lineas": [
+            4716,
+            4723
+          ],
+          "id": "IN1M-OA-15",
+          "codigo_oficial": "IN1M OA 15",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 16,
+          "descripcion": "Demostrar conocimiento y uso del lenguaje en sus textos escritos por medio de las siguiente funciones:\n- expresar cantidades, contar y enumerar; por ejemplo: two/four thousand/ one million; enough/no money/time\n- identificar y describir lugares, ocupaciones y personas (cualidades); por ejemplo: it's very busy/crowded/colorful/cheerful; he is interested in.../ it is interesting; he is a teacher/pianist/waitress; she is good at...; he is / responsible/irresponsible/ respectful/disrespectful\n- expresarse con claridad usando palabras y expresiones de uso común, sinónimos y palabras compuestas; por ejemplo: part-time job; apply for a job; chopstick\n- identificar y describir objetos en detalle; por ejemplo: it's an old wooden musical instrument\n- expresar opiniones y hacer referencia a las opiniones de otros; por ejemplo: In my opinion...; according to...\n- señalar frecuencia, grado y tiempo de acciones; por ejemplo: he has worked here since 2010; I studied French five years ago; I go to the bank once a month, she is quite shy\n- describir hábitos pasados; por ejemplo: I used to work at the airport but now I work at a school\n- describir acciones pasadas que continúan en el presente; por ejemplo: I have saved money to buy a bike\n- solicitar y dar información sobre duración de una actividad; por ejemplo: how long have you been friends? for 2 years/since 2010\n- entregar información esencial o adicional; por ejemplo: Simon is the boy who lives next door; the science book, which I borrowed from the library, is very interesting\n- unir ideas; por ejemplo: although it's cheap, I'm not sure; come early so that we can talk; both Luis and Tomás are my neighbors; and last..\n- describir procesos y acciones realizadas en las que el agente es desconocido o no es importante; por ejemplo: the money was found on the floor; rooms are cleaned daily; plastic is produced from oil",
+          "eje": "EXPRESIÓN ESCRITA",
+          "referencia_lineas": [
+            4725,
+            4745
+          ],
+          "id": "IN1M-OA-16",
+          "codigo_oficial": "IN1M OA 16",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        }
+      ]
+    }
+  ]
+}

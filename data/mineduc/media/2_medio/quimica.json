@@ -3,49 +3,224 @@
     "nivel": "Media",
     "curso": "2° Medio",
     "asignatura": "Química",
-    "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/2-medio",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — texto normativo publicado en Ley Chile (BCN)",
+    "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374",
     "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
     "estado_verificacion": "verificado_oficial",
     "alcance_verificacion": [
-      "oa_contenido"
+      "oa_contenido",
+      "oa_habilidades"
     ],
-    "fecha_consulta": "2026-07-18",
-    "nota": "Los OA fueron obtenidos directamente de páginas oficiales específicas de Currículum Nacional. La agrupación interna no altera el texto oficial.",
-    "base_asignatura_origen": "Ciencias Naturales 2° Medio"
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "numeracion_normativa",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      2
+    ],
+    "base_asignatura_origen": "Ciencias Naturales 2° Medio",
+    "alias_curricular": true
   },
-  "objetivos_habilidad": [],
+  "objetivos_habilidad": [
+    {
+      "numero_oficial": "a",
+      "descripcion": "Observar y describir detalladamente las características de objetos, procesos y fenómenos del mundo natural y tecnológico, usando los sentidos.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        3185,
+        3185
+      ],
+      "id": "2-ciencias_naturales-OAH-a",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "b",
+      "descripcion": "Formular preguntas y/o problemas, a partir de conocimiento científico, que puedan ser resueltos mediante una investigación científica*.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        3187,
+        3187
+      ],
+      "id": "2-ciencias_naturales-OAH-b",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "c",
+      "descripcion": "Formular y fundamentar hipótesis comprobables, basados en conocimiento científico.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        3189,
+        3189
+      ],
+      "id": "2-ciencias_naturales-OAH-c",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "d",
+      "descripcion": "Planificar diversos diseños de investigaciones experimentales que den respuesta a una pregunta y/o problema sobre la base de diversas fuentes de información científica, considerando:\n- el uso adecuado de instrumentos y materiales para asegurar la obtención de datos confiables\n- la manipulación de variables y sus relaciones\n- la explicación clara de procedimientos posibles de replicar",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3192,
+        3198
+      ],
+      "id": "2-ciencias_naturales-OAH-d",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "e",
+      "descripcion": "Planificar una investigación no experimental y/o documental que considere diversas fuentes de información para responder a preguntas científicas o para constituir el marco teórico de la investigación experimental.",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3199,
+        3199
+      ],
+      "id": "2-ciencias_naturales-OAH-e",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "f",
+      "descripcion": "Conducir rigurosamente investigaciones científicas para obtener evidencias precisas y confiables con el apoyo de las TIC.",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3201,
+        3201
+      ],
+      "id": "2-ciencias_naturales-OAH-f",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "g",
+      "descripcion": "Organizar el trabajo colaborativo, asignando responsabilidades, comunicándose en forma efectiva y siguiendo normas de seguridad.",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3203,
+        3203
+      ],
+      "id": "2-ciencias_naturales-OAH-g",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "h",
+      "descripcion": "Organizar datos cuantitativos y/o cualitativos con precisión, fundamentando su confiabilidad, y presentarlos en tablas, gráficos, modelos u otras representaciones, con la ayuda de las TIC.",
+      "eje": "Procesar y analizar la evidencia",
+      "referencia_lineas": [
+        3206,
+        3206
+      ],
+      "id": "2-ciencias_naturales-OAH-h",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "i",
+      "descripcion": "Crear, seleccionar usar y ajustar modelos para describir mecanismos y para predecir y apoyar explicaciones sobre las relaciones entre las partes de un sistema.",
+      "eje": "Procesar y analizar la evidencia",
+      "referencia_lineas": [
+        3208,
+        3208
+      ],
+      "id": "2-ciencias_naturales-OAH-i",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "j",
+      "descripcion": "Analizar y explicar los resultados de una investigación científica*, para plantear inferencias y conclusiones:\n- comparando las relaciones, tendencias y patrones de las variables\n- usando expresiones y operaciones matemáticas cuando sea pertinente (por ejemplo: potencias, razones, funciones, notación científica, medidas de tendencia central, cambio porcentual)\n- utilizando vocabulario disciplinar pertinente",
+      "eje": "Procesar y analizar la evidencia",
+      "referencia_lineas": [
+        3210,
+        3215
+      ],
+      "id": "2-ciencias_naturales-OAH-j",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "k",
+      "descripcion": "Evaluar la investigación científica* con el fin de perfeccionarla, considerando:\n- la validez y confiabilidad de los resultados\n- la replicabilidad de los procedimientos\n- las explicaciones, las predicciones y las conclusiones\n- las posibles aplicaciones tecnológicas\n- el desempeño personal y grupal",
+      "eje": "Evaluar",
+      "referencia_lineas": [
+        3219,
+        3228
+      ],
+      "id": "2-ciencias_naturales-OAH-k",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "l",
+      "descripcion": "Explicar y argumentar con evidencias provenientes de investigaciones científicas*, en forma oral y escrita, incluyendo tablas, gráficos, modelos y TIC.",
+      "eje": "Comunicar",
+      "referencia_lineas": [
+        3232,
+        3232
+      ],
+      "id": "2-ciencias_naturales-OAH-l",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "m",
+      "descripcion": "Discutir en forma oral y escrita las ideas para diseñar una investigación científica*, las posibles aplicaciones y soluciones a problemas tecnológicos, las teorías, las predicciones y las conclusiones, utilizando argumentos basados en evidencias y en el conocimiento científico y tecnológico.",
+      "eje": "Comunicar",
+      "referencia_lineas": [
+        3233,
+        3233
+      ],
+      "id": "2-ciencias_naturales-OAH-m",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    }
+  ],
   "objetivos_actitud": [],
   "unidades": [
     {
-      "numero": 1,
+      "numero": 3,
       "id": "eje-quimica",
-      "nombre": "Química",
+      "nombre": "QUÍMICA",
       "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
+          "numero_oficial": 15,
+          "descripcion": "Explicar, por medio de modelos y la experimentación, las propiedades de las soluciones en ejemplos cercanos, considerando:\n- el estado físico (sólido, líquido y gaseoso)\n- sus componentes (soluto y solvente)\n- la cantidad de soluto disuelto (concentración)",
+          "eje": "QUÍMICA",
+          "referencia_lineas": [
+            3285,
+            3290
+          ],
           "id": "CN2M-OA-15",
           "codigo_oficial": "CN2M OA 15",
-          "descripcion": "Explicar, por medio de modelos y la experimentación, las propiedades de las soluciones en ejemplos cercanos, considerando:\n- El estado físico (sólido, líquido y gaseoso)\n- Sus componentes (soluto y solvente)\n- La cantidad de soluto disuelto (concentración)",
-          "eje": "Química"
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
         },
         {
+          "numero_oficial": 16,
+          "descripcion": "Planificar y conducir una investigación experimental para proveer evidencias, que expliquen las propiedades coligativas de las soluciones y su importancia en procesos cotidianos (la mantención de frutas y mermeladas en conserva) e industriales (aditivos en el agua de radiadores).",
+          "eje": "QUÍMICA",
+          "referencia_lineas": [
+            3292,
+            3292
+          ],
           "id": "CN2M-OA-16",
           "codigo_oficial": "CN2M OA 16",
-          "descripcion": "Planificar y conducir una investigación experimental para proveer evidencias que expliquen las propiedades coligativas de las soluciones y su importancia en procesos cotidianos (la mantención de frutas y mermeladas en conserva) e industriales (aditivos en el agua de radiadores).",
-          "eje": "Química"
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
         },
         {
+          "numero_oficial": 17,
+          "descripcion": "Crear modelos del carbono y explicar sus propiedades como base para la formación de moléculas útiles para los seres vivos (biomoléculas presentes en la célula) y el entorno (hidrocarburos como petróleo y sus derivados).",
+          "eje": "QUÍMICA",
+          "referencia_lineas": [
+            3293,
+            3293
+          ],
           "id": "CN2M-OA-17",
           "codigo_oficial": "CN2M OA 17",
-          "descripcion": "Crear modelos del carbono y explicar sus propiedades como base para la formación de moléculas útiles para los seres vivos (biomoléculas presentes en la célula) y el entorno (hidrocarburos como petróleo y sus derivados).",
-          "eje": "Química"
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
         },
         {
+          "numero_oficial": 18,
+          "descripcion": "Desarrollar modelos que expliquen la estereoquímica e isomería de compuestos orgánicos como la glucosa, identificando sus propiedades y su utilidad para los seres vivos.",
+          "eje": "QUÍMICA",
+          "referencia_lineas": [
+            3295,
+            3295
+          ],
           "id": "CN2M-OA-18",
           "codigo_oficial": "CN2M OA 18",
-          "descripcion": "Desarrollar modelos que expliquen la estereoquímica e isomería de compuestos orgánicos como la glucosa, identificando sus propiedades y su utilidad para los seres vivos.",
-          "eje": "Química"
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
         }
       ]
     }

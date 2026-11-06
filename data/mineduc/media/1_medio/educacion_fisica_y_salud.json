@@ -1,0 +1,113 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "1° Medio",
+    "asignatura": "Educación Física y Salud",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/educacion-fisica-salud/1-medio",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      1
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/educacion-fisica-salud/1-medio",
+      "https://www.bcn.cl/leychile/navegar?i=1060374"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Perfeccionar y aplicar controladamente las habilidades motrices específicas de locomoción, manipulación y estabilidad en, al menos:\n- Un deporte individual (gimnasia rítmica, natación, entre otros).\n- Un deporte de oposición (bádminton, tenis de mesa, entre otros).\n- Un deporte de colaboración (kayak, escalada, entre otros).\n- Un deporte de oposición/colaboración (fútbol, vóleibol, rugby, entre otros).\n- Una danza (folclórica, popular, entre otras).",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            5127,
+            5136
+          ],
+          "codigo_oficial": "EF1M OA 01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/educacion-fisica-salud/1-medio",
+          "id": "EF1M-OA-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Modificar, evaluar y aplicar las estrategias y tácticas específicas utilizadas para la resolución de problemas durante la práctica de juegos o deportes; por ejemplo: ubicar la pelota en un punto estratégico de la cancha, cambiar la posición o la función de los jugadores durante el partido, implementar y evaluar un sistema de posiciones de ataque junto a otros jugadores, entre otras.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            5137,
+            5137
+          ],
+          "codigo_oficial": "EF1M OA 02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/educacion-fisica-salud/1-medio",
+          "id": "EF1M-OA-02"
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "id": "eje-vida-activa-saludable",
+      "nombre": "VIDA ACTIVA SALUDABLE",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 3,
+          "descripcion": "Diseñar y aplicar un plan de entrenamiento personal para alcanzar una condición física saludable, desarrollando la resistencia cardiovascular, la fuerza muscular, la velocidad y la flexibilidad, considerando:\n- Tiempo asignado para el plan de entrenamiento (por ejemplo: 4 a 6 semanas).\n- Frecuencia, intensidad, tiempo de duración y recuperación, progresión y tipo de ejercicio.\n- Niveles de condición física al iniciar el plan de entrenamiento.\n- Actividades físicas que sean de interés personal y contribuyan a mejorar la condición física.\n- Ingesta y gasto calórico.",
+          "eje": "VIDA ACTIVA SALUDABLE",
+          "referencia_lineas": [
+            5140,
+            5149
+          ],
+          "codigo_oficial": "EF1M OA 03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/educacion-fisica-salud/1-medio",
+          "id": "EF1M-OA-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Practicar regularmente una variedad de actividades físicas alternativas y/o deportivas en diferentes entornos, aplicando conductas de autocuidado, seguridad y primeros auxilios, como:\n- Realizar al menos 30 minutos diarios de actividades físicas de su interés.\n- Promover campañas para evitar el consumo de drogas, tabaco y alcohol.\n- Aplicar maniobras básicas de primeros auxilios en situaciones de riesgo.\n- Dirigir y ejecutar un calentamiento de manera grupal.\n- Hidratarse con agua de forma permanente.",
+          "eje": "VIDA ACTIVA SALUDABLE",
+          "referencia_lineas": [
+            5151,
+            5160
+          ],
+          "codigo_oficial": "EF1M OA 04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/educacion-fisica-salud/1-medio",
+          "id": "EF1M-OA-04"
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "id": "eje-responsabilidad-personal-y-social-en-el-deporte-y-la-actividad-fisica",
+      "nombre": "RESPONSABILIDAD PERSONAL Y SOCIAL EN EL DEPORTE Y LA ACTIVIDAD FÍSICA",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 5,
+          "descripcion": "Participar y promover una variedad de actividades físicas y/o deportivas de su interés y que se desarrollen en su comunidad escolar y/o en su entorno; por ejemplo:\n- Evaluar los programas que ofrece la comunidad para promover la práctica regular de actividad física.\n- Aplicar y desarrollar estrategias específicas para mejorar su condición física y la de los demás.\n- Desarrollar estrategias grupales para promover una vida activa dentro de su comunidad escolar o su entorno cercano.",
+          "eje": "RESPONSABILIDAD PERSONAL Y SOCIAL EN EL DEPORTE Y LA ACTIVIDAD FÍSICA",
+          "referencia_lineas": [
+            5164,
+            5169
+          ],
+          "codigo_oficial": "EF1M OA 05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/educacion-fisica-salud/1-medio",
+          "id": "EF1M-OA-05"
+        }
+      ]
+    }
+  ]
+}

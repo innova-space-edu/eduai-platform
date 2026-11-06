@@ -5,7 +5,7 @@ const ROOT = join(process.cwd(), "data", "mineduc")
 const STRICT = process.argv.includes("--strict")
 const VERIFIED = new Set(["verificado_oficial", "verificado_propuesta_oficial"])
 const ALLOWED = new Set(["verificado_oficial", "verificado_propuesta_oficial", "pendiente_verificacion", "incompleto", "no_utilizar"])
-const OFFICIAL_CODE = /^(?:(?:[A-Z]{2,5}\d{2}|[A-Z]{2,5}\dM) OA \d{2}|FG-[A-Z]{4}-[34]M-OAC-\d{2}|FG-CI(?:AS|BS|SA|TS)-3y4-OAC-\d{2}|(?:OA|OAT) \d{2} (?:IA|CC|CM|LV|LA|EEN|CES|PM) (?:SC|NM|NT))$/
+const OFFICIAL_CODE = /^(?:(?:[A-Z]{2,5}\d{2}|[A-Z]{2,5}\dM) OA \d{2}|(?:FG-[A-Z0-9]{4}-(?:[34]M|3y4)|[A-Z]{2}-[A-Z0-9]{4}-3y4)-OAC-\d{2}|FG-CI(?:AS|BS|SA|TS)-3y4-OAC-\d{2}|(?:OA|OAT) \d{2} (?:IA|CC|CM|LV|LA|EEN|CES|PM) (?:SC|NM|NT))$/
 const GENERIC_CODE = /^OA\s*0*\d+$/i
 
 function walk(dir) {
@@ -93,6 +93,12 @@ for (const path of courseFiles) {
     const isOfficialSource = (url) => {
       const value = String(url)
       if (value.startsWith("https://www.curriculumnacional.cl/")) return true
+      if (rel.startsWith("media/") && new Set([
+        "https://www.bcn.cl/leychile/navegar?i=1060374",
+        "https://www.bcn.cl/leychile/navegar?i=1084868",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1093403",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078",
+      ]).has(value)) return true
       if (isParvulariaFile && value.startsWith("https://parvularia.mineduc.cl/")) return true
       return false
     }
@@ -127,3 +133,4 @@ if (errors.length) {
   console.error(errors.map((error) => `- ${error}`).join("\n"))
   if (STRICT) process.exit(1)
 }
+

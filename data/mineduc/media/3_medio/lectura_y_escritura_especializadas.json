@@ -1,0 +1,98 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "3° Medio",
+    "asignatura": "Lectura y escritura especializadas",
+    "plan": "formacion_diferenciada_hc",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/lectura-escritura-especializadas/3-medio-hc",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      3,
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/lectura-escritura-especializadas/3-medio-hc",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Producir textos pertenecientes a diversos géneros discursivos académicos, en los cuales se gestione información recogida de distintas fuentes y se demuestre dominio especializado de un tema.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2370,
+            2370
+          ],
+          "codigo_oficial": "LL-LEES-3y4-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/lectura-escritura-especializadas/3-medio-hc",
+          "id": "LL-LEES-3y4-OAC-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Participar de manera activa en procesos colaborativos de producción de textos especializados -como autor, lector, revisor- al interior de una comunidad de \"pares especialistas\" que leen, escriben y aprenden sobre un tema en particular.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2371,
+            2371
+          ],
+          "codigo_oficial": "LL-LEES-3y4-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/lectura-escritura-especializadas/3-medio-hc",
+          "id": "LL-LEES-3y4-OAC-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Utilizar diversas estrategias para registrar y procesar información obtenida en soportes impresos o digitales, en coherencia con el tema, los propósitos comunicativos y las convenciones discursivas de los textos que producirán.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2373,
+            2373
+          ],
+          "codigo_oficial": "LL-LEES-3y4-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/lectura-escritura-especializadas/3-medio-hc",
+          "id": "LL-LEES-3y4-OAC-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Utilizar diversas estrategias para construir y transformar el conocimiento por escrito, en coherencia con los temas, los propósitos comunicativos y las convenciones discursivas de los textos que producirán.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2374,
+            2374
+          ],
+          "codigo_oficial": "LL-LEES-3y4-OAC-04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/lectura-escritura-especializadas/3-medio-hc",
+          "id": "LL-LEES-3y4-OAC-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Buscar, evaluar y seleccionar rigurosamente fuentes disponibles en soportes impresos y digitales, considerando la validez, veracidad y responsabilidad de su autoría.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2376,
+            2376
+          ],
+          "codigo_oficial": "LL-LEES-3y4-OAC-05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/lectura-escritura-especializadas/3-medio-hc",
+          "id": "LL-LEES-3y4-OAC-05"
+        }
+      ]
+    }
+  ]
+}

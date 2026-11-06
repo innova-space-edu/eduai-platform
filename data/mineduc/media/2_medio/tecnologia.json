@@ -3,15 +3,24 @@
     "nivel": "Media",
     "curso": "2° Medio",
     "asignatura": "Tecnología",
-    "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/tecnologia/2-medio",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/tecnologia/2-medio",
     "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
     "estado_verificacion": "verificado_oficial",
     "alcance_verificacion": [
       "oa_contenido"
     ],
-    "fecha_consulta": "2026-07-18",
-    "nota": "Los OA fueron obtenidos directamente de páginas oficiales específicas de Currículum Nacional. La agrupación interna no altera el texto oficial."
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      2
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/tecnologia/2-medio",
+      "https://www.bcn.cl/leychile/navegar?i=1084868"
+    ]
   },
   "objetivos_habilidad": [],
   "objetivos_actitud": [],
@@ -19,52 +28,88 @@
     {
       "numero": 1,
       "id": "eje-resolucion-de-problemas-tecnologicos",
-      "nombre": "Resolución de problemas tecnológicos",
-      "tipo_agrupacion": "eje_curricular",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
       "oa": [
         {
-          "id": "TE2M-OA-01",
-          "codigo_oficial": "TE2M OA 01",
+          "numero_oficial": 1,
           "descripcion": "Identificar necesidades que impliquen la reducción de efectos perjudiciales relacionados con el uso de recursos energéticos y materiales en una perspectiva de sustentabilidad.",
-          "eje": "Resolución de problemas tecnológicos"
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            235,
+            236
+          ],
+          "codigo_oficial": "TE2M OA 01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/tecnologia/2-medio",
+          "id": "TE2M-OA-01"
         },
         {
-          "id": "TE2M-OA-02",
-          "codigo_oficial": "TE2M OA 02",
+          "numero_oficial": 2,
           "descripcion": "Proponer soluciones que apunten a resolver necesidades de reducción de efectos perjudiciales relacionados con el uso de recursos energéticos y materiales en una perspectiva de sustentabilidad, utilizando herramientas TIC colaborativas de producción, edición, publicación y comunicación.",
-          "eje": "Resolución de problemas tecnológicos"
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            238,
+            240
+          ],
+          "codigo_oficial": "TE2M OA 02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/tecnologia/2-medio",
+          "id": "TE2M-OA-02"
         },
         {
-          "id": "TE2M-OA-03",
-          "codigo_oficial": "TE2M OA 03",
+          "numero_oficial": 3,
           "descripcion": "Evaluar las propuestas de soluciones que apunten a resolver necesidades de reducción de efectos perjudiciales relacionados con el uso de recursos energéticos y materiales considerando aspectos o dilemas éticos, legales, económicos, ambientales y sociales.",
-          "eje": "Resolución de problemas tecnológicos"
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            242,
+            243
+          ],
+          "codigo_oficial": "TE2M OA 03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/tecnologia/2-medio",
+          "id": "TE2M-OA-03"
         },
         {
-          "id": "TE2M-OA-04",
-          "codigo_oficial": "TE2M OA 04",
+          "numero_oficial": 4,
           "descripcion": "Comunicar propuestas de soluciones para reducir los efectos perjudiciales proyectando posibles escenarios de cambio y sus impactos, utilizando herramientas TIC, considerando diferentes tipos de objetivos y audiencias, teniendo en cuenta aspectos éticos y aplicando normas de cuidado y seguridad.",
-          "eje": "Resolución de problemas tecnológicos"
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            245,
+            246
+          ],
+          "codigo_oficial": "TE2M OA 04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/tecnologia/2-medio",
+          "id": "TE2M-OA-04"
         }
       ]
     },
     {
       "numero": 2,
       "id": "eje-tecnologia-ambiente-y-sociedad",
-      "nombre": "Tecnología, ambiente y sociedad",
+      "nombre": "Eje Tecnología, ambiente y sociedad",
       "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "TE2M-OA-05",
-          "codigo_oficial": "TE2M OA 05",
+          "numero_oficial": 5,
           "descripcion": "Evaluar críticamente cómo las innovaciones tecnológicas actuales afectan a la sociedad y al ambiente, considerando criterios éticos, económicos, ambientales y sociales.",
-          "eje": "Tecnología, ambiente y sociedad"
+          "eje": "Eje Tecnología, ambiente y sociedad",
+          "referencia_lineas": [
+            250,
+            252
+          ],
+          "codigo_oficial": "TE2M OA 05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/tecnologia/2-medio",
+          "id": "TE2M-OA-05"
         },
         {
-          "id": "TE2M-OA-06",
-          "codigo_oficial": "TE2M OA 06",
+          "numero_oficial": 6,
           "descripcion": "Proyectar escenarios de posibles impactos positivos y/o negativos de las innovaciones tecnológicas actuales en ámbitos personales, sociales, ambientales, legales, económicos u otros.",
-          "eje": "Tecnología, ambiente y sociedad"
+          "eje": "Eje Tecnología, ambiente y sociedad",
+          "referencia_lineas": [
+            253,
+            255
+          ],
+          "codigo_oficial": "TE2M OA 06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/tecnologia/2-medio",
+          "id": "TE2M-OA-06"
         }
       ]
     }

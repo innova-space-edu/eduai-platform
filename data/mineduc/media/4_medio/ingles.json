@@ -1,0 +1,85 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "4° Medio",
+    "asignatura": "Inglés",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ingles-4o-medio/4-medio-fg",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ingles-4o-medio/4-medio-fg",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Comprender información relevante para un propósito específico en textos orales y escritos en contextos relacionados con sus intereses e inquietudes, con el fin de conocer las maneras en que otras culturas abordan dichos contextos.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1002,
+            1002
+          ],
+          "codigo_oficial": "FG-INGL-4M-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ingles-4o-medio/4-medio-fg",
+          "id": "FG-INGL-4M-OAC-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Producir textos orales y escritos claros en contextos relacionados con sus intereses e inquietudes, con el fin de expresar una postura personal crítica que respeta otras posturas.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1004,
+            1004
+          ],
+          "codigo_oficial": "FG-INGL-4M-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ingles-4o-medio/4-medio-fg",
+          "id": "FG-INGL-4M-OAC-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Utilizar su conocimiento del inglés en la comprensión y producción de textos orales y escritos claros, con el fin de construir una postura personal crítica en contextos relacionados con sus intereses e inquietudes.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1005,
+            1005
+          ],
+          "codigo_oficial": "FG-INGL-4M-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ingles-4o-medio/4-medio-fg",
+          "id": "FG-INGL-4M-OAC-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Producir y comprender con fluidez textos orales y escritos claros en situaciones comunicativas que involucren otras visiones de mundo y la propia, con el fin de interactuar y tomar conciencia de su propia identidad.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1007,
+            1007
+          ],
+          "codigo_oficial": "FG-INGL-4M-OAC-04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ingles-4o-medio/4-medio-fg",
+          "id": "FG-INGL-4M-OAC-04"
+        }
+      ]
+    }
+  ]
+}

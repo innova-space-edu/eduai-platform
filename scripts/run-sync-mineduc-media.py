@@ -1,32 +1,16 @@
 #!/usr/bin/env python3
-"""Ejecuta el sincronizador de Media aplicando alias oficiales de contingencia."""
+"""Compatibility entry point: rebuild the complete reviewed Media catalogue.
 
-from __future__ import annotations
-
-import importlib.util
+This replays archived official sources; it does not claim to fetch a new version.
+See docs/AUDITORIA_OA_MEDIA_20261106.md before updating the source snapshots.
+"""
 from pathlib import Path
-
-SCRIPT = Path(__file__).with_name("sync-mineduc-media.py")
-spec = importlib.util.spec_from_file_location("sync_mineduc_media", SCRIPT)
-if spec is None or spec.loader is None:
-    raise RuntimeError(f"No se pudo cargar {SCRIPT}")
-module = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(module)
-
-original_fetch = module.fetch_html
+import runpy
 
 
-def fetch_with_aliases(url: str) -> str:
-    aliases = {
-        "/educacion-ciudadana-3-medio/3-medio-fg": "/educacion-ciudadana-3m/3-medio-fg",
-    }
-    transport_url = url
-    for old, new in aliases.items():
-        transport_url = transport_url.replace(old, new)
-    if transport_url != url:
-        print(f"[red] usando alias oficial de transporte: {transport_url}", flush=True)
-    return original_fetch(transport_url)
+def main():
+    runpy.run_path(str(Path(__file__).with_name("audit-media-2026.py")), run_name="__main__")
 
 
-module.fetch_html = fetch_with_aliases
-module.main()
+if __name__ == "__main__":
+    main()

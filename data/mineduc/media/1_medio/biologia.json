@@ -3,73 +3,276 @@
     "nivel": "Media",
     "curso": "1° Medio",
     "asignatura": "Biología",
-    "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/1-medio",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
     "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
     "estado_verificacion": "verificado_oficial",
     "alcance_verificacion": [
-      "oa_contenido"
+      "oa_contenido",
+      "oa_habilidades"
     ],
-    "fecha_consulta": "2026-07-18",
-    "nota": "Los OA fueron obtenidos directamente de páginas oficiales específicas de Currículum Nacional. La agrupación interna no altera el texto oficial.",
-    "base_asignatura_origen": "Ciencias Naturales 1° Medio"
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      1
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+      "https://www.bcn.cl/leychile/navegar?i=1060374"
+    ],
+    "base_asignatura_origen": "Ciencias Naturales 1° Medio",
+    "alias_curricular": true
   },
-  "objetivos_habilidad": [],
+  "objetivos_habilidad": [
+    {
+      "numero_oficial": "a",
+      "descripcion": "Observar y describir detalladamente las características de objetos, procesos y fenómenos del mundo natural y tecnológico, usando los sentidos.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2987,
+        2987
+      ],
+      "id": "1-ciencias_naturales-OAH-a",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "b",
+      "descripcion": "Formular preguntas y/o problemas, a partir de conocimiento científico, que puedan ser resueltos mediante una investigación científica*.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2989,
+        2989
+      ],
+      "id": "1-ciencias_naturales-OAH-b",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "c",
+      "descripcion": "Formular y fundamentar hipótesis comprobables, basados en conocimiento científico.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2991,
+        2991
+      ],
+      "id": "1-ciencias_naturales-OAH-c",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "d",
+      "descripcion": "Planificar diversos diseños de investigaciones experimentales que den respuesta a una pregunta y/o problema sobre la base de diversas fuentes de información científica, considerando:\n- el uso adecuado de instrumentos y materiales para asegurar la obtención de datos confiables\n- la manipulación de variables y sus relaciones\n- la explicación clara de procedimientos posibles de replicar",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        2994,
+        3000
+      ],
+      "id": "1-ciencias_naturales-OAH-d",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "e",
+      "descripcion": "Planificar una investigación no experimental y/o documental que considere diversas fuentes de información para responder a preguntas científicas o para constituir el marco teórico de la investigación exp erimental.",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3001,
+        3001
+      ],
+      "id": "1-ciencias_naturales-OAH-e",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "f",
+      "descripcion": "Conducir rigurosamente investigaciones científicas para obtener evidencias precisas y confiables con el apoyo de las TIC.",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3003,
+        3003
+      ],
+      "id": "1-ciencias_naturales-OAH-f",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "g",
+      "descripcion": "Organizar el trabajo colaborativo, asignando responsabilidades, comunicándose en forma efectiva y siguiendo normas de seguridad. Procesar Y Analizar La Evidencia",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3005,
+        3006
+      ],
+      "id": "1-ciencias_naturales-OAH-g",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "h",
+      "descripcion": "Organizar datos cuantitativos y/o cualitativos con precisión, fundamentando su confiabilidad, y presentarlos en tablas, gráficos, modelos u otras representaciones, con la ayuda de las TIC.",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3008,
+        3008
+      ],
+      "id": "1-ciencias_naturales-OAH-h",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "i",
+      "descripcion": "Crear, seleccionar, usar y ajustar modelos para describir mecanismos y para predecir y apoyar explicaciones sobre las relaciones entre las partes de un sistema.",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3010,
+        3010
+      ],
+      "id": "1-ciencias_naturales-OAH-i",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "j",
+      "descripcion": "Analizar y explicar los resultados de una investigación científica*, para plantear inferencias y conclusiones:\n- comparando las relaciones, tendencias y patrones de las variables\n- usando expresiones y operaciones matemáticas cuando sea pertinente (por ejemplo: potencias, razones, funciones, notación científica, medidas de tendencia central, cambio porcentual)\n- utilizando vocabulario disciplinar pertinente",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3012,
+        3017
+      ],
+      "id": "1-ciencias_naturales-OAH-j",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "k",
+      "descripcion": "Evaluar la investigación científica* con el fin de perfeccionarla, considerando:\n- la validez y confiabilidad de los resultados\n- la replicabilidad de los procedimientos\n- las explicaciones, las predicciones y las conclusiones\n- las posibles aplicaciones tecnológicas\n- el desempeño personal y grupal Comunicar",
+      "eje": "Evaluar",
+      "referencia_lineas": [
+        3021,
+        3030
+      ],
+      "id": "1-ciencias_naturales-OAH-k",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "l",
+      "descripcion": "Explicar y argumentar con evidencias provenientes de investigaciones científicas*, en forma oral y escrita, incluyendo tablas, gráficos, modelos y TIC.",
+      "eje": "Evaluar",
+      "referencia_lineas": [
+        3032,
+        3032
+      ],
+      "id": "1-ciencias_naturales-OAH-l",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "m",
+      "descripcion": "Discutir en forma oral y escrita las ideas para diseñar una investigación científica*, las posibles aplicaciones y soluciones a problemas tecnológicos, las teorías, las predicciones y las conclusiones, utilizando argumentos basados en evidencias y en el conocimiento científico y tecnológico.",
+      "eje": "Evaluar",
+      "referencia_lineas": [
+        3033,
+        3033
+      ],
+      "id": "1-ciencias_naturales-OAH-m",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    }
+  ],
   "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
       "id": "eje-biologia",
-      "nombre": "Biología",
+      "nombre": "BIOLOGÍA",
       "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "CN1M-OA-01",
+          "numero_oficial": 1,
+          "descripcion": "Explicar, basándose en evidencias, que los fósiles:\n- Se forman a partir de restos de animales y plantas.\n- Se forman en rocas sedimentarias.\n- Se ubican de acuerdo a su antigüedad en los estratos de la Tierra.",
+          "eje": "BIOLOGÍA",
+          "referencia_lineas": [
+            3043,
+            3048
+          ],
           "codigo_oficial": "CN1M OA 01",
-          "descripcion": "Explicar, basándose en evidencias, que los fósiles:\n- Se forman a partir de restos de animales y plantas\n- Se forman en rocas sedimentarias\n- Se ubican de acuerdo a su antigüedad en los estratos de la Tierra",
-          "eje": "Biología"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+          "id": "CN1M-OA-01"
         },
         {
-          "id": "CN1M-OA-02",
+          "numero_oficial": 2,
+          "descripcion": "Analizar e interpretar datos para proveer de evidencias que apoyen que la diversidad de organismos es el resultado de la evolución, considerando:\n- Evidencias de la evolución (como el registro fósil, las estructuras anatómicas homólogas, la embriología y las secuencias de ADN).\n- Los postulados de la teoría de la selección natural.\n- Los aportes de científicos como Darwin y Wallace a las teorías evolutivas.",
+          "eje": "BIOLOGÍA",
+          "referencia_lineas": [
+            3050,
+            3055
+          ],
           "codigo_oficial": "CN1M OA 02",
-          "descripcion": "Analizar e interpretar datos para proveer de evidencias que apoyen que la diversidad de organismos es el resultado de la evolución, considerando:\n- Evidencias de la evolución (como el registro fósil, las estructuras anatómicas homólogas, la embriología y las secuencias de ADN)\n- Los postulados de la teoría de la selección natural\n- Los aportes de científicos como Darwin y Wallace a las teorías evolutivas",
-          "eje": "Biología"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+          "id": "CN1M-OA-02"
         },
         {
-          "id": "CN1M-OA-03",
-          "codigo_oficial": "CN1M OA 03",
+          "numero_oficial": 3,
           "descripcion": "Explicar, basándose en evidencias, que la clasificación de la diversidad de organismos se construye a través del tiempo sobre la base de criterios taxonómicos que permiten organizarlos en grupos y subgrupos, identificando sus relaciones de parentesco con ancestros comunes.",
-          "eje": "Biología"
+          "eje": "BIOLOGÍA",
+          "referencia_lineas": [
+            3057,
+            3057
+          ],
+          "codigo_oficial": "CN1M OA 03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+          "id": "CN1M-OA-03"
         },
         {
-          "id": "CN1M-OA-04",
+          "numero_oficial": 4,
+          "descripcion": "Investigar y explicar cómo se organizan e interactúan los seres vivos en diversos ecosistemas, a partir de ejemplos de Chile, considerando:\n- Los niveles de organización de los seres vivos (como organismo, población, comunidad, ecosistema).\n- Las interacciones biológicas (como depredación, competencia, comensalismo, mutualismo, parasitismo).",
+          "eje": "BIOLOGÍA",
+          "referencia_lineas": [
+            3058,
+            3062
+          ],
           "codigo_oficial": "CN1M OA 04",
-          "descripcion": "Investigar y explicar cómo se organizan e interactúan los seres vivos en diversos ecosistemas, a partir de ejemplos de Chile, considerando:\n- Los niveles de organización de los seres vivos (como organismo, población, comunidad, ecosistema)\n- Las interacciones biológicas (como depredación, competencia, comensalismo, mutualismo, parasitismo)",
-          "eje": "Biología"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+          "id": "CN1M-OA-04"
         },
         {
-          "id": "CN1M-OA-05",
-          "codigo_oficial": "CN1M OA 05",
+          "numero_oficial": 5,
           "descripcion": "Analizar e interpretar los factores que afectan el tamaño de las poblaciones (propagación de enfermedades, disponibilidad de energía y de recursos alimentarios, sequías, entre otros) y predecir posibles consecuencias sobre el ecosistema.",
-          "eje": "Biología"
+          "eje": "BIOLOGÍA",
+          "referencia_lineas": [
+            3063,
+            3063
+          ],
+          "codigo_oficial": "CN1M OA 05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+          "id": "CN1M-OA-05"
         },
         {
-          "id": "CN1M-OA-06",
+          "numero_oficial": 6,
+          "descripcion": "Desarrollar modelos que expliquen:\n- El ciclo del carbono, el nitrógeno, el agua y el fósforo, y su importancia biológica.\n- Los flujos de energía en un ecosistema (redes y pirámides tróficas).\n- La trayectoria de contaminantes y su bioacumulación.",
+          "eje": "BIOLOGÍA",
+          "referencia_lineas": [
+            3065,
+            3071
+          ],
           "codigo_oficial": "CN1M OA 06",
-          "descripcion": "Desarrollar modelos que expliquen:\n- El ciclo del carbono, el nitrógeno, el agua y el fósforo, y su importancia biológica\n- Los flujos de energía en un ecosistema (redes y pirámides tróficas)\n- La trayectoria de contaminantes y su bioacumulación",
-          "eje": "Biología"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+          "id": "CN1M-OA-06"
         },
         {
-          "id": "CN1M-OA-07",
+          "numero_oficial": 7,
+          "descripcion": "Explicar, por medio de una investigación, el rol de la fotosíntesis y la respiración celular en el ecosistema considerando:\n- El flujo de la energía.\n- El ciclo de la materia.",
+          "eje": "BIOLOGÍA",
+          "referencia_lineas": [
+            3072,
+            3076
+          ],
           "codigo_oficial": "CN1M OA 07",
-          "descripcion": "Explicar, por medio de una investigación, el rol de la fotosíntesis y la respiración celular en el ecosistema considerando:\n- El flujo de la energía\n- El ciclo de la materia",
-          "eje": "Biología"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+          "id": "CN1M-OA-07"
         },
         {
-          "id": "CN1M-OA-08",
+          "numero_oficial": 8,
+          "descripcion": "Explicar y evaluar los efectos de acciones humanas (conservación ambiental, cultivos, forestación y deforestación, entre otras) y de fenómenos naturales (sequías, erupciones volcánicas, entre otras) en relación con:\n- El equilibrio de los ecosistemas.\n- La disponibilidad de recursos naturales renovables y no renovables.\n- Las posibles medidas para un desarrollo sustentable.",
+          "eje": "BIOLOGÍA",
+          "referencia_lineas": [
+            3078,
+            3083
+          ],
           "codigo_oficial": "CN1M OA 08",
-          "descripcion": "Explicar y evaluar los efectos de acciones humanas (conservación ambiental, cultivos, forestación y deforestación, entre otras) y de fenómenos naturales (sequías, erupciones volcánicas, entre otras) en relación con:\n- El equilibrio de los ecosistemas\n- La disponibilidad de recursos naturales renovables y no renovables\n- Las posibles medidas para un desarrollo sustentable",
-          "eje": "Biología"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+          "id": "CN1M-OA-08"
         }
       ]
     }

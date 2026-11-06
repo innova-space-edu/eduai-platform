@@ -1,0 +1,126 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "4° Medio",
+    "asignatura": "Teatro",
+    "plan": "formacion_general_electiva",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/teatro/3-medio-fg",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      3,
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/teatro/3-medio-fg",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Experimentar las posibilidades expresivas y comunicativas del cuerpo, el gesto y la voz en juegos dramáticos e improvisaciones grupales e individuales.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1521,
+            1521
+          ],
+          "codigo_oficial": "FG-TEAT-3y4-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/teatro/3-medio-fg",
+          "id": "FG-TEAT-3y4-OAC-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Crear ejercicios de expresión dramática, individuales y colectivos, a partir de la observación de situaciones y la imaginación, utilizando diversos recursos y elementos del lenguaje teatral (expresión, dramatización, trabajo en equipo y puesta en escena, entre otros).",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1522,
+            1522
+          ],
+          "codigo_oficial": "FG-TEAT-3y4-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/teatro/3-medio-fg",
+          "id": "FG-TEAT-3y4-OAC-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Interpretar obras teatrales, que expresen los temas de interés de los estudiantes, utilizando para la construcción de personajes y situaciones dramáticas elementos del lenguaje teatral, habilidades actorales, recursos de la puesta en escena, medios y tecnologías actuales, y considerando un público específico.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1523,
+            1523
+          ],
+          "codigo_oficial": "FG-TEAT-3y4-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/teatro/3-medio-fg",
+          "id": "FG-TEAT-3y4-OAC-03"
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "id": "eje-apreciar-y-responder",
+      "nombre": "Apreciar y responder",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 4,
+          "descripcion": "Inferir propósitos expresivos de obras teatrales y textos dramáticos de diversos estilos, géneros y orígenes a partir de criterios estéticos (elementos del lenguaje teatral como uso expresivo del gesto y la voz, recursos de la puesta en escena, ideas, emociones y sensaciones que generan, entre otros) y aspectos de la época, el entorno y el contexto.",
+          "eje": "Apreciar y responder",
+          "referencia_lineas": [
+            1526,
+            1526
+          ],
+          "codigo_oficial": "FG-TEAT-3y4-OAC-04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/teatro/3-medio-fg",
+          "id": "FG-TEAT-3y4-OAC-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Evaluar críticamente procesos y resultados de obras teatrales, tanto de artistas nacionales y extranjeros como propias y de sus pares, considerando criterios estéticos y propósitos expresivos, y dando cuenta de una postura personal fundada y respetuosa.",
+          "eje": "Apreciar y responder",
+          "referencia_lineas": [
+            1527,
+            1527
+          ],
+          "codigo_oficial": "FG-TEAT-3y4-OAC-05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/teatro/3-medio-fg",
+          "id": "FG-TEAT-3y4-OAC-05"
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "id": "eje-comunicar-y-difundir",
+      "nombre": "Comunicar y difundir",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 6,
+          "descripcion": "Diseñar y gestionar colaborativamente proyectos de difusión de obras e interpretaciones teatrales, empleando una diversidad de medios o TIC.",
+          "eje": "Comunicar y difundir",
+          "referencia_lineas": [
+            1531,
+            1531
+          ],
+          "codigo_oficial": "FG-TEAT-3y4-OAC-06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/teatro/3-medio-fg",
+          "id": "FG-TEAT-3y4-OAC-06"
+        }
+      ]
+    }
+  ]
+}

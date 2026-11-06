@@ -1,0 +1,134 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "4° Medio",
+    "asignatura": "Interpretación y creación en teatro",
+    "plan": "formacion_diferenciada_hc",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-creacion-teatro/3-medio-hc",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      3,
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-creacion-teatro/3-medio-hc",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Experimentar con los elementos y recursos del lenguaje teatral (personajes, estructura dramática, conflicto, puesta en escena, espacio, entre otros), aplicándolos en la escenificación e interpretación de propósitos expresivos personales y colectivos.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1866,
+            1866
+          ],
+          "codigo_oficial": "AR-ICTE-3y4-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-creacion-teatro/3-medio-hc",
+          "id": "AR-ICTE-3y4-OAC-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Expresar emociones y temas de su interés, basados en diversas fuentes de inspiración (relatos, imágenes, sonidos, textos dramáticos, elementos culturales, entre otros), a través del gesto, la voz y recursos de la puesta en escena (utilización del espacio escénico, vestuario, escenografía, iluminación, sonido y recursos multimediales, entre otros).",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1867,
+            1867
+          ],
+          "codigo_oficial": "AR-ICTE-3y4-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-creacion-teatro/3-medio-hc",
+          "id": "AR-ICTE-3y4-OAC-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Crear o adaptar obras teatrales de diferentes estilos, aplicando elementos y recursos del lenguaje teatral, la experimentación con recursos de la puesta en escena y la investigación de referentes o textos dramáticos nacionales e internacionales.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1868,
+            1868
+          ],
+          "codigo_oficial": "AR-ICTE-3y4-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-creacion-teatro/3-medio-hc",
+          "id": "AR-ICTE-3y4-OAC-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Diseñar y gestionar, personal o colectivamente, montajes de obras y proyectos teatrales para públicos específicos, para comunicar propósitos, aspectos del proceso y resultados de sus creaciones e interpretaciones teatrales, empleando diversidad de medios, recursos y tecnologías tradicionales y emergentes.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1869,
+            1869
+          ],
+          "codigo_oficial": "AR-ICTE-3y4-OAC-04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-creacion-teatro/3-medio-hc",
+          "id": "AR-ICTE-3y4-OAC-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Analizar estéticamente obras teatrales de diferentes épocas y procedencia, relacionando tratamiento del lenguaje teatral, criterios técnicos e interpretativos, propuesta dramatúrgica, elementos de la puesta en escena y contextos.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1870,
+            1870
+          ],
+          "codigo_oficial": "AR-ICTE-3y4-OAC-05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-creacion-teatro/3-medio-hc",
+          "id": "AR-ICTE-3y4-OAC-05"
+        },
+        {
+          "numero_oficial": 6,
+          "descripcion": "Argumentar juicios estéticos de obras y manifestaciones teatrales de diferentes épocas y procedencias, a partir de análisis estéticos y apreciaciones personales.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1872,
+            1872
+          ],
+          "codigo_oficial": "AR-ICTE-3y4-OAC-06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-creacion-teatro/3-medio-hc",
+          "id": "AR-ICTE-3y4-OAC-06"
+        },
+        {
+          "numero_oficial": 7,
+          "descripcion": "Evaluar críticamente procesos y resultados de obras teatrales, tanto propios como de sus pares, considerando relaciones entre propósitos expresivos, aspectos estéticos y decisiones tomadas durante el proceso.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1873,
+            1873
+          ],
+          "codigo_oficial": "AR-ICTE-3y4-OAC-07",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-creacion-teatro/3-medio-hc",
+          "id": "AR-ICTE-3y4-OAC-07"
+        },
+        {
+          "numero_oficial": 8,
+          "descripcion": "Relacionar, a partir de investigaciones, las habilidades y conocimientos de la asignatura con diferentes contextos laborales, profesionales y de desarrollo personal.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1875,
+            1875
+          ],
+          "codigo_oficial": "AR-ICTE-3y4-OAC-08",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-creacion-teatro/3-medio-hc",
+          "id": "AR-ICTE-3y4-OAC-08"
+        }
+      ]
+    }
+  ]
+}

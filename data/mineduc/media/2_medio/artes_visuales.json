@@ -1,0 +1,125 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "2° Medio",
+    "asignatura": "Artes Visuales",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/2-medio",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      2
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/2-medio",
+      "https://www.bcn.cl/leychile/navegar?i=1084868"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Crear proyectos visuales basados en la valoración crítica de manifestaciones estéticas referidas a problemáticas sociales y juveniles, en el espacio público y en diferentes contextos.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            539,
+            540
+          ],
+          "codigo_oficial": "AR2M OA 01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/2-medio",
+          "id": "AR2M-OA-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Crear trabajos y proyectos visuales basados en diferentes desafíos creativos, investigando el manejo de materiales sustentables en procedimientos de escultura y diseño.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            542,
+            544
+          ],
+          "codigo_oficial": "AR2M OA 02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/2-medio",
+          "id": "AR2M-OA-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Crear proyectos visuales basados en diferentes desafíos creativos, utilizando medios contemporáneos como video y multimedia.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            546,
+            548
+          ],
+          "codigo_oficial": "AR2M OA 03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/2-medio",
+          "id": "AR2M-OA-03"
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "id": "eje-eje-apreciar-y-responder-frente-al-arte",
+      "nombre": "Eje Apreciar y responder frente al arte",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 4,
+          "descripcion": "Argumentar juicios críticos referidos a la valoración de diversas manifestaciones visuales, configurando una selección personal de criterios estéticos.",
+          "eje": "Eje Apreciar y responder frente al arte",
+          "referencia_lineas": [
+            551,
+            553
+          ],
+          "codigo_oficial": "AR2M OA 04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/2-medio",
+          "id": "AR2M-OA-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Argumentar evaluaciones y juicios críticos, valorando el trabajo visual personal y de sus pares, y seleccionando criterios de análisis según el tipo de trabajo o proyecto visual apreciado.",
+          "eje": "Eje Apreciar y responder frente al arte",
+          "referencia_lineas": [
+            555,
+            557
+          ],
+          "codigo_oficial": "AR2M OA 05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/2-medio",
+          "id": "AR2M-OA-05"
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "id": "eje-eje-difundir-y-comunicar",
+      "nombre": "Eje Difundir y comunicar",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 6,
+          "descripcion": "Implementar propuestas de difusión hacia la comunidad de trabajos y proyectos de arte, en el contexto escolar o local, de forma directa o virtual, contemplando las manifestaciones visuales a exponer, el espacio, el montaje, el público y el aporte a la comunidad, entre otros.",
+          "eje": "Eje Difundir y comunicar",
+          "referencia_lineas": [
+            561,
+            562
+          ],
+          "codigo_oficial": "AR2M OA 06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/2-medio",
+          "id": "AR2M-OA-06"
+        }
+      ]
+    }
+  ]
+}

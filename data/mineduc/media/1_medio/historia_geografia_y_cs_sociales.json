@@ -1,0 +1,478 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "1° Medio",
+    "asignatura": "Historia, Geografía y Cs. Sociales",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — texto normativo publicado en Ley Chile (BCN)",
+    "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido",
+      "oa_habilidades"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "numeracion_normativa",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      1
+    ]
+  },
+  "objetivos_habilidad": [
+    {
+      "numero_oficial": "a",
+      "descripcion": "Establecer y fundamentar periodizaciones históricas mediante líneas de tiempo, reconociendo la sucesión y la simultaneidad de acontecimientos o procesos históricos vistos en el nivel.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        3739,
+        3739
+      ],
+      "id": "1-historia_geografia_y_cs_sociales-OAH-a",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "b",
+      "descripcion": "Analizar elementos de continuidad y cambio entre períodos y procesos abordados en el nivel.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        3741,
+        3741
+      ],
+      "id": "1-historia_geografia_y_cs_sociales-OAH-b",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "c",
+      "descripcion": "Distinguir las distintas duraciones (tiempo corto, medio y largo) y los diferentes ritmos o velocidades con que suceden los fenómenos históricos.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        3743,
+        3743
+      ],
+      "id": "1-historia_geografia_y_cs_sociales-OAH-c",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "d",
+      "descripcion": "Representar la distribución espacial de diferentes fenómenos geográficos e históricos, por medio de la construcción de mapas a diferentes escalas y de la utilización de herramientas geográficas y tecnológicas.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        3744,
+        3744
+      ],
+      "id": "1-historia_geografia_y_cs_sociales-OAH-d",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "e",
+      "descripcion": "Analizar datos e información geográfica, utilizando TIC's u otras herramientas geográficas para elaborar inferencias, proponer explicaciones de los patrones, tendencias, relaciones y plantear predicciones respecto a los contenidos del nivel.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        3746,
+        3746
+      ],
+      "id": "1-historia_geografia_y_cs_sociales-OAH-e",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "f",
+      "descripcion": "Seleccionar fuentes de información, considerando:\n- la confiabilidad de la fuente (autor, origen o contexto, intención, validez de los datos)\n- la relevancia y valor de la información\n- el uso de diversas fuentes para obtener información que permita enriquecer y profundizar el análisis.",
+      "eje": "Análisis y trabajo con fuentes de información",
+      "referencia_lineas": [
+        3749,
+        3755
+      ],
+      "id": "1-historia_geografia_y_cs_sociales-OAH-f",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "g",
+      "descripcion": "Analizar y evaluar críticamente la información de diversas fuentes para utilizarla como evidencia en argumentaciones sobre temas del nivel.",
+      "eje": "Análisis y trabajo con fuentes de información",
+      "referencia_lineas": [
+        3757,
+        3757
+      ],
+      "id": "1-historia_geografia_y_cs_sociales-OAH-g",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "h",
+      "descripcion": "Comparar distintas interpretaciones historiográficas y geográficas sobre los temas estudiados en el nivel.",
+      "eje": "Análisis y trabajo con fuentes de información",
+      "referencia_lineas": [
+        3758,
+        3758
+      ],
+      "id": "1-historia_geografia_y_cs_sociales-OAH-h",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "i",
+      "descripcion": "Investigar sobre temas del nivel, considerando los siguientes elementos:\n- definición de un problema y/o pregunta de investigación\n- elaboración y fundamentación de hipótesis\n- planificación de la investigación sobre la base de la revisión y selección de la información obtenida de fuentes\n- elaboración de un marco teórico que incluya las principales ideas y conceptos del tema a investigar\n- citar la información obtenida de acuerdo a normas estandarizadas\n- análisis de los resultados y elaboración de conclusiones relacionadas con la hipótesis planteada\n- comunicación de los resultados de la investigación\n- utilización de TIC y de otras herramientas.",
+      "eje": "Análisis y trabajo con fuentes de información",
+      "referencia_lineas": [
+        3760,
+        3775
+      ],
+      "id": "1-historia_geografia_y_cs_sociales-OAH-i",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "j",
+      "descripcion": "Aplicar habilidades de pensamiento crítico tales como:\n- formular preguntas significativas para comprender y profundizar los temas estudiados en el nivel.\n- inferir y elaborar conclusiones respecto a los temas del nivel\n- cuestionar simplificaciones y prejuicios\n- argumentar sus opiniones en base a evidencia\n- analizar puntos de vista e identificar sesgos\n- comparar y contrastar procesos y fenómenos históricos y geográficos\n- analizar la multicausalidad de los procesos históricos y geográficos",
+      "eje": "Pensamiento crítico",
+      "referencia_lineas": [
+        3779,
+        3792
+      ],
+      "id": "1-historia_geografia_y_cs_sociales-OAH-j",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "k",
+      "descripcion": "Participar activamente en conversaciones grupales y debates, argumentando opiniones, posturas y propuestas para llegar a acuerdos, y profundizando en el intercambio de ideas.",
+      "eje": "Comunicación",
+      "referencia_lineas": [
+        3795,
+        3795
+      ],
+      "id": "1-historia_geografia_y_cs_sociales-OAH-k",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "l",
+      "descripcion": "Comunicar los resultados de sus investigaciones por diversos medios, utilizando una estructura lógica y efectiva, y argumentos basados en evidencia pertinente.",
+      "eje": "Comunicación",
+      "referencia_lineas": [
+        3797,
+        3797
+      ],
+      "id": "1-historia_geografia_y_cs_sociales-OAH-l",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "m",
+      "descripcion": "Desarrollar una argumentación escrita utilizando términos y conceptos históricos y geográficos, que incluya ideas, análisis y evidencia pertinente.",
+      "eje": "Comunicación",
+      "referencia_lineas": [
+        3799,
+        3799
+      ],
+      "id": "1-historia_geografia_y_cs_sociales-OAH-m",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    }
+  ],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Explicar las ideas republicanas y liberales y su relación con las transformaciones políticas y económicas de América y Europa durante el siglo XIX, considerando, por ejemplo, el parlamentarismo como modelo de representatividad, el constitucionalismo, el movimiento abolicionista, la libre asociación, el libre mercado, la ampliación de la ciudadanía, entre otros.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3804,
+            3804
+          ],
+          "id": "HI1M-OA-01",
+          "codigo_oficial": "HI1M OA 01",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Caracterizar la cultura burguesa, su ideal de vida y valores durante el siglo XIX (ej., modelo de familia, roles de género, ética del trabajo, entre otros), y explicar el protagonismo de la burguesía en las principales transformaciones políticas, sociales y económicas del período.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3805,
+            3805
+          ],
+          "id": "HI1M-OA-02",
+          "codigo_oficial": "HI1M OA 02",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Analizar cómo durante el siglo XIX la geografía política de América Latina y de Europa se reorganizó con el surgimiento del Estado nación, caracterizado por la unificación de territorios y de tradiciones culturales ( por ejemplo, lengua e historia) según el principio de soberanía y el sentido de pertenencia a una comunidad política. La idea del progreso indefinido y sus contradicciones: de la industrialización a la Guerra Total en el cambio de siglo",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3806,
+            3808
+          ],
+          "id": "HI1M-OA-03",
+          "codigo_oficial": "HI1M OA 03",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Reconocer que el siglo XIX latinoamericano y europeo está marcado por la idea de progreso indefinido, que se manifestó en aspectos como el desarrollo científico y tecnológico, el dominio de la naturaleza, el positivismo y el optimismo histórico, entre otros.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3809,
+            3809
+          ],
+          "id": "HI1M-OA-04",
+          "codigo_oficial": "HI1M OA 04",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Caracterizar el proceso de industrialización y analizar sus efectos sobre la economía, la población y el territorio, considerando la expansión del trabajo asalariado, las transformaciones en los modos de producción, el surgimiento del proletariado y la consolidación de la burguesía, el desarrollo de la ciudad contemporánea (por ejemplo, expansión urbana, explosión demográfica, marginalidad) y la revolución del transporte y de las comunicaciones.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3810,
+            3810
+          ],
+          "id": "HI1M-OA-05",
+          "codigo_oficial": "HI1M OA 05",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 6,
+          "descripcion": "Analizar el imperialismo europeo del siglo XIX, considerando su incidencia en la reconfiguración del mapa mundial, su impacto en los pueblos colonizados y su influencia en la ampliación de los mercados y en la expansión del capitalismo, entre otros.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3811,
+            3811
+          ],
+          "id": "HI1M-OA-06",
+          "codigo_oficial": "HI1M OA 06",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 7,
+          "descripcion": "Analizar el impacto de la Primera Guerra Mundial en la sociedad civil, considerando la movilización general, el cambio en la forma y la percepción de la guerra y la entrada masiva de la mujer al mundo laboral y al espacio público, y evaluar sus consecuencias en el orden geopolítico mundial (por ejemplo, en el rediseño del mapa de Europa, en el surgimiento de la URSS, en la creciente influencia de Estados Unidos y en la crisis de la idea de progreso del siglo XIX). El desafío de consolidar el orden republicano y la idea de Nación: Chile en el siglo XIX",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3812,
+            3813
+          ],
+          "id": "HI1M-OA-07",
+          "codigo_oficial": "HI1M OA 07",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 8,
+          "descripcion": "Analizar el período de formación de la República de Chile como un proceso que implicó el enfrentamiento de distintas visiones sobre el modo de organizar al país, y examinar los factores que explican la relativa estabilidad política alcanzada a partir de la Constitución de 1833.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3815,
+            3815
+          ],
+          "id": "HI1M-OA-08",
+          "codigo_oficial": "HI1M OA 08",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 9,
+          "descripcion": "Caracterizar la consolidación de la República en Chile, considerando la defensa del territorio nacional, el voto censitario, la institucionalización del debate político (por ejemplo, la estructuración del sistema de partidos, la discusión parlamentaria, la prensa política, etc.), y la persistencia de conflictos como la crítica al centralismo y el debate sobre las atribuciones del Ejecutivo y del Legislativo.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3816,
+            3816
+          ],
+          "id": "HI1M-OA-09",
+          "codigo_oficial": "HI1M OA 09",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 10,
+          "descripcion": "Explicar que Chile durante el siglo XIX se insertó en los procesos de industrialización del mundo atlántico y en los mercados internacionales mediante la explotación y exportación de recursos naturales, reconociendo la persistencia de una economía tradicional y rural basada en la hacienda y el inquilinaje.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3817,
+            3817
+          ],
+          "id": "HI1M-OA-10",
+          "codigo_oficial": "HI1M OA 10",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 11,
+          "descripcion": "Analizar cómo el desarrollo de espacios de expresión de la opinión pública (prensa, historiografía, literatura y movilización política) y del sistema educacional, contribuyeron a expandir y profundizar la idea de nación durante el siglo XIX en Chile. Configuración del territorio chileno y sus dinámicas geográficas en el siglo XIX",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3818,
+            3820
+          ],
+          "id": "HI1M-OA-11",
+          "codigo_oficial": "HI1M OA 11",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 12,
+          "descripcion": "Describir los procesos de exploración y reconocimiento del territorio que impulsó el Estado para caracterizar su población, desarrollar sus recursos, organizar su administración y delimitar sus fronteras, entre otros, considerando el rol que cumplieron las ciencias (misiones científicas, censos, entre otros) e instituciones como la Universidad de Chile.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3821,
+            3821
+          ],
+          "id": "HI1M-OA-12",
+          "codigo_oficial": "HI1M OA 12",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 13,
+          "descripcion": "Describir el proceso de ocupación de Valdivia, Llanquihue, Chiloé y el Estrecho de Magallanes, y analizar su importancia estratégica para el Estado, destacando el rol de la inmigración europea y las relaciones con los pueblos originarios que habitaban esos lugares.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3822,
+            3822
+          ],
+          "id": "HI1M-OA-13",
+          "codigo_oficial": "HI1M OA 13",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 14,
+          "descripcion": "Explicar que la ocupación de la Araucanía fue una política de Estado que afectó profundamente a la sociedad mapuche, considerando la acción militar, la fundación de ciudades, la extensión del ferrocarril, la repartición de tierras y la reubicación de la población mapuche en reducciones.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3823,
+            3823
+          ],
+          "id": "HI1M-OA-14",
+          "codigo_oficial": "HI1M OA 14",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 15,
+          "descripcion": "Analizar la Guerra del Pacífico considerando el conflicto económico en torno al salitre, el impacto de la guerra en múltiples ámbitos de la sociedad chilena, la ampliación del territorio nacional, y evaluar su proyección en las relaciones con los países vecinos. El orden liberal y las transformaciones políticas y sociales de fin de siglo en Chile",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3824,
+            3826
+          ],
+          "id": "HI1M-OA-15",
+          "codigo_oficial": "HI1M OA 15",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 16,
+          "descripcion": "Analizar el orden político liberal y parlamentario de la segunda mitad del siglo XIX, considerando las reformas constitucionales y su impacto en el aumento de las facultades del poder legislativo, el proceso de secularización de las instituciones, la consolidación del sistema de partidos, y la ampliación del derecho a voto y las libertades públicas.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3827,
+            3827
+          ],
+          "id": "HI1M-OA-16",
+          "codigo_oficial": "HI1M OA 16",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 17,
+          "descripcion": "Caracterizar las principales transformaciones generadas por las riquezas del salitre, reconociendo el crecimiento del ingreso fiscal, de los distintos sectores productivos, y de las inversiones públicas en infraestructura y en educación.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3828,
+            3828
+          ],
+          "id": "HI1M-OA-17",
+          "codigo_oficial": "HI1M OA 17",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 18,
+          "descripcion": "Analizar las principales transformaciones de la sociedad en el cambio de siglo, considerando los factores que originaron la cuestión social y sus características, la emergencia de nuevas demandas de los sectores populares y las nuevas formas de lucha obrera, la transformación ideológica de los partidos políticos, y el creciente protagonismo de los sectores medios. Formación Económica: Las Personas Y El Funcionamiento Del Mercado",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3829,
+            3831
+          ],
+          "id": "HI1M-OA-18",
+          "codigo_oficial": "HI1M OA 18",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 19,
+          "descripcion": "Explicar el problema económico de la escasez y las necesidades ilimitadas con ejemplos de la vida cotidiana, y de las relaciones económicas (por ejemplo, compra y venta de bienes y servicios, pago de remuneraciones y de impuestos, importaciones-exportaciones) que se dan entre los distintos agentes (personas, familias, empresas, Estado y resto del mundo).",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3832,
+            3832
+          ],
+          "id": "HI1M-OA-19",
+          "codigo_oficial": "HI1M OA 19",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 20,
+          "descripcion": "Explicar el funcionamiento del mercado (cómo se determinan los precios y la relación entre oferta y demanda) y los factores que pueden alterarlo: por ejemplo, el monopolio, la colusión, la inflación y la deflación, la fijación de precios y de aranceles, entre otros.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3833,
+            3833
+          ],
+          "id": "HI1M-OA-20",
+          "codigo_oficial": "HI1M OA 20",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 21,
+          "descripcion": "Caracterizar algunos instrumentos financieros de inversión y ahorro como préstamos, líneas y tarjetas de crédito, libretas de ahorro, cajas vecinas, acciones en la bolsa, previsión, entre otros, y evaluar los riesgos y beneficios que se derivan de su uso.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3834,
+            3834
+          ],
+          "id": "HI1M-OA-21",
+          "codigo_oficial": "HI1M OA 21",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 22,
+          "descripcion": "Evaluar situaciones de consumo informado y responsable, considerando los derechos del consumidor, los compromisos financieros, el sentido del ahorro y del endeudamiento, entre otros. Formación Ciudadana: Sociedad contemporánea: diversidad, convivencia y medioambiente.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3836,
+            3837
+          ],
+          "id": "HI1M-OA-22",
+          "codigo_oficial": "HI1M OA 22",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 23,
+          "descripcion": "Explicar que los problemas de una sociedad generan distintas respuestas políticas, ejemplificando a través de las posturas que surgieron frente a la \"cuestión social\" (por ejemplo, liberalismo, socialismo, anarquismo, comunismo y socialcristianismo) y de otras situaciones conflictivas de la actualidad.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3839,
+            3839
+          ],
+          "id": "HI1M-OA-23",
+          "codigo_oficial": "HI1M OA 23",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 24,
+          "descripcion": "Evaluar a través del uso de fuentes, las relaciones de conflicto y convivencia con los pueblos indígenas (Aymará, Colla, Rapa Nui, Mapuche, Quechua, Atacameño, Kawéskar, Yagán, Diaguita), tanto en el pasado como en el presente, y reflexionar sobre el valor de la diversidad cultural en nuestra sociedad.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3840,
+            3840
+          ],
+          "id": "HI1M-OA-24",
+          "codigo_oficial": "HI1M OA 24",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 25,
+          "descripcion": "Analizar el impacto del proceso de industrialización en el medio ambiente y su proyección en el presente, y relacionarlo con el debate actual en torno a la necesidad de lograr un desarrollo sostenible.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3841,
+            3841
+          ],
+          "id": "HI1M-OA-25",
+          "codigo_oficial": "HI1M OA 25",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        }
+      ]
+    }
+  ]
+}

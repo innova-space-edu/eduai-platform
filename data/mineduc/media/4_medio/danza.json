@@ -1,0 +1,126 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "4° Medio",
+    "asignatura": "Danza",
+    "plan": "formacion_general_electiva",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/danza/3-medio-fg",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      3,
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/danza/3-medio-fg",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Experimentar el cuerpo y sus posibilidades de movimiento de manera consciente y expresiva, utilizando los diversos recursos y elementos del lenguaje de la danza.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1481,
+            1481
+          ],
+          "codigo_oficial": "FG-DANZ-3y4-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/danza/3-medio-fg",
+          "id": "FG-DANZ-3y4-OAC-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Expresar y comunicar ideas, sensaciones, emociones, temas, vinculando diversos elementos y recursos del lenguaje de la danza (aspectos técnicos, espacio, tiempo, energía, entre otros).",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1483,
+            1483
+          ],
+          "codigo_oficial": "FG-DANZ-3y4-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/danza/3-medio-fg",
+          "id": "FG-DANZ-3y4-OAC-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Crear obras y proyectos de danza individuales y colectivos, considerando temas de interés, recursos del lenguaje de la danza y elementos de la puesta en escena.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1484,
+            1484
+          ],
+          "codigo_oficial": "FG-DANZ-3y4-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/danza/3-medio-fg",
+          "id": "FG-DANZ-3y4-OAC-03"
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "id": "eje-apreciar-y-responder",
+      "nombre": "Apreciar y responder",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 4,
+          "descripcion": "Interpretar propósitos expresivos de obras de danza a partir de criterios estéticos (lenguaje de la danza, puesta en escena, emociones, sensaciones e ideas que generan, entre otros) y aspectos contextuales.",
+          "eje": "Apreciar y responder",
+          "referencia_lineas": [
+            1488,
+            1488
+          ],
+          "codigo_oficial": "FG-DANZ-3y4-OAC-04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/danza/3-medio-fg",
+          "id": "FG-DANZ-3y4-OAC-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Evaluar críticamente procesos y resultados de obras y proyectos de danza propios y de sus pares, considerando criterios estéticos y propósitos expresivos, y dando cuenta de una postura personal fundada y respetuosa.",
+          "eje": "Apreciar y responder",
+          "referencia_lineas": [
+            1489,
+            1489
+          ],
+          "codigo_oficial": "FG-DANZ-3y4-OAC-05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/danza/3-medio-fg",
+          "id": "FG-DANZ-3y4-OAC-05"
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "id": "eje-comunicar-y-difundir",
+      "nombre": "Comunicar y difundir",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 6,
+          "descripcion": "Diseñar y gestionar colaborativamente procesos de difusión de obras y proyectos propios de danza, empleando una diversidad de medios o TIC.",
+          "eje": "Comunicar y difundir",
+          "referencia_lineas": [
+            1493,
+            1493
+          ],
+          "codigo_oficial": "FG-DANZ-3y4-OAC-06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/danza/3-medio-fg",
+          "id": "FG-DANZ-3y4-OAC-06"
+        }
+      ]
+    }
+  ]
+}

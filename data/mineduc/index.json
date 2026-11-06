@@ -616,6 +616,13 @@
       "name": "Educación Media",
       "files": [
         {
+          "path": "media/1_medio/artes_visuales.json",
+          "nivel": "media",
+          "curso": "1_medio",
+          "asignatura": "artes_visuales",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
           "path": "media/1_medio/biologia.json",
           "nivel": "media",
           "curso": "1_medio",
@@ -623,10 +630,38 @@
           "estado_verificacion": "verificado_oficial"
         },
         {
+          "path": "media/1_medio/ciencias_naturales.json",
+          "nivel": "media",
+          "curso": "1_medio",
+          "asignatura": "ciencias_naturales",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/1_medio/educacion_fisica_y_salud.json",
+          "nivel": "media",
+          "curso": "1_medio",
+          "asignatura": "educacion_fisica_y_salud",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
           "path": "media/1_medio/fisica.json",
           "nivel": "media",
           "curso": "1_medio",
           "asignatura": "fisica",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/1_medio/historia_geografia_y_cs_sociales.json",
+          "nivel": "media",
+          "curso": "1_medio",
+          "asignatura": "historia_geografia_y_cs_sociales",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/1_medio/ingles.json",
+          "nivel": "media",
+          "curso": "1_medio",
+          "asignatura": "ingles",
           "estado_verificacion": "verificado_oficial"
         },
         {
@@ -644,6 +679,20 @@
           "estado_verificacion": "verificado_oficial"
         },
         {
+          "path": "media/1_medio/musica.json",
+          "nivel": "media",
+          "curso": "1_medio",
+          "asignatura": "musica",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/1_medio/orientacion.json",
+          "nivel": "media",
+          "curso": "1_medio",
+          "asignatura": "orientacion",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
           "path": "media/1_medio/quimica.json",
           "nivel": "media",
           "curso": "1_medio",
@@ -658,6 +707,13 @@
           "estado_verificacion": "verificado_oficial"
         },
         {
+          "path": "media/2_medio/artes_visuales.json",
+          "nivel": "media",
+          "curso": "2_medio",
+          "asignatura": "artes_visuales",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
           "path": "media/2_medio/biologia.json",
           "nivel": "media",
           "curso": "2_medio",
@@ -665,10 +721,38 @@
           "estado_verificacion": "verificado_oficial"
         },
         {
+          "path": "media/2_medio/ciencias_naturales.json",
+          "nivel": "media",
+          "curso": "2_medio",
+          "asignatura": "ciencias_naturales",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/2_medio/educacion_fisica_y_salud.json",
+          "nivel": "media",
+          "curso": "2_medio",
+          "asignatura": "educacion_fisica_y_salud",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
           "path": "media/2_medio/fisica.json",
           "nivel": "media",
           "curso": "2_medio",
           "asignatura": "fisica",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/2_medio/historia_geografia_y_cs_sociales.json",
+          "nivel": "media",
+          "curso": "2_medio",
+          "asignatura": "historia_geografia_y_cs_sociales",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/2_medio/ingles.json",
+          "nivel": "media",
+          "curso": "2_medio",
+          "asignatura": "ingles",
           "estado_verificacion": "verificado_oficial"
         },
         {
@@ -686,6 +770,20 @@
           "estado_verificacion": "verificado_oficial"
         },
         {
+          "path": "media/2_medio/musica.json",
+          "nivel": "media",
+          "curso": "2_medio",
+          "asignatura": "musica",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/2_medio/orientacion.json",
+          "nivel": "media",
+          "curso": "2_medio",
+          "asignatura": "orientacion",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
           "path": "media/2_medio/quimica.json",
           "nivel": "media",
           "curso": "2_medio",
@@ -700,10 +798,94 @@
           "estado_verificacion": "verificado_oficial"
         },
         {
+          "path": "media/3_medio/artes_visuales_audiovisuales_y_multimediales.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "artes_visuales_audiovisuales_y_multimediales",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/artes_visuales.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "artes_visuales",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/biologia_celular_y_molecular.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "biologia_celular_y_molecular",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/biologia_de_los_ecosistemas.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "biologia_de_los_ecosistemas",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/chile_y_la_region_latinoamericana.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "chile_y_la_region_latinoamericana",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/ciencias_de_la_salud.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "ciencias_de_la_salud",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/ciencias_del_ejercicio_fisico_y_deportivo.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "ciencias_del_ejercicio_fisico_y_deportivo",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
           "path": "media/3_medio/ciencias_para_la_ciudadania.json",
           "nivel": "media",
           "curso": "3_medio",
           "asignatura": "ciencias_para_la_ciudadania",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/comprension_historica_del_presente.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "comprension_historica_del_presente",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/creacion_y_composicion_musical.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "creacion_y_composicion_musical",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/danza.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "danza",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/diseno_y_arquitectura.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "diseno_y_arquitectura",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/economia_y_sociedad.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "economia_y_sociedad",
           "estado_verificacion": "verificado_oficial"
         },
         {
@@ -714,10 +896,241 @@
           "estado_verificacion": "verificado_oficial"
         },
         {
+          "path": "media/3_medio/educacion_fisica_y_salud_1.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "educacion_fisica_y_salud_1",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/educacion_fisica_y_salud_2.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "educacion_fisica_y_salud_2",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/estetica.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "estetica",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/expresion_corporal.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "expresion_corporal",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/filosofia_politica.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "filosofia_politica",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/filosofia.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "filosofia",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/fisica.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "fisica",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/geografia_territorio_y_desafios_socioambientales.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "geografia_territorio_y_desafios_socioambientales",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/geometria_3d.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "geometria_3d",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/ingles.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "ingles",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/interpretacion_musical.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "interpretacion_musical",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/interpretacion_y_creacion_en_danza.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "interpretacion_y_creacion_en_danza",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/interpretacion_y_creacion_en_teatro.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "interpretacion_y_creacion_en_teatro",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/lectura_y_escritura_especializadas.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "lectura_y_escritura_especializadas",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/lengua_literatura.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "lengua_literatura",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/limites_derivadas_e_integrales.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "limites_derivadas_e_integrales",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
           "path": "media/3_medio/matematica.json",
           "nivel": "media",
           "curso": "3_medio",
           "asignatura": "matematica",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/mundo_global.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "mundo_global",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/musica.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "musica",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/participacion_y_argumentacion_en_democracia.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "participacion_y_argumentacion_en_democracia",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/pensamiento_computacional_y_programacion.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "pensamiento_computacional_y_programacion",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/probabilidades_y_estadistica_descriptiva_e_inferencial.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "probabilidades_y_estadistica_descriptiva_e_inferencial",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/promocion_de_estilos_de_vida_activos_y_saludables.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "promocion_de_estilos_de_vida_activos_y_saludables",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/quimica.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "quimica",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/seminario_de_filosofia.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "seminario_de_filosofia",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/taller_de_literatura.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "taller_de_literatura",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/3_medio/teatro.json",
+          "nivel": "media",
+          "curso": "3_medio",
+          "asignatura": "teatro",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/artes_visuales_audiovisuales_y_multimediales.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "artes_visuales_audiovisuales_y_multimediales",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/artes_visuales.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "artes_visuales",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/biologia_celular_y_molecular.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "biologia_celular_y_molecular",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/biologia_de_los_ecosistemas.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "biologia_de_los_ecosistemas",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/chile_y_la_region_latinoamericana.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "chile_y_la_region_latinoamericana",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/ciencias_de_la_salud.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "ciencias_de_la_salud",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/ciencias_del_ejercicio_fisico_y_deportivo.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "ciencias_del_ejercicio_fisico_y_deportivo",
           "estado_verificacion": "verificado_oficial"
         },
         {
@@ -728,10 +1141,143 @@
           "estado_verificacion": "verificado_oficial"
         },
         {
+          "path": "media/4_medio/comprension_historica_del_presente.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "comprension_historica_del_presente",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/creacion_y_composicion_musical.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "creacion_y_composicion_musical",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/danza.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "danza",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/diseno_y_arquitectura.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "diseno_y_arquitectura",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/economia_y_sociedad.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "economia_y_sociedad",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
           "path": "media/4_medio/educacion_ciudadana.json",
           "nivel": "media",
           "curso": "4_medio",
           "asignatura": "educacion_ciudadana",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/educacion_fisica_y_salud_1.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "educacion_fisica_y_salud_1",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/educacion_fisica_y_salud_2.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "educacion_fisica_y_salud_2",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/estetica.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "estetica",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/expresion_corporal.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "expresion_corporal",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/filosofia_politica.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "filosofia_politica",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/filosofia.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "filosofia",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/fisica.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "fisica",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/geografia_territorio_y_desafios_socioambientales.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "geografia_territorio_y_desafios_socioambientales",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/geometria_3d.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "geometria_3d",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/ingles.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "ingles",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/interpretacion_musical.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "interpretacion_musical",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/interpretacion_y_creacion_en_danza.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "interpretacion_y_creacion_en_danza",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/interpretacion_y_creacion_en_teatro.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "interpretacion_y_creacion_en_teatro",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/lectura_y_escritura_especializadas.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "lectura_y_escritura_especializadas",
           "estado_verificacion": "verificado_oficial"
         },
         {
@@ -742,10 +1288,87 @@
           "estado_verificacion": "verificado_oficial"
         },
         {
+          "path": "media/4_medio/limites_derivadas_e_integrales.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "limites_derivadas_e_integrales",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
           "path": "media/4_medio/matematica.json",
           "nivel": "media",
           "curso": "4_medio",
           "asignatura": "matematica",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/mundo_global.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "mundo_global",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/musica.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "musica",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/participacion_y_argumentacion_en_democracia.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "participacion_y_argumentacion_en_democracia",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/pensamiento_computacional_y_programacion.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "pensamiento_computacional_y_programacion",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/probabilidades_y_estadistica_descriptiva_e_inferencial.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "probabilidades_y_estadistica_descriptiva_e_inferencial",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/promocion_de_estilos_de_vida_activos_y_saludables.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "promocion_de_estilos_de_vida_activos_y_saludables",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/quimica.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "quimica",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/seminario_de_filosofia.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "seminario_de_filosofia",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/taller_de_literatura.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "taller_de_literatura",
+          "estado_verificacion": "verificado_oficial"
+        },
+        {
+          "path": "media/4_medio/teatro.json",
+          "nivel": "media",
+          "curso": "4_medio",
+          "asignatura": "teatro",
           "estado_verificacion": "verificado_oficial"
         }
       ]

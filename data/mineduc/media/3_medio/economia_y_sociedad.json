@@ -1,0 +1,257 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "3° Medio",
+    "asignatura": "Economía y sociedad",
+    "plan": "formacion_diferenciada_hc",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/economia-sociedad/4-medio-hc",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido",
+      "oa_habilidades"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      3,
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/economia-sociedad/4-medio-hc",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
+  },
+  "objetivos_habilidad": [
+    {
+      "numero_oficial": "a",
+      "descripcion": "Formulación de preguntas o problemas de investigación a partir de la observación de fenómenos;",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2224,
+        2224
+      ],
+      "id": "3-economia_y_sociedad-OAH-a",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "b",
+      "descripcion": "Levantamiento de información a partir de métodos y técnicas propias de historia, geografía, economía y otras ciencias sociales;",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2226,
+        2226
+      ],
+      "id": "3-economia_y_sociedad-OAH-b",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "c",
+      "descripcion": "Análisis crítico de las evidencias y evaluación de su validez, considerando su uso ético para respaldar opiniones;",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2228,
+        2228
+      ],
+      "id": "3-economia_y_sociedad-OAH-c",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "d",
+      "descripcion": "Definición del marco teórico, del estado de la cuestión y de los conceptos disciplinares del tema a investigar;",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2229,
+        2229
+      ],
+      "id": "3-economia_y_sociedad-OAH-d",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "e",
+      "descripcion": "Análisis de las propias conclusiones en relación con los supuestos iniciales.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2231,
+        2231
+      ],
+      "id": "3-economia_y_sociedad-OAH-e",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "f",
+      "descripcion": "Hacer conexiones entre fenómenos, acontecimientos y/o procesos de la realidad, considerando conceptos como multidimensionalidad, multicausalidad y multiescalaridad, temporalidad, y variables y patrones.",
+      "eje": "Pensamiento crítico",
+      "referencia_lineas": [
+        2235,
+        2235
+      ],
+      "id": "3-economia_y_sociedad-OAH-f",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "g",
+      "descripcion": "Elaborar interpretaciones y argumentos, basados en fuentes variadas y pertinentes, haciendo uso ético de la información.",
+      "eje": "Pensamiento crítico",
+      "referencia_lineas": [
+        2236,
+        2236
+      ],
+      "id": "3-economia_y_sociedad-OAH-g",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "h",
+      "descripcion": "Analizar interpretaciones y perspectivas de diversas fuentes, considerando propósito, intencionalidad, enfoque y contexto del autor, y las preguntas que intenta responder.",
+      "eje": "Pensamiento crítico",
+      "referencia_lineas": [
+        2241,
+        2241
+      ],
+      "id": "3-economia_y_sociedad-OAH-h",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "i",
+      "descripcion": "Evaluar la validez de las propias interpretaciones sobre acontecimientos, fenómenos y procesos estudiados, a través del diálogo y el uso de fuentes.",
+      "eje": "Pensamiento crítico",
+      "referencia_lineas": [
+        2243,
+        2243
+      ],
+      "id": "3-economia_y_sociedad-OAH-i",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "j",
+      "descripcion": "Elaborar juicios éticos de manera rigurosa y basados en conocimiento disciplinar sobre hitos, fenómenos, procesos, ideas, acciones de personas, entre otros.",
+      "eje": "Pensamiento crítico",
+      "referencia_lineas": [
+        2245,
+        2245
+      ],
+      "id": "3-economia_y_sociedad-OAH-j",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "k",
+      "descripcion": "Comunicar explicaciones, conclusiones u opiniones fundamentadas, haciendo uso de lenguaje, las normas y convenciones de la disciplina.",
+      "eje": "Comunicación",
+      "referencia_lineas": [
+        2248,
+        2248
+      ],
+      "id": "3-economia_y_sociedad-OAH-k",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    }
+  ],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Explicar la economía como una ciencia social que estudia las decisiones que toman las personas en su vida cotidiana, así como la familia, el sector privado y el Estado para enfrentar la escasez, considerando su método científico (supuestos y experiencias económicas), principios fundamentales y el análisis positivo y normativo.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2317,
+            2317
+          ],
+          "codigo_oficial": "HI-ECSO-3y4-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/economia-sociedad/4-medio-hc",
+          "id": "HI-ECSO-3y4-OAC-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Analizar críticamente la manera en que los economistas estudian la toma de decisiones de los agentes, considerando incentivos, escasez, costos y beneficios marginales y sociales y los aportes de la economía del comportamiento.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2318,
+            2318
+          ],
+          "codigo_oficial": "HI-ECSO-3y4-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/economia-sociedad/4-medio-hc",
+          "id": "HI-ECSO-3y4-OAC-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Investigar la interacción entre consumidores y productores en el mercado, considerando factores como la oferta, la demanda, la elasticidad, la inflación, la fijación de precios y el rol del Estado.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2320,
+            2320
+          ],
+          "codigo_oficial": "HI-ECSO-3y4-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/economia-sociedad/4-medio-hc",
+          "id": "HI-ECSO-3y4-OAC-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Investigar los distintos sistemas económicos, de mercado, mixto y centralizado, considerando las teorías que los sustentan, las maneras como resuelven el problema económico y las relaciones que establecen entre los distintos agentes económicos y algunas experiencias de su implementación.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2321,
+            2321
+          ],
+          "codigo_oficial": "HI-ECSO-3y4-OAC-04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/economia-sociedad/4-medio-hc",
+          "id": "HI-ECSO-3y4-OAC-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Analizar críticamente las imperfecciones inherentes del mercado como monopolios, oligopolios, colusión, competencia monopolística y externalidades negativas considerando la dimensión ética y el rol del Estado como un ente regulador.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2322,
+            2322
+          ],
+          "codigo_oficial": "HI-ECSO-3y4-OAC-05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/economia-sociedad/4-medio-hc",
+          "id": "HI-ECSO-3y4-OAC-05"
+        },
+        {
+          "numero_oficial": 6,
+          "descripcion": "Analizar el comercio internacional considerando ventajas comparativas, términos de intercambio, alianzas y tratados a las que subscriben los países, el impacto en las economías locales y nacionales y los desafíos que enfrentan al insertarse en el mercado global.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2324,
+            2324
+          ],
+          "codigo_oficial": "HI-ECSO-3y4-OAC-06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/economia-sociedad/4-medio-hc",
+          "id": "HI-ECSO-3y4-OAC-06"
+        },
+        {
+          "numero_oficial": 7,
+          "descripcion": "Explicar políticas económicas relacionadas al crecimiento y desarrollo en Chile en el contexto de la necesidad pública a la que responden, aplicando conceptos de la macroeconomía.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2325,
+            2325
+          ],
+          "codigo_oficial": "HI-ECSO-3y4-OAC-07",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/economia-sociedad/4-medio-hc",
+          "id": "HI-ECSO-3y4-OAC-07"
+        },
+        {
+          "numero_oficial": 8,
+          "descripcion": "Investigar desafíos actuales que enfrentan distintas economías desarrolladas y en vías de desarrollo para alcanzar el bienestar del individuo y la sociedad, en relación con el crecimiento económico, la interdependencia, la promoción de una economía sustentable y la equidad.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2327,
+            2327
+          ],
+          "codigo_oficial": "HI-ECSO-3y4-OAC-08",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/economia-sociedad/4-medio-hc",
+          "id": "HI-ECSO-3y4-OAC-08"
+        }
+      ]
+    }
+  ]
+}

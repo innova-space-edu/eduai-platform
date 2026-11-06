@@ -1,17 +1,22 @@
 {
   "metadata": {
     "nivel": "Media",
-    "curso": "4° Medio FG",
+    "curso": "4° Medio",
     "asignatura": "Lengua y Literatura",
-    "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/lengua-literatura-4o-medio/4-medio-fg",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — texto normativo publicado en Ley Chile (BCN)",
+    "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078",
     "base_curricular": "Bases Curriculares 3° y 4° Medio",
     "estado_verificacion": "verificado_oficial",
     "alcance_verificacion": [
       "oa_contenido"
     ],
-    "fecha_consulta": "2026-07-18",
-    "nota": "Los OA fueron obtenidos directamente de páginas oficiales específicas de Currículum Nacional. La agrupación interna no altera el texto oficial."
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "numeracion_normativa",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      4
+    ]
   },
   "objetivos_habilidad": [],
   "objetivos_actitud": [],
@@ -19,56 +24,120 @@
     {
       "numero": 1,
       "id": "eje-objetivos-de-aprendizaje",
-      "nombre": "Objetivos de Aprendizaje",
-      "tipo_agrupacion": "lista_oficial",
+      "nombre": "Comprensión",
+      "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
+          "numero_oficial": 1,
+          "descripcion": "Formular interpretaciones de obras que aborden un mismo tema o problema, comparando:\n- La relación de cada obra con sus contextos de producción y de recepción (historia, valores, creencias, ideologías, etc.).\n- El tratamiento del tema o problema y la perspectiva adoptada sobre éstos.\n- El efecto estético producido por los textos.",
+          "eje": "Comprensión",
+          "referencia_lineas": [
+            1185,
+            1190
+          ],
           "id": "FG-LELI-4M-OAC-01",
           "codigo_oficial": "FG-LELI-4M-OAC-01",
-          "descripcion": "Formular interpretaciones de obras que aborden un mismo tema o problema, comparando:\n- La relación de cada obra con sus contextos de producción y de recepción (historia, valores, creencias, ideologías, etc.)\n- El tratamiento del tema o problema y la perspectiva adoptada sobre estos\n- El efecto estético producido por los textos",
-          "eje": "Objetivos de Aprendizaje"
+          "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
         },
         {
+          "numero_oficial": 2,
+          "descripcion": "Proponer distintas interpretaciones para una obra literaria, a partir de un criterio de análisis literario (por ejemplo: perspectiva de personajes, creencias, valores, contextos, etc.), fundamentándolas con evidencia del texto coherente con el criterio adoptado.",
+          "eje": "Comprensión",
+          "referencia_lineas": [
+            1191,
+            1191
+          ],
           "id": "FG-LELI-4M-OAC-02",
           "codigo_oficial": "FG-LELI-4M-OAC-02",
-          "descripcion": "Proponer distintas interpretaciones para una obra literaria, a partir de un criterio de análisis literario (por ejemplo: perspectiva de personajes, creencias, valores, contextos, etc.), fundamentándolas con evidencia del texto coherente con el criterio adoptado.",
-          "eje": "Objetivos de Aprendizaje"
+          "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
         },
         {
+          "numero_oficial": 3,
+          "descripcion": "Evaluar críticamente textos de diversos géneros no literarios (orales, escritos y audiovisuales), analizando cuando corresponda:\n- Intenciones explícitas e implícitas del texto.\n- Tratamiento de temas y veracidad de la información.\n- Presentación de ideologías, creencias y puntos de vista.\n- Posicionamiento del enunciador frente al tema y el rol que busca representar ante la audiencia.",
+          "eje": "Comprensión",
+          "referencia_lineas": [
+            1193,
+            1200
+          ],
           "id": "FG-LELI-4M-OAC-03",
           "codigo_oficial": "FG-LELI-4M-OAC-03",
-          "descripcion": "Evaluar críticamente textos de diversos géneros no literarios (orales, escritos y audiovisuales), analizando cuando corresponda:\n- Intenciones explícitas e implícitas del texto\n- Tratamiento de temas y veracidad de la información\n- Presentación de ideologías, creencias y puntos de vista\n- Posicionamiento del enunciador frente al tema y el rol que busca representar ante la audiencia",
-          "eje": "Objetivos de Aprendizaje"
+          "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
         },
         {
+          "numero_oficial": 4,
+          "descripcion": "Evaluar los recursos lingüísticos y no lingüísticos (visuales, sonoros y gestuales) al comprender textos, considerando su incidencia en el posicionamiento frente al tema, en los roles y actitudes asumidos ante la audiencia*, y la forma en que dichos recursos se combinan para construir el sentido del discurso. *Por ejemplo: léxico valorativo, uso de deícticos, uso de verbos, construcciones oracionales, puntuación, etc.",
+          "eje": "Comprensión",
+          "referencia_lineas": [
+            1201,
+            1203
+          ],
           "id": "FG-LELI-4M-OAC-04",
           "codigo_oficial": "FG-LELI-4M-OAC-04",
-          "descripcion": "Evaluar los recursos lingüísticos y no lingüísticos (visuales, sonoros y gestuales) al comprender textos, considerando su incidencia en el posicionamiento frente al tema, en los roles y actitudes asumidos ante la audiencia*, y la forma en que dichos recursos se combinan para construir el sentido del discurso.\n*Por ejemplo: léxico valorativo, uso de deícticos, uso de verbos, construcciones oracionales, puntuación, etc.",
-          "eje": "Objetivos de Aprendizaje"
-        },
+          "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "id": "eje-produccion",
+      "nombre": "Producción",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
         {
+          "numero_oficial": 5,
+          "descripcion": "Producir textos (orales, escritos o audiovisuales) coherentes y cohesionados para comunicar sus análisis e interpretaciones de textos, desarrollar posturas sobre temas, explorar creativamente con el lenguaje, entre otros propósitos:\n- Aplicando un proceso de escritura* según sus propósitos, el género discursivo seleccionado, el tema y la audiencia.\n- Adecuando el texto a las convenciones del género y a las características de la audiencia (conocimientos, intereses, convenciones culturales). *El proceso de escritura incluye las etapas de planificación, elaboración, edición y revisión.",
+          "eje": "Producción",
+          "referencia_lineas": [
+            1206,
+            1211
+          ],
           "id": "FG-LELI-4M-OAC-05",
           "codigo_oficial": "FG-LELI-4M-OAC-05",
-          "descripcion": "Producir textos (orales, escritos o audiovisuales) coherentes y cohesionados para comunicar sus análisis e interpretaciones de textos, desarrollar posturas sobre temas, explorar creativamente con el lenguaje, entre otros propósitos:\n*El proceso de escritura incluye las etapas de planificación, elaboración, edición y revisión.\n- Aplicando un proceso de escritura* según sus propósitos, el género discursivo seleccionado, el tema y la audiencia\n- Adecuando el texto a las convenciones del género y a las características de la audiencia (conocimientos, intereses, convenciones culturales). ​",
-          "eje": "Objetivos de Aprendizaje"
+          "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
         },
         {
+          "numero_oficial": 6,
+          "descripcion": "Usar los recursos lingüísticos y no lingüísticos (visuales, sonoros y gestuales) al producir textos, considerando su incidencia en el posicionamiento frente al tema, en los roles y actitudes asumidos ante la audiencia*, y la forma en dichos recursos se combinan para construir el sentido del discurso. *Por ejemplo: léxico valorativo, uso de deícticos, uso de verbos, construcciones oracionales, puntuación, etc.",
+          "eje": "Producción",
+          "referencia_lineas": [
+            1212,
+            1214
+          ],
           "id": "FG-LELI-4M-OAC-06",
           "codigo_oficial": "FG-LELI-4M-OAC-06",
-          "descripcion": "Usar los recursos lingüísticos y no lingüísticos (visuales, sonoros y gestuales) al producir textos, considerando su incidencia en el posicionamiento frente al tema, en los roles y actitudes asumidos ante la audiencia*, y la forma en dichos recursos se combinan para construir el sentido del discurso.\n*Por ejemplo: léxico valorativo, uso de deícticos, uso de verbos, construcciones oracionales, puntuación, etc.",
-          "eje": "Objetivos de Aprendizaje"
+          "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
         },
         {
+          "numero_oficial": 7,
+          "descripcion": "Dialogar argumentativamente, evitando descalificaciones o prejuicios, para construir y ampliar ideas en torno a interpretaciones literarias y análisis crítico de textos:\n- Explicando sus criterios de análisis o interpretación, razonamientos y conclusiones.\n- Usando evidencia disponible para fundamentar posturas y reflexiones.\n- Evaluando el razonamiento de otros (sus premisas, relaciones entre ideas, elecciones de palabras y énfasis).\n- Incorporando las posiciones de sus pares para ampliarlas o refutarlas.",
+          "eje": "Producción",
+          "referencia_lineas": [
+            1215,
+            1222
+          ],
           "id": "FG-LELI-4M-OAC-07",
           "codigo_oficial": "FG-LELI-4M-OAC-07",
-          "descripcion": "Dialogar argumentativamente, evitando descalificaciones o prejuicios, para construir y ampliar ideas en torno a interpretaciones literarias y análisis crítico de textos:\n- Explicando sus criterios de análisis o interpretación, razonamientos y conclusiones\n- Usando evidencia disponible para fundamentar posturas y reflexiones\n- Evaluando el razonamiento de otros (sus premisas, relaciones entre ideas, elecciones de palabras y énfasis)\n- Incorporando las posiciones de sus pares para ampliarlas o refutarlas",
-          "eje": "Objetivos de Aprendizaje"
-        },
+          "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "id": "eje-investigacion",
+      "nombre": "Investigación",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
         {
+          "numero_oficial": 8,
+          "descripcion": "Investigar sobre diversos temas para enriquecer sus lecturas y análisis, o para responder interrogantes propios de la asignatura:\n- Seleccionando fuentes e información según criterios de validez y confiabilidad.\n- Procesando la información mediante herramientas digitales o impresas y géneros discursivos determinados.\n- Comunicando sus hallazgos por medio de géneros (escritos, orales o audiovisuales) del ámbito educativo.\n- Haciendo uso ético de la información investigada por medio de recursos de citación y referencia.",
+          "eje": "Investigación",
+          "referencia_lineas": [
+            1226,
+            1233
+          ],
           "id": "FG-LELI-4M-OAC-08",
           "codigo_oficial": "FG-LELI-4M-OAC-08",
-          "descripcion": "Investigar sobre diversos temas para enriquecer sus lecturas y análisis, o para responder interrogantes propios de la asignatura:\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Seleccionando fuentes e información según criterios de validez y confiabilidad\n- Procesando la información mediante herramientas digitales o impresas y géneros discursivos determinados\n- Comunicando sus hallazgos por medio de géneros (escritos, orales o audiovisuales) del ámbito educativo\n- Haciendo uso ético de la información investigada por medio de recursos de citación y referencia\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
-          "eje": "Objetivos de Aprendizaje"
+          "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
         }
       ]
     }

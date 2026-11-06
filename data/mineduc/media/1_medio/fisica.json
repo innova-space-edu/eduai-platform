@@ -3,73 +3,276 @@
     "nivel": "Media",
     "curso": "1° Medio",
     "asignatura": "Física",
-    "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/1-medio",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
     "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
     "estado_verificacion": "verificado_oficial",
     "alcance_verificacion": [
-      "oa_contenido"
+      "oa_contenido",
+      "oa_habilidades"
     ],
-    "fecha_consulta": "2026-07-18",
-    "nota": "Los OA fueron obtenidos directamente de páginas oficiales específicas de Currículum Nacional. La agrupación interna no altera el texto oficial.",
-    "base_asignatura_origen": "Ciencias Naturales 1° Medio"
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      1
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+      "https://www.bcn.cl/leychile/navegar?i=1060374"
+    ],
+    "base_asignatura_origen": "Ciencias Naturales 1° Medio",
+    "alias_curricular": true
   },
-  "objetivos_habilidad": [],
+  "objetivos_habilidad": [
+    {
+      "numero_oficial": "a",
+      "descripcion": "Observar y describir detalladamente las características de objetos, procesos y fenómenos del mundo natural y tecnológico, usando los sentidos.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2987,
+        2987
+      ],
+      "id": "1-ciencias_naturales-OAH-a",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "b",
+      "descripcion": "Formular preguntas y/o problemas, a partir de conocimiento científico, que puedan ser resueltos mediante una investigación científica*.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2989,
+        2989
+      ],
+      "id": "1-ciencias_naturales-OAH-b",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "c",
+      "descripcion": "Formular y fundamentar hipótesis comprobables, basados en conocimiento científico.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2991,
+        2991
+      ],
+      "id": "1-ciencias_naturales-OAH-c",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "d",
+      "descripcion": "Planificar diversos diseños de investigaciones experimentales que den respuesta a una pregunta y/o problema sobre la base de diversas fuentes de información científica, considerando:\n- el uso adecuado de instrumentos y materiales para asegurar la obtención de datos confiables\n- la manipulación de variables y sus relaciones\n- la explicación clara de procedimientos posibles de replicar",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        2994,
+        3000
+      ],
+      "id": "1-ciencias_naturales-OAH-d",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "e",
+      "descripcion": "Planificar una investigación no experimental y/o documental que considere diversas fuentes de información para responder a preguntas científicas o para constituir el marco teórico de la investigación exp erimental.",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3001,
+        3001
+      ],
+      "id": "1-ciencias_naturales-OAH-e",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "f",
+      "descripcion": "Conducir rigurosamente investigaciones científicas para obtener evidencias precisas y confiables con el apoyo de las TIC.",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3003,
+        3003
+      ],
+      "id": "1-ciencias_naturales-OAH-f",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "g",
+      "descripcion": "Organizar el trabajo colaborativo, asignando responsabilidades, comunicándose en forma efectiva y siguiendo normas de seguridad. Procesar Y Analizar La Evidencia",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3005,
+        3006
+      ],
+      "id": "1-ciencias_naturales-OAH-g",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "h",
+      "descripcion": "Organizar datos cuantitativos y/o cualitativos con precisión, fundamentando su confiabilidad, y presentarlos en tablas, gráficos, modelos u otras representaciones, con la ayuda de las TIC.",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3008,
+        3008
+      ],
+      "id": "1-ciencias_naturales-OAH-h",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "i",
+      "descripcion": "Crear, seleccionar, usar y ajustar modelos para describir mecanismos y para predecir y apoyar explicaciones sobre las relaciones entre las partes de un sistema.",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3010,
+        3010
+      ],
+      "id": "1-ciencias_naturales-OAH-i",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "j",
+      "descripcion": "Analizar y explicar los resultados de una investigación científica*, para plantear inferencias y conclusiones:\n- comparando las relaciones, tendencias y patrones de las variables\n- usando expresiones y operaciones matemáticas cuando sea pertinente (por ejemplo: potencias, razones, funciones, notación científica, medidas de tendencia central, cambio porcentual)\n- utilizando vocabulario disciplinar pertinente",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3012,
+        3017
+      ],
+      "id": "1-ciencias_naturales-OAH-j",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "k",
+      "descripcion": "Evaluar la investigación científica* con el fin de perfeccionarla, considerando:\n- la validez y confiabilidad de los resultados\n- la replicabilidad de los procedimientos\n- las explicaciones, las predicciones y las conclusiones\n- las posibles aplicaciones tecnológicas\n- el desempeño personal y grupal Comunicar",
+      "eje": "Evaluar",
+      "referencia_lineas": [
+        3021,
+        3030
+      ],
+      "id": "1-ciencias_naturales-OAH-k",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "l",
+      "descripcion": "Explicar y argumentar con evidencias provenientes de investigaciones científicas*, en forma oral y escrita, incluyendo tablas, gráficos, modelos y TIC.",
+      "eje": "Evaluar",
+      "referencia_lineas": [
+        3032,
+        3032
+      ],
+      "id": "1-ciencias_naturales-OAH-l",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "m",
+      "descripcion": "Discutir en forma oral y escrita las ideas para diseñar una investigación científica*, las posibles aplicaciones y soluciones a problemas tecnológicos, las teorías, las predicciones y las conclusiones, utilizando argumentos basados en evidencias y en el conocimiento científico y tecnológico.",
+      "eje": "Evaluar",
+      "referencia_lineas": [
+        3033,
+        3033
+      ],
+      "id": "1-ciencias_naturales-OAH-m",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    }
+  ],
   "objetivos_actitud": [],
   "unidades": [
     {
-      "numero": 1,
+      "numero": 2,
       "id": "eje-fisica",
-      "nombre": "Física",
+      "nombre": "FÍSICA",
       "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "CN1M-OA-09",
+          "numero_oficial": 9,
+          "descripcion": "Demostrar que comprende, por medio de la creación de modelos y experimentos, que las ondas transmiten energía y que se pueden reflejar, refractar y absorber, explicando y considerando:\n- Sus características (amplitud, frecuencia, longitud de onda y velocidad de propagación, entre otras).\n- Los criterios para clasificarlas (mecánicas, electromagnéticas, transversales, longitudinales, superficiales).",
+          "eje": "FÍSICA",
+          "referencia_lineas": [
+            3087,
+            3092
+          ],
           "codigo_oficial": "CN1M OA 09",
-          "descripcion": "Demostrar que comprende, por medio de la creación de modelos y experimentos, que las ondas transmiten energía y que se pueden reflejar, refractar y absorber, explicando y considerando:\n- Sus características (amplitud, frecuencia, longitud de onda y velocidad de propagación, entre otras)\n- Los criterios para clasificarlas (mecánicas, electromagnéticas, transversales, longitudinales, superficiales)",
-          "eje": "Física"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+          "id": "CN1M-OA-09"
         },
         {
-          "id": "CN1M-OA-10",
+          "numero_oficial": 10,
+          "descripcion": "Explicar fenómenos del sonido perceptibles por las personas, como el eco, la resonancia y el efecto Doppler, entre otros, utilizando el modelo ondulatorio y por medio de la experimentación, considerando sus:\n- Características y cualidades (intensidad, tono, timbre y rapidez).\n- Emisiones (en cuerdas vocales, en parlantes e instrumentos musicales).\n- Consecuencias (contaminación y medio de comunicación).\n- Aplicaciones tecnológicas (ecógrafo, sonar y estetoscopio, entretención, entre otras).",
+          "eje": "FÍSICA",
+          "referencia_lineas": [
+            3094,
+            3101
+          ],
           "codigo_oficial": "CN1M OA 10",
-          "descripcion": "Explicar fenómenos del sonido perceptibles por las personas, como el eco, la resonancia y el efecto Doppler, entre otros, utilizando el modelo ondulatorio y por medio de la experimentación, considerando sus:\n- Características y cualidades (intensidad, tono, timbre y rapidez)\n- Emisiones (en cuerdas vocales, en parlantes e instrumentos musicales)\n- Consecuencias (contaminación y medio de comunicación)\n- Aplicaciones tecnológicas (ecógrafo, sonar y estetoscopio, entretención, entre otras)",
-          "eje": "Física"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+          "id": "CN1M-OA-10"
         },
         {
-          "id": "CN1M-OA-11",
+          "numero_oficial": 11,
+          "descripcion": "Explicar fenómenos luminosos, como la reflexión, la refracción, la interferencia y el efecto Doppler, entre otros, por medio de la experimentación y el uso de modelos, considerando:\n- Los modelos corpuscular y ondulatorio de la luz.\n- Las características y la propagación de la luz (viaja en línea recta, formación de sombras y posee rapidez, entre otras).\n- La formación de imágenes (espejos y lentes).\n- La formación de colores (difracción, colores primarios y secundarios, filtros).\n- Sus aplicaciones tecnológicas (lentes, telescopio, prismáticos y focos, entre otros).",
+          "eje": "FÍSICA",
+          "referencia_lineas": [
+            3103,
+            3112
+          ],
           "codigo_oficial": "CN1M OA 11",
-          "descripcion": "Explicar fenómenos luminosos, como la reflexión, la refracción, la interferencia y el efecto Doppler, entre otros, por medio de la experimentación y el uso de modelos, considerando:\n- Los modelos corpuscular y ondulatorio de la luz\n- Las características y la propagación de la luz (viaja en línea recta, formación de sombras y posee rapidez, entre otras)\n- La formación de imágenes (espejos y lentes)\n- La formación de colores (difracción, colores primarios y secundarios, filtros)\n- Sus aplicaciones tecnológicas (lentes, telescopio, prismáticos y focos, entre otros)",
-          "eje": "Física"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+          "id": "CN1M-OA-11"
         },
         {
-          "id": "CN1M-OA-12",
+          "numero_oficial": 12,
+          "descripcion": "Explorar y describir el funcionamiento del oído y del ojo humano, considerando:\n- La recepción de ondas sonoras y luminosas.\n- El espectro sonoro y de la luz visible.\n- Sus capacidades, limitaciones y consecuencias sociales.\n- La tecnología correctiva (lentes y audífonos).",
+          "eje": "FÍSICA",
+          "referencia_lineas": [
+            3117,
+            3125
+          ],
           "codigo_oficial": "CN1M OA 12",
-          "descripcion": "Explorar y describir el funcionamiento del oído y del ojo humano, considerando:\n- La recepción de ondas sonoras y luminosas\n- El espectro sonoro y de la luz visible\n- Sus capacidades, limitaciones y consecuencias sociales\n- La tecnología correctiva (lentes y audífonos)",
-          "eje": "Física"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+          "id": "CN1M-OA-12"
         },
         {
-          "id": "CN1M-OA-13",
+          "numero_oficial": 13,
+          "descripcion": "Describir el origen y la propagación, por medio del modelo ondulatorio, de la energía liberada en un sismo, considerando:\n- Los parámetros que lo describen (epicentro, hipocentro, área de ruptura, magnitud e intensidad).\n- Los tipos de ondas sísmicas (primarias, secundarias y superficiales).\n- Su medición y registro (sismógrafo, escalas sísmicas).\n- Sus consecuencias directas e indirectas en la superficie de la Tierra (como tsunamis) y en la sociedad.\n- Su importancia en geología, por ejemplo, en el estudio de la estructura interna de la Tierra.",
+          "eje": "FÍSICA",
+          "referencia_lineas": [
+            3127,
+            3136
+          ],
           "codigo_oficial": "CN1M OA 13",
-          "descripcion": "Describir el origen y la propagación, por medio del modelo ondulatorio, de la energía liberada en un sismo, considerando:\n- Los parámetros que lo describen (epicentro, hipocentro, área de ruptura, magnitud e intensidad)\n- Los tipos de ondas sísmicas (primarias, secundarias y superficiales)\n- Su medición y registro (sismógrafo, escalas sísmicas)\n- Sus consecuencias directas e indirectas en la superficie de la Tierra (como tsunamis) y en la sociedad\n- Su importancia en geología, por ejemplo, en el estudio de la estructura interna de la Tierra",
-          "eje": "Física"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+          "id": "CN1M-OA-13"
         },
         {
-          "id": "CN1M-OA-14",
+          "numero_oficial": 14,
+          "descripcion": "Crear modelos que expliquen los fenómenos astronómicos del sistema solar relacionados con:\n- Los movimientos del sistema Tierra-Luna y los fenómenos de luz y sombra, como las fases lunares y los eclipses.\n- Los movimientos de la Tierra respecto del Sol y sus consecuencias, como las estaciones climáticas.\n- La comparación de los distintos planetas con la Tierra en cuanto a su distancia al Sol, su tamaño, su período orbital, su atmósfera y otros.",
+          "eje": "FÍSICA",
+          "referencia_lineas": [
+            3137,
+            3143
+          ],
           "codigo_oficial": "CN1M OA 14",
-          "descripcion": "Crear modelos que expliquen los fenómenos astronómicos del sistema solar relacionados con:\n- Los movimientos del sistema Tierra-Luna y los fenómenos de luz y sombra, como las fases lunares y los eclipses\n- Los movimientos de la Tierra respecto del Sol y sus consecuencias, como las estaciones climáticas\n- La comparación de los distintos planetas con la Tierra en cuanto a su distancia al Sol, su tamaño, su período orbital, su atmósfera y otros",
-          "eje": "Física"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+          "id": "CN1M-OA-14"
         },
         {
-          "id": "CN1M-OA-15",
+          "numero_oficial": 15,
+          "descripcion": "Describir y comparar diversas estructuras cósmicas, como meteoros, asteroides, cometas, satélites, planetas, estrellas, nebulosas, galaxias y cúmulo de galaxias, considerando:\n- Sus tamaños y formas.\n- Sus posiciones en el espacio.\n- Temperatura, masa, color y magnitud, entre otros.",
+          "eje": "FÍSICA",
+          "referencia_lineas": [
+            3144,
+            3150
+          ],
           "codigo_oficial": "CN1M OA 15",
-          "descripcion": "Describir y comparar diversas estructuras cósmicas, como meteoros, asteroides, cometas, satélites, planetas, estrellas, nebulosas, galaxias y cúmulo de galaxias, considerando:\n- Sus tamaños y formas\n- Sus posiciones en el espacio\n- Temperatura, masa, color y magnitud, entre otros",
-          "eje": "Física"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+          "id": "CN1M-OA-15"
         },
         {
-          "id": "CN1M-OA-16",
+          "numero_oficial": 16,
+          "descripcion": "Investigar y explicar sobre la investigación astronómica en Chile y el resto del mundo, considerando aspectos como:\n- El clima y las ventajas que ofrece nuestro país para la observación astronómica.\n- La tecnología utilizada (telescopios, radiotelescopios y otros instrumentos astronómicos).\n- La información que proporciona la luz y otras radiaciones emitidas por los astros.\n- Los aportes de científicas chilenas y científicos chilenos.",
+          "eje": "FÍSICA",
+          "referencia_lineas": [
+            3152,
+            3159
+          ],
           "codigo_oficial": "CN1M OA 16",
-          "descripcion": "Investigar y explicar sobre la investigación astronómica en Chile y el resto del mundo, considerando aspectos como:\n- El clima y las ventajas que ofrece nuestro país para la observación astronómica\n- La tecnología utilizada (telescopios, radiotelescopios y otros instrumentos astronómicos)\n- La información que proporciona la luz y otras radiaciones emitidas por los astros\n- Los aportes de científicas chilenas y científicos chilenos",
-          "eje": "Física"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+          "id": "CN1M-OA-16"
         }
       ]
     }

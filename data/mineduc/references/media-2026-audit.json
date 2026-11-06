@@ -1,0 +1,1899 @@
+[
+  {
+    "path": "data/mineduc/media/1_medio/artes_visuales.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "AR1M OA 01",
+      "AR1M OA 02",
+      "AR1M OA 03",
+      "AR1M OA 04",
+      "AR1M OA 05",
+      "AR1M OA 06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/1_medio/biologia.json",
+    "nuevo": false,
+    "oa_antes": 8,
+    "oa_despues": 8,
+    "agregados": [],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": true
+  },
+  {
+    "path": "data/mineduc/media/1_medio/ciencias_naturales.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 20,
+    "agregados": [
+      "CN1M OA 01",
+      "CN1M OA 02",
+      "CN1M OA 03",
+      "CN1M OA 04",
+      "CN1M OA 05",
+      "CN1M OA 06",
+      "CN1M OA 07",
+      "CN1M OA 08",
+      "CN1M OA 09",
+      "CN1M OA 10",
+      "CN1M OA 11",
+      "CN1M OA 12",
+      "CN1M OA 13",
+      "CN1M OA 14",
+      "CN1M OA 15",
+      "CN1M OA 16",
+      "CN1M OA 17",
+      "CN1M OA 18",
+      "CN1M OA 19",
+      "CN1M OA 20"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/1_medio/educacion_fisica_y_salud.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "EF1M OA 01",
+      "EF1M OA 02",
+      "EF1M OA 03",
+      "EF1M OA 04",
+      "EF1M OA 05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/1_medio/fisica.json",
+    "nuevo": false,
+    "oa_antes": 8,
+    "oa_despues": 8,
+    "agregados": [],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": true
+  },
+  {
+    "path": "data/mineduc/media/1_medio/historia_geografia_y_cs_sociales.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 25,
+    "agregados": [
+      "HI1M OA 01",
+      "HI1M OA 02",
+      "HI1M OA 03",
+      "HI1M OA 04",
+      "HI1M OA 05",
+      "HI1M OA 06",
+      "HI1M OA 07",
+      "HI1M OA 08",
+      "HI1M OA 09",
+      "HI1M OA 10",
+      "HI1M OA 11",
+      "HI1M OA 12",
+      "HI1M OA 13",
+      "HI1M OA 14",
+      "HI1M OA 15",
+      "HI1M OA 16",
+      "HI1M OA 17",
+      "HI1M OA 18",
+      "HI1M OA 19",
+      "HI1M OA 20",
+      "HI1M OA 21",
+      "HI1M OA 22",
+      "HI1M OA 23",
+      "HI1M OA 24",
+      "HI1M OA 25"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/1_medio/ingles.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 16,
+    "agregados": [
+      "IN1M OA 01",
+      "IN1M OA 02",
+      "IN1M OA 03",
+      "IN1M OA 04",
+      "IN1M OA 05",
+      "IN1M OA 06",
+      "IN1M OA 07",
+      "IN1M OA 08",
+      "IN1M OA 09",
+      "IN1M OA 10",
+      "IN1M OA 11",
+      "IN1M OA 12",
+      "IN1M OA 13",
+      "IN1M OA 14",
+      "IN1M OA 15",
+      "IN1M OA 16"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/1_medio/lengua_literatura.json",
+    "nuevo": false,
+    "oa_antes": 24,
+    "oa_despues": 24,
+    "agregados": [],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/1_medio/matematica.json",
+    "nuevo": false,
+    "oa_antes": 15,
+    "oa_despues": 15,
+    "agregados": [],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/1_medio/musica.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "MU1M OA 01",
+      "MU1M OA 02",
+      "MU1M OA 03",
+      "MU1M OA 04",
+      "MU1M OA 05",
+      "MU1M OA 06",
+      "MU1M OA 07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/1_medio/orientacion.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 10,
+    "agregados": [
+      "OR1M OA 01",
+      "OR1M OA 02",
+      "OR1M OA 03",
+      "OR1M OA 04",
+      "OR1M OA 05",
+      "OR1M OA 06",
+      "OR1M OA 07",
+      "OR1M OA 08",
+      "OR1M OA 09",
+      "OR1M OA 10"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/1_medio/quimica.json",
+    "nuevo": false,
+    "oa_antes": 4,
+    "oa_despues": 4,
+    "agregados": [],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": true
+  },
+  {
+    "path": "data/mineduc/media/1_medio/tecnologia.json",
+    "nuevo": false,
+    "oa_antes": 6,
+    "oa_despues": 6,
+    "agregados": [],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/2_medio/artes_visuales.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "AR2M OA 01",
+      "AR2M OA 02",
+      "AR2M OA 03",
+      "AR2M OA 04",
+      "AR2M OA 05",
+      "AR2M OA 06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/2_medio/biologia.json",
+    "nuevo": false,
+    "oa_antes": 8,
+    "oa_despues": 8,
+    "agregados": [],
+    "cambios_texto": [
+      {
+        "codigo": "CN2M OA 06",
+        "antes": "Investigar y argumentar, basándose en evidencias, que el material genético se transmite de generación en generación en organismos como plantas y animales, considerando:\n- La comparación de la mitosis y la meiosis\n- Las causas y consecuencias de anomalías y pérdida de control de la división celular (tumor, cáncer, trisomía, entre otros)",
+        "despues": "Investigar y argumentar, en base a evidencias, que el material genético se transmite de generación en generación en organismos como plantas y animales, considerando:\n- la comparación de la mitosis y la meiosis\n- las causas y consecuencias de anomalías y pérdida de control de la división celular (tumor, cáncer, trisomía, entre otros)"
+      }
+    ],
+    "plan": "formacion_general",
+    "alias": true
+  },
+  {
+    "path": "data/mineduc/media/2_medio/ciencias_naturales.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 18,
+    "agregados": [
+      "CN2M OA 01",
+      "CN2M OA 02",
+      "CN2M OA 03",
+      "CN2M OA 04",
+      "CN2M OA 05",
+      "CN2M OA 06",
+      "CN2M OA 07",
+      "CN2M OA 08",
+      "CN2M OA 09",
+      "CN2M OA 10",
+      "CN2M OA 11",
+      "CN2M OA 12",
+      "CN2M OA 13",
+      "CN2M OA 14",
+      "CN2M OA 15",
+      "CN2M OA 16",
+      "CN2M OA 17",
+      "CN2M OA 18"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/2_medio/educacion_fisica_y_salud.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "EF2M OA 01",
+      "EF2M OA 02",
+      "EF2M OA 03",
+      "EF2M OA 04",
+      "EF2M OA 05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/2_medio/fisica.json",
+    "nuevo": false,
+    "oa_antes": 6,
+    "oa_despues": 6,
+    "agregados": [],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": true
+  },
+  {
+    "path": "data/mineduc/media/2_medio/historia_geografia_y_cs_sociales.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 25,
+    "agregados": [
+      "HI2M OA 01",
+      "HI2M OA 02",
+      "HI2M OA 03",
+      "HI2M OA 04",
+      "HI2M OA 05",
+      "HI2M OA 06",
+      "HI2M OA 07",
+      "HI2M OA 08",
+      "HI2M OA 09",
+      "HI2M OA 10",
+      "HI2M OA 11",
+      "HI2M OA 12",
+      "HI2M OA 13",
+      "HI2M OA 14",
+      "HI2M OA 15",
+      "HI2M OA 16",
+      "HI2M OA 17",
+      "HI2M OA 18",
+      "HI2M OA 19",
+      "HI2M OA 20",
+      "HI2M OA 21",
+      "HI2M OA 22",
+      "HI2M OA 23",
+      "HI2M OA 24",
+      "HI2M OA 25"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/2_medio/ingles.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 16,
+    "agregados": [
+      "IN2M OA 01",
+      "IN2M OA 02",
+      "IN2M OA 03",
+      "IN2M OA 04",
+      "IN2M OA 05",
+      "IN2M OA 06",
+      "IN2M OA 07",
+      "IN2M OA 08",
+      "IN2M OA 09",
+      "IN2M OA 10",
+      "IN2M OA 11",
+      "IN2M OA 12",
+      "IN2M OA 13",
+      "IN2M OA 14",
+      "IN2M OA 15",
+      "IN2M OA 16"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/2_medio/lengua_literatura.json",
+    "nuevo": false,
+    "oa_antes": 24,
+    "oa_despues": 24,
+    "agregados": [],
+    "cambios_texto": [
+      {
+        "codigo": "LE2M OA 12",
+        "antes": "Aplicar flexiblemente y creativamente las habilidades de escritura adquiridas en clases como medio de expresión personal y cuando se enfrentan a nuevos géneros:\n- Investigando las características del género antes de escribir\n- Adecuando el texto a los propósitos de escritura y a la situación",
+        "despues": "Aplicar flexible y creativamente las habilidades de escritura adquiridas en clases como medio de expresión personal y cuando se enfrentan a nuevos géneros:\n- investigando las características del género antes de escribir\n- adecuando el texto a los propósitos de escritura y a la situación"
+      }
+    ],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/2_medio/matematica.json",
+    "nuevo": false,
+    "oa_antes": 12,
+    "oa_despues": 12,
+    "agregados": [],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/2_medio/musica.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "MU2M OA 01",
+      "MU2M OA 02",
+      "MU2M OA 03",
+      "MU2M OA 04",
+      "MU2M OA 05",
+      "MU2M OA 06",
+      "MU2M OA 07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/2_medio/orientacion.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 10,
+    "agregados": [
+      "OR2M OA 01",
+      "OR2M OA 02",
+      "OR2M OA 03",
+      "OR2M OA 04",
+      "OR2M OA 05",
+      "OR2M OA 06",
+      "OR2M OA 07",
+      "OR2M OA 08",
+      "OR2M OA 09",
+      "OR2M OA 10"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/2_medio/quimica.json",
+    "nuevo": false,
+    "oa_antes": 4,
+    "oa_despues": 4,
+    "agregados": [],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": true
+  },
+  {
+    "path": "data/mineduc/media/2_medio/tecnologia.json",
+    "nuevo": false,
+    "oa_antes": 6,
+    "oa_despues": 6,
+    "agregados": [],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/artes_visuales.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "FG-ARTE-3y4-OAC-01",
+      "FG-ARTE-3y4-OAC-02",
+      "FG-ARTE-3y4-OAC-03",
+      "FG-ARTE-3y4-OAC-04",
+      "FG-ARTE-3y4-OAC-05",
+      "FG-ARTE-3y4-OAC-06",
+      "FG-ARTE-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general_electiva",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/artes_visuales_audiovisuales_y_multimediales.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "AR-AVAM-3y4-OAC-01",
+      "AR-AVAM-3y4-OAC-02",
+      "AR-AVAM-3y4-OAC-03",
+      "AR-AVAM-3y4-OAC-04",
+      "AR-AVAM-3y4-OAC-05",
+      "AR-AVAM-3y4-OAC-06",
+      "AR-AVAM-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/biologia_celular_y_molecular.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "CN-BCMO-3y4-OAC-01",
+      "CN-BCMO-3y4-OAC-02",
+      "CN-BCMO-3y4-OAC-03",
+      "CN-BCMO-3y4-OAC-04",
+      "CN-BCMO-3y4-OAC-05",
+      "CN-BCMO-3y4-OAC-06",
+      "CN-BCMO-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/biologia_de_los_ecosistemas.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "CN-BECO-3y4-OAC-01",
+      "CN-BECO-3y4-OAC-02",
+      "CN-BECO-3y4-OAC-03",
+      "CN-BECO-3y4-OAC-04",
+      "CN-BECO-3y4-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/chile_y_la_region_latinoamericana.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "FG-CHLA-3y4-OAC-01",
+      "FG-CHLA-3y4-OAC-02",
+      "FG-CHLA-3y4-OAC-03",
+      "FG-CHLA-3y4-OAC-04",
+      "FG-CHLA-3y4-OAC-05",
+      "FG-CHLA-3y4-OAC-06",
+      "FG-CHLA-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general_electiva",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/ciencias_de_la_salud.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "CN-CSAL-3y4-OAC-01",
+      "CN-CSAL-3y4-OAC-02",
+      "CN-CSAL-3y4-OAC-03",
+      "CN-CSAL-3y4-OAC-04",
+      "CN-CSAL-3y4-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/ciencias_del_ejercicio_fisico_y_deportivo.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "EF-CEFD-3y4-OAC-01",
+      "EF-CEFD-3y4-OAC-02",
+      "EF-CEFD-3y4-OAC-03",
+      "EF-CEFD-3y4-OAC-04",
+      "EF-CEFD-3y4-OAC-05",
+      "EF-CEFD-3y4-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/ciencias_para_la_ciudadania.json",
+    "nuevo": false,
+    "oa_antes": 12,
+    "oa_despues": 12,
+    "agregados": [],
+    "cambios_texto": [
+      {
+        "codigo": "FG-CIBS-3y4-OAC-03",
+        "antes": "Analizar, a partir de evidencias, situaciones de transmisión de agentes infecciosos a nivel nacional y mundial (como virus de influenza, VIH-sida, hanta, hepatitis B, sarampión, entre otros), y evaluar críticamente posibles medidas de prevención como el uso de vacunas.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
+        "despues": "Analizar, a partir de evidencias, situaciones de transmisión de agentes infecciosos a nivel nacional y mundial (como virus de influenza, VIH-sida, hanta, hepatitis B, sarampión, entre otros), y evaluar críticamente posibles medidas de prevención como el uso de vacunas."
+      },
+      {
+        "codigo": "FG-CISA-3y4-OAC-03",
+        "antes": "Analizar, a partir de modelos, riesgos de origen natural o provocados por la acción humana en su contexto local (como aludes, incendios, sismos de alta magnitud, erupciones volcánicas, tsunamis e inundaciones, entre otros) y evaluar las capacidades existentes en la escuela y la comunidad para la prevención, la mitigación y la adaptación frente a sus consecuencias.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
+        "despues": "Analizar, a partir de modelos, riesgos de origen natural o provocados por la acción humana en su contexto local (como aludes, incendios, sismos de alta magnitud, erupciones volcánicas, tsunamis e inundaciones, entre otros) y evaluar las capacidades existentes en la escuela y la comunidad para la prevención, la mitigación y la adaptación frente a sus consecuencias."
+      },
+      {
+        "codigo": "FG-CIAS-3y4-OAC-03",
+        "antes": "Modelar los efectos del cambio climático en diversos ecosistemas y sus componentes biológicos, físicos y químicos, y evaluar posibles soluciones para su mitigación.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
+        "despues": "Modelar los efectos del cambio climático en diversos ecosistemas y sus componentes biológicos, físicos y químicos, y evaluar posibles soluciones para su mitigación."
+      },
+      {
+        "codigo": "FG-CITS-3y4-OAC-03",
+        "antes": "Evaluar alcances y limitaciones de la tecnología y sus aplicaciones, argumentando riesgos y beneficios desde una perspectiva de salud, ética, social, económica y ambiental.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
+        "despues": "Evaluar alcances y limitaciones de la tecnología y sus aplicaciones, argumentando riesgos y beneficios desde una perspectiva de salud, ética, social, económica y ambiental."
+      }
+    ],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/comprension_historica_del_presente.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "HI-CHDP-3y4-OAC-01",
+      "HI-CHDP-3y4-OAC-02",
+      "HI-CHDP-3y4-OAC-03",
+      "HI-CHDP-3y4-OAC-04",
+      "HI-CHDP-3y4-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/creacion_y_composicion_musical.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "AR-CCMU-3y4-OAC-01",
+      "AR-CCMU-3y4-OAC-02",
+      "AR-CCMU-3y4-OAC-03",
+      "AR-CCMU-3y4-OAC-04",
+      "AR-CCMU-3y4-OAC-05",
+      "AR-CCMU-3y4-OAC-06",
+      "AR-CCMU-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/danza.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "FG-DANZ-3y4-OAC-01",
+      "FG-DANZ-3y4-OAC-02",
+      "FG-DANZ-3y4-OAC-03",
+      "FG-DANZ-3y4-OAC-04",
+      "FG-DANZ-3y4-OAC-05",
+      "FG-DANZ-3y4-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general_electiva",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/diseno_y_arquitectura.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "AR-DARQ-3y4-OAC-01",
+      "AR-DARQ-3y4-OAC-02",
+      "AR-DARQ-3y4-OAC-03",
+      "AR-DARQ-3y4-OAC-04",
+      "AR-DARQ-3y4-OAC-05",
+      "AR-DARQ-3y4-OAC-06",
+      "AR-DARQ-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/economia_y_sociedad.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 8,
+    "agregados": [
+      "HI-ECSO-3y4-OAC-01",
+      "HI-ECSO-3y4-OAC-02",
+      "HI-ECSO-3y4-OAC-03",
+      "HI-ECSO-3y4-OAC-04",
+      "HI-ECSO-3y4-OAC-05",
+      "HI-ECSO-3y4-OAC-06",
+      "HI-ECSO-3y4-OAC-07",
+      "HI-ECSO-3y4-OAC-08"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/educacion_ciudadana.json",
+    "nuevo": false,
+    "oa_antes": 8,
+    "oa_despues": 8,
+    "agregados": [],
+    "cambios_texto": [
+      {
+        "codigo": "FG-ECIU-3M-OAC-08",
+        "antes": "Participar en distintas instancias escolares de ejercicio democrático, reconociendo la necesidad de organizar socialmente la vida en comunidad, a fin de fortalecer una sana convivencia que resguarde las libertades fundamentales y el bien común.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
+        "despues": "Participar en distintas instancias escolares de ejercicio democrático, reconociendo la necesidad de organizar socialmente la vida en comunidad, a fin de fortalecer una sana convivencia que resguarde las libertades fundamentales y el bien común."
+      }
+    ],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/educacion_fisica_y_salud_1.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "FG-EFS1-3y4-OAC-01",
+      "FG-EFS1-3y4-OAC-02",
+      "FG-EFS1-3y4-OAC-03",
+      "FG-EFS1-3y4-OAC-04",
+      "FG-EFS1-3y4-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general_electiva",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/educacion_fisica_y_salud_2.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "FG-EFS2-3y4-OAC-01",
+      "FG-EFS2-3y4-OAC-02",
+      "FG-EFS2-3y4-OAC-03",
+      "FG-EFS2-3y4-OAC-04",
+      "FG-EFS2-3y4-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general_electiva",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/estetica.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "FI-ESTE-3y4-OAC-01",
+      "FI-ESTE-3y4-OAC-02",
+      "FI-ESTE-3y4-OAC-03",
+      "FI-ESTE-3y4-OAC-04",
+      "FI-ESTE-3y4-OAC-05",
+      "FI-ESTE-3y4-OAC-06",
+      "FI-ESTE-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/expresion_corporal.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 4,
+    "agregados": [
+      "EF-EXCO-3y4-OAC-01",
+      "EF-EXCO-3y4-OAC-02",
+      "EF-EXCO-3y4-OAC-03",
+      "EF-EXCO-3y4-OAC-04"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/filosofia.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "FG-FILO-3M-OAC-01",
+      "FG-FILO-3M-OAC-02",
+      "FG-FILO-3M-OAC-03",
+      "FG-FILO-3M-OAC-04",
+      "FG-FILO-3M-OAC-05",
+      "FG-FILO-3M-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/filosofia_politica.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "FI-FIPO-3y4-OAC-01",
+      "FI-FIPO-3y4-OAC-02",
+      "FI-FIPO-3y4-OAC-03",
+      "FI-FIPO-3y4-OAC-04",
+      "FI-FIPO-3y4-OAC-05",
+      "FI-FIPO-3y4-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/fisica.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "CN-FISI-3y4-OAC-01",
+      "CN-FISI-3y4-OAC-02",
+      "CN-FISI-3y4-OAC-03",
+      "CN-FISI-3y4-OAC-04",
+      "CN-FISI-3y4-OAC-05",
+      "CN-FISI-3y4-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/geografia_territorio_y_desafios_socioambientales.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "HI-GTYD-3y4-OAC-01",
+      "HI-GTYD-3y4-OAC-02",
+      "HI-GTYD-3y4-OAC-03",
+      "HI-GTYD-3y4-OAC-04",
+      "HI-GTYD-3y4-OAC-05",
+      "HI-GTYD-3y4-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/geometria_3d.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "MA-GE3D-3y4-OAC-01",
+      "MA-GE3D-3y4-OAC-02",
+      "MA-GE3D-3y4-OAC-03",
+      "MA-GE3D-3y4-OAC-04",
+      "MA-GE3D-3y4-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/ingles.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 4,
+    "agregados": [
+      "FG-INGL-3M-OAC-01",
+      "FG-INGL-3M-OAC-02",
+      "FG-INGL-3M-OAC-03",
+      "FG-INGL-3M-OAC-04"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/interpretacion_musical.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "AR-IMUS-3y4-OAC-01",
+      "AR-IMUS-3y4-OAC-02",
+      "AR-IMUS-3y4-OAC-03",
+      "AR-IMUS-3y4-OAC-04",
+      "AR-IMUS-3y4-OAC-05",
+      "AR-IMUS-3y4-OAC-06",
+      "AR-IMUS-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/interpretacion_y_creacion_en_danza.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 8,
+    "agregados": [
+      "AR-ICDA-3y4-OAC-01",
+      "AR-ICDA-3y4-OAC-02",
+      "AR-ICDA-3y4-OAC-03",
+      "AR-ICDA-3y4-OAC-04",
+      "AR-ICDA-3y4-OAC-05",
+      "AR-ICDA-3y4-OAC-06",
+      "AR-ICDA-3y4-OAC-07",
+      "AR-ICDA-3y4-OAC-08"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/interpretacion_y_creacion_en_teatro.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 8,
+    "agregados": [
+      "AR-ICTE-3y4-OAC-01",
+      "AR-ICTE-3y4-OAC-02",
+      "AR-ICTE-3y4-OAC-03",
+      "AR-ICTE-3y4-OAC-04",
+      "AR-ICTE-3y4-OAC-05",
+      "AR-ICTE-3y4-OAC-06",
+      "AR-ICTE-3y4-OAC-07",
+      "AR-ICTE-3y4-OAC-08"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/lectura_y_escritura_especializadas.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "LL-LEES-3y4-OAC-01",
+      "LL-LEES-3y4-OAC-02",
+      "LL-LEES-3y4-OAC-03",
+      "LL-LEES-3y4-OAC-04",
+      "LL-LEES-3y4-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/lengua_literatura.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 9,
+    "agregados": [
+      "FG-LELI-3M-OAC-01",
+      "FG-LELI-3M-OAC-02",
+      "FG-LELI-3M-OAC-03",
+      "FG-LELI-3M-OAC-04",
+      "FG-LELI-3M-OAC-05",
+      "FG-LELI-3M-OAC-06",
+      "FG-LELI-3M-OAC-07",
+      "FG-LELI-3M-OAC-08",
+      "FG-LELI-3M-OAC-09"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/limites_derivadas_e_integrales.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "MA-LIDI-3y4-OAC-01",
+      "MA-LIDI-3y4-OAC-02",
+      "MA-LIDI-3y4-OAC-03",
+      "MA-LIDI-3y4-OAC-04",
+      "MA-LIDI-3y4-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/matematica.json",
+    "nuevo": false,
+    "oa_antes": 4,
+    "oa_despues": 4,
+    "agregados": [],
+    "cambios_texto": [
+      {
+        "codigo": "FG-MATE-3M-OAC-04",
+        "antes": "Resolver problemas de geometría euclidiana que involucran relaciones métricas entre ángulos, arcos, cuerdas y secantes en la circunferencia, de forma manuscrita y con uso de herramientas tecnológicas.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
+        "despues": "Resolver problemas de geometría euclidiana que involucran relaciones métricas entre ángulos, arcos, cuerdas y secantes en la circunferencia, de forma manuscrita y con uso de herramientas tecnológicas."
+      }
+    ],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/mundo_global.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "FG-MGLO-3y4-OAC-01",
+      "FG-MGLO-3y4-OAC-02",
+      "FG-MGLO-3y4-OAC-03",
+      "FG-MGLO-3y4-OAC-04",
+      "FG-MGLO-3y4-OAC-05",
+      "FG-MGLO-3y4-OAC-06",
+      "FG-MGLO-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general_electiva",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/musica.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "FG-MUSI-3y4-OAC-01",
+      "FG-MUSI-3y4-OAC-02",
+      "FG-MUSI-3y4-OAC-03",
+      "FG-MUSI-3y4-OAC-04",
+      "FG-MUSI-3y4-OAC-05",
+      "FG-MUSI-3y4-OAC-06",
+      "FG-MUSI-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general_electiva",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/participacion_y_argumentacion_en_democracia.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "LL-PADM-3y4-OAC-01",
+      "LL-PADM-3y4-OAC-02",
+      "LL-PADM-3y4-OAC-03",
+      "LL-PADM-3y4-OAC-04",
+      "LL-PADM-3y4-OAC-05",
+      "LL-PADM-3y4-OAC-06",
+      "LL-PADM-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/pensamiento_computacional_y_programacion.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "MA-PCPR-3y4-OAC-01",
+      "MA-PCPR-3y4-OAC-02",
+      "MA-PCPR-3y4-OAC-03",
+      "MA-PCPR-3y4-OAC-04",
+      "MA-PCPR-3y4-OAC-05",
+      "MA-PCPR-3y4-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/probabilidades_y_estadistica_descriptiva_e_inferencial.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 4,
+    "agregados": [
+      "MA-PEDI-3y4-OAC-01",
+      "MA-PEDI-3y4-OAC-02",
+      "MA-PEDI-3y4-OAC-03",
+      "MA-PEDI-3y4-OAC-04"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/promocion_de_estilos_de_vida_activos_y_saludables.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "EF-PVAS-3y4-OAC-01",
+      "EF-PVAS-3y4-OAC-02",
+      "EF-PVAS-3y4-OAC-03",
+      "EF-PVAS-3y4-OAC-04",
+      "EF-PVAS-3y4-OAC-05",
+      "EF-PVAS-3y4-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/quimica.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "CN-QUIM-3y4-OAC-01",
+      "CN-QUIM-3y4-OAC-02",
+      "CN-QUIM-3y4-OAC-03",
+      "CN-QUIM-3y4-OAC-04",
+      "CN-QUIM-3y4-OAC-05",
+      "CN-QUIM-3y4-OAC-06",
+      "CN-QUIM-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/seminario_de_filosofia.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "FI-SEFI-3y4-OAC-01",
+      "FI-SEFI-3y4-OAC-02",
+      "FI-SEFI-3y4-OAC-03",
+      "FI-SEFI-3y4-OAC-04",
+      "FI-SEFI-3y4-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/taller_de_literatura.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "LL-TALI-3y4-OAC-01",
+      "LL-TALI-3y4-OAC-02",
+      "LL-TALI-3y4-OAC-03",
+      "LL-TALI-3y4-OAC-04",
+      "LL-TALI-3y4-OAC-05",
+      "LL-TALI-3y4-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/3_medio/teatro.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "FG-TEAT-3y4-OAC-01",
+      "FG-TEAT-3y4-OAC-02",
+      "FG-TEAT-3y4-OAC-03",
+      "FG-TEAT-3y4-OAC-04",
+      "FG-TEAT-3y4-OAC-05",
+      "FG-TEAT-3y4-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general_electiva",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/artes_visuales.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "FG-ARTE-3y4-OAC-01",
+      "FG-ARTE-3y4-OAC-02",
+      "FG-ARTE-3y4-OAC-03",
+      "FG-ARTE-3y4-OAC-04",
+      "FG-ARTE-3y4-OAC-05",
+      "FG-ARTE-3y4-OAC-06",
+      "FG-ARTE-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general_electiva",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/artes_visuales_audiovisuales_y_multimediales.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "AR-AVAM-3y4-OAC-01",
+      "AR-AVAM-3y4-OAC-02",
+      "AR-AVAM-3y4-OAC-03",
+      "AR-AVAM-3y4-OAC-04",
+      "AR-AVAM-3y4-OAC-05",
+      "AR-AVAM-3y4-OAC-06",
+      "AR-AVAM-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/biologia_celular_y_molecular.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "CN-BCMO-3y4-OAC-01",
+      "CN-BCMO-3y4-OAC-02",
+      "CN-BCMO-3y4-OAC-03",
+      "CN-BCMO-3y4-OAC-04",
+      "CN-BCMO-3y4-OAC-05",
+      "CN-BCMO-3y4-OAC-06",
+      "CN-BCMO-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/biologia_de_los_ecosistemas.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "CN-BECO-3y4-OAC-01",
+      "CN-BECO-3y4-OAC-02",
+      "CN-BECO-3y4-OAC-03",
+      "CN-BECO-3y4-OAC-04",
+      "CN-BECO-3y4-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/chile_y_la_region_latinoamericana.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "FG-CHLA-3y4-OAC-01",
+      "FG-CHLA-3y4-OAC-02",
+      "FG-CHLA-3y4-OAC-03",
+      "FG-CHLA-3y4-OAC-04",
+      "FG-CHLA-3y4-OAC-05",
+      "FG-CHLA-3y4-OAC-06",
+      "FG-CHLA-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general_electiva",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/ciencias_de_la_salud.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "CN-CSAL-3y4-OAC-01",
+      "CN-CSAL-3y4-OAC-02",
+      "CN-CSAL-3y4-OAC-03",
+      "CN-CSAL-3y4-OAC-04",
+      "CN-CSAL-3y4-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/ciencias_del_ejercicio_fisico_y_deportivo.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "EF-CEFD-3y4-OAC-01",
+      "EF-CEFD-3y4-OAC-02",
+      "EF-CEFD-3y4-OAC-03",
+      "EF-CEFD-3y4-OAC-04",
+      "EF-CEFD-3y4-OAC-05",
+      "EF-CEFD-3y4-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/ciencias_para_la_ciudadania.json",
+    "nuevo": false,
+    "oa_antes": 12,
+    "oa_despues": 12,
+    "agregados": [],
+    "cambios_texto": [
+      {
+        "codigo": "FG-CIBS-3y4-OAC-03",
+        "antes": "Analizar, a partir de evidencias, situaciones de transmisión de agentes infecciosos a nivel nacional y mundial (como virus de influenza, VIH-sida, hanta, hepatitis B, sarampión, entre otros), y evaluar críticamente posibles medidas de prevención como el uso de vacunas.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
+        "despues": "Analizar, a partir de evidencias, situaciones de transmisión de agentes infecciosos a nivel nacional y mundial (como virus de influenza, VIH-sida, hanta, hepatitis B, sarampión, entre otros), y evaluar críticamente posibles medidas de prevención como el uso de vacunas."
+      },
+      {
+        "codigo": "FG-CISA-3y4-OAC-03",
+        "antes": "Analizar, a partir de modelos, riesgos de origen natural o provocados por la acción humana en su contexto local (como aludes, incendios, sismos de alta magnitud, erupciones volcánicas, tsunamis e inundaciones, entre otros) y evaluar las capacidades existentes en la escuela y la comunidad para la prevención, la mitigación y la adaptación frente a sus consecuencias.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
+        "despues": "Analizar, a partir de modelos, riesgos de origen natural o provocados por la acción humana en su contexto local (como aludes, incendios, sismos de alta magnitud, erupciones volcánicas, tsunamis e inundaciones, entre otros) y evaluar las capacidades existentes en la escuela y la comunidad para la prevención, la mitigación y la adaptación frente a sus consecuencias."
+      },
+      {
+        "codigo": "FG-CIAS-3y4-OAC-03",
+        "antes": "Modelar los efectos del cambio climático en diversos ecosistemas y sus componentes biológicos, físicos y químicos, y evaluar posibles soluciones para su mitigación.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
+        "despues": "Modelar los efectos del cambio climático en diversos ecosistemas y sus componentes biológicos, físicos y químicos, y evaluar posibles soluciones para su mitigación."
+      },
+      {
+        "codigo": "FG-CITS-3y4-OAC-03",
+        "antes": "Evaluar alcances y limitaciones de la tecnología y sus aplicaciones, argumentando riesgos y beneficios desde una perspectiva de salud, ética, social, económica y ambiental.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
+        "despues": "Evaluar alcances y limitaciones de la tecnología y sus aplicaciones, argumentando riesgos y beneficios desde una perspectiva de salud, ética, social, económica y ambiental."
+      }
+    ],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/comprension_historica_del_presente.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "HI-CHDP-3y4-OAC-01",
+      "HI-CHDP-3y4-OAC-02",
+      "HI-CHDP-3y4-OAC-03",
+      "HI-CHDP-3y4-OAC-04",
+      "HI-CHDP-3y4-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/creacion_y_composicion_musical.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "AR-CCMU-3y4-OAC-01",
+      "AR-CCMU-3y4-OAC-02",
+      "AR-CCMU-3y4-OAC-03",
+      "AR-CCMU-3y4-OAC-04",
+      "AR-CCMU-3y4-OAC-05",
+      "AR-CCMU-3y4-OAC-06",
+      "AR-CCMU-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/danza.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "FG-DANZ-3y4-OAC-01",
+      "FG-DANZ-3y4-OAC-02",
+      "FG-DANZ-3y4-OAC-03",
+      "FG-DANZ-3y4-OAC-04",
+      "FG-DANZ-3y4-OAC-05",
+      "FG-DANZ-3y4-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general_electiva",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/diseno_y_arquitectura.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "AR-DARQ-3y4-OAC-01",
+      "AR-DARQ-3y4-OAC-02",
+      "AR-DARQ-3y4-OAC-03",
+      "AR-DARQ-3y4-OAC-04",
+      "AR-DARQ-3y4-OAC-05",
+      "AR-DARQ-3y4-OAC-06",
+      "AR-DARQ-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/economia_y_sociedad.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 8,
+    "agregados": [
+      "HI-ECSO-3y4-OAC-01",
+      "HI-ECSO-3y4-OAC-02",
+      "HI-ECSO-3y4-OAC-03",
+      "HI-ECSO-3y4-OAC-04",
+      "HI-ECSO-3y4-OAC-05",
+      "HI-ECSO-3y4-OAC-06",
+      "HI-ECSO-3y4-OAC-07",
+      "HI-ECSO-3y4-OAC-08"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/educacion_ciudadana.json",
+    "nuevo": false,
+    "oa_antes": 8,
+    "oa_despues": 8,
+    "agregados": [],
+    "cambios_texto": [
+      {
+        "codigo": "FG-ECIU-4M-OAC-08",
+        "antes": "Tomar decisiones fundadas en principios éticos, valores y virtudes públicas en las prácticas ciudadanas, resguardando la dignidad del otro y la vida en democracia.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
+        "despues": "Tomar decisiones fundadas en principios éticos, valores y virtudes públicas en las prácticas ciudadanas, resguardando la dignidad del otro y la vida en democracia."
+      }
+    ],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/educacion_fisica_y_salud_1.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "FG-EFS1-3y4-OAC-01",
+      "FG-EFS1-3y4-OAC-02",
+      "FG-EFS1-3y4-OAC-03",
+      "FG-EFS1-3y4-OAC-04",
+      "FG-EFS1-3y4-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general_electiva",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/educacion_fisica_y_salud_2.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "FG-EFS2-3y4-OAC-01",
+      "FG-EFS2-3y4-OAC-02",
+      "FG-EFS2-3y4-OAC-03",
+      "FG-EFS2-3y4-OAC-04",
+      "FG-EFS2-3y4-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general_electiva",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/estetica.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "FI-ESTE-3y4-OAC-01",
+      "FI-ESTE-3y4-OAC-02",
+      "FI-ESTE-3y4-OAC-03",
+      "FI-ESTE-3y4-OAC-04",
+      "FI-ESTE-3y4-OAC-05",
+      "FI-ESTE-3y4-OAC-06",
+      "FI-ESTE-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/expresion_corporal.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 4,
+    "agregados": [
+      "EF-EXCO-3y4-OAC-01",
+      "EF-EXCO-3y4-OAC-02",
+      "EF-EXCO-3y4-OAC-03",
+      "EF-EXCO-3y4-OAC-04"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/filosofia.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "FG-FILO-4M-OAC-01",
+      "FG-FILO-4M-OAC-02",
+      "FG-FILO-4M-OAC-03",
+      "FG-FILO-4M-OAC-04",
+      "FG-FILO-4M-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/filosofia_politica.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "FI-FIPO-3y4-OAC-01",
+      "FI-FIPO-3y4-OAC-02",
+      "FI-FIPO-3y4-OAC-03",
+      "FI-FIPO-3y4-OAC-04",
+      "FI-FIPO-3y4-OAC-05",
+      "FI-FIPO-3y4-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/fisica.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "CN-FISI-3y4-OAC-01",
+      "CN-FISI-3y4-OAC-02",
+      "CN-FISI-3y4-OAC-03",
+      "CN-FISI-3y4-OAC-04",
+      "CN-FISI-3y4-OAC-05",
+      "CN-FISI-3y4-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/geografia_territorio_y_desafios_socioambientales.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "HI-GTYD-3y4-OAC-01",
+      "HI-GTYD-3y4-OAC-02",
+      "HI-GTYD-3y4-OAC-03",
+      "HI-GTYD-3y4-OAC-04",
+      "HI-GTYD-3y4-OAC-05",
+      "HI-GTYD-3y4-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/geometria_3d.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "MA-GE3D-3y4-OAC-01",
+      "MA-GE3D-3y4-OAC-02",
+      "MA-GE3D-3y4-OAC-03",
+      "MA-GE3D-3y4-OAC-04",
+      "MA-GE3D-3y4-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/ingles.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 4,
+    "agregados": [
+      "FG-INGL-4M-OAC-01",
+      "FG-INGL-4M-OAC-02",
+      "FG-INGL-4M-OAC-03",
+      "FG-INGL-4M-OAC-04"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/interpretacion_musical.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "AR-IMUS-3y4-OAC-01",
+      "AR-IMUS-3y4-OAC-02",
+      "AR-IMUS-3y4-OAC-03",
+      "AR-IMUS-3y4-OAC-04",
+      "AR-IMUS-3y4-OAC-05",
+      "AR-IMUS-3y4-OAC-06",
+      "AR-IMUS-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/interpretacion_y_creacion_en_danza.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 8,
+    "agregados": [
+      "AR-ICDA-3y4-OAC-01",
+      "AR-ICDA-3y4-OAC-02",
+      "AR-ICDA-3y4-OAC-03",
+      "AR-ICDA-3y4-OAC-04",
+      "AR-ICDA-3y4-OAC-05",
+      "AR-ICDA-3y4-OAC-06",
+      "AR-ICDA-3y4-OAC-07",
+      "AR-ICDA-3y4-OAC-08"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/interpretacion_y_creacion_en_teatro.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 8,
+    "agregados": [
+      "AR-ICTE-3y4-OAC-01",
+      "AR-ICTE-3y4-OAC-02",
+      "AR-ICTE-3y4-OAC-03",
+      "AR-ICTE-3y4-OAC-04",
+      "AR-ICTE-3y4-OAC-05",
+      "AR-ICTE-3y4-OAC-06",
+      "AR-ICTE-3y4-OAC-07",
+      "AR-ICTE-3y4-OAC-08"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/lectura_y_escritura_especializadas.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "LL-LEES-3y4-OAC-01",
+      "LL-LEES-3y4-OAC-02",
+      "LL-LEES-3y4-OAC-03",
+      "LL-LEES-3y4-OAC-04",
+      "LL-LEES-3y4-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/lengua_literatura.json",
+    "nuevo": false,
+    "oa_antes": 8,
+    "oa_despues": 8,
+    "agregados": [],
+    "cambios_texto": [
+      {
+        "codigo": "FG-LELI-4M-OAC-01",
+        "antes": "Formular interpretaciones de obras que aborden un mismo tema o problema, comparando:\n- La relación de cada obra con sus contextos de producción y de recepción (historia, valores, creencias, ideologías, etc.)\n- El tratamiento del tema o problema y la perspectiva adoptada sobre estos\n- El efecto estético producido por los textos",
+        "despues": "Formular interpretaciones de obras que aborden un mismo tema o problema, comparando:\n- La relación de cada obra con sus contextos de producción y de recepción (historia, valores, creencias, ideologías, etc.).\n- El tratamiento del tema o problema y la perspectiva adoptada sobre éstos.\n- El efecto estético producido por los textos."
+      },
+      {
+        "codigo": "FG-LELI-4M-OAC-05",
+        "antes": "Producir textos (orales, escritos o audiovisuales) coherentes y cohesionados para comunicar sus análisis e interpretaciones de textos, desarrollar posturas sobre temas, explorar creativamente con el lenguaje, entre otros propósitos:\n*El proceso de escritura incluye las etapas de planificación, elaboración, edición y revisión.\n- Aplicando un proceso de escritura* según sus propósitos, el género discursivo seleccionado, el tema y la audiencia\n- Adecuando el texto a las convenciones del género y a las características de la audiencia (conocimientos, intereses, convenciones culturales). ​",
+        "despues": "Producir textos (orales, escritos o audiovisuales) coherentes y cohesionados para comunicar sus análisis e interpretaciones de textos, desarrollar posturas sobre temas, explorar creativamente con el lenguaje, entre otros propósitos:\n- Aplicando un proceso de escritura* según sus propósitos, el género discursivo seleccionado, el tema y la audiencia.\n- Adecuando el texto a las convenciones del género y a las características de la audiencia (conocimientos, intereses, convenciones culturales). *El proceso de escritura incluye las etapas de planificación, elaboración, edición y revisión."
+      },
+      {
+        "codigo": "FG-LELI-4M-OAC-08",
+        "antes": "Investigar sobre diversos temas para enriquecer sus lecturas y análisis, o para responder interrogantes propios de la asignatura:\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Seleccionando fuentes e información según criterios de validez y confiabilidad\n- Procesando la información mediante herramientas digitales o impresas y géneros discursivos determinados\n- Comunicando sus hallazgos por medio de géneros (escritos, orales o audiovisuales) del ámbito educativo\n- Haciendo uso ético de la información investigada por medio de recursos de citación y referencia\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
+        "despues": "Investigar sobre diversos temas para enriquecer sus lecturas y análisis, o para responder interrogantes propios de la asignatura:\n- Seleccionando fuentes e información según criterios de validez y confiabilidad.\n- Procesando la información mediante herramientas digitales o impresas y géneros discursivos determinados.\n- Comunicando sus hallazgos por medio de géneros (escritos, orales o audiovisuales) del ámbito educativo.\n- Haciendo uso ético de la información investigada por medio de recursos de citación y referencia."
+      }
+    ],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/limites_derivadas_e_integrales.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "MA-LIDI-3y4-OAC-01",
+      "MA-LIDI-3y4-OAC-02",
+      "MA-LIDI-3y4-OAC-03",
+      "MA-LIDI-3y4-OAC-04",
+      "MA-LIDI-3y4-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/matematica.json",
+    "nuevo": false,
+    "oa_antes": 4,
+    "oa_despues": 4,
+    "agregados": [],
+    "cambios_texto": [
+      {
+        "codigo": "FG-MATE-4M-OAC-04",
+        "antes": "Resolver problemas acerca de rectas y circunferencias en el plano, mediante su representación analítica, de forma manuscrita y con uso de herramientas tecnológicas.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
+        "despues": "Resolver problemas acerca de rectas y circunferencias en el plano, mediante su representación analítica, de forma manuscrita y con uso de herramientas tecnológicas."
+      }
+    ],
+    "plan": "formacion_general",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/mundo_global.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "FG-MGLO-3y4-OAC-01",
+      "FG-MGLO-3y4-OAC-02",
+      "FG-MGLO-3y4-OAC-03",
+      "FG-MGLO-3y4-OAC-04",
+      "FG-MGLO-3y4-OAC-05",
+      "FG-MGLO-3y4-OAC-06",
+      "FG-MGLO-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general_electiva",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/musica.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "FG-MUSI-3y4-OAC-01",
+      "FG-MUSI-3y4-OAC-02",
+      "FG-MUSI-3y4-OAC-03",
+      "FG-MUSI-3y4-OAC-04",
+      "FG-MUSI-3y4-OAC-05",
+      "FG-MUSI-3y4-OAC-06",
+      "FG-MUSI-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general_electiva",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/participacion_y_argumentacion_en_democracia.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "LL-PADM-3y4-OAC-01",
+      "LL-PADM-3y4-OAC-02",
+      "LL-PADM-3y4-OAC-03",
+      "LL-PADM-3y4-OAC-04",
+      "LL-PADM-3y4-OAC-05",
+      "LL-PADM-3y4-OAC-06",
+      "LL-PADM-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/pensamiento_computacional_y_programacion.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "MA-PCPR-3y4-OAC-01",
+      "MA-PCPR-3y4-OAC-02",
+      "MA-PCPR-3y4-OAC-03",
+      "MA-PCPR-3y4-OAC-04",
+      "MA-PCPR-3y4-OAC-05",
+      "MA-PCPR-3y4-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/probabilidades_y_estadistica_descriptiva_e_inferencial.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 4,
+    "agregados": [
+      "MA-PEDI-3y4-OAC-01",
+      "MA-PEDI-3y4-OAC-02",
+      "MA-PEDI-3y4-OAC-03",
+      "MA-PEDI-3y4-OAC-04"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/promocion_de_estilos_de_vida_activos_y_saludables.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "EF-PVAS-3y4-OAC-01",
+      "EF-PVAS-3y4-OAC-02",
+      "EF-PVAS-3y4-OAC-03",
+      "EF-PVAS-3y4-OAC-04",
+      "EF-PVAS-3y4-OAC-05",
+      "EF-PVAS-3y4-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/quimica.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 7,
+    "agregados": [
+      "CN-QUIM-3y4-OAC-01",
+      "CN-QUIM-3y4-OAC-02",
+      "CN-QUIM-3y4-OAC-03",
+      "CN-QUIM-3y4-OAC-04",
+      "CN-QUIM-3y4-OAC-05",
+      "CN-QUIM-3y4-OAC-06",
+      "CN-QUIM-3y4-OAC-07"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/seminario_de_filosofia.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 5,
+    "agregados": [
+      "FI-SEFI-3y4-OAC-01",
+      "FI-SEFI-3y4-OAC-02",
+      "FI-SEFI-3y4-OAC-03",
+      "FI-SEFI-3y4-OAC-04",
+      "FI-SEFI-3y4-OAC-05"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/taller_de_literatura.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "LL-TALI-3y4-OAC-01",
+      "LL-TALI-3y4-OAC-02",
+      "LL-TALI-3y4-OAC-03",
+      "LL-TALI-3y4-OAC-04",
+      "LL-TALI-3y4-OAC-05",
+      "LL-TALI-3y4-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_diferenciada_hc",
+    "alias": false
+  },
+  {
+    "path": "data/mineduc/media/4_medio/teatro.json",
+    "nuevo": true,
+    "oa_antes": 0,
+    "oa_despues": 6,
+    "agregados": [
+      "FG-TEAT-3y4-OAC-01",
+      "FG-TEAT-3y4-OAC-02",
+      "FG-TEAT-3y4-OAC-03",
+      "FG-TEAT-3y4-OAC-04",
+      "FG-TEAT-3y4-OAC-05",
+      "FG-TEAT-3y4-OAC-06"
+    ],
+    "cambios_texto": [],
+    "plan": "formacion_general_electiva",
+    "alias": false
+  }
+]
