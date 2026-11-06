@@ -1,0 +1,70 @@
+{
+  "sources_catalogued": 263,
+  "sources_with_reviewed_adaptations": 129,
+  "new_adaptations": 132,
+  "pending_reference_sources": 134,
+  "excluded_links": 9,
+  "coverage_new_adaptations": {
+    "Sala Cuna Menor (0 a 1 año)": {
+      "Identidad y autonomía": 4,
+      "Convivencia y ciudadanía": 1,
+      "Corporalidad y movimiento": 1,
+      "Lenguaje verbal": 3,
+      "Lenguajes artísticos": 2,
+      "Exploración del entorno natural": 3,
+      "Comprensión del entorno sociocultural": 1,
+      "Pensamiento matemático": 2
+    },
+    "Sala Cuna Mayor (1 a 2 años)": {
+      "Identidad y autonomía": 4,
+      "Convivencia y ciudadanía": 1,
+      "Corporalidad y movimiento": 1,
+      "Lenguaje verbal": 3,
+      "Lenguajes artísticos": 2,
+      "Exploración del entorno natural": 3,
+      "Comprensión del entorno sociocultural": 1,
+      "Pensamiento matemático": 2
+    },
+    "Medio Menor (2 a 3 años)": {
+      "Identidad y autonomía": 2,
+      "Convivencia y ciudadanía": 2,
+      "Corporalidad y movimiento": 4,
+      "Lenguaje verbal": 2,
+      "Lenguajes artísticos": 3,
+      "Exploración del entorno natural": 4,
+      "Comprensión del entorno sociocultural": 2,
+      "Pensamiento matemático": 6
+    },
+    "Medio Mayor (3 a 4 años)": {
+      "Identidad y autonomía": 4,
+      "Convivencia y ciudadanía": 10,
+      "Corporalidad y movimiento": 10,
+      "Lenguaje verbal": 15,
+      "Lenguajes artísticos": 16,
+      "Exploración del entorno natural": 10,
+      "Comprensión del entorno sociocultural": 12,
+      "Pensamiento matemático": 13
+    },
+    "NT1 - Pre Kinder (4-5 años)": {
+      "Identidad y autonomía": 7,
+      "Convivencia y ciudadanía": 10,
+      "Corporalidad y movimiento": 8,
+      "Lenguaje verbal": 17,
+      "Lenguajes artísticos": 14,
+      "Exploración del entorno natural": 7,
+      "Comprensión del entorno sociocultural": 12,
+      "Pensamiento matemático": 14
+    },
+    "NT2 - Kinder (5-6 años)": {
+      "Identidad y autonomía": 7,
+      "Convivencia y ciudadanía": 10,
+      "Corporalidad y movimiento": 8,
+      "Lenguaje verbal": 17,
+      "Lenguajes artísticos": 14,
+      "Exploración del entorno natural": 7,
+      "Comprensión del entorno sociocultural": 13,
+      "Pensamiento matemático": 13
+    }
+  },
+  "note": "Coverage is new adaptations only; existing bank is preserved. No claim of exhaustive web coverage. No official OA invented. Raw downloaded text is not published."
+}
