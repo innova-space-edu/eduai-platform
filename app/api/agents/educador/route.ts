@@ -2492,7 +2492,7 @@ REGLAS DE LAS CELDAS:
         },
         supabase,
       })
-      let result = {
+      const result = {
         text: initialAI.data,
         provider: initialAI.provider,
         model: initialAI.model,
