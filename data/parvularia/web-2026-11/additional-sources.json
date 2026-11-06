@@ -1,0 +1,68 @@
+[
+  {
+    "key": "educarchile-convivencia",
+    "url": "https://www.educarchile.cl/recursos-para-el-aula/convivencia-armonica-respetar-al-otro-nt1-y-nt2",
+    "page": "https://www.educarchile.cl/gestion-curricular/pre-kinder-y-kinder",
+    "group": "educarchile_nt",
+    "title": "Convivencia armónica: Respetar al otro",
+    "eligible_levels": [
+      "NT1 - Pre Kinder (4-5 años)",
+      "NT2 - Kinder (5-6 años)"
+    ]
+  },
+  {
+    "key": "educarchile-conflictos",
+    "url": "https://www.educarchile.cl/gestion-curricular/actividad-de-aprendizaje-resolver-pacificamente-conflictos-nt1-y-nt2",
+    "page": "https://www.educarchile.cl/gestion-curricular/pre-kinder-y-kinder",
+    "group": "educarchile_nt",
+    "title": "Resolver pacíficamente conflictos",
+    "eligible_levels": [
+      "NT1 - Pre Kinder (4-5 años)",
+      "NT2 - Kinder (5-6 años)"
+    ]
+  },
+  {
+    "key": "mineduc-grafico-nt1",
+    "url": "https://www.curriculumnacional.cl/recursos/nt1-pensamiento-matematico-oa04-experiencia-aprendizaje-sugerida-1",
+    "page": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia",
+    "group": "mineduc_nt",
+    "title": "NT1 - Comparar cantidades en un gráfico",
+    "eligible_levels": [
+      "NT1 - Pre Kinder (4-5 años)"
+    ]
+  },
+  {
+    "key": "mineduc-barrio-nt2",
+    "url": "https://www.curriculumnacional.cl/recursos/nt2-comprension-entorno-sociocultural-oa02-experiencia-aprendizaje-sugerida-2",
+    "page": "https://www.curriculumnacional.cl/curriculum/educacion-parvularia",
+    "group": "mineduc_nt",
+    "title": "NT2 - Diversidad de comunidades",
+    "eligible_levels": [
+      "NT2 - Kinder (5-6 años)"
+    ]
+  },
+  {
+    "key": "cis-visores",
+    "url": "https://infancia.cl/visores-de-colores-un-universo-de-posibilidades/",
+    "page": "https://infancia.cl/",
+    "group": "corporacion_sc",
+    "provider": "Corporación para la Infancia de Santiago",
+    "title": "Visores de colores: exploración inclusiva",
+    "eligible_levels": [
+      "Sala Cuna Menor (0 a 1 año)",
+      "Sala Cuna Mayor (1 a 2 años)"
+    ]
+  },
+  {
+    "key": "cis-nido",
+    "url": "https://infancia.cl/fundacion-palabra-y-corporacion-para-la-infancia-de-santiago-se-unen-para-fomentar-la-lectura-con-el-programa-nido-bilij/",
+    "page": "https://infancia.cl/",
+    "group": "corporacion_sc",
+    "provider": "Corporación para la Infancia de Santiago / Fundación Palabra",
+    "title": "Nido BILIJ: lectura, música y juego",
+    "eligible_levels": [
+      "Sala Cuna Menor (0 a 1 año)",
+      "Sala Cuna Mayor (1 a 2 años)"
+    ]
+  }
+]
