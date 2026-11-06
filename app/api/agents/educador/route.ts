@@ -2226,7 +2226,7 @@ REGLAS DE LAS CELDAS:
   let planningGenerationCalls = 0
   let planningFreshResults = 0
   let planningInputCharacters = 0
-  const recordPlanningPrompt = <T extends Array<{ content: string }>>(messages: T): T => {
+  const recordPlanningPrompt = <T extends Array<{ role: "system" | "user" | "assistant"; content: string }>>(messages: T): T => {
     planningGenerationCalls += 1
     planningInputCharacters += messages.reduce((sum, item) => sum + item.content.length, 0)
     return messages
