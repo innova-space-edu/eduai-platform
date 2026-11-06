@@ -1,7 +1,10 @@
+import { planningIdentity } from "@/lib/ai/planning-identity"
+import { reusePlanning, rememberPlanning, planningReferences } from "@/lib/ai/planning-library"
+import { assertAICapabilityAllowed } from "@/lib/ai/access-policy"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { runAIText } from "@/lib/ai/gateway"
-import { cursoToKey, type NivelKey } from "@/lib/mineduc-oa"
+import { cursoToKey, getOAs, type NivelKey } from "@/lib/mineduc-oa"
 import {
   buildPlanningHorizonText,
   buildSelectedOAContext,
@@ -212,6 +215,7 @@ export async function POST(req: NextRequest) {
   const message = typeof body.message === "string" ? body.message.trim() : ""
   const history = Array.isArray(body.history) ? body.history : []
   const cfg: PlanificadorCurricularConfig = body.config || {}
+  const forceNewGeneration = body.forceNewGeneration === true
 
   const nivel = normalizeNivel(cfg.nivel)
   const curso = typeof cfg.curso === "string" && cfg.curso.trim()
@@ -240,6 +244,20 @@ export async function POST(req: NextRequest) {
   const horizonText = buildPlanningHorizonText(tiempo, sesiones, duracionMinutos, periodoLabel)
   const teacherIdea = [actividadGeneral, unidadesDeclaradas, message].filter(Boolean).join("\n")
   const formatInstruction = buildFormatInstruction(tiempo, cfg.generarAgenteDia !== false)
+
+  try {
+    await assertAICapabilityAllowed({ supabase, userId: user.id, capability: "text" })
+  } catch (error) {
+    const typed = error as Error & { status?: number; code?: string }
+    return NextResponse.json({ error: typed.message, code: typed.code }, { status: typed.status || 403 })
+  }
+  const documentIdentity = planningIdentity({ module: `planner-${tiempo}`,
+    config: cfg as unknown as Record<string, unknown>, resolved: { nivel, curso, asignatura, tiempo, selectedOAIds, unidadId, periodoLabel, sesiones, duracionMinutos },
+    message, history: history.filter(isChatHistoryItem), curriculum: getOAs(nivel, curso, asignatura).map((oa) => ({ id: oa.id, text: oa.texto })) })
+  const reusableDocument = await reusePlanning({ supabase, userId: user.id, identity: documentIdentity, forceNew: forceNewGeneration })
+  if (reusableDocument) return NextResponse.json(reusableDocument)
+  const privateDocumentReferences = await planningReferences({ supabase, level: nivel, course: curso, subject: asignatura,
+    oaIds: selectedOAIds, topic: teacherIdea, enabled: !forceNewGeneration })
 
   const systemPrompt = `Eres APl, Agente Planificador Curricular de EduAI para Chile.
 
@@ -277,6 +295,8 @@ COBERTURA LOCAL:
 OA REALES DISPONIBLES:
 ${oaContext || "Sin OA locales seleccionados para esta configuración."}
 
+${privateDocumentReferences.prompt}
+
 UNIDADES DECLARADAS POR EL DOCENTE:
 ${unidadesDeclaradas || "No especificadas."}
 
@@ -307,13 +327,13 @@ ${formatInstruction}`
       context: {
         userId: user.id,
         module: `planner-${tiempo}`,
-        reusePolicy: "exact_private",
+        reusePolicy: forceNewGeneration ? "never" : "exact_private",
         visibility: "private",
       },
       supabase,
     })
 
-    return NextResponse.json({
+    const documentResponse = {
       text: result.data,
       provider: result.provider,
       model: result.model,
@@ -332,7 +352,10 @@ ${formatInstruction}`
       localCoverage: summary,
       hasLocalCurriculum: summary.oas > 0,
       bridgeToDailyAgent: cfg.generarAgenteDia !== false,
-    })
+    }
+    const learning = await rememberPlanning({ supabase, userId: user.id, identity: documentIdentity,
+      response: documentResponse, referenceCount: privateDocumentReferences.count })
+    return NextResponse.json({ ...documentResponse, learning })
   } catch (error) {
     const typed = error as Error & { status?: number; code?: string }
     if (typed.code === "EDUAI_ACCESS_RESTRICTED") {

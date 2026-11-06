@@ -1,3 +1,4 @@
+import { googleUsage, type AIUsage } from "../usage"
 import { GoogleGenAI } from "@google/genai"
 
 export type GatewayMessage = {
@@ -6,6 +7,7 @@ export type GatewayMessage = {
 }
 
 export type GoogleTextResult = {
+  usage?: AIUsage
   text: string
   provider: "google"
   model: string
@@ -143,6 +145,7 @@ export async function generateGoogleText(input: {
     text: response.text ?? "",
     provider: "google",
     model,
+    usage: googleUsage(response.usageMetadata),
   }
 }
 
@@ -183,6 +186,7 @@ export async function generateGoogleGroundedText(input: {
     text: response.text ?? "",
     provider: "google",
     model,
+    usage: googleUsage(response.usageMetadata),
     usedSearch: searchQueries.length > 0 || sources.length > 0,
     searchQueries,
     sources,
@@ -250,6 +254,7 @@ export async function generateGoogleStructured<T = Record<string, unknown>>(inpu
     data: parseStructuredJson<T>(text),
     provider: "google",
     model,
+    usage: googleUsage(response.usageMetadata),
   }
 }
 
@@ -301,3 +306,4 @@ export function hasGoogleAI(kind: "text" | "image" | "video" = "text"): boolean 
     return false
   }
 }
+

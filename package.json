@@ -52,7 +52,8 @@
     "test:local-evidence": "tsx scripts/test-eduai-local-evidence.ts",
     "test:visual-design-preview": "tsx scripts/test-visual-design-preview.ts",
     "test:curriculum:media": "node scripts/test-media-curriculum.mjs",
-    "curriculum:media:rebuild": "python3 scripts/audit-media-2026.py && node scripts/generate-mineduc-index.mjs"
+    "curriculum:media:rebuild": "python3 scripts/audit-media-2026.py && node scripts/generate-mineduc-index.mjs",
+    "test:planning-library": "node scripts/test-planning-library.mjs"
   },
   "dependencies": {
     "@andresaya/edge-tts": "^1.8.0",
