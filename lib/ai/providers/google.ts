@@ -167,6 +167,7 @@ export async function generateGoogleGroundedText(input: {
       maxOutputTokens: input.maxOutputTokens ?? 4096,
       temperature: input.temperature ?? 0.4,
       tools: [{ googleSearch: {} }],
+      httpOptions: { timeout: 20000 },
     },
   } as any)
 

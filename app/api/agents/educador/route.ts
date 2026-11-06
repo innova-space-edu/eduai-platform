@@ -1,3 +1,4 @@
+import { searchMissingParvulariaIdeas } from "@/lib/parvularia-web"
 import { planningIdentity } from "@/lib/ai/planning-identity"
 import { reusePlanning, rememberPlanning, planningReferences } from "@/lib/ai/planning-library"
 import { NextRequest, NextResponse } from "next/server"
@@ -286,8 +287,8 @@ function findShortParvulariaActivities(experience: string): string[] {
       .trim()
 
     // Umbral deliberadamente moderado: evita títulos telegráficos sin convertir
-    // cada experiencia en un párrafo largo. El prompt apunta a ~100-180 caracteres.
-    return activityText.length > 0 && activityText.length < 95 ? [activityText] : []
+    // cada experiencia en un párrafo largo. El prompt apunta a ~350-650 caracteres.
+    return activityText.length > 0 && activityText.length < 220 ? [activityText] : []
   })
 }
 
@@ -1386,7 +1387,19 @@ REGLAS:
 4. Devuelve SOLO JSON valido.
 5. Si no hay coincidencias perfectas, propone las mas cercanas y explicalo en "sugerenciaDocente".`
 
-    const userPrompt = buildParvulariaSuggestionJsonPrompt(localSuggestion)
+    const suggestionNuclei = [...new Set([
+      ...localSuggestion.nucleosSugeridos.map((item) => item.nucleo), asignatura,
+      ...getAvailableAsignaturas("parvularia", curso),
+    ])].filter(Boolean).slice(0, 3)
+    const suggestionKnowledge = await buildParvulariaKnowledgeContext({ supabase, userId: user.id,
+      course: curso, topic: temaUsuario, message, journeyNuclei: suggestionNuclei,
+      selectedOAIds: localSuggestion.oaSugeridos.map((oa) => oa.id),
+      selectedOATIds: localSuggestion.oatSugeridos.map((oat) => oat.id), candidateLimit: 9 }).catch(() => null)
+    const suggestionWeb = await searchMissingParvulariaIdeas({ supabase, userId: user.id, levels: [curso],
+      coverage: suggestionKnowledge?.journeyCoverage || suggestionNuclei.map((nucleus) => ({ nucleus, selected: 0, required: 3, missingLevels: [], needsWeb: true })),
+      curriculum: suggestionNuclei.map((nucleo) => getPlannerOAOptions({ nivel: "parvularia", curso, asignatura: nucleo }).slice(0, 3).map((oa) => oa.texto).join(" ")),
+    }).catch(() => ({ prompt: "", sources: [] }))
+    const userPrompt = [buildParvulariaSuggestionJsonPrompt(localSuggestion), suggestionKnowledge?.prompt || "", suggestionWeb.prompt].filter(Boolean).join("\n\n")
 
     try {
       const suggestionAI = await runAIText({
@@ -1419,6 +1432,7 @@ REGLAS:
         temaUsuario,
         cursoKey: cursoToKey(curso),
         localSuggestion,
+        webSources: suggestionWeb.sources,
         suggestion: safeJsonParse(result.text),
         raw: result.text,
       })
@@ -1576,14 +1590,14 @@ REGLAS:
       parvulariaHeterogenea && parvulariaSegundoCurso ? getOAs(nivel, parvulariaSegundoCurso, asignatura) : [],
     ],
   })
-  const reusableDocument = await reusePlanning({ supabase, userId: user.id, identity: documentIdentity, forceNew: forceNewGeneration })
+  const reusableDocument = await reusePlanning({ supabase, userId: user.id, identity: documentIdentity, forceNew: forceNewGeneration || isStructuredParvularia })
   if (reusableDocument) {
     if (isStructuredParvularia) await updateParvulariaPhase({ phaseKey: "completed", phaseIndex: 6, phaseLabel: "Documento recuperado", detail: "Se reutilizó una versión compatible de tu biblioteca, sin llamar a la IA.", status: "completed" })
     return NextResponse.json({ ...reusableDocument, generationRunId: generationRunId || undefined })
   }
   const privateDocumentReferences = await planningReferences({ supabase, level: nivel, course: curso, subject: asignatura,
     oaIds: selectedOAIds, topic: contexto || message, enabled: !forceNewGeneration })
-  if (wantsIdeas || (wantsActividad && !hasExplicitTopic)) {
+  if (nivel !== "parvularia" && (wantsIdeas || (wantsActividad && !hasExplicitTopic))) {
     webTopicIdeas = await searchTopicIdeas(nivel, curso, asignatura, mes)
   }
 
@@ -1892,6 +1906,17 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
       }).catch(() => null)
     : null
 
+  const parvulariaWebIdeas = isStructuredParvularia
+    ? await searchMissingParvulariaIdeas({ supabase, userId: user.id,
+        levels: parvulariaHeterogenea && parvulariaSegundoCurso ? [curso, parvulariaSegundoCurso] : [curso],
+        coverage: parvulariaKnowledge?.journeyCoverage || parvulariaJourneyNucleos.map((nucleus) =>
+          ({ nucleus, selected: 0, required: 3, missingLevels: [], needsWeb: true })),
+        curriculum: parvulariaJourneyNucleos.map((nucleo, index) => [nucleo,
+          ...(parvulariaOAByJourney[index] || []).map((oa) => oa.texto),
+          ...(parvulariaOATByJourney[index] || []).map((oat) => oat.label)].join(" ")),
+      }).catch(() => ({ prompt: "", sources: [], status: "unavailable", reused: false }))
+    : { prompt: "", sources: [], status: "not_needed", reused: false }
+
   const parvulariaRequiredDateLabels = (tiempoPlanificacion === "semanal" || tiempoPlanificacion === "quincenal")
     ? parvulariaPeriodGuide
         .split("\n")
@@ -1958,7 +1983,8 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
               parvulariaJourneyOAContext,
               parvulariaSafetyPrompt,
               "REFERENCIAS RAG Y MEMORIA:",
-              truncateForPrompt(parvulariaKnowledge?.prompt || "", 4400),
+              ...(parvulariaKnowledge?.journeyPrompts || []).map((prompt) => truncateForPrompt(prompt, 1800)),
+              parvulariaWebIdeas.prompt,
               privateDocumentReferences.prompt,
             ].filter(Boolean).join("\n\n"),
           },
@@ -2039,7 +2065,7 @@ REFERENCIA INSTITUCIONAL QUE DEBES REPLICAR EN CONTENIDO Y ORGANIZACIÓN:
 - Cuando hay dos niveles/subniveles unidos, el Desarrollo se divide en DOS bloques explícitos por edad/subnivel. Para Sala Cuna usa "Edades 06 meses a 12 meses" y "Edades 1 año a 2 años" cuando corresponda; para otros niveles usa el rango de edad respectivo.
 - Inicio debe reunir/motivar al grupo, presentar recursos y activar exploración o juego.
 - Desarrollo debe contener ACTIVIDADES REALES, distintas, detalladas y ejecutables: qué harán los párvulos, qué manipularán/observarán/escucharán, cómo interviene el adulto y qué se espera observar. No escribas solo títulos.
-- ESTÁNDAR DE PROFUNDIDAD PARA CADA ACTIVIDAD, EN TODOS LOS HORIZONTES: cada actividad diaria, semanal, quincenal, mensual o semestral debe redactarse como una oración pedagógica completa y breve, no como un nombre de actividad. Apunta a aproximadamente 100-180 caracteres de contenido por actividad, sin contar fecha, viñeta o rótulo de semana.
+- ESTÁNDAR DE PROFUNDIDAD PARA CADA ACTIVIDAD, EN TODOS LOS HORIZONTES: cada actividad diaria, semanal, quincenal, mensual o semestral debe redactarse como una secuencia pedagógica concreta, no como un nombre de actividad. Apunta a aproximadamente 350-650 caracteres de contenido por actividad, sin contar fecha, viñeta o rótulo de semana.
 - Cada actividad debe combinar al menos: acción concreta de los párvulos + material/estímulo/espacio + forma de exploración, interacción o mediación + habilidad, respuesta observable o propósito inmediato. No es necesario convertirla en un párrafo.
 - Si hay dos niveles/subniveles, NO redactes una única experiencia central con adecuaciones breves. Cada bloque de edad debe contener sus propias actividades completas por fecha o tramo, con diferencias reales de complejidad y mediación.
 - Finalización debe considerar ordenar/guardar materiales, socializar mediante lenguaje, gestos, sonidos o producciones, y reforzar positivamente la participación.
@@ -2071,7 +2097,7 @@ ESTRUCTURA PEDAGÓGICA OBLIGATORIA:
 12. No uses horas pedagógicas, minutos por sesión, cronogramas por bloques horarios ni cantidad de clases.
 13. Para horizonte diaria genera la experiencia del día; semanal organiza la semana; quincenal organiza dos semanas; mensual organiza por semanas del mes; semestral organiza progresión mensual/semanal sin intentar detallar cada minuto de cada jornada.
 14. La planificación debe ser utilizable directamente y suficientemente detallada, sin texto genérico de relleno.
-15. LA CALIDAD DE REDACCIÓN SE APLICA A TODAS LAS ACTIVIDADES, SIN EXCEPCIÓN POR HORIZONTE. Cada actividad del Desarrollo debe ser una frase completa, concreta y ejecutable de aproximadamente 100-180 caracteres de contenido. Evita frases nominales como "Circuito de cojines para gateo", "Exploración de texturas" o "Lectura de cuento" sin explicar qué harán los párvulos, con qué y para qué.
+15. LA CALIDAD DE REDACCIÓN SE APLICA A TODAS LAS ACTIVIDADES, SIN EXCEPCIÓN POR HORIZONTE. Cada actividad del Desarrollo debe ser una secuencia completa, concreta y ejecutable de aproximadamente 350-650 caracteres de contenido. Evita frases nominales como "Circuito de cojines para gateo", "Exploración de texturas" o "Lectura de cuento" sin explicar qué harán los párvulos, con qué y para qué.
 16. En diaria debes entregar tres experiencias distintas para el mismo día, una por jornada. En semanal y quincenal, CADA una de las tres jornadas debe contener una actividad diferente para CADA día hábil indicado en la guía temporal. Esto significa 3 actividades por día. En mensual, conserva las tres jornadas y organiza semanas con experiencias concretas; en semestral, conserva las tres jornadas con progresión mensual/semanal.
 17. "Experiencia de aprendizaje" debe contener obligatoriamente los literales Inicio:, Desarrollo: y Finalización: en cada una de las tres jornadas.
 18. Nunca devuelvas campos vacíos. Si falta una idea del docente, CONSTRÚYELA a partir de los objetivos oficiales seleccionados, la edad, el núcleo y el contexto.
@@ -2359,7 +2385,8 @@ REGLAS DE LAS CELDAS:
                 "experienciaAprendizaje debe incluir Inicio:, Desarrollo: y Finalización:.",
                 "En semanal/quincenal incluye TODAS las fechas hábiles indicadas.",
                 "Si hay dos rangos etarios, Desarrollo debe contener dos bloques completos, uno por cada rango, con actividades diferentes para cada fecha.",
-                "Cada actividad fechada debe ser concreta, ejecutable y sustantivamente distinta: acción del párvulo + recurso/espacio + mediación + propósito/evidencia.",
+                "Cada actividad debe desarrollar 3 a 5 acciones concretas (350-650 caracteres): preparación del espacio, elección y exploración infantil, pregunta o mediación adulta, cierre y evidencia observable. No uses títulos ni listados telegráficos.",
+                "Combina componentes de varias referencias compatibles. Diferencia las acciones infantiles, la organización y el desafío; cambiar colores o materiales no constituye una actividad nueva.",
                 "recursos debe contener RECURSOS TANGIBLES y RECURSOS INTANGIBLES.",
                 "rolEquipoFamilia debe distinguir Rol del equipo pedagógico y Rol de la familia.",
                 "evaluacion debe incluir Instrumento: Escala de apreciación; Logrado: 3; Medianamente logrado: 2; Por lograr: 1; No observado: 0; Registro de Observación; e Indicadores observables.",
@@ -2384,6 +2411,7 @@ REGLAS DE LAS CELDAS:
                 parvulariaSafetyPrompt,
                 "REFERENCIAS PEDAGÓGICAS DE ESTA JORNADA:",
                 parvulariaKnowledge?.journeyPrompts[index] || "Sin referencias RAG específicas.",
+                parvulariaWebIdeas.prompt,
                 "PLAN INTERMEDIO:",
                 truncateForPrompt(parvulariaBlueprint, 1700),
                 correction ? `CORRECCIÓN OBLIGATORIA: ${correction}` : "",
@@ -2647,7 +2675,7 @@ REGLAS DE LAS CELDAS:
                   : heterogeneousDevelopmentIssues.length
                     ? `El Desarrollo heterogéneo no respeta los bloques por edad/subnivel: ${heterogeneousDevelopmentIssues.join(" | ")}.`
                   : shortActivitiesByJourney.length
-                    ? `Hay actividades demasiado breves o redactadas como títulos. Amplía cada actividad a una frase pedagógica completa y concreta (aprox. 100-180 caracteres): ${shortActivitiesByJourney.slice(0, 6).join(" | ")}.`
+                    ? `Hay actividades demasiado breves o redactadas como títulos. Amplía cada actividad a una frase pedagógica completa y concreta (aprox. 350-650 caracteres): ${shortActivitiesByJourney.slice(0, 6).join(" | ")}.`
                     : incompleteRowIndex >= 0
                       ? `Jornada ${incompleteRowIndex + 1}: está incompleta; debe incluir Inicio, Desarrollo, Finalización, roles, recursos tangibles/intangibles y la escala/indicadores de evaluación.`
                       : "Faltan campos obligatorios de la plantilla."
@@ -2718,7 +2746,7 @@ REGLAS DE LAS CELDAS:
 
         if (!noveltyAudit.passed) {
           const diversified = await generateParvulariaByJourney(
-            `La planificación anterior se parece demasiado a experiencias ya utilizadas (similitud máxima ${noveltyAudit.maxSimilarity}). Cambia de manera sustantiva las actividades, materiales, organización del espacio, mediación y evidencia observable sin alterar OA/OAT ni fechas.`
+            `La planificación anterior se parece demasiado a experiencias ya utilizadas (similitud con memoria ${noveltyAudit.maxSimilarity}; también elimina repeticiones dentro de esta planificación). Cambia de manera sustantiva las actividades, materiales, organización del espacio, mediación y evidencia observable sin alterar OA/OAT ni fechas.`
           )
 
           
@@ -2729,7 +2757,7 @@ REGLAS DE LAS CELDAS:
               parvulariaKnowledge.recentContentSamples,
             )
 
-            if (diversifiedAudit.maxSimilarity <= noveltyAudit.maxSimilarity) {
+            if (diversifiedAudit.passed || diversifiedAudit.maxSimilarity < noveltyAudit.maxSimilarity) {
               result = { ...diversified, text: diversifiedText }
               noveltyAudit = diversifiedAudit
             }
@@ -2738,6 +2766,10 @@ REGLAS DE LAS CELDAS:
           }
         }
       }
+    }
+
+    if (isStructuredParvularia && noveltyAudit && !noveltyAudit.passed) {
+      throw new Error("No se logró suficiente diversidad entre experiencias; vuelve a generar para obtener nuevas alternativas.")
     }
 
     if (isInstitutionalMacro) {
@@ -2822,6 +2854,8 @@ REGLAS DE LAS CELDAS:
           knowledgeSource: parvulariaKnowledge?.source || "none",
           journeyReferenceCounts: parvulariaKnowledge?.journeyReferenceCounts || [],
           noveltyAudit,
+          webStatus: parvulariaWebIdeas.status,
+          webSources: parvulariaWebIdeas.sources,
         },
       })
       await updateParvulariaPhase({
@@ -2834,6 +2868,8 @@ REGLAS DE LAS CELDAS:
           knowledgeSource: parvulariaKnowledge?.source || "none",
           journeyReferenceCounts: parvulariaKnowledge?.journeyReferenceCounts || [],
           noveltyAudit,
+          webStatus: parvulariaWebIdeas.status,
+          webSources: parvulariaWebIdeas.sources,
         },
       })
     }
@@ -2865,6 +2901,11 @@ REGLAS DE LAS CELDAS:
       parvulariaJourneyOAIds: isStructuredParvularia ? parvulariaJourneyOAIds : undefined,
       parvulariaJourneyOATIds: isStructuredParvularia ? parvulariaJourneyOATIds : undefined,
       parvulariaKnowledge: isStructuredParvularia ? {
+        bankScannedCount: parvulariaKnowledge?.bankScannedCount || 0,
+        bankScanComplete: parvulariaKnowledge?.bankScanComplete || false,
+        journeyCoverage: parvulariaKnowledge?.journeyCoverage || [],
+        webStatus: parvulariaWebIdeas.status,
+        webSources: parvulariaWebIdeas.sources,
         source: parvulariaKnowledge?.source || "none",
         referenceCount: parvulariaKnowledge?.candidateIds.length || 0,
         journeyReferenceCounts: parvulariaKnowledge?.journeyReferenceCounts || [],
@@ -2883,6 +2924,10 @@ REGLAS DE LAS CELDAS:
     return NextResponse.json({ ...documentResponse, learning })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "No fue posible generar la planificacion"
+    if (isStructuredParvularia && errorMessage.includes("No se logró suficiente diversidad")) {
+      await updateParvulariaPhase({ phaseKey: "failed", phaseIndex: 6, phaseLabel: "Se requieren nuevas alternativas", detail: errorMessage, status: "failed" })
+      return NextResponse.json({ error: errorMessage, code: "PARVULARIA_DIVERSITY_RETRY", retryable: true }, { status: 422 })
+    }
     if (isInstitutionalMacro) {
       console.error("[Educador AI]", errorMessage)
       const gatewayUnavailable =
