@@ -51,6 +51,7 @@ export async function reusePlanning(input: {
       await input.supabase.rpc("increment_planning_asset_hit", { p_asset_id: row.id })
       return { ...object(content.response), text: rendered, provider: "Biblioteca EduAI", model: "planning-reuse-v1",
         reused: true, generationAvoided: true,
+        optimization: { version: 2, gatewayRequests: 0, freshResults: 0, inputCharacters: 0, libraryReuse: true },
         learning: { assetId: row.id, requestKey: input.identity.key, curriculumHash: input.identity.curriculumHash,
           version: PLANNING_LIBRARY_VERSION, source: metadata.review_state === "saved" ? "saved" : "generated", referenceCount: 0 } satisfies PlanningLibraryMeta }
     }

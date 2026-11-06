@@ -45,7 +45,8 @@ export function planningIdentity(input: {
         const value = item as Record<string, unknown>
         return { role: value.role, content: typeof value.content === "string" ? canonicalPresentation(value.content, input.config) : value.content }
       }), curriculumHash,
-      promptRevision: process.env.EDUAI_DOCUMENT_LIBRARY_REVISION || "2026-11-06-v1",
+      pipelineRevision: "efficiency-v2",
+      promptRevision: process.env.EDUAI_DOCUMENT_LIBRARY_REVISION || "2026-11-06-efficiency-v2",
     } }),
     curriculumHash, requestConfig: input.config, module: input.module,
   }
