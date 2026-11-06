@@ -103,6 +103,8 @@ jobs:
         run: node scripts/apply-production-hardening-stage2.mjs
       - name: Probar fingerprints y routing
         run: npm run test:ai-core
+      - name: Probar biblioteca privada de planificaciones
+        run: npm run test:planning-library
       - name: Verificar TypeScript real
         shell: bash
         run: |
@@ -205,3 +207,4 @@ jobs:
           name: npm-audit-production
           path: npm-audit-production.json
           if-no-files-found: error
+

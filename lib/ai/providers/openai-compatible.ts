@@ -1,3 +1,4 @@
+import { compatibleUsage, type AIUsage } from "../usage"
 import type { AICapability, AIProviderId } from "../capabilities"
 import type { GatewayMessage } from "./google"
 import { GROQ_FAST_MODEL, GROQ_QUALITY_MODEL, GROQ_REASONING_MODEL, isRetiredGroqModel, resolveGroqTextModel, resolveGroqResearchModel } from "../groq-models"
@@ -5,6 +6,7 @@ import { GROQ_FAST_MODEL, GROQ_QUALITY_MODEL, GROQ_REASONING_MODEL, isRetiredGro
 export type CompatibleProvider = Extract<AIProviderId, "groq" | "openrouter" | "together" | "cerebras" | "sambanova">
 
 export type CompatibleTextResult = {
+  usage?: AIUsage
   text: string
   provider: CompatibleProvider
   model: string
@@ -260,6 +262,7 @@ export async function generateCompatibleText(input: {
   const response = await compatibleFetch(input)
   const data = (await response.json()) as {
     model?: string
+    usage?: unknown
     choices?: Array<{ message?: { content?: string | null } }>
   }
   const text = data.choices?.[0]?.message?.content?.trim() || ""
@@ -269,6 +272,7 @@ export async function generateCompatibleText(input: {
     text,
     provider: input.provider,
     model: data.model || input.model,
+    usage: compatibleUsage(data.usage),
   }
 }
 
@@ -367,3 +371,4 @@ export function parseStructuredJson<T>(text: string): T {
     return JSON.parse(cleaned.slice(start, end + 1)) as T
   }
 }
+

@@ -1,3 +1,4 @@
+import { ZERO_AI_USAGE, type AIUsage } from "./usage"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import {
   envNameForCapability,
@@ -41,6 +42,8 @@ import {
 export type { GatewayMessage }
 
 export type GatewayResult<T = string> = {
+  usage?: AIUsage
+  avoidedUsage?: AIUsage
   data: T
   text?: string
   provider: string
@@ -172,7 +175,7 @@ async function executeTextProvider(input: {
   lite?: boolean
   module?: string | null
   supabase?: SupabaseClient | null
-}): Promise<{ text: string; provider: string; model: string } | null> {
+}): Promise<{ text: string; provider: string; model: string; usage?: AIUsage } | null> {
   if (input.provider === "google") {
     if (!hasGoogleAI("text")) return null
     const selected = await providerRuntimeModel({
@@ -273,6 +276,7 @@ export async function runAIText(input: {
   const fingerprint = generationFingerprint({
     capability,
     payload: {
+      module: input.context?.module || null,
       messages: input.messages,
       maxOutputTokens: input.maxOutputTokens ?? null,
       lite: Boolean(input.lite),
@@ -311,6 +315,7 @@ export async function runAIText(input: {
         supabase: input.supabase,
         requestId,
         status: "reused",
+        usage: ZERO_AI_USAGE,
         provider: reusable.provider,
         model: reusable.model,
         assetId: reusable.assetId,
@@ -327,6 +332,8 @@ export async function runAIText(input: {
       capability,
       fingerprint,
       reused: true,
+      usage: ZERO_AI_USAGE,
+      avoidedUsage: reusable.result.usage as AIUsage | undefined,
       cacheId: reusable.id,
       latencyMs: Date.now() - startedAt,
     }
@@ -386,7 +393,7 @@ export async function runAIText(input: {
           fingerprint,
           provider: result.provider,
           model: result.model,
-          result: { text: result.text },
+          result: { text: result.text, usage: result.usage },
           reusePolicy: input.context.reusePolicy,
           visibility: input.context.visibility,
           workspaceId: input.context.workspaceId,
@@ -395,6 +402,7 @@ export async function runAIText(input: {
           supabase: input.supabase,
           requestId,
           status: "completed",
+          usage: result.usage,
           provider: result.provider,
           model: result.model,
           latencyMs: Date.now() - startedAt,
@@ -409,6 +417,7 @@ export async function runAIText(input: {
         capability,
         fingerprint,
         reused: false,
+        usage: result.usage,
         latencyMs: Date.now() - startedAt,
       }
     } catch (error) {
@@ -453,6 +462,7 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
   const fingerprint = generationFingerprint({
     capability,
     payload: {
+      module: input.context?.module || null,
       messages: input.messages,
       schema: input.schema,
       maxOutputTokens: input.maxOutputTokens ?? null,
@@ -490,6 +500,7 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
         supabase: input.supabase,
         requestId,
         status: "reused",
+        usage: ZERO_AI_USAGE,
         provider: reusable.provider,
         model: reusable.model,
         assetId: reusable.assetId,
@@ -506,6 +517,8 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
       capability,
       fingerprint,
       reused: true,
+      usage: ZERO_AI_USAGE,
+      avoidedUsage: reusable.result.usage as AIUsage | undefined,
       cacheId: reusable.id,
       latencyMs: Date.now() - startedAt,
     }
@@ -541,7 +554,7 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
         provider,
       })
 
-      let result: { text: string; data: T; provider: string; model: string } | null = null
+      let result: { text: string; data: T; provider: string; model: string; usage?: AIUsage } | null = null
 
       if (provider === "google" && hasGoogleAI("text")) {
         const selected = await providerRuntimeModel({
@@ -604,6 +617,7 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
                 data: parseStructuredJson<T>(response.text),
                 provider: response.provider,
                 model: response.model,
+                usage: response.usage,
               }
               break
             } catch (error) {
@@ -632,7 +646,7 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
           fingerprint,
           provider: result.provider,
           model: result.model,
-          result: { text: result.text, data: result.data as unknown as Record<string, unknown> },
+          result: { text: result.text, data: result.data as unknown as Record<string, unknown>, usage: result.usage },
           reusePolicy: input.context.reusePolicy,
           visibility: input.context.visibility,
           workspaceId: input.context.workspaceId,
@@ -641,6 +655,7 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
           supabase: input.supabase,
           requestId,
           status: "completed",
+          usage: result.usage,
           provider: result.provider,
           model: result.model,
           latencyMs: Date.now() - startedAt,
@@ -656,6 +671,7 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
         capability,
         fingerprint,
         reused: false,
+        usage: result.usage,
         latencyMs: Date.now() - startedAt,
       }
     } catch (error) {
@@ -779,3 +795,4 @@ export async function runGoogleImage(input: {
 
   return generateGoogleImage({ ...input, model: selected.model })
 }
+

@@ -1,9 +1,14 @@
+import { planningIdentity } from "@/lib/ai/planning-identity"
+import { reusePlanning, rememberPlanning, planningReferences } from "@/lib/ai/planning-library"
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
-import { callAI, getEducadorModelStrategy } from "@/lib/ai-router-v4"
+import { getEducadorModelStrategy } from "@/lib/ai-router-v4"
+import { runAIText } from "@/lib/ai/gateway"
+import { assertAICapabilityAllowed } from "@/lib/ai/access-policy"
 import { runAIText as runAIGatewayText, runAIStructured as runAIStructuredGateway } from "@/lib/ai/gateway"
 import {
   buildOAContext,
+  getOAs,
   cursoToKey,
   getAvailableAsignaturas,
   type NivelKey,
@@ -1108,7 +1113,7 @@ function buildLocalEducadorFallback(params: {
 
 // ── Web search for topic ideas ────────────────────────────────────────────────
 async function searchTopicIdeas(nivel: NivelKey, curso: string, asignatura: string, mes: string): Promise<string> {
-  const gKey = process.env.GEMINI_API_KEY
+  const gKey = process.env.GEMINI_API_KEY_TEXT || process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY
   if (!gKey) return ""
 
   const nivelCtx = nivel === "parvularia"
@@ -1128,7 +1133,7 @@ Sé específico, nombra contenidos concretos del currículum y da al menos 7 ide
 
   try {
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${gKey}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${process.env.GOOGLE_TEXT_MODEL_PRIMARY || process.env.GEMINI_TEXT_MODEL_PRIMARY || "gemini-3.6-flash"}:generateContent?key=${gKey}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1180,6 +1185,19 @@ export async function POST(req: NextRequest) {
 
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
+  try {
+    await assertAICapabilityAllowed({
+      supabase,
+      userId: user.id,
+      capability: "text",
+    })
+  } catch (error) {
+    const typed = error instanceof Error ? error : new Error("Acceso restringido")
+    const status = typeof error === "object" && error && "status" in error ? Number(error.status) || 403 : 403
+    const code = typeof error === "object" && error && "code" in error ? String(error.code || "EDUAI_ACCESS_RESTRICTED") : "EDUAI_ACCESS_RESTRICTED"
+    return NextResponse.json({ error: typed.message, code }, { status })
+  }
+
   const body = await req.json().catch(() => null)
   if (!body || typeof body !== "object") return NextResponse.json({ error: "Solicitud invalida" }, { status: 400 })
 
@@ -1188,6 +1206,7 @@ export async function POST(req: NextRequest) {
 
   const history = Array.isArray(body.history) ? body.history : []
   const cfg: EducadorConfig = body.config || {}
+  const forceNewGeneration = body.forceNewGeneration === true
   const rawDesignTemplateId = typeof body.designTemplateId === "string" ? body.designTemplateId : cfg.designTemplateId
   const designTemplateId = typeof rawDesignTemplateId === "string" && rawDesignTemplateId.trim() ? rawDesignTemplateId.trim() : undefined
   const mode = cfg.mode === "sugerir_parvularia" ? "sugerir_parvularia" : "planificar"
@@ -1310,12 +1329,9 @@ export async function POST(req: NextRequest) {
 
   // If user wants ideas → search the web for real topics
   let webTopicIdeas = ""
-  if (wantsIdeas || (wantsActividad && !hasExplicitTopic)) {
-    webTopicIdeas = await searchTopicIdeas(nivel, curso, asignatura, mes)
-  }
 
   // Topic priority instruction for system prompt
-  const topicInstruction = intentInstruction
+  const topicInstruction = () => intentInstruction
     ? intentInstruction
     : hasExplicitTopic
       ? `══ EL PROYECTO O IDEA DEL DOCENTE ES EL EJE ABSOLUTO DE ESTA PLANIFICACIÓN ══
@@ -1373,17 +1389,27 @@ REGLAS:
     const userPrompt = buildParvulariaSuggestionJsonPrompt(localSuggestion)
 
     try {
-      const result = await callAI(
-        [
+      const suggestionAI = await runAIText({
+        messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        {
-          maxTokens: strategy.maxTokens,
-          preferProvider: strategy.preferProvider,
-          openrouterModel: strategy.openrouterModel,
-        }
-      )
+        capability: "text",
+        maxOutputTokens: strategy.maxTokens,
+        context: {
+          userId: user.id,
+          module: "educador-parvularia-suggestion",
+          reusePolicy: forceNewGeneration ? "never" : "exact_private",
+          visibility: "private",
+        },
+        supabase,
+      })
+      const result = {
+        text: suggestionAI.data,
+        provider: suggestionAI.provider,
+        model: suggestionAI.model,
+        reused: suggestionAI.reused,
+      }
 
       return NextResponse.json({
         success: true,
@@ -1538,6 +1564,29 @@ REGLAS:
     parvulariaHeterogenea, parvulariaSegundoCurso, parvulariaMotivoFusion,
   })
 
+  const documentIdentity = planningIdentity({
+    module: `educador-${outputIntent}`,
+    config: cfg as unknown as Record<string, unknown>,
+    resolved: { nivel, curso, asignatura, mes, selectedOAIds, selectedOATIds, tiempoPlanificacion, sesiones, duracionMinutos, planningProfile: planningProfile.id, designTemplateId: designTemplateId || null },
+    message, history: history.filter(isChatHistoryItem),
+    curriculum: [
+      getOAs(nivel, curso, asignatura).map((oa) => ({ id: oa.id, text: oa.texto })),
+      nivel === "parvularia" ? parvulariaJourneyNucleos.map((nucleo) => ({ nucleo,
+        oa: getPlannerOAOptions({ nivel, curso, asignatura: nucleo }), oat: getParvulariaOAT(curso, nucleo) })) : [],
+      parvulariaHeterogenea && parvulariaSegundoCurso ? getOAs(nivel, parvulariaSegundoCurso, asignatura) : [],
+    ],
+  })
+  const reusableDocument = await reusePlanning({ supabase, userId: user.id, identity: documentIdentity, forceNew: forceNewGeneration })
+  if (reusableDocument) {
+    if (isStructuredParvularia) await updateParvulariaPhase({ phaseKey: "completed", phaseIndex: 6, phaseLabel: "Documento recuperado", detail: "Se reutilizó una versión compatible de tu biblioteca, sin llamar a la IA.", status: "completed" })
+    return NextResponse.json({ ...reusableDocument, generationRunId: generationRunId || undefined })
+  }
+  const privateDocumentReferences = await planningReferences({ supabase, level: nivel, course: curso, subject: asignatura,
+    oaIds: selectedOAIds, topic: contexto || message, enabled: !forceNewGeneration })
+  if (wantsIdeas || (wantsActividad && !hasExplicitTopic)) {
+    webTopicIdeas = await searchTopicIdeas(nivel, curso, asignatura, mes)
+  }
+
   const isParv = nivel === "parvularia"
   const sessionWord = sesiones === 1 ? "1 sesion" : `${sesiones} sesiones`
   const sessionBlocks = isParv
@@ -1550,7 +1599,7 @@ REGLAS:
 
 Tu mision: generar planificaciones docentes completas, rigurosas, detalladas y directamente usables en el aula chilena real.
 
-${topicInstruction}
+${topicInstruction()}
 ${buildPlanningProfilePrompt(planningProfile)}
 REGLAS DE PLANIFICACION:
 1. Los OA son MARCO CURRICULAR de referencia — el docente puede ir más allá si su contexto lo requiere.
@@ -1910,6 +1959,7 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
               parvulariaSafetyPrompt,
               "REFERENCIAS RAG Y MEMORIA:",
               truncateForPrompt(parvulariaKnowledge?.prompt || "", 4400),
+              privateDocumentReferences.prompt,
             ].filter(Boolean).join("\n\n"),
           },
         ],
@@ -1918,7 +1968,7 @@ CRITERIOS DE CALIDAD - VERIFICAR ANTES DE RESPONDER:
         context: {
           userId: user.id,
           module: "educador-parvularia-blueprint",
-          reusePolicy: "exact_private",
+          reusePolicy: forceNewGeneration ? "never" : "exact_private",
           visibility: "private",
         },
         supabase,
@@ -2166,7 +2216,7 @@ REGLAS DE LAS CELDAS:
 
   const historyLimit = useCompactResourcePrompt || message.length > 700 ? 2 : 8
   const aiMessages = [
-    { role: "system" as const, content: activeSystemPrompt },
+    { role: "system" as const, content: [activeSystemPrompt, privateDocumentReferences.prompt].filter(Boolean).join("\n\n") },
     ...history.slice(-historyLimit).filter(isChatHistoryItem).map((msg: ChatHistoryItem) => ({
       role: msg.role,
       content: truncateForPrompt(msg.content, msg.role === "assistant" ? 1200 : 1600),
@@ -2314,6 +2364,7 @@ REGLAS DE LAS CELDAS:
                 "rolEquipoFamilia debe distinguir Rol del equipo pedagógico y Rol de la familia.",
                 "evaluacion debe incluir Instrumento: Escala de apreciación; Logrado: 3; Medianamente logrado: 2; Por lograr: 1; No observado: 0; Registro de Observación; e Indicadores observables.",
                 "No uses markdown, horas pedagógicas ni minutos.",
+                privateDocumentReferences.prompt,
               ].join("\n"),
             },
             {
@@ -2347,7 +2398,7 @@ REGLAS DE LAS CELDAS:
             ...(correction
               ? { module: "educador-parvularia-repair" }
               : { module: `educador-parvularia-jornada-${index + 1}` }),
-            reusePolicy: "exact_private",
+            reusePolicy: forceNewGeneration ? "never" : "exact_private",
             visibility: "private",
           },
           supabase,
@@ -2429,11 +2480,24 @@ REGLAS DE LAS CELDAS:
     }
 
     const generateWholePlanning = async () => {
-      const result = await callAI(aiMessages, {
-        maxTokens: strategy.maxTokens,
-        preferProvider: strategy.preferProvider,
-        openrouterModel: strategy.openrouterModel,
+      const initialAI = await runAIText({
+        messages: aiMessages,
+        capability: isStructuredParvularia || isInstitutionalMacro || (!useCompactResourcePrompt && (sesiones > 1 || selectedOAIds.length > 1)) ? "long_context" : "text",
+        maxOutputTokens: strategy.maxTokens,
+        context: {
+          userId: user.id,
+          module: `educador-${outputIntent}`,
+          reusePolicy: forceNewGeneration ? "never" : "exact_private",
+          visibility: "private",
+        },
+        supabase,
       })
+      let result = {
+        text: initialAI.data,
+        provider: initialAI.provider,
+        model: initialAI.model,
+        reused: initialAI.reused,
+      }
       return result
     }
 
@@ -2679,17 +2743,30 @@ REGLAS DE LAS CELDAS:
     if (isInstitutionalMacro) {
       let tableCheck = inspectInstitutionalTable(result.text, weeklyOAPlan)
       if (!tableCheck.valid) {
-        const repaired = await callAI([
-          ...aiMessages,
-          {
-            role: "user" as const,
-            content: `La salida anterior no cumplió la tabla institucional. Regenera desde cero. Debe existir una sola tabla Markdown de 4 columnas y EXACTAMENTE ${weeklyOAPlan.length} filas de semanas, una por cada entrada de la distribución, sin omitir ninguna. Mantén todos los OA asignados y no agregues secciones.`,
+        const institutionalRepairAI = await runAIText({
+          messages: [
+            ...aiMessages,
+            {
+              role: "user" as const,
+              content: `La salida anterior no cumplió la tabla institucional. Regenera desde cero. Debe existir una sola tabla Markdown de 4 columnas y EXACTAMENTE ${weeklyOAPlan.length} filas de semanas, una por cada entrada de la distribución, sin omitir ninguna. Mantén todos los OA asignados y no agregues secciones.`,
+            },
+          ],
+          capability: "long_context",
+          maxOutputTokens: strategy.maxTokens,
+          context: {
+            userId: user.id,
+            module: "educador-institutional-repair",
+            reusePolicy: forceNewGeneration ? "never" : "exact_private",
+            visibility: "private",
           },
-        ], {
-          maxTokens: strategy.maxTokens,
-          preferProvider: strategy.preferProvider,
-          openrouterModel: strategy.openrouterModel,
+          supabase,
         })
+        const repaired = {
+          text: institutionalRepairAI.data,
+          provider: institutionalRepairAI.provider,
+          model: institutionalRepairAI.model,
+          reused: institutionalRepairAI.reused,
+        }
         tableCheck = inspectInstitutionalTable(repaired.text, weeklyOAPlan)
         if (!tableCheck.valid) {
           throw new Error(`La IA no completó correctamente el cronograma institucional: ${tableCheck.error || `se esperaban ${weeklyOAPlan.length} semanas y se recibieron ${tableCheck.rows}`}. Intenta generar nuevamente.`)
@@ -2700,15 +2777,28 @@ REGLAS DE LAS CELDAS:
 
     let qualityAudit = outputIntent === "planificacion" && !isInstitutionalMacro && !isStructuredParvularia ? auditPlanningOutput(result.text, planningProfile) : null
     if (qualityAudit && !qualityAudit.passed) {
-      const repaired = await callAI([
-        ...aiMessages,
-        { role: "assistant" as const, content: truncateForPrompt(result.text, 2400) },
-        { role: "user" as const, content: buildRepairInstruction(planningProfile, qualityAudit) },
-      ], {
-        maxTokens: strategy.maxTokens,
-        preferProvider: strategy.preferProvider,
-        openrouterModel: strategy.openrouterModel,
+      const repairedAI = await runAIText({
+        messages: [
+          ...aiMessages,
+          { role: "assistant" as const, content: truncateForPrompt(result.text, 2400) },
+          { role: "user" as const, content: buildRepairInstruction(planningProfile, qualityAudit) },
+        ],
+        capability: "long_context",
+        maxOutputTokens: strategy.maxTokens,
+        context: {
+          userId: user.id,
+          module: "educador-quality-repair",
+          reusePolicy: forceNewGeneration ? "never" : "exact_private",
+          visibility: "private",
+        },
+        supabase,
       })
+      const repaired = {
+        text: repairedAI.data,
+        provider: repairedAI.provider,
+        model: repairedAI.model,
+        reused: repairedAI.reused,
+      }
       const repairedAudit = auditPlanningOutput(repaired.text, planningProfile)
       if (repairedAudit.score >= qualityAudit.score) {
         result = repaired
@@ -2748,7 +2838,7 @@ REGLAS DE LAS CELDAS:
       })
     }
 
-    return NextResponse.json({
+    const documentResponse = {
       text: result.text,
       provider: result.provider,
       model: result.model,
@@ -2784,8 +2874,13 @@ REGLAS DE LAS CELDAS:
         noveltyAudit,
       } : undefined,
       compactPrompt: useCompactResourcePrompt,
+      reused: Boolean(result.reused),
+      generationAvoided: Boolean(result.reused),
       _design: designSummary,
-    })
+    }
+    const learning = await rememberPlanning({ supabase, userId: user.id, identity: documentIdentity,
+      response: documentResponse, referenceCount: privateDocumentReferences.count })
+    return NextResponse.json({ ...documentResponse, learning })
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "No fue posible generar la planificacion"
     if (isInstitutionalMacro) {
@@ -3109,3 +3204,4 @@ REGLAS DE LAS CELDAS:
     })
   }
 }
+

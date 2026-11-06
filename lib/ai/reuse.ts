@@ -1,3 +1,4 @@
+import type { AIUsage } from "./usage"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import type { AICapability, AIReusePolicy, AIVisibility } from "./capabilities"
 
@@ -71,10 +72,9 @@ export async function findReusableGeneration(input: {
   if (!data) return null
   if (data.expires_at && new Date(data.expires_at).getTime() <= Date.now()) return null
 
-  void input.supabase
-    .from("ai_generation_cache")
-    .update({ hit_count: Number(data.hit_count || 0) + 1, last_hit_at: new Date().toISOString() })
-    .eq("id", data.id)
+  // PostgREST builders are lazy: awaiting the RPC is necessary to execute it.
+  const { data: hitCount, error: hitError } = await input.supabase.rpc("increment_ai_cache_hit", { p_cache_id: data.id })
+  if (hitError) console.warn("[AI Reuse] hit counter failed:", hitError.message)
 
   return {
     id: data.id,
@@ -84,7 +84,7 @@ export async function findReusableGeneration(input: {
     model: data.model,
     result: (data.result_json || {}) as Record<string, unknown>,
     assetId: data.asset_id,
-    hitCount: Number(data.hit_count || 0) + 1,
+    hitCount: typeof hitCount === "number" ? hitCount : Number(data.hit_count || 0),
   }
 }
 
@@ -135,6 +135,7 @@ export async function finishGenerationRequest(input: {
   error?: string | null
   latencyMs?: number | null
   estimatedCostUsd?: number | null
+  usage?: AIUsage
   metadata?: Record<string, unknown>
 }) {
   if (!input.requestId) return
@@ -149,6 +150,8 @@ export async function finishGenerationRequest(input: {
       error_message: input.error || null,
       latency_ms: input.latencyMs ?? null,
       estimated_cost_usd: input.estimatedCostUsd ?? null,
+      input_tokens: input.usage?.inputTokens ?? null,
+      output_tokens: input.usage?.outputTokens ?? null,
       response_metadata: input.metadata || {},
       completed_at: new Date().toISOString(),
     })
@@ -296,3 +299,4 @@ export async function linkAsset(input: {
     console.warn("[AI Assets] link failed:", error.message)
   }
 }
+

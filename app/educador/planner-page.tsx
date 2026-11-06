@@ -97,7 +97,7 @@ const choiceClass = (selected: boolean, accent: "emerald" | "indigo" = "emerald"
     : "border-slate-300 bg-white hover:border-emerald-500"
 }
 
-interface Message { role: "user" | "assistant"; content: string; provider?: string }
+interface Message { role: "user" | "assistant"; content: string; provider?: string; learning?: { assetId: string | null; requestKey: string; curriculumHash: string; version: number; source: string; referenceCount: number } }
 interface Config {
   nivel: NivelKey
   curso: string
@@ -172,6 +172,7 @@ export default function PlannerPage() {
     planningProfile: "experiencia_parvularia",
   })
   const [messages, setMessages] = useState<Message[]>([])
+  const [reuseEnabled, setReuseEnabled] = useState(true)
   const [refinement, setRefinement] = useState("")
   const [status, setStatus] = useState("")
   const [loading, setLoading] = useState(false)
@@ -610,7 +611,8 @@ export default function PlannerPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: text,
-          history: messages.slice(-8),
+          history: refinementMode ? messages.slice(-8) : [],
+          forceNewGeneration: !reuseEnabled,
           config,
           generationRunId: generationRunId || undefined,
         }),
@@ -626,7 +628,9 @@ export default function PlannerPage() {
       if (data?.aiFallback) {
         setStatus("La planificación se generó con el respaldo seguro. Puedes revisarla, pero EduAI seguirá priorizando el flujo IA + RAG en la próxima generación.")
       }
-      setMessages((previous) => [...previous, { role: "assistant", content: data.text, provider: data.provider }])
+      if (data?.generationAvoided) setStatus("Documento recuperado de tu biblioteca: se evitó generar nuevamente con IA.")
+      else if (data?.learning?.referenceCount) setStatus(`Se aprovecharon ${data.learning.referenceCount} documentos propios como referencia.`)
+      setMessages((previous) => [...previous, { role: "assistant", content: data.text, provider: data.provider, learning: data.learning }])
       setStep(4)
       setRefinement("")
     } catch (error) {
@@ -667,7 +671,7 @@ export default function PlannerPage() {
     if (!userId || !content.trim()) return null
     return {
       user_id: userId, title: title(), course: config.curso, subject: config.asignatura, unit: config.unidadId || "", planning_text: content,
-      planning_json: { ...config, plan_mode: planMode, title: title(), content, created_at: new Date().toISOString(), folder_organization: folderOrganization() },
+      planning_json: { ...config, _eduaiReuse: latest?.learning || null, plan_mode: planMode, title: title(), content, created_at: new Date().toISOString(), folder_organization: folderOrganization() },
       nivel: config.nivel, curso: config.curso, asignatura: config.asignatura, contexto: config.contexto, mes: config.mes,
       unidad_id: config.unidadId, selected_oa_ids: config.selectedOAIds, selected_oat_ids: config.selectedOATIds,
       tiempo_planificacion: config.tiempoPlanificacion, sesiones: config.sesiones, duracion_minutos: config.duracionMinutos, content,
@@ -929,6 +933,10 @@ export default function PlannerPage() {
           </div>)}</div>
         </div>)}
       </div>}
+      <label className="flex items-start gap-3 rounded-xl border border-emerald-300 bg-emerald-50 p-4 text-sm">
+        <input type="checkbox" checked={reuseEnabled} onChange={(event) => setReuseEnabled(event.target.checked)} className="mt-1" />
+        <span><strong>Aprovechar mis documentos guardados</strong><br />Reutiliza versiones compatibles y toma mis trabajos anteriores como referencia. Desactívalo para solicitar una generación nueva.</span>
+      </label>
       <div><Label>Contexto, tema o idea central</Label><textarea value={config.contexto} onChange={(e) => setConfig((p) => ({ ...p, contexto: e.target.value }))} placeholder="Ejemplo: Trabajar los cambios de estación mediante exploración del patio. Hay lupas, cartulinas y elementos naturales." className={`${inputClass} min-h-[190px] font-normal leading-relaxed`} /></div>
       {config.nivel === "parvularia" && <div className="rounded-2xl border-2 border-cyan-500 bg-cyan-50 p-5"><div className="flex flex-col gap-4 md:flex-row md:justify-between"><div><p className="font-black text-cyan-950">Sala heterogénea o niveles unidos</p><p className="mt-1 text-sm text-cyan-900">En Desarrollo separa las actividades por edad/subnivel, con una secuencia completa y distinta para cada grupo.</p></div><button onClick={() => setConfig((p) => ({ ...p, parvulariaHeterogenea: !p.parvulariaHeterogenea }))} className={`rounded-xl px-5 py-2.5 text-sm font-black ${config.parvulariaHeterogenea ? "bg-cyan-800 text-white" : "bg-white text-cyan-900 ring-2 ring-cyan-400"}`}>{config.parvulariaHeterogenea ? "Activada" : "Activar"}</button></div>{config.parvulariaHeterogenea && <div className="mt-5 grid gap-4 md:grid-cols-2"><div><Label>Segundo subnivel</Label><select value={config.parvulariaSegundoCurso} onChange={(e) => setConfig((p) => ({ ...p, parvulariaSegundoCurso: e.target.value }))} className={inputClass}>{COURSES.parvularia.filter((item) => item !== config.curso).map((item) => <option key={item}>{item}</option>)}</select></div><div><Label>Motivo o contexto</Label><input value={config.parvulariaMotivoFusion} onChange={(e) => setConfig((p) => ({ ...p, parvulariaMotivoFusion: e.target.value }))} placeholder="Ej.: jornada especial o baja asistencia" className={inputClass} /></div></div>}</div>}
     </div>
@@ -974,3 +982,4 @@ export default function PlannerPage() {
     </div>
   )
 }
+
