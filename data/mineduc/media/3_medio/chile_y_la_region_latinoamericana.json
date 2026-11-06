@@ -1,0 +1,122 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "3° Medio",
+    "asignatura": "Chile y la Región Latinoamericana",
+    "plan": "formacion_general_electiva",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/chile-region-latinoamericana/3-medio-fg",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      3,
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/chile-region-latinoamericana/3-medio-fg",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Analizar procesos sociales y culturales recientes de Chile y América Latina tales como migraciones, cambios demográficos y urbanización, considerando avances y desafíos comunes en materia de equidad, diversidad e interculturalidad.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1726,
+            1726
+          ],
+          "codigo_oficial": "FG-CHLA-3y4-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/chile-region-latinoamericana/3-medio-fg",
+          "id": "FG-CHLA-3y4-OAC-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Explicar procesos comunes de los Estados latinoamericanos en la historia política reciente, incluyendo la relación entre el poder civil y las fuerzas armadas, transiciones, la defensa y promoción de los derechos humanos y el fortalecimiento de las democracias.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1727,
+            1727
+          ],
+          "codigo_oficial": "FG-CHLA-3y4-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/chile-region-latinoamericana/3-medio-fg",
+          "id": "FG-CHLA-3y4-OAC-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Investigar cómo en América Latina los Estados responden a desafíos económicos y sociales, como pobreza, desigualdad, crecimiento económico, desarrollo social y diversificación de la matriz productiva, aplicando conceptos de la economía e información de fuentes e indicadores económicos (PIB, distribución del ingreso, empleo y producción, entre otros).",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1728,
+            1728
+          ],
+          "codigo_oficial": "FG-CHLA-3y4-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/chile-region-latinoamericana/3-medio-fg",
+          "id": "FG-CHLA-3y4-OAC-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Analizar, a partir de distintas interpretaciones y perspectivas, el presente de distintos pueblos indígenas de Chile y Latinoamérica, considerando su cultura, los procesos históricos recientes y los avances y desafíos en su relación con los Estados nacionales de la región.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1729,
+            1729
+          ],
+          "codigo_oficial": "FG-CHLA-3y4-OAC-04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/chile-region-latinoamericana/3-medio-fg",
+          "id": "FG-CHLA-3y4-OAC-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Evaluar, a partir de la investigación, el estado del medioambiente en Chile y América Latina, incluyendo efectos de distintas actividades humanas y acciones emprendidas por los Estados de la región para avanzar en sustentabilidad.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1730,
+            1730
+          ],
+          "codigo_oficial": "FG-CHLA-3y4-OAC-05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/chile-region-latinoamericana/3-medio-fg",
+          "id": "FG-CHLA-3y4-OAC-05"
+        },
+        {
+          "numero_oficial": 6,
+          "descripcion": "Analizar las oportunidades que ofrece a los Estados de América Latina la integración y la cooperación internacional, examinando la conformación de bloques económicos y los tratados y acuerdos en materia de economía, derechos humanos, educación, género, salud y ciencia.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1732,
+            1732
+          ],
+          "codigo_oficial": "FG-CHLA-3y4-OAC-06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/chile-region-latinoamericana/3-medio-fg",
+          "id": "FG-CHLA-3y4-OAC-06"
+        },
+        {
+          "numero_oficial": 7,
+          "descripcion": "Participar en forma colaborativa en el diseño de propuestas para dar solución a problemas presentes a nivel local relacionados con temas abordados en el nivel.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1733,
+            1733
+          ],
+          "codigo_oficial": "FG-CHLA-3y4-OAC-07",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/chile-region-latinoamericana/3-medio-fg",
+          "id": "FG-CHLA-3y4-OAC-07"
+        }
+      ]
+    }
+  ]
+}

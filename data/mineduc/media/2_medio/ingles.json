@@ -1,0 +1,245 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "2° Medio",
+    "asignatura": "Inglés",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      2
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+      "https://www.bcn.cl/leychile/navegar?i=1060374"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-comunicacion-oral",
+      "nombre": "COMUNICACIÓN ORAL",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Demostrar comprensión de ideas generales e información explícita en textos orales adaptados y auténticos simples, literarios y no literarios, en diversos formatos audiovisuales (como exposiciones orales, conversaciones, descripciones, instrucciones y procedimientos, discursos y debates breves y simples, avisos publicitarios, entrevistas, noticieros, anécdotas, narraciones, canciones), acerca de temas variados (experiencias personales, temas de otras asignaturas, del contexto inmediato, de actualidad e interés global o de otras culturas) y que contienen las funciones del año.",
+          "eje": "COMUNICACIÓN ORAL",
+          "referencia_lineas": [
+            4754,
+            4754
+          ],
+          "codigo_oficial": "IN2M OA 01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+          "id": "IN2M-OA-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Identificar palabras, frases y expresiones clave, expresiones idiomáticas, combinaciones frecuentes de palabras (collocations), vocabulario temático, conectores (neither...nor; either...or; though, unless, as son as, as a result, y los del año anterior), los sonidos iniciales /t/ (to), /d/ (do), sonido /o/ (usually), combinaciones iniciales /sp/ (special), /st/ (student) y cualidades de la voz (acentuación en palabras de dos o más sílabas y en palabras compuestas) en textos orales en diversos formatos o al participar en interacciones cotidianas y conversaciones en la clase.",
+          "eje": "COMUNICACIÓN ORAL",
+          "referencia_lineas": [
+            4755,
+            4755
+          ],
+          "codigo_oficial": "IN2M OA 02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+          "id": "IN2M-OA-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Identificar en los textos escuchados:\n- Propósito o finalidad del texto, tema e ideas relevantes.\n- Ideas generales en textos sobre temas menos conocidos.\n- Información específica y detalles clave asociados a personas, sus acciones y opiniones, lugares, tiempo, hablantes y situaciones.\n- Relaciones de importancia y problema-solución entre ideas.",
+          "eje": "COMUNICACIÓN ORAL",
+          "referencia_lineas": [
+            4756,
+            4764
+          ],
+          "codigo_oficial": "IN2M OA 03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+          "id": "IN2M-OA-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Seleccionar y usar estrategias para apoyar la comprensión de los textos escuchados:\n- Hacer predicciones.\n- Usar conocimientos previos.\n- Escuchar con un propósito.\n- Hacer inferencias con el apoyo de claves contextuales (tema, participantes, apoyo visual) y pistas fonológicas (entonación, acentuación).\n- Focalizar la atención en expresiones o frases clave.\n- Utilizar apoyos como gestos del hablante y entonación.\n- Pedir repetición o clarificación en interacciones.\n- Tomar nota de lo escuchado.\n- Confirmar predicciones.\n- Resumir algunas ideas relevantes con apoyo.\n- Preguntar para confirmar comprensión.",
+          "eje": "COMUNICACIÓN ORAL",
+          "referencia_lineas": [
+            4766,
+            4786
+          ],
+          "codigo_oficial": "IN2M OA 04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+          "id": "IN2M-OA-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Presentar información en forma oral, usando recursos multimodales que refuercen el mensaje en forma creativa, acerca de temas variados (como experiencias personales, temas de otras asignaturas, otras culturas, problemas globales y textos leídos o escuchados), demostrando:\n- Conocimiento del contenido y coherencia al organizar ideas.\n- Uso apropiado de las funciones del lenguaje y vocabulario del nivel.\n- Uso apropiado de sonidos del idioma, como los sonidos iniciales /t/ (to), /d/ (do), las combinaciones iniciales /sp/ (special), /st/ (student), sonido /S/ (usually), y cualidades de la voz (acentuación en palabras de dos o más sílabas y en palabras compuestas).\n- Tener conciencia de audiencia, contexto y propósito.",
+          "eje": "COMUNICACIÓN ORAL",
+          "referencia_lineas": [
+            4788,
+            4795
+          ],
+          "codigo_oficial": "IN2M OA 05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+          "id": "IN2M-OA-05"
+        },
+        {
+          "numero_oficial": 6,
+          "descripcion": "Participar en interacciones y exposiciones, recurriendo a las siguientes estrategias para expresarse con claridad y fluidez:\n- Antes de hablar: practicar presentación, organizar la información clave en diagramas, hacer conexiones o establecer relaciones.\n- Al hablar: parafrasear, usar sinónimos y expresiones de uso frecuente (chunks), usar rellenos temporales (por ejemplo: anyway...; of course; right), activar uso de conectores, autocorregirse con ayuda.\n- Después de hablar: identificar debilidades, establecer metas, registrar errores y corregirlos con ayuda de recursos.",
+          "eje": "COMUNICACIÓN ORAL",
+          "referencia_lineas": [
+            4797,
+            4802
+          ],
+          "codigo_oficial": "IN2M OA 06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+          "id": "IN2M-OA-06"
+        },
+        {
+          "numero_oficial": 7,
+          "descripcion": "Reaccionar a textos leídos o escuchados por medio de exposiciones orales o en discusiones y conversaciones grupales en las que:\n- Hacen conexiones con otras asignaturas, la lengua materna y su cultura, la vida cotidiana, experiencias personales y otras culturas en forma espontánea, por ejemplo: I had read/seen/learned/been; we usually/often...\n- Evalúan ideas e información, por ejemplo: this is true/correct/false/wrong because...\n- Expresan sentimientos, interpretaciones o puntos de vista, por ejemplo: I agree/disagree because...; I believe that/in...; if I were you...; I'd rather...\n- Generan preguntas o hipótesis en forma generalmente correcta, por ejemplo: What would they...? What if...?.",
+          "eje": "COMUNICACIÓN ORAL",
+          "referencia_lineas": [
+            4803,
+            4810
+          ],
+          "codigo_oficial": "IN2M OA 07",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+          "id": "IN2M-OA-07"
+        },
+        {
+          "numero_oficial": 8,
+          "descripcion": "Demostrar conocimiento y uso del lenguaje en conversaciones, discusiones y exposiciones por medio de las siguientes funciones:\n- Expresar cantidad, contar y enumerar, por ejemplo: there are a few/few girls; there is little sugar; a large/small number of...\n- Describir frecuencia, tiempo, grado de acciones, por ejemplo: I usually/often call her in the morning; he is rather shy; Susan will be here soon; he has been working during the summer.\n- Expresarse con claridad usando palabras y expresiones de uso común, sinónimos, palabras compuestas, por ejemplo: hardly ever; at all; I'd rather; for ages; I'm pleased; sorry about; look for/after; cheap enough; online.\n- Solicitar información sobre frecuencia de actividades, por ejemplo: How often do you practice sports?\n- Expresar sugerencias, ofrecimientos, hacer solicitudes, por ejemplo: Would you like something to eat?; You ought to talk to him; Shall I bring you a glass of water?\n- Describir acciones que comenzaron en el pasado y que aún continúan o acaban de finalizar, por ejemplo: we have been training for 3 months; she has been working all day.\n- Expresar acuerdo o desacuerdo, por ejemplo: I agree/disagree with...\n- Unir ideas, por ejemplo: neither John nor Susan are in the office; he looks tough, he is shy, though; it is raining today, as a result the air will be cleaner in the city; he told us to go as soon as we could; we wouldn't use gas unless it was cheap.\n- Expresar énfasis en quien realiza la acción, por ejemplo: Did you make it yourself?; he cut himself.\n- Describir acciones que ocurrieron antes que otra acción en el pasado, por ejemplo: He didn't have money because he had lost his wallet.\n- Informar lo que otros dicen, por ejemplo: Mr. Brown said he had finished the report; she told me to go home.\n- Describir situaciones hipotéticas o imaginarias y dar consejos, por ejemplo: if I were you, I would tell her the truth; he would meet more people if he spoke English.",
+          "eje": "COMUNICACIÓN ORAL",
+          "referencia_lineas": [
+            4812,
+            4831
+          ],
+          "codigo_oficial": "IN2M OA 08",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+          "id": "IN2M-OA-08"
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "id": "eje-comprension-de-lectura",
+      "nombre": "COMPRENSIÓN DE LECTURA",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 9,
+          "descripcion": "Demostrar comprensión de ideas generales e información explícita en textos adaptados y auténticos simples, en formato impreso o digital, acerca de temas variados (como temas de interés de los y las estudiantes, temas de otras asignaturas, del contexto inmediato, de actualidad e interés global, de otras culturas y algunos temas menos conocidos) y que contienen las funciones del año.",
+          "eje": "COMPRENSIÓN DE LECTURA",
+          "referencia_lineas": [
+            4834,
+            4834
+          ],
+          "codigo_oficial": "IN2M OA 09",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+          "id": "IN2M-OA-09"
+        },
+        {
+          "numero_oficial": 10,
+          "descripcion": "Demostrar comprensión de textos no literarios (como descripciones, artículos de revistas, procedimientos, catálogos, avisos publicitarios, emails, diálogos, páginas web, biografías, gráficos, reseñas, noticias, discursos) al identificar:\n- Propósito del texto.\n- Idea principal, información específica y detalles.\n- Relaciones de importancia y problema-solución entre ideas.\n- Palabras y frases clave, expresiones idiomáticas y de uso frecuente y vocabulario temático.\n- Combinaciones frecuentes de palabras (collocations), conectores, (neither... nor; either... or; though, unless, as soon as, as a result, y los del año anterior) y palabras derivadas de otras por medio de los prefijos im-, in-, il-.",
+          "eje": "COMPRENSIÓN DE LECTURA",
+          "referencia_lineas": [
+            4835,
+            4844
+          ],
+          "codigo_oficial": "IN2M OA 10",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+          "id": "IN2M-OA-10"
+        },
+        {
+          "numero_oficial": 11,
+          "descripcion": "Demostrar comprensión de textos literarios (como canciones o poemas, tiras cómicas, cuentos breves y simples, novelas y obras de teatro adaptadas, mitos o leyendas breves y simples) al identificar:\n- Tema, personajes, caracterización, entorno (tiempo, lugar), trama (inicio, desarrollo, final), conflicto.\n- Palabras y frases clave, expresiones idiomáticas y de uso frecuente, vocabulario temático.",
+          "eje": "COMPRENSIÓN DE LECTURA",
+          "referencia_lineas": [
+            4846,
+            4849
+          ],
+          "codigo_oficial": "IN2M OA 11",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+          "id": "IN2M-OA-11"
+        },
+        {
+          "numero_oficial": 12,
+          "descripcion": "Seleccionar y usar estrategias para apoyar la comprensión de los textos leídos:\n- Prelectura: leer con un propósito, usar conocimientos previos.\n- Lectura: hacer lectura rápida y lectura focalizada, hacer inferencias, releer, identificar elementos organizacionales del texto (título, subtítulo, diagramas), plantearse preguntas al leer.\n- Postlectura: responder preguntas planteadas, usar organizadores gráficos, releer, recontar, resumir, preguntar para confirmar información.",
+          "eje": "COMPRENSIÓN DE LECTURA",
+          "referencia_lineas": [
+            4851,
+            4856
+          ],
+          "codigo_oficial": "IN2M OA 12",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+          "id": "IN2M-OA-12"
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "id": "eje-expresion-escrita",
+      "nombre": "EXPRESIÓN ESCRITA",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 13,
+          "descripcion": "Escribir historias e información relevante, usando diversos recursos multimodales en forma creativa y efectiva que refuercen el mensaje en textos variados, acerca de temas como:\n- Experiencias personales.\n- Contenidos interdisciplinarios.\n- Aspectos de interés global.\n- Cultura de otros países.\n- Textos leídos.",
+          "eje": "EXPRESIÓN ESCRITA",
+          "referencia_lineas": [
+            4859,
+            4869
+          ],
+          "codigo_oficial": "IN2M OA 13",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+          "id": "IN2M-OA-13"
+        },
+        {
+          "numero_oficial": 14,
+          "descripcion": "Escribir una variedad de textos, como cuentos, correos electrónicos, artículos, folletos, rimas, descripciones, biografías, instrucciones, cartas, resúmenes, diario personal (journal) y poemas o canciones utilizando los pasos del proceso de escritura (organizar ideas, redactar, revisar, editar, publicar), generalmente en forma independiente de acuerdo a un criterio de evaluación, recurriendo a herramientas como el procesador de textos y diccionario en línea.",
+          "eje": "EXPRESIÓN ESCRITA",
+          "referencia_lineas": [
+            4870,
+            4870
+          ],
+          "codigo_oficial": "IN2M OA 14",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+          "id": "IN2M-OA-14"
+        },
+        {
+          "numero_oficial": 15,
+          "descripcion": "Escribir para analizar, expresar opiniones y narrar, usando:\n- Variedad de palabras, oraciones y estructuras aprendidas y de otros contextos.\n- Conectores variados.\n- Correcta ortografía de palabras de uso frecuente en forma consistente.\n- Puntuación apropiada (comillas).",
+          "eje": "EXPRESIÓN ESCRITA",
+          "referencia_lineas": [
+            4871,
+            4879
+          ],
+          "codigo_oficial": "IN2M OA 15",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+          "id": "IN2M-OA-15"
+        },
+        {
+          "numero_oficial": 16,
+          "descripcion": "Demostrar conocimiento y uso del lenguaje en sus textos escritos por medio de las siguientes funciones:\n- Expresar cantidades, contar y enumerar, por ejemplo: there are a few/few girls; there is little sugar left.\n- Describir frecuencia, tiempo, grado de acciones, por ejemplo: I usually/often call her in the morning; he is rather shy; Susan will be here soon.\n- Describir personas y situaciones, por ejemplo: he is polite/impolite; it was complete/incomplete/legal/illegal.\n- Expresarse con claridad usando palabras y expresiones de uso común, sinónimos y palabras compuestas, por ejemplo: enough time; sorry about, belong to, look for...; online.\n- Solicitar información sobre frecuencia de actividades, por ejemplo: How often do you practice sports?\n- Describir acciones que comenzaron en el pasado y que aún continúan o acaban de finalizar, por ejemplo: we have been training for 3 months; she has been working all day.\n- Expresar acuerdo o desacuerdo, opinión, posesión, tiempo, por ejemplo: I agree/disagree with...; I was left without ...; he has been working during the summer; I believe that/in...\n- Unir ideas, por ejemplo: neither John nor Susan are in the office; he looks tough, he is shy, though; It is raining today, as a result the air will be cleaner in the city; he told us to go as soon as we could.\n- Expresar énfasis en quien realiza la acción, por ejemplo: he cut himself.\n- Describir acciones que ocurrieron antes de otra acción en el pasado, por ejemplo: He didn't have money because he had lost his wallet.\n- Informar lo que otros dicen, por ejemplo: Mr. Brown said he had finished the report; she told me to go home.\n- Describir situaciones hipotéticas o imaginarias y dar consejos, por ejemplo: if I were you, I would tell her the truth; he would meet more people if he spoke English.",
+          "eje": "EXPRESIÓN ESCRITA",
+          "referencia_lineas": [
+            4881,
+            4901
+          ],
+          "codigo_oficial": "IN2M OA 16",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+          "id": "IN2M-OA-16"
+        }
+      ]
+    }
+  ]
+}

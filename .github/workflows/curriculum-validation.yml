@@ -5,6 +5,9 @@ on:
     paths:
       - "data/mineduc/**"
       - "lib/mineduc-oa.ts"
+      - "lib/mineduc-media.generated.ts"
+      - "scripts/audit-media-2026.py"
+      - "scripts/test-media-curriculum.mjs"
       - "lib/planificador-curriculum.ts"
       - "app/educador/**"
       - "app/api/agents/educador/curriculum/**"
@@ -18,6 +21,9 @@ on:
     paths:
       - "data/mineduc/**"
       - "lib/mineduc-oa.ts"
+      - "lib/mineduc-media.generated.ts"
+      - "scripts/audit-media-2026.py"
+      - "scripts/test-media-curriculum.mjs"
       - "lib/planificador-curriculum.ts"
       - "app/educador/**"
       - "app/api/agents/educador/curriculum/**"
@@ -56,7 +62,8 @@ jobs:
         run: |
           npm run curriculum:index
           git diff --exit-code -- data/mineduc/index.json
-          npm run curriculum:validate
+          npm run test:curriculum
+          npm run test:curriculum:media
       - name: Compilar plataforma
         shell: bash
         run: |
@@ -69,3 +76,4 @@ jobs:
           name: curriculum-build-log
           path: curriculum-build.log
           if-no-files-found: warn
+

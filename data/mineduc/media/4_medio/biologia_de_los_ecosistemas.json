@@ -1,0 +1,98 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "4° Medio",
+    "asignatura": "Biología de los ecosistemas",
+    "plan": "formacion_diferenciada_hc",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-ecosistemas/3-medio-hc",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      3,
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-ecosistemas/3-medio-hc",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Explicar el estado de la biodiversidad actual a partir de teorías y evidencias científicas sobre el origen de la vida, la evolución y la intervención humana.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1950,
+            1950
+          ],
+          "codigo_oficial": "CN-BECO-3y4-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-ecosistemas/3-medio-hc",
+          "id": "CN-BECO-3y4-OAC-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Comprender la relación entre la biodiversidad, el funcionamiento de los sistemas naturales y la provisión de servicios que estos brindan al bienestar de las personas y la sociedad, considerando aspectos de bioenergética, dinámica de poblaciones y flujos de materia y energía como factores explicativos subyacentes.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1951,
+            1951
+          ],
+          "codigo_oficial": "CN-BECO-3y4-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-ecosistemas/3-medio-hc",
+          "id": "CN-BECO-3y4-OAC-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Explicar los efectos del cambio climático sobre la biodiversidad, la productividad biológica y la resiliencia de los ecosistemas, así como sus consecuencias sobre los recursos naturales, las personas y el desarrollo sostenible.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1952,
+            1952
+          ],
+          "codigo_oficial": "CN-BECO-3y4-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-ecosistemas/3-medio-hc",
+          "id": "CN-BECO-3y4-OAC-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Investigar y comunicar cómo la sociedad, mediante la ciencia y la tecnología, puede prevenir, mitigar o reparar los efectos del cambio climático sobre los componentes y procesos biológicos de los sistemas naturales.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1954,
+            1954
+          ],
+          "codigo_oficial": "CN-BECO-3y4-OAC-04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-ecosistemas/3-medio-hc",
+          "id": "CN-BECO-3y4-OAC-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Valorar la importancia de la integración de los conocimientos de la biología con otras ciencias para el análisis y la propuesta de soluciones a problemas actuales presentes en sistemas naturales, considerando las implicancias éticas, sociales y ambientales.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1955,
+            1955
+          ],
+          "codigo_oficial": "CN-BECO-3y4-OAC-05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-ecosistemas/3-medio-hc",
+          "id": "CN-BECO-3y4-OAC-05"
+        }
+      ]
+    }
+  ]
+}

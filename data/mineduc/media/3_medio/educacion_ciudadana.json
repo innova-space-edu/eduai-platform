@@ -1,19 +1,107 @@
 {
   "metadata": {
     "nivel": "Media",
-    "curso": "3° Medio FG",
+    "curso": "3° Medio",
     "asignatura": "Educación Ciudadana",
-    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
     "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-3-medio/3-medio-fg",
     "base_curricular": "Bases Curriculares 3° y 4° Medio",
     "estado_verificacion": "verificado_oficial",
     "alcance_verificacion": [
-      "oa_contenido"
+      "oa_contenido",
+      "oa_habilidades"
     ],
-    "fecha_consulta": "2026-07-18",
-    "nota": "Los OA fueron obtenidos directamente de páginas oficiales específicas de Currículum Nacional. La agrupación interna no altera el texto oficial."
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      3
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-3-medio/3-medio-fg",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
   },
-  "objetivos_habilidad": [],
+  "objetivos_habilidad": [
+    {
+      "numero_oficial": "a",
+      "descripcion": "Investigar sobre la realidad considerando:\n- formulación de preguntas o problemas de investigación a partir de la observación de fenómenos;\n- levantamiento de información a partir de métodos y técnicas propias de Historia, Geografía, Economía y otras ciencias sociales;\n- análisis crítico de las evidencias y evaluación de su validez, considerando su uso ético para respaldar opiniones;\n- definición del marco teórico, del estado de la cuestión y de los conceptos disciplinares del tema a investigar;\n- análisis de las propias conclusiones en relación con los supuestos iniciales.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        741,
+        750
+      ],
+      "id": "3-educacion_ciudadana-OAH-a",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "b",
+      "descripcion": "Hacer conexiones entre fenómenos, acontecimientos y/o procesos de la realidad, considerando conceptos como multidimensionalidad, multicausalidad y multiescalaridad, temporalidad y variables y patrones.",
+      "eje": "Pensamiento crítico",
+      "referencia_lineas": [
+        754,
+        754
+      ],
+      "id": "3-educacion_ciudadana-OAH-b",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "c",
+      "descripcion": "Elaborar interpretaciones y argumentos, basados en fuentes variadas y pertinentes, haciendo uso ético de la información.",
+      "eje": "Pensamiento crítico",
+      "referencia_lineas": [
+        755,
+        755
+      ],
+      "id": "3-educacion_ciudadana-OAH-c",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "d",
+      "descripcion": "Analizar interpretaciones y perspectivas de diversas fuentes, considerando propósito, intencionalidad, enfoque y contexto del autor, y las preguntas que intenta responder.",
+      "eje": "Pensamiento crítico",
+      "referencia_lineas": [
+        757,
+        757
+      ],
+      "id": "3-educacion_ciudadana-OAH-d",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "e",
+      "descripcion": "Evaluar la validez de las propias interpretaciones sobre acontecimientos, fenómenos y procesos estudiados, a través del diálogo y el uso de fuentes.",
+      "eje": "Pensamiento crítico",
+      "referencia_lineas": [
+        759,
+        759
+      ],
+      "id": "3-educacion_ciudadana-OAH-e",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "f",
+      "descripcion": "Elaborar juicios éticos de manera rigurosa y basados en conocimiento disciplinar sobre hitos, fenómenos, procesos, ideas, acciones de personas, entre otros.",
+      "eje": "Pensamiento crítico",
+      "referencia_lineas": [
+        760,
+        760
+      ],
+      "id": "3-educacion_ciudadana-OAH-f",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "g",
+      "descripcion": "Comunicar explicaciones, conclusiones u opiniones fundamentadas haciendo uso de lenguaje, las normas y convenciones de la disciplina.",
+      "eje": "Comunicación",
+      "referencia_lineas": [
+        764,
+        764
+      ],
+      "id": "3-educacion_ciudadana-OAH-g",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    }
+  ],
   "objetivos_actitud": [],
   "unidades": [
     {
@@ -23,52 +111,100 @@
       "tipo_agrupacion": "lista_oficial",
       "oa": [
         {
-          "id": "FG-ECIU-3M-OAC-01",
-          "codigo_oficial": "FG-ECIU-3M-OAC-01",
+          "numero_oficial": 1,
           "descripcion": "Identificar los fundamentos, atributos y dimensiones de la democracia y la ciudadanía, considerando las libertades fundamentales de las personas como un principio de estas y reconociendo sus implicancias en los deberes del Estado y en los derechos y responsabilidades ciudadanas.",
-          "eje": "Objetivos de Aprendizaje"
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            771,
+            771
+          ],
+          "codigo_oficial": "FG-ECIU-3M-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-3-medio/3-medio-fg",
+          "id": "FG-ECIU-3M-OAC-01"
         },
         {
-          "id": "FG-ECIU-3M-OAC-02",
-          "codigo_oficial": "FG-ECIU-3M-OAC-02",
+          "numero_oficial": 2,
           "descripcion": "Investigar, a partir de casos de interés público, los mecanismos de acceso a la justicia y las principales características del sistema judicial, para fortalecer estrategias de resguardo de las libertades fundamentales, los propios derechos y los de la comunidad.",
-          "eje": "Objetivos de Aprendizaje"
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            772,
+            772
+          ],
+          "codigo_oficial": "FG-ECIU-3M-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-3-medio/3-medio-fg",
+          "id": "FG-ECIU-3M-OAC-02"
         },
         {
-          "id": "FG-ECIU-3M-OAC-03",
-          "codigo_oficial": "FG-ECIU-3M-OAC-03",
+          "numero_oficial": 3,
           "descripcion": "Reflexionar personal y grupalmente sobre riesgos para la democracia en Chile y el mundo, tales como el fenómeno de la desafección política, la desigualdad, la corrupción, el narcotráfico, la violencia, entre otros.",
-          "eje": "Objetivos de Aprendizaje"
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            774,
+            774
+          ],
+          "codigo_oficial": "FG-ECIU-3M-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-3-medio/3-medio-fg",
+          "id": "FG-ECIU-3M-OAC-03"
         },
         {
-          "id": "FG-ECIU-3M-OAC-04",
-          "codigo_oficial": "FG-ECIU-3M-OAC-04",
+          "numero_oficial": 4,
           "descripcion": "Evaluar las relaciones entre el Estado y el mercado, considerando temas como sueldos justos, productividad, carga tributaria, comercio justo, probidad, desarrollo sustentable, riqueza y pobreza.",
-          "eje": "Objetivos de Aprendizaje"
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            775,
+            775
+          ],
+          "codigo_oficial": "FG-ECIU-3M-OAC-04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-3-medio/3-medio-fg",
+          "id": "FG-ECIU-3M-OAC-04"
         },
         {
-          "id": "FG-ECIU-3M-OAC-05",
-          "codigo_oficial": "FG-ECIU-3M-OAC-05",
+          "numero_oficial": 5,
           "descripcion": "Promover el reconocimiento, la defensa y exigibilidad de los derechos humanos en la vida cotidiana, considerando los principios de universalidad, indivisibilidad, inalienabilidad, igualdad y no discriminación que los sustentan.",
-          "eje": "Objetivos de Aprendizaje"
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            777,
+            777
+          ],
+          "codigo_oficial": "FG-ECIU-3M-OAC-05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-3-medio/3-medio-fg",
+          "id": "FG-ECIU-3M-OAC-05"
         },
         {
-          "id": "FG-ECIU-3M-OAC-06",
-          "codigo_oficial": "FG-ECIU-3M-OAC-06",
+          "numero_oficial": 6,
           "descripcion": "Reflexionar personal y grupalmente sobre diversas formas de participación y su aporte al fortalecimiento del bien común, considerando experiencias personales, fenómenos sociales contemporáneos y las perspectivas del republicanismo, el liberalismo, y el comunitarismo.",
-          "eje": "Objetivos de Aprendizaje"
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            778,
+            778
+          ],
+          "codigo_oficial": "FG-ECIU-3M-OAC-06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-3-medio/3-medio-fg",
+          "id": "FG-ECIU-3M-OAC-06"
         },
         {
-          "id": "FG-ECIU-3M-OAC-07",
-          "codigo_oficial": "FG-ECIU-3M-OAC-07",
+          "numero_oficial": 7,
           "descripcion": "Distinguir relaciones políticas, económicas y socioculturales que configuran el territorio en distintas escalas, proponiendo alternativas para avanzar en justicia social y ambiental.",
-          "eje": "Objetivos de Aprendizaje"
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            780,
+            780
+          ],
+          "codigo_oficial": "FG-ECIU-3M-OAC-07",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-3-medio/3-medio-fg",
+          "id": "FG-ECIU-3M-OAC-07"
         },
         {
-          "id": "FG-ECIU-3M-OAC-08",
+          "numero_oficial": 8,
+          "descripcion": "Participar en distintas instancias escolares de ejercicio democrático, reconociendo la necesidad de organizar socialmente la vida en comunidad, a fin de fortalecer una sana convivencia que resguarde las libertades fundamentales y el bien común.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            781,
+            781
+          ],
           "codigo_oficial": "FG-ECIU-3M-OAC-08",
-          "descripcion": "Participar en distintas instancias escolares de ejercicio democrático, reconociendo la necesidad de organizar socialmente la vida en comunidad, a fin de fortalecer una sana convivencia que resguarde las libertades fundamentales y el bien común.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
-          "eje": "Objetivos de Aprendizaje"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-3-medio/3-medio-fg",
+          "id": "FG-ECIU-3M-OAC-08"
         }
       ]
     }

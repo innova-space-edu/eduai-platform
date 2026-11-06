@@ -1,19 +1,162 @@
 {
   "metadata": {
     "nivel": "Media",
-    "curso": "4° Medio FG",
+    "curso": "4° Medio",
     "asignatura": "Matemática",
-    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
     "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/matematica-4o-medio/4-medio-fg",
     "base_curricular": "Bases Curriculares 3° y 4° Medio",
     "estado_verificacion": "verificado_oficial",
     "alcance_verificacion": [
-      "oa_contenido"
+      "oa_contenido",
+      "oa_habilidades"
     ],
-    "fecha_consulta": "2026-07-18",
-    "nota": "Los OA fueron obtenidos directamente de páginas oficiales específicas de Currículum Nacional. La agrupación interna no altera el texto oficial."
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/matematica-4o-medio/4-medio-fg",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
   },
-  "objetivos_habilidad": [],
+  "objetivos_habilidad": [
+    {
+      "numero_oficial": "a",
+      "descripcion": "Construir y evaluar estrategias de manera colaborativa al resolver problemas no rutinarios.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        1310,
+        1310
+      ],
+      "id": "4-matematica-OAH-a",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "b",
+      "descripcion": "Resolver problemas que impliquen variar algunos parámetros en el modelo utilizado y observar cómo eso influye en los resultados obtenidos.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        1312,
+        1312
+      ],
+      "id": "4-matematica-OAH-b",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "c",
+      "descripcion": "Tomar decisiones fundamentadas en evidencia estadística y/o en la evaluación de resultados obtenidos a partir de un modelo probabilístico.",
+      "eje": "Argumentar y Comunicar",
+      "referencia_lineas": [
+        1315,
+        1315
+      ],
+      "id": "4-matematica-OAH-c",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "d",
+      "descripcion": "Argumentar, utilizando lenguaje simbólico y diferentes representaciones, para justificar la veracidad o falsedad de una conjetura, y evaluar el alcance y los límites de los argumentos utilizados.",
+      "eje": "Argumentar y Comunicar",
+      "referencia_lineas": [
+        1317,
+        1317
+      ],
+      "id": "4-matematica-OAH-d",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "e",
+      "descripcion": "Construir modelos realizando conexiones entre variables para predecir posibles escenarios de solución a un problema, y tomar decisiones fundamentadas.",
+      "eje": "Modelar",
+      "referencia_lineas": [
+        1320,
+        1320
+      ],
+      "id": "4-matematica-OAH-e",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "f",
+      "descripcion": "Evaluar modelos para estudiar un fenómeno, analizando críticamente las simplificaciones requeridas y considerando las limitaciones de aquellos.",
+      "eje": "Modelar",
+      "referencia_lineas": [
+        1322,
+        1322
+      ],
+      "id": "4-matematica-OAH-f",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "g",
+      "descripcion": "Elaborar representaciones, tanto en forma manual como digital, y justificar cómo una misma información puede ser utilizada según el tipo de representación.",
+      "eje": "Representar",
+      "referencia_lineas": [
+        1326,
+        1326
+      ],
+      "id": "4-matematica-OAH-g",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "h",
+      "descripcion": "Evaluar diferentes representaciones, de acuerdo a su pertinencia con el problema a solucionar.",
+      "eje": "Representar",
+      "referencia_lineas": [
+        1327,
+        1327
+      ],
+      "id": "4-matematica-OAH-h",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "i",
+      "descripcion": "Buscar, seleccionar, manejar y producir información matemática/cuantitativa confiable a través de la web.",
+      "eje": "Habilidades digitales",
+      "referencia_lineas": [
+        1331,
+        1331
+      ],
+      "id": "4-matematica-OAH-i",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "j",
+      "descripcion": "Desarrollar un trabajo colaborativo en línea para discusión y resolución de tareas matemáticas, usando herramientas electrónicas de productividad, entornos virtuales y redes sociales.",
+      "eje": "Habilidades digitales",
+      "referencia_lineas": [
+        1333,
+        1333
+      ],
+      "id": "4-matematica-OAH-j",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "k",
+      "descripcion": "Analizar y evaluar el impacto de las tecnologías digitales en contextos sociales, económicos y culturales.",
+      "eje": "Habilidades digitales",
+      "referencia_lineas": [
+        1334,
+        1334
+      ],
+      "id": "4-matematica-OAH-k",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "l",
+      "descripcion": "Conocer tanto los derechos propios como los de los otros, y aplicar estrategias de protección de la información en ambientes digitales.",
+      "eje": "Habilidades digitales",
+      "referencia_lineas": [
+        1336,
+        1336
+      ],
+      "id": "4-matematica-OAH-l",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    }
+  ],
   "objetivos_actitud": [],
   "unidades": [
     {
@@ -23,28 +166,52 @@
       "tipo_agrupacion": "lista_oficial",
       "oa": [
         {
-          "id": "FG-MATE-4M-OAC-01",
-          "codigo_oficial": "FG-MATE-4M-OAC-01",
+          "numero_oficial": 1,
           "descripcion": "Fundamentar decisiones en el ámbito financiero y económico personal o comunitario, a partir de modelos que consideren porcentajes, tasas de interés e índices económicos.",
-          "eje": "Objetivos de Aprendizaje"
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1355,
+            1355
+          ],
+          "codigo_oficial": "FG-MATE-4M-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/matematica-4o-medio/4-medio-fg",
+          "id": "FG-MATE-4M-OAC-01"
         },
         {
-          "id": "FG-MATE-4M-OAC-02",
-          "codigo_oficial": "FG-MATE-4M-OAC-02",
+          "numero_oficial": 2,
           "descripcion": "Fundamentar decisiones en situaciones de incerteza, a partir del análisis crítico de datos estadísticos y con base en los modelos binomial y normal.",
-          "eje": "Objetivos de Aprendizaje"
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1356,
+            1356
+          ],
+          "codigo_oficial": "FG-MATE-4M-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/matematica-4o-medio/4-medio-fg",
+          "id": "FG-MATE-4M-OAC-02"
         },
         {
-          "id": "FG-MATE-4M-OAC-03",
-          "codigo_oficial": "FG-MATE-4M-OAC-03",
+          "numero_oficial": 3,
           "descripcion": "Construir modelos de situaciones o fenómenos de crecimiento, decrecimiento y periódicos que involucren funciones potencias de exponente entero y trigonométricas sen(x) y cos(x), de forma manuscrita, con uso de herramientas tecnológicas y promoviendo la búsqueda, selección, contrastación y verificación de información en ambientes digitales y redes sociales.",
-          "eje": "Objetivos de Aprendizaje"
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1357,
+            1357
+          ],
+          "codigo_oficial": "FG-MATE-4M-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/matematica-4o-medio/4-medio-fg",
+          "id": "FG-MATE-4M-OAC-03"
         },
         {
-          "id": "FG-MATE-4M-OAC-04",
+          "numero_oficial": 4,
+          "descripcion": "Resolver problemas acerca de rectas y circunferencias en el plano, mediante su representación analítica, de forma manuscrita y con uso de herramientas tecnológicas.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1358,
+            1358
+          ],
           "codigo_oficial": "FG-MATE-4M-OAC-04",
-          "descripcion": "Resolver problemas acerca de rectas y circunferencias en el plano, mediante su representación analítica, de forma manuscrita y con uso de herramientas tecnológicas.\nUnidad de Currículum y Evaluación Ministerio de Educación\nTeléfono: +56 2 24066000\nAyuda Mineduc\nAcerca de este sitio\nPolíticas de Privacidad\n- Facebook\n- Twitter\n- Youtube\n- Instagram",
-          "eje": "Objetivos de Aprendizaje"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/matematica-4o-medio/4-medio-fg",
+          "id": "FG-MATE-4M-OAC-04"
         }
       ]
     }

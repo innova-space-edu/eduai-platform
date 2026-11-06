@@ -1,0 +1,220 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "4° Medio",
+    "asignatura": "Probabilidades y estadística descriptiva e inferencial",
+    "plan": "formacion_diferenciada_hc",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/probabilidades-estadistica-descriptiva-inferencial/3-medio-hc",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido",
+      "oa_habilidades"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      3,
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/probabilidades-estadistica-descriptiva-inferencial/3-medio-hc",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
+  },
+  "objetivos_habilidad": [
+    {
+      "numero_oficial": "a",
+      "descripcion": "Construir y evaluar estrategias de manera colaborativa al resolver problemas no rutinarios.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2415,
+        2415
+      ],
+      "id": "4-probabilidades_y_estadistica_descriptiva_e_inferencial-OAH-a",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "b",
+      "descripcion": "Resolver problemas que impliquen variar algunos parámetros en el modelo utilizado y observar cómo eso influye en los resultados obtenidos.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2417,
+        2417
+      ],
+      "id": "4-probabilidades_y_estadistica_descriptiva_e_inferencial-OAH-b",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "c",
+      "descripcion": "Tomar decisiones fundamentadas en evidencia estadística y/o en la evaluación de resultados obtenidos a partir de un modelo probabilístico.",
+      "eje": "Argumentar y Comunicar",
+      "referencia_lineas": [
+        2421,
+        2421
+      ],
+      "id": "4-probabilidades_y_estadistica_descriptiva_e_inferencial-OAH-c",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "d",
+      "descripcion": "Argumentar, utilizando lenguaje simbólico y diferentes representaciones para justificar la veracidad o falsedad de una conjetura, y evaluar el alcance y los límites de los argumentos utilizados.",
+      "eje": "Argumentar y Comunicar",
+      "referencia_lineas": [
+        2426,
+        2426
+      ],
+      "id": "4-probabilidades_y_estadistica_descriptiva_e_inferencial-OAH-d",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "e",
+      "descripcion": "Construir modelos realizando conexiones entre variables para predecir posibles escenarios de solución a un problema, y tomar decisiones fundamentadas.",
+      "eje": "Modelar",
+      "referencia_lineas": [
+        2429,
+        2429
+      ],
+      "id": "4-probabilidades_y_estadistica_descriptiva_e_inferencial-OAH-e",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "f",
+      "descripcion": "Evaluar modelos para estudiar un fenómeno, analizando críticamente las simplificaciones requeridas y considerando las limitaciones de aquellos.",
+      "eje": "Modelar",
+      "referencia_lineas": [
+        2431,
+        2431
+      ],
+      "id": "4-probabilidades_y_estadistica_descriptiva_e_inferencial-OAH-f",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "g",
+      "descripcion": "Elaborar representaciones, tanto en forma manual como digital, y justificar cómo una misma información puede ser utilizada según el tipo de representación.",
+      "eje": "Representar",
+      "referencia_lineas": [
+        2435,
+        2435
+      ],
+      "id": "4-probabilidades_y_estadistica_descriptiva_e_inferencial-OAH-g",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "h",
+      "descripcion": "Evaluar diferentes representaciones, de acuerdo a su pertinencia con el problema a solucionar.",
+      "eje": "Representar",
+      "referencia_lineas": [
+        2436,
+        2436
+      ],
+      "id": "4-probabilidades_y_estadistica_descriptiva_e_inferencial-OAH-h",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "i",
+      "descripcion": "Buscar, seleccionar, manejar y producir información matemática/cuantitativa confiable a través de la web.",
+      "eje": "Habilidades digitales",
+      "referencia_lineas": [
+        2440,
+        2440
+      ],
+      "id": "4-probabilidades_y_estadistica_descriptiva_e_inferencial-OAH-i",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "j",
+      "descripcion": "Desarrollar un trabajo colaborativo en línea para discusión y resolución de tareas matemáticas, usando herramientas electrónicas de productividad, entornos virtuales y redes sociales.",
+      "eje": "Habilidades digitales",
+      "referencia_lineas": [
+        2442,
+        2442
+      ],
+      "id": "4-probabilidades_y_estadistica_descriptiva_e_inferencial-OAH-j",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "k",
+      "descripcion": "Analizar y evaluar el impacto de las tecnologías digitales en contextos sociales, económicos y culturales.",
+      "eje": "Habilidades digitales",
+      "referencia_lineas": [
+        2443,
+        2443
+      ],
+      "id": "4-probabilidades_y_estadistica_descriptiva_e_inferencial-OAH-k",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "l",
+      "descripcion": "Conocer tanto los derechos propios como los de los otros, y aplicar estrategias de protección de la información en ambientes digitales.",
+      "eje": "Habilidades digitales",
+      "referencia_lineas": [
+        2445,
+        2445
+      ],
+      "id": "4-probabilidades_y_estadistica_descriptiva_e_inferencial-OAH-l",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    }
+  ],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Argumentar y comunicar decisiones a partir del análisis crítico de información presente en histogramas, polígonos de frecuencia, frecuencia acumulada, diagramas de cajón y nube de puntos, incluyendo el uso de herramientas digitales.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2490,
+            2490
+          ],
+          "codigo_oficial": "MA-PEDI-3y4-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/probabilidades-estadistica-descriptiva-inferencial/3-medio-hc",
+          "id": "MA-PEDI-3y4-OAC-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Resolver problemas que involucren los conceptos de media muestral, desviación estándar, varianza, coeficiente de variación y correlación muestral entre dos variables, tanto de forma manuscrita como haciendo uso de herramientas tecnológicas digitales.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2491,
+            2491
+          ],
+          "codigo_oficial": "MA-PEDI-3y4-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/probabilidades-estadistica-descriptiva-inferencial/3-medio-hc",
+          "id": "MA-PEDI-3y4-OAC-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Modelar fenómenos o situaciones cotidianas del ámbito científico y del ámbito social que requieran el cálculo de probabilidades y la aplicación de las distribuciones binomial y normal.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2493,
+            2493
+          ],
+          "codigo_oficial": "MA-PEDI-3y4-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/probabilidades-estadistica-descriptiva-inferencial/3-medio-hc",
+          "id": "MA-PEDI-3y4-OAC-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Argumentar inferencias acerca de parámetros (media y varianza) o características de una población, a partir de datos de una muestra aleatoria, bajo el supuesto de normalidad y aplicando procedimientos con base en intervalos de confianza o pruebas de hipótesis.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2494,
+            2494
+          ],
+          "codigo_oficial": "MA-PEDI-3y4-OAC-04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/probabilidades-estadistica-descriptiva-inferencial/3-medio-hc",
+          "id": "MA-PEDI-3y4-OAC-04"
+        }
+      ]
+    }
+  ]
+}

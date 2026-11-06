@@ -1,3 +1,4 @@
+import { MEDIA_CURRICULUM } from "./mineduc-media.generated"
 import salaCunaMenorData from "../data/mineduc/parvularia/sala_cuna_menor.json"
 import salaCunaMayorData from "../data/mineduc/parvularia/sala_cuna_mayor.json"
 import medioMenorData from "../data/mineduc/parvularia/medio_menor.json"
@@ -98,28 +99,9 @@ import basica8Historia from "../data/mineduc/basica/8_basico/historia_geografia_
 import basica8Tecnologia from "../data/mineduc/basica/8_basico/tecnologia.json"
 import basica8Ingles from "../data/mineduc/basica/8_basico/ingles.json"
 
-import media1Matematica from "../data/mineduc/media/1_medio/matematica.json"
-import media1Lengua from "../data/mineduc/media/1_medio/lengua_literatura.json"
-import media1Tecnologia from "../data/mineduc/media/1_medio/tecnologia.json"
-import media1Biologia from "../data/mineduc/media/1_medio/biologia.json"
-import media1Quimica from "../data/mineduc/media/1_medio/quimica.json"
-import media1Fisica from "../data/mineduc/media/1_medio/fisica.json"
 
-import media2Matematica from "../data/mineduc/media/2_medio/matematica.json"
-import media2Lengua from "../data/mineduc/media/2_medio/lengua_literatura.json"
-import media2Tecnologia from "../data/mineduc/media/2_medio/tecnologia.json"
-import media2Biologia from "../data/mineduc/media/2_medio/biologia.json"
-import media2Quimica from "../data/mineduc/media/2_medio/quimica.json"
-import media2Fisica from "../data/mineduc/media/2_medio/fisica.json"
 
-import media3Matematica from "../data/mineduc/media/3_medio/matematica.json"
-import media3CienciasCiudadania from "../data/mineduc/media/3_medio/ciencias_para_la_ciudadania.json"
-import media3EducacionCiudadana from "../data/mineduc/media/3_medio/educacion_ciudadana.json"
 
-import media4Matematica from "../data/mineduc/media/4_medio/matematica.json"
-import media4Lengua from "../data/mineduc/media/4_medio/lengua_literatura.json"
-import media4CienciasCiudadania from "../data/mineduc/media/4_medio/ciencias_para_la_ciudadania.json"
-import media4EducacionCiudadana from "../data/mineduc/media/4_medio/educacion_ciudadana.json"
 
 import sharedCienciasCiudadaniaBase from "../data/mineduc/shared/ciencias_para_la_ciudadania_3y4_base.json"
 import asignaturasPorCurso from "../data/mineduc/meta/asignaturas_por_curso.json"
@@ -325,7 +307,9 @@ const NIVEL_META_KEY: Record<NivelKey, string> = {
 
 export function normalizeAsignatura(asignatura: string, nivel: NivelKey): string {
   const slug = slugify(asignatura)
-  return ASIGNATURA_SYNONYMS[nivel]?.[slug] || asignatura
+  return ASIGNATURA_SYNONYMS[nivel]?.[slug]
+    || (nivel === "media" ? MEDIA_CURRICULUM.find((item) => slugify(item.asignatura) === slug)?.asignatura : undefined)
+    || asignatura
 }
 
 function buildRegistryKey(nivel: NivelKey, cursoKey: string, asignaturaNormalizada: string) {
@@ -584,42 +568,9 @@ registerStandardFile("basica", "8° Básico", "Historia, Geografía y Cs. Social
 registerStandardFile("basica", "8° Básico", "Tecnología", basica8Tecnologia as StandardCurriculumFile, "data/mineduc/basica/8_basico/tecnologia.json")
 registerStandardFile("basica", "8° Básico", "Inglés", basica8Ingles as StandardCurriculumFile, "data/mineduc/basica/8_basico/ingles.json")
 
-registerStandardFile("media", "1° Medio", "Matemática", media1Matematica as StandardCurriculumFile, "data/mineduc/media/1_medio/matematica.json")
-registerStandardFile("media", "1° Medio", "Lengua y Literatura", media1Lengua as StandardCurriculumFile, "data/mineduc/media/1_medio/lengua_literatura.json")
-registerStandardFile("media", "1° Medio", "Tecnología", media1Tecnologia as StandardCurriculumFile, "data/mineduc/media/1_medio/tecnologia.json")
-registerStandardFile("media", "1° Medio", "Biología", media1Biologia as StandardCurriculumFile, "data/mineduc/media/1_medio/biologia.json")
-registerStandardFile("media", "1° Medio", "Química", media1Quimica as StandardCurriculumFile, "data/mineduc/media/1_medio/quimica.json")
-registerStandardFile("media", "1° Medio", "Física", media1Fisica as StandardCurriculumFile, "data/mineduc/media/1_medio/fisica.json")
-
-registerStandardFile("media", "2° Medio", "Matemática", media2Matematica as StandardCurriculumFile, "data/mineduc/media/2_medio/matematica.json")
-registerStandardFile("media", "2° Medio", "Lengua y Literatura", media2Lengua as StandardCurriculumFile, "data/mineduc/media/2_medio/lengua_literatura.json")
-registerStandardFile("media", "2° Medio", "Tecnología", media2Tecnologia as StandardCurriculumFile, "data/mineduc/media/2_medio/tecnologia.json")
-registerStandardFile("media", "2° Medio", "Biología", media2Biologia as StandardCurriculumFile, "data/mineduc/media/2_medio/biologia.json")
-registerStandardFile("media", "2° Medio", "Química", media2Quimica as StandardCurriculumFile, "data/mineduc/media/2_medio/quimica.json")
-registerStandardFile("media", "2° Medio", "Física", media2Fisica as StandardCurriculumFile, "data/mineduc/media/2_medio/fisica.json")
-
-registerStandardFile("media", "3° Medio", "Matemática", media3Matematica as StandardCurriculumFile, "data/mineduc/media/3_medio/matematica.json")
-registerSharedPlanningFile(
-  "media",
-  "3° Medio",
-  "Ciencias para la Ciudadanía",
-  media3CienciasCiudadania as StandardCurriculumFile,
-  "data/mineduc/media/3_medio/ciencias_para_la_ciudadania.json",
-  "data/mineduc/shared/ciencias_para_la_ciudadania_3y4_base.json"
-)
-registerStandardFile("media", "3° Medio", "Educación Ciudadana", media3EducacionCiudadana as StandardCurriculumFile, "data/mineduc/media/3_medio/educacion_ciudadana.json")
-
-registerStandardFile("media", "4° Medio", "Matemática", media4Matematica as StandardCurriculumFile, "data/mineduc/media/4_medio/matematica.json")
-registerStandardFile("media", "4° Medio", "Lengua y Literatura", media4Lengua as StandardCurriculumFile, "data/mineduc/media/4_medio/lengua_literatura.json")
-registerSharedPlanningFile(
-  "media",
-  "4° Medio",
-  "Ciencias para la Ciudadanía",
-  media4CienciasCiudadania as StandardCurriculumFile,
-  "data/mineduc/media/4_medio/ciencias_para_la_ciudadania.json",
-  "data/mineduc/shared/ciencias_para_la_ciudadania_3y4_base.json"
-)
-registerStandardFile("media", "4° Medio", "Educación Ciudadana", media4EducacionCiudadana as StandardCurriculumFile, "data/mineduc/media/4_medio/educacion_ciudadana.json")
+for (const entry of MEDIA_CURRICULUM) {
+  registerStandardFile("media", entry.curso, entry.asignatura, entry.raw as StandardCurriculumFile, entry.sourceFile)
+}
 
 function getSharedCienciasBase(): StandardCurriculumFile {
   return sharedCienciasCiudadaniaBase as StandardCurriculumFile
@@ -854,14 +805,11 @@ export function getOA(
   numero: number
 ): OA | null {
   const oas = getOAs(nivel, curso, asignatura)
-  const suffix = String(numero)
-
-  return (
-    oas.find((oa) => oa.id === `OA${numero}`) ||
-    oas.find((oa) => oa.id.endsWith(`-${suffix}`)) ||
-    oas.find((oa) => oa.codigoOficial?.match(new RegExp(`\\bOA\\s*0*${suffix}\\b`, "i"))) ||
-    null
-  )
+  if (!Number.isInteger(numero) || numero < 1) return null
+  const pattern = new RegExp(`(?:\\bOA\\s*|-OAC-|-)0*${numero}$`, "i")
+  const matches = oas.filter((oa) => oa.id === `OA${numero}` || pattern.test(oa.codigoOficial || oa.id))
+  // A module is required when numbering restarts (e.g. the four CPC modules).
+  return matches.length === 1 ? matches[0] : null
 }
 
 export function buildOAContext(
@@ -975,3 +923,4 @@ export function getParvulariaOATForCurso(
 }
 
 export const OA_DATABASE = REGISTRY
+

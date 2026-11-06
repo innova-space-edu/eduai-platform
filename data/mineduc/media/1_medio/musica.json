@@ -1,0 +1,142 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "1° Medio",
+    "asignatura": "Música",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-01",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      1
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-01",
+      "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-02",
+      "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-03",
+      "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-04",
+      "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-06",
+      "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-07",
+      "https://www.bcn.cl/leychile/navegar?i=1084868"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Apreciar musicalmente manifestaciones y obras musicales de Chile y el mundo presentes en la tradición oral, escrita y popular, expresándose mediante medios verbales, visuales, sonoros y corporales.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            845,
+            847
+          ],
+          "id": "MU1M-OA-01",
+          "codigo_oficial": "MU1M OA 01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Comparar músicas con características diferentes, basándose tanto en elementos del lenguaje musical y en los procedimientos compositivos, como en su relación con el propósito expresivo.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            849,
+            850
+          ],
+          "id": "MU1M-OA-02",
+          "codigo_oficial": "MU1M OA 02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-02"
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "id": "eje-eje-interpretar-y-crear",
+      "nombre": "EJE INTERPRETAR Y CREAR",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 3,
+          "descripcion": "Cantar y tocar repertorio diverso y relacionado con la música escuchada, desarrollando habilidades tales como conocimiento de estilo, identificación de voces en un grupo, transmisión del propósito expresivo, laboriosidad y compromiso, entre otras.",
+          "eje": "EJE INTERPRETAR Y CREAR",
+          "referencia_lineas": [
+            854,
+            856
+          ],
+          "id": "MU1M-OA-03",
+          "codigo_oficial": "MU1M OA 03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Interpretar repertorio diverso a una y más voces, con precisión técnica y fluidez, utilizando diversos medios de registro y transmisión en la gestión y presentación de su quehacer musical.",
+          "eje": "EJE INTERPRETAR Y CREAR",
+          "referencia_lineas": [
+            858,
+            861
+          ],
+          "id": "MU1M-OA-04",
+          "codigo_oficial": "MU1M OA 04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Improvisar y crear música dando énfasis a la experimentación con el material sonoro, arreglos de canciones y secciones musicales, basándose en ideas musicales y extramusicales.",
+          "eje": "EJE INTERPRETAR Y CREAR",
+          "referencia_lineas": [
+            863,
+            865
+          ],
+          "id": "MU1M-OA-05",
+          "codigo_oficial": "MU1M OA 05",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1084868"
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "id": "eje-eje-reflexionar-y-relacionar",
+      "nombre": "EJE REFLEXIONAR Y RELACIONAR",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 6,
+          "descripcion": "Analizar fortalezas y áreas de crecimiento personal en la audición, interpretación, creación y reflexión, y su influencia en el trabajo musical propio y colectivo, proponiendo alternativas de desarrollo.",
+          "eje": "EJE REFLEXIONAR Y RELACIONAR",
+          "referencia_lineas": [
+            869,
+            870
+          ],
+          "id": "MU1M-OA-06",
+          "codigo_oficial": "MU1M OA 06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-06"
+        },
+        {
+          "numero_oficial": 7,
+          "descripcion": "Evaluar la relevancia de la música, destacando el singular sentido que esta cumple en la construcción y preservación de identidades y culturas.",
+          "eje": "EJE REFLEXIONAR Y RELACIONAR",
+          "referencia_lineas": [
+            872,
+            874
+          ],
+          "id": "MU1M-OA-07",
+          "codigo_oficial": "MU1M OA 07",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-07"
+        }
+      ]
+    }
+  ]
+}

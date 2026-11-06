@@ -1,0 +1,410 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "2° Medio",
+    "asignatura": "Ciencias Naturales",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — texto normativo publicado en Ley Chile (BCN)",
+    "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido",
+      "oa_habilidades"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "numeracion_normativa",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      2
+    ]
+  },
+  "objetivos_habilidad": [
+    {
+      "numero_oficial": "a",
+      "descripcion": "Observar y describir detalladamente las características de objetos, procesos y fenómenos del mundo natural y tecnológico, usando los sentidos.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        3185,
+        3185
+      ],
+      "id": "2-ciencias_naturales-OAH-a",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "b",
+      "descripcion": "Formular preguntas y/o problemas, a partir de conocimiento científico, que puedan ser resueltos mediante una investigación científica*.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        3187,
+        3187
+      ],
+      "id": "2-ciencias_naturales-OAH-b",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "c",
+      "descripcion": "Formular y fundamentar hipótesis comprobables, basados en conocimiento científico.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        3189,
+        3189
+      ],
+      "id": "2-ciencias_naturales-OAH-c",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "d",
+      "descripcion": "Planificar diversos diseños de investigaciones experimentales que den respuesta a una pregunta y/o problema sobre la base de diversas fuentes de información científica, considerando:\n- el uso adecuado de instrumentos y materiales para asegurar la obtención de datos confiables\n- la manipulación de variables y sus relaciones\n- la explicación clara de procedimientos posibles de replicar",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3192,
+        3198
+      ],
+      "id": "2-ciencias_naturales-OAH-d",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "e",
+      "descripcion": "Planificar una investigación no experimental y/o documental que considere diversas fuentes de información para responder a preguntas científicas o para constituir el marco teórico de la investigación experimental.",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3199,
+        3199
+      ],
+      "id": "2-ciencias_naturales-OAH-e",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "f",
+      "descripcion": "Conducir rigurosamente investigaciones científicas para obtener evidencias precisas y confiables con el apoyo de las TIC.",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3201,
+        3201
+      ],
+      "id": "2-ciencias_naturales-OAH-f",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "g",
+      "descripcion": "Organizar el trabajo colaborativo, asignando responsabilidades, comunicándose en forma efectiva y siguiendo normas de seguridad.",
+      "eje": "Planificar y conducir una investigación",
+      "referencia_lineas": [
+        3203,
+        3203
+      ],
+      "id": "2-ciencias_naturales-OAH-g",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "h",
+      "descripcion": "Organizar datos cuantitativos y/o cualitativos con precisión, fundamentando su confiabilidad, y presentarlos en tablas, gráficos, modelos u otras representaciones, con la ayuda de las TIC.",
+      "eje": "Procesar y analizar la evidencia",
+      "referencia_lineas": [
+        3206,
+        3206
+      ],
+      "id": "2-ciencias_naturales-OAH-h",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "i",
+      "descripcion": "Crear, seleccionar usar y ajustar modelos para describir mecanismos y para predecir y apoyar explicaciones sobre las relaciones entre las partes de un sistema.",
+      "eje": "Procesar y analizar la evidencia",
+      "referencia_lineas": [
+        3208,
+        3208
+      ],
+      "id": "2-ciencias_naturales-OAH-i",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "j",
+      "descripcion": "Analizar y explicar los resultados de una investigación científica*, para plantear inferencias y conclusiones:\n- comparando las relaciones, tendencias y patrones de las variables\n- usando expresiones y operaciones matemáticas cuando sea pertinente (por ejemplo: potencias, razones, funciones, notación científica, medidas de tendencia central, cambio porcentual)\n- utilizando vocabulario disciplinar pertinente",
+      "eje": "Procesar y analizar la evidencia",
+      "referencia_lineas": [
+        3210,
+        3215
+      ],
+      "id": "2-ciencias_naturales-OAH-j",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "k",
+      "descripcion": "Evaluar la investigación científica* con el fin de perfeccionarla, considerando:\n- la validez y confiabilidad de los resultados\n- la replicabilidad de los procedimientos\n- las explicaciones, las predicciones y las conclusiones\n- las posibles aplicaciones tecnológicas\n- el desempeño personal y grupal",
+      "eje": "Evaluar",
+      "referencia_lineas": [
+        3219,
+        3228
+      ],
+      "id": "2-ciencias_naturales-OAH-k",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "l",
+      "descripcion": "Explicar y argumentar con evidencias provenientes de investigaciones científicas*, en forma oral y escrita, incluyendo tablas, gráficos, modelos y TIC.",
+      "eje": "Comunicar",
+      "referencia_lineas": [
+        3232,
+        3232
+      ],
+      "id": "2-ciencias_naturales-OAH-l",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "m",
+      "descripcion": "Discutir en forma oral y escrita las ideas para diseñar una investigación científica*, las posibles aplicaciones y soluciones a problemas tecnológicos, las teorías, las predicciones y las conclusiones, utilizando argumentos basados en evidencias y en el conocimiento científico y tecnológico.",
+      "eje": "Comunicar",
+      "referencia_lineas": [
+        3233,
+        3233
+      ],
+      "id": "2-ciencias_naturales-OAH-m",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    }
+  ],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-biologia",
+      "nombre": "BIOLOGÍA",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Explicar cómo el sistema nervioso coordina las acciones del organismo para adaptarse a estímulos del ambiente, por medio de señales transmitidas por neuronas a lo largo del cuerpo, e investigar y comunicar sus cuidados, como las horas de sueño, el consumo de drogas, café y alcohol, y la prevención de traumatismos.",
+          "eje": "BIOLOGÍA",
+          "referencia_lineas": [
+            3242,
+            3242
+          ],
+          "id": "CN2M-OA-01",
+          "codigo_oficial": "CN2M OA 01",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Crear modelos que expliquen la regulación de:\n- la glicemia por medio del control de las hormonas pancreáticas\n- los caracteres sexuales y las funciones reproductivas por medio del control de las hormonas sexuales en el organismo",
+          "eje": "BIOLOGÍA",
+          "referencia_lineas": [
+            3244,
+            3247
+          ],
+          "id": "CN2M-OA-02",
+          "codigo_oficial": "CN2M OA 02",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Explicar que la sexualidad humana y la reproducción son aspectos fundamentales de la vida del ser humano, considerando los aspectos biológicos, sociales, afectivos y psicológicos, y la responsabilidad individual frente a sí mismo y los demás.",
+          "eje": "BIOLOGÍA",
+          "referencia_lineas": [
+            3249,
+            3249
+          ],
+          "id": "CN2M-OA-03",
+          "codigo_oficial": "CN2M OA 03",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Describir la fecundación, la implantación y el desarrollo del embrión, y analizar la responsabilidad de los padres en la nutrición prenatal y la lactancia.",
+          "eje": "BIOLOGÍA",
+          "referencia_lineas": [
+            3250,
+            3250
+          ],
+          "id": "CN2M-OA-04",
+          "codigo_oficial": "CN2M OA 04",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Explicar y evaluar los métodos de regulación de la fertilidad e identificar los elementos de una paternidad y una maternidad responsables.",
+          "eje": "BIOLOGÍA",
+          "referencia_lineas": [
+            3252,
+            3252
+          ],
+          "id": "CN2M-OA-05",
+          "codigo_oficial": "CN2M OA 05",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 6,
+          "descripcion": "Investigar y argumentar, en base a evidencias, que el material genético se transmite de generación en generación en organismos como plantas y animales, considerando:\n- la comparación de la mitosis y la meiosis\n- las causas y consecuencias de anomalías y pérdida de control de la división celular (tumor, cáncer, trisomía, entre otros)",
+          "eje": "BIOLOGÍA",
+          "referencia_lineas": [
+            3254,
+            3257
+          ],
+          "id": "CN2M-OA-06",
+          "codigo_oficial": "CN2M OA 06",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 7,
+          "descripcion": "Desarrollar una explicación científica, basada en evidencias, sobre los procesos de herencia genética en plantas y animales, aplicando los principios básicos de la herencia propuestos por Mendel.",
+          "eje": "BIOLOGÍA",
+          "referencia_lineas": [
+            3259,
+            3259
+          ],
+          "id": "CN2M-OA-07",
+          "codigo_oficial": "CN2M OA 07",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 8,
+          "descripcion": "Investigar y explicar las aplicaciones que han surgido a raíz de la manipulación genética para generar alimentos, detergentes, vestuario, fármacos u otras, y evaluar sus implicancias éticas y sociales.",
+          "eje": "BIOLOGÍA",
+          "referencia_lineas": [
+            3260,
+            3260
+          ],
+          "id": "CN2M-OA-08",
+          "codigo_oficial": "CN2M OA 08",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "id": "eje-fisica",
+      "nombre": "FÍSICA",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 9,
+          "descripcion": "Analizar, sobre la base de la experimentación, el movimiento rectilíneo uniforme y acelerado de un objeto respecto de un sistema de referencia espacio-temporal, considerando variables como la posición, la velocidad y la aceleración en situaciones cotidianas.",
+          "eje": "FÍSICA",
+          "referencia_lineas": [
+            3264,
+            3264
+          ],
+          "id": "CN2M-OA-09",
+          "codigo_oficial": "CN2M OA 09",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 10,
+          "descripcion": "Explicar, por medio de investigaciones experimentales, los efectos que tiene una fuerza neta sobre un objeto, utilizando las leyes de Newton y el diagrama de cuerpo libre.",
+          "eje": "FÍSICA",
+          "referencia_lineas": [
+            3265,
+            3265
+          ],
+          "id": "CN2M-OA-10",
+          "codigo_oficial": "CN2M OA 10",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 11,
+          "descripcion": "Describir el movimiento de un objeto, usando la ley de conservación de la energía mecánica y los conceptos de trabajo y potencia mecánica.",
+          "eje": "FÍSICA",
+          "referencia_lineas": [
+            3267,
+            3267
+          ],
+          "id": "CN2M-OA-11",
+          "codigo_oficial": "CN2M OA 11",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 12,
+          "descripcion": "Analizar e interpretar datos de investigaciones sobre colisiones entre objetos, considerando:\n- la cantidad de movimiento de un cuerpo en función del impulso que adquiere\n- la ley de conservación de cantidad de movimiento (momento lineal o momentum)",
+          "eje": "FÍSICA",
+          "referencia_lineas": [
+            3269,
+            3272
+          ],
+          "id": "CN2M-OA-12",
+          "codigo_oficial": "CN2M OA 12",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 13,
+          "descripcion": "Demostrar que comprenden que el conocimiento del Universo cambia y aumenta a partir de nuevas evidencias, usando modelos como el geocéntrico y el heliocéntrico, y teorías como la del Big-Bang, entre otros.",
+          "eje": "FÍSICA",
+          "referencia_lineas": [
+            3274,
+            3274
+          ],
+          "id": "CN2M-OA-13",
+          "codigo_oficial": "CN2M OA 13",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 14,
+          "descripcion": "Explicar cualitativamente, por medio de las leyes de Kepler y la de gravitación universal de Newton:\n- el origen de las mareas\n- la formación y dinámica de estructuras cósmicas naturales como el sistema solar y sus componentes, las estrellas y las galaxias\n- el movimiento de estructuras artificiales como sondas, satélites y naves espaciales",
+          "eje": "FÍSICA",
+          "referencia_lineas": [
+            3276,
+            3281
+          ],
+          "id": "CN2M-OA-14",
+          "codigo_oficial": "CN2M OA 14",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "id": "eje-quimica",
+      "nombre": "QUÍMICA",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 15,
+          "descripcion": "Explicar, por medio de modelos y la experimentación, las propiedades de las soluciones en ejemplos cercanos, considerando:\n- el estado físico (sólido, líquido y gaseoso)\n- sus componentes (soluto y solvente)\n- la cantidad de soluto disuelto (concentración)",
+          "eje": "QUÍMICA",
+          "referencia_lineas": [
+            3285,
+            3290
+          ],
+          "id": "CN2M-OA-15",
+          "codigo_oficial": "CN2M OA 15",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 16,
+          "descripcion": "Planificar y conducir una investigación experimental para proveer evidencias, que expliquen las propiedades coligativas de las soluciones y su importancia en procesos cotidianos (la mantención de frutas y mermeladas en conserva) e industriales (aditivos en el agua de radiadores).",
+          "eje": "QUÍMICA",
+          "referencia_lineas": [
+            3292,
+            3292
+          ],
+          "id": "CN2M-OA-16",
+          "codigo_oficial": "CN2M OA 16",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 17,
+          "descripcion": "Crear modelos del carbono y explicar sus propiedades como base para la formación de moléculas útiles para los seres vivos (biomoléculas presentes en la célula) y el entorno (hidrocarburos como petróleo y sus derivados).",
+          "eje": "QUÍMICA",
+          "referencia_lineas": [
+            3293,
+            3293
+          ],
+          "id": "CN2M-OA-17",
+          "codigo_oficial": "CN2M OA 17",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        },
+        {
+          "numero_oficial": 18,
+          "descripcion": "Desarrollar modelos que expliquen la estereoquímica e isomería de compuestos orgánicos como la glucosa, identificando sus propiedades y su utilidad para los seres vivos.",
+          "eje": "QUÍMICA",
+          "referencia_lineas": [
+            3295,
+            3295
+          ],
+          "id": "CN2M-OA-18",
+          "codigo_oficial": "CN2M OA 18",
+          "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+        }
+      ]
+    }
+  ]
+}

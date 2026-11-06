@@ -1,0 +1,132 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "4° Medio",
+    "asignatura": "Filosofía política",
+    "plan": "formacion_diferenciada_hc",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/filosofia-politica/3-medio-hc",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido",
+      "oa_habilidades"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa. La transcripción BCN contiene encabezados y contenido repetidos; prevalece la ficha específica de Currículum Nacional.",
+    "cursos_aplicables": [
+      3,
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/filosofia-politica/3-medio-hc",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
+  },
+  "objetivos_habilidad": [
+    {
+      "numero_oficial": "a",
+      "descripcion": "Formular preguntas significativas para su vida a partir del análisis de conceptos y teorías filosóficas, poniendo en duda aquello que aparece como \"cierto\" o \"dado\" y proyectando diversas respuestas posibles.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2126,
+        2126
+      ],
+      "id": "4-filosofia_politica-OAH-a",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "b",
+      "descripcion": "Analizar y fundamentar problemas presentes en textos filosóficos, considerando sus supuestos, conceptos, métodos de razonamiento e implicancias en la vida cotidiana.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2128,
+        2128
+      ],
+      "id": "4-filosofia_politica-OAH-b",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "c",
+      "descripcion": "Participar en diálogos sobre grandes problemas de la filosofía pertinentes para sus contextos, sostenidos a partir de argumentos de los distintos participantes, utilizando métodos de razonamiento filosófico y valorando la controversia y la diversidad como factores fundamentales para el desarrollo del pensamiento.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2129,
+        2129
+      ],
+      "id": "4-filosofia_politica-OAH-c",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "d",
+      "descripcion": "Elaborar visiones personales respecto de problemas filosóficos a partir de las perspectivas de diversos filósofos, siendo capaces tanto de reconstruir sus fundamentos como de cuestionarlos y plantear nuevos puntos de vista.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2130,
+        2130
+      ],
+      "id": "4-filosofia_politica-OAH-d",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    }
+  ],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "eje": "Objetivos de Aprendizaje",
+          "codigo_oficial": "FI-FIPO-3y4-OAC-01",
+          "descripcion": "Formular preguntas e hipótesis acerca de un problema político a partir de la lectura de textos filosóficos fundamentales, considerando diversas perspectivas y métodos propios de la disciplina.",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/filosofia-politica/3-medio-hc",
+          "numero_oficial": 1,
+          "id": "FI-FIPO-3y4-OAC-01"
+        },
+        {
+          "eje": "Objetivos de Aprendizaje",
+          "codigo_oficial": "FI-FIPO-3y4-OAC-02",
+          "descripcion": "Evaluar críticamente, desde el horizonte del bien común, las relaciones de poder y su expresión tanto en la institucionalidad política como entre los individuos de una sociedad en contextos de la vida cotidiana.",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/filosofia-politica/3-medio-hc",
+          "numero_oficial": 2,
+          "id": "FI-FIPO-3y4-OAC-02"
+        },
+        {
+          "eje": "Objetivos de Aprendizaje",
+          "codigo_oficial": "FI-FIPO-3y4-OAC-03",
+          "descripcion": "Examinar críticamente textos de la tradición filosófica que expresen diversas perspectivas sobre la justicia, la libertad, la responsabilidad, la igualdad y la felicidad, considerando cómo estos conceptos se relacionan con diversas visiones del ser humano, la ética y la política.",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/filosofia-politica/3-medio-hc",
+          "numero_oficial": 3,
+          "id": "FI-FIPO-3y4-OAC-03"
+        },
+        {
+          "eje": "Objetivos de Aprendizaje",
+          "codigo_oficial": "FI-FIPO-3y4-OAC-04",
+          "descripcion": "Participar activamente en diálogos filosóficos acerca de las formas de organización del poder en la sociedad, sus fundamentos y finalidades, tomando en cuenta diversas posiciones acerca del Estado, los actores sociales y las instituciones.",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/filosofia-politica/3-medio-hc",
+          "numero_oficial": 4,
+          "id": "FI-FIPO-3y4-OAC-04"
+        },
+        {
+          "eje": "Objetivos de Aprendizaje",
+          "codigo_oficial": "FI-FIPO-3y4-OAC-05",
+          "descripcion": "Investigar problemas sociales relacionados con sus contextos y la desigualdad de género, considerando diversas perspectivas filosóficas, cuidando la rigurosidad argumentativa, proponiendo soluciones para su mejora y utilizando diferentes formas de expresión.",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/filosofia-politica/3-medio-hc",
+          "numero_oficial": 5,
+          "id": "FI-FIPO-3y4-OAC-05"
+        },
+        {
+          "eje": "Objetivos de Aprendizaje",
+          "codigo_oficial": "FI-FIPO-3y4-OAC-06",
+          "descripcion": "Distinguir argumentos válidos o falaces, a fin de comparar razonamientos filosóficos relativos al poder y la política desde diversas corrientes de pensamiento filosófico y posicionarse de modo consistente frente a ellos.",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/filosofia-politica/3-medio-hc",
+          "numero_oficial": 6,
+          "id": "FI-FIPO-3y4-OAC-06"
+        }
+      ]
+    }
+  ]
+}

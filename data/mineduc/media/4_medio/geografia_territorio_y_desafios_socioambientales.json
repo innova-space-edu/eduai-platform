@@ -1,0 +1,233 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "4° Medio",
+    "asignatura": "Geografía, territorio y desafíos socioambientales",
+    "plan": "formacion_diferenciada_hc",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/geografia-territorio-desafios-socioambientales/3-medio-hc",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido",
+      "oa_habilidades"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      3,
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/geografia-territorio-desafios-socioambientales/3-medio-hc",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
+  },
+  "objetivos_habilidad": [
+    {
+      "numero_oficial": "a",
+      "descripcion": "Formulación de preguntas o problemas de investigación a partir de la observación de fenómenos;",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2224,
+        2224
+      ],
+      "id": "4-geografia_territorio_y_desafios_socioambientales-OAH-a",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "b",
+      "descripcion": "Levantamiento de información a partir de métodos y técnicas propias de historia, geografía, economía y otras ciencias sociales;",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2226,
+        2226
+      ],
+      "id": "4-geografia_territorio_y_desafios_socioambientales-OAH-b",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "c",
+      "descripcion": "Análisis crítico de las evidencias y evaluación de su validez, considerando su uso ético para respaldar opiniones;",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2228,
+        2228
+      ],
+      "id": "4-geografia_territorio_y_desafios_socioambientales-OAH-c",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "d",
+      "descripcion": "Definición del marco teórico, del estado de la cuestión y de los conceptos disciplinares del tema a investigar;",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2229,
+        2229
+      ],
+      "id": "4-geografia_territorio_y_desafios_socioambientales-OAH-d",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "e",
+      "descripcion": "Análisis de las propias conclusiones en relación con los supuestos iniciales.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2231,
+        2231
+      ],
+      "id": "4-geografia_territorio_y_desafios_socioambientales-OAH-e",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "f",
+      "descripcion": "Hacer conexiones entre fenómenos, acontecimientos y/o procesos de la realidad, considerando conceptos como multidimensionalidad, multicausalidad y multiescalaridad, temporalidad, y variables y patrones.",
+      "eje": "Pensamiento crítico",
+      "referencia_lineas": [
+        2235,
+        2235
+      ],
+      "id": "4-geografia_territorio_y_desafios_socioambientales-OAH-f",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "g",
+      "descripcion": "Elaborar interpretaciones y argumentos, basados en fuentes variadas y pertinentes, haciendo uso ético de la información.",
+      "eje": "Pensamiento crítico",
+      "referencia_lineas": [
+        2236,
+        2236
+      ],
+      "id": "4-geografia_territorio_y_desafios_socioambientales-OAH-g",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "h",
+      "descripcion": "Analizar interpretaciones y perspectivas de diversas fuentes, considerando propósito, intencionalidad, enfoque y contexto del autor, y las preguntas que intenta responder.",
+      "eje": "Pensamiento crítico",
+      "referencia_lineas": [
+        2241,
+        2241
+      ],
+      "id": "4-geografia_territorio_y_desafios_socioambientales-OAH-h",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "i",
+      "descripcion": "Evaluar la validez de las propias interpretaciones sobre acontecimientos, fenómenos y procesos estudiados, a través del diálogo y el uso de fuentes.",
+      "eje": "Pensamiento crítico",
+      "referencia_lineas": [
+        2243,
+        2243
+      ],
+      "id": "4-geografia_territorio_y_desafios_socioambientales-OAH-i",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "j",
+      "descripcion": "Elaborar juicios éticos de manera rigurosa y basados en conocimiento disciplinar sobre hitos, fenómenos, procesos, ideas, acciones de personas, entre otros.",
+      "eje": "Pensamiento crítico",
+      "referencia_lineas": [
+        2245,
+        2245
+      ],
+      "id": "4-geografia_territorio_y_desafios_socioambientales-OAH-j",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "k",
+      "descripcion": "Comunicar explicaciones, conclusiones u opiniones fundamentadas, haciendo uso de lenguaje, las normas y convenciones de la disciplina.",
+      "eje": "Comunicación",
+      "referencia_lineas": [
+        2248,
+        2248
+      ],
+      "id": "4-geografia_territorio_y_desafios_socioambientales-OAH-k",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    }
+  ],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Explicar el espacio geográfico como una construcción social producto de las interacciones entre los grupos humanos y el medio, que influyen en las múltiples dimensiones de la vida en sociedad.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2290,
+            2290
+          ],
+          "codigo_oficial": "HI-GTYD-3y4-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/geografia-territorio-desafios-socioambientales/3-medio-hc",
+          "id": "HI-GTYD-3y4-OAC-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Reconocer las dinámicas físico-naturales que configuran el territorio nacional, considerando la interdependencia y fragilidad de los ambientes, y su importancia para la vida en sociedad.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2292,
+            2292
+          ],
+          "codigo_oficial": "HI-GTYD-3y4-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/geografia-territorio-desafios-socioambientales/3-medio-hc",
+          "id": "HI-GTYD-3y4-OAC-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Analizar las decisiones políticas, económicas y sociales que se toman en torno a los espacios geográficos locales y nacionales, considerando los distintos actores que participan de ellas y el impacto que tienen en el entorno natural.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2293,
+            2293
+          ],
+          "codigo_oficial": "HI-GTYD-3y4-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/geografia-territorio-desafios-socioambientales/3-medio-hc",
+          "id": "HI-GTYD-3y4-OAC-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Evaluar la organización territorial y ambiental del país y los instrumentos de planificación que la regulan, considerando criterios tales como accesibilidad, conectividad, conservación, preservación, reducción de riesgos, sustentabilidad ambiental y justicia socioespacial.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2294,
+            2294
+          ],
+          "codigo_oficial": "HI-GTYD-3y4-OAC-04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/geografia-territorio-desafios-socioambientales/3-medio-hc",
+          "id": "HI-GTYD-3y4-OAC-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Reconocer el carácter social del riesgo de desastres que caracteriza a la geografía de Chile, considerando los diferentes usos del espacio y sus condiciones territoriales y ambientales.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2296,
+            2296
+          ],
+          "codigo_oficial": "HI-GTYD-3y4-OAC-05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/geografia-territorio-desafios-socioambientales/3-medio-hc",
+          "id": "HI-GTYD-3y4-OAC-05"
+        },
+        {
+          "numero_oficial": 6,
+          "descripcion": "Recoger, sistematizar y comunicar información sobre procesos y dinámicas espaciales mediante el uso de estrategias y metodologías propias de la geografía, como interpretación y análisis de cartografía, georreferenciación y uso de imágenes, estadísticas e información geográfica, trabajo de campo, entrevistas, encuestas, mapeos participativos y escalas de percepción, entre otros.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2297,
+            2297
+          ],
+          "codigo_oficial": "HI-GTYD-3y4-OAC-06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/geografia-territorio-desafios-socioambientales/3-medio-hc",
+          "id": "HI-GTYD-3y4-OAC-06"
+        }
+      ]
+    }
+  ]
+}

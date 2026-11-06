@@ -1,0 +1,122 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "3° Medio",
+    "asignatura": "Participación y argumentación en democracia",
+    "plan": "formacion_diferenciada_hc",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/participacion-argumentacion-democracia/4-medio-hc",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      3,
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/participacion-argumentacion-democracia/4-medio-hc",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Construir colectivamente conclusiones, soluciones, preguntas, hipótesis o acuerdos o que surjan de discusiones argumentadas y razonadas, en torno a temas controversiales de la vida y la sociedad actual.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2391,
+            2391
+          ],
+          "codigo_oficial": "LL-PADM-3y4-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/participacion-argumentacion-democracia/4-medio-hc",
+          "id": "LL-PADM-3y4-OAC-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Dialogar argumentativamente, privilegiando el componente racional de la argumentación, estableciendo relaciones lógicas válidas y extrayendo conclusiones razonadas.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2393,
+            2393
+          ],
+          "codigo_oficial": "LL-PADM-3y4-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/participacion-argumentacion-democracia/4-medio-hc",
+          "id": "LL-PADM-3y4-OAC-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Evaluar diversas formas en que se legitima el conocimiento contenido en los discursos (investigación científica, autoridad, experiencia personal, entre otras), a partir del análisis crítico de sus modos de generación y su aceptabilidad, suficiencia y pertinencia al ámbito de participación, a la comunidad discursiva, al tema y a los propósitos.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2394,
+            2394
+          ],
+          "codigo_oficial": "LL-PADM-3y4-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/participacion-argumentacion-democracia/4-medio-hc",
+          "id": "LL-PADM-3y4-OAC-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Elaborar argumentos, basándose en evidencias o información pública legitimada, pertinentes al tema o problema analizado.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2396,
+            2396
+          ],
+          "codigo_oficial": "LL-PADM-3y4-OAC-04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/participacion-argumentacion-democracia/4-medio-hc",
+          "id": "LL-PADM-3y4-OAC-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Utilizar formas de argumentación y de legitimación del conocimiento pertinentes al ámbito de participación, a la comunidad discursiva y a los propósitos de sus argumentaciones.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2397,
+            2397
+          ],
+          "codigo_oficial": "LL-PADM-3y4-OAC-05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/participacion-argumentacion-democracia/4-medio-hc",
+          "id": "LL-PADM-3y4-OAC-05"
+        },
+        {
+          "numero_oficial": 6,
+          "descripcion": "Evaluar críticamente argumentaciones surgidas en distintos ámbitos de la sociedad, enfocándose en los alcances que tienen en la comunidad, su pertinencia al tema analizado y al propósito perseguido, la legitimidad de las evidencias proporcionadas y las relaciones lógicas establecidas.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2399,
+            2399
+          ],
+          "codigo_oficial": "LL-PADM-3y4-OAC-06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/participacion-argumentacion-democracia/4-medio-hc",
+          "id": "LL-PADM-3y4-OAC-06"
+        },
+        {
+          "numero_oficial": 7,
+          "descripcion": "Construir una postura personal sobre diversos temas controversiales y problemáticas de la sociedad, a partir de sus investigaciones y de la evaluación y confrontación de argumentaciones y evidencias en torno a estos.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2400,
+            2400
+          ],
+          "codigo_oficial": "LL-PADM-3y4-OAC-07",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/participacion-argumentacion-democracia/4-medio-hc",
+          "id": "LL-PADM-3y4-OAC-07"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,190 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "2° Medio",
+    "asignatura": "Orientación",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/2-medio",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      1,
+      2
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/2-medio",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1093403"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Comparar distintas alternativas posibles de sus proyectos de vida, en los ámbitos laboral, familiar u otros, considerando sus intereses, condiciones, capacidades y la manera en que las propias decisiones y experiencias pueden influir en que estas alternativas se hagan realidad.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            223,
+            224
+          ],
+          "codigo_oficial": "OR2M OA 01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/2-medio",
+          "id": "OR2M-OA-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Analizar de manera fundamentada temáticas y situaciones relacionadas con la sexualidad y los vínculos afectivos, en función de valores como el respeto hacia todo ser humano, la responsabilidad y el cuidado de sí mismos y de los demás, considerando el resguardo de la salud, la intimidad, la integridad física y emocional.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            226,
+            227
+          ],
+          "codigo_oficial": "OR2M OA 02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/2-medio",
+          "id": "OR2M-OA-02"
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "id": "eje-eje-bienestar-y-autocuidado",
+      "nombre": "EJE BIENESTAR Y AUTOCUIDADO",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 3,
+          "descripcion": "Evaluar, en sí mismos y en su entorno, situaciones problemáticas y/o de riesgos relacionadas con el consumo de sustancias, conductas sexuales riesgosas y la violencia, entre otros, e identificar y recurrir a redes de apoyo a las que pueden pedir ayuda, como familia, profesores, instituciones de salud, centros comunitarios y fonos y páginas web especializadas, entre otras.",
+          "eje": "EJE BIENESTAR Y AUTOCUIDADO",
+          "referencia_lineas": [
+            231,
+            232
+          ],
+          "codigo_oficial": "OR2M OA 03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/2-medio",
+          "id": "OR2M-OA-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Promover y llevar a cabo de manera autónoma acciones que favorezcan la vida saludable a nivel personal y social, manifestando interés y preocupación ante problemas y situaciones de su entorno y de sus vidas (cuidado de la alimentación, manejo adecuado del estrés, uso positivo del tiempo de ocio, prevención de riesgos y seguridad personal en situaciones cotidianas, entre otros).",
+          "eje": "EJE BIENESTAR Y AUTOCUIDADO",
+          "referencia_lineas": [
+            234,
+            235
+          ],
+          "codigo_oficial": "OR2M OA 04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/2-medio",
+          "id": "OR2M-OA-04"
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "id": "eje-eje-relaciones-interpersonales",
+      "nombre": "EJE RELACIONES INTERPERSONALES",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 5,
+          "descripcion": "Promover en su entorno relaciones interpersonales constructivas, sean estas presenciales o por medio de las redes sociales, sobre la base del análisis de situaciones, considerando los derechos de las personas acorde a los principios de igualdad, dignidad, inclusión y no discriminación.",
+          "eje": "EJE RELACIONES INTERPERSONALES",
+          "referencia_lineas": [
+            239,
+            240
+          ],
+          "codigo_oficial": "OR2M OA 05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/2-medio",
+          "id": "OR2M-OA-05"
+        },
+        {
+          "numero_oficial": 6,
+          "descripcion": "Discriminar alternativas para la resolución de conflictos en un marco de derechos, que promuevan la búsqueda de acuerdos que beneficien a las partes involucradas y que impliquen el compromiso recíproco.",
+          "eje": "EJE RELACIONES INTERPERSONALES",
+          "referencia_lineas": [
+            242,
+            244
+          ],
+          "codigo_oficial": "OR2M OA 06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/2-medio",
+          "id": "OR2M-OA-06"
+        }
+      ]
+    },
+    {
+      "numero": 4,
+      "id": "eje-eje-participacion-y-pertenencia",
+      "nombre": "EJE PARTICIPACIÓN Y PERTENENCIA",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 7,
+          "descripcion": "Evaluar en su entorno social e institucional cercano, como curso, establecimiento, barrio u otro, instancias en las que puedan participar o contribuir a la resolución de problemáticas a partir del reconocimiento de sí mismos y de los demás como sujetos de derecho, considerando aspectos como el respeto por la dignidad, la diversidad, la equidad de género, la inclusión, la participación democrática, la justicia y el bienestar.",
+          "eje": "EJE PARTICIPACIÓN Y PERTENENCIA",
+          "referencia_lineas": [
+            247,
+            249
+          ],
+          "codigo_oficial": "OR2M OA 07",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/2-medio",
+          "id": "OR2M-OA-07"
+        },
+        {
+          "numero_oficial": 8,
+          "descripcion": "Desarrollar iniciativas orientadas a promover el respeto, la justicia, el buen trato, las relaciones pacíficas y el bien común en el propio curso y la comunidad escolar, participando en instancias colectivas, como el Consejo de Curso, órganos de representación estudiantil u otros, de manera colaborativa y democrática, mediante el diálogo y el debate respetuoso ante la diversidad de opiniones.",
+          "eje": "EJE PARTICIPACIÓN Y PERTENENCIA",
+          "referencia_lineas": [
+            251,
+            252
+          ],
+          "codigo_oficial": "OR2M OA 08",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/2-medio",
+          "id": "OR2M-OA-08"
+        }
+      ]
+    },
+    {
+      "numero": 5,
+      "id": "eje-eje-gestion-y-desarrollo-del-aprendizaje",
+      "nombre": "EJE GESTIÓN Y DESARROLLO DEL APRENDIZAJE",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 9,
+          "descripcion": "Contrastar diversos posibles caminos a seguir en el desarrollo de sus proyectos de vida, tomando en cuenta distintas opciones laborales y académicas y reconociendo sus habilidades e intereses.",
+          "eje": "EJE GESTIÓN Y DESARROLLO DEL APRENDIZAJE",
+          "referencia_lineas": [
+            256,
+            257
+          ],
+          "codigo_oficial": "OR2M OA 09",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/2-medio",
+          "id": "OR2M-OA-09"
+        },
+        {
+          "numero_oficial": 10,
+          "descripcion": "Diseñar aspectos de sus posibles proyectos de vida considerando elementos como habilidades, motivaciones, metas personales, posibilidades y limitaciones, asumiendo el desafío de tomar decisiones coherentes con estos elementos y actuando, basándose en ellos, de manera perseverante y esforzada.",
+          "eje": "EJE GESTIÓN Y DESARROLLO DEL APRENDIZAJE",
+          "referencia_lineas": [
+            259,
+            261
+          ],
+          "codigo_oficial": "OR2M OA 10",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/2-medio",
+          "id": "OR2M-OA-10"
+        }
+      ]
+    }
+  ]
+}

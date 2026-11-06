@@ -1,0 +1,122 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "3° Medio",
+    "asignatura": "Química",
+    "plan": "formacion_diferenciada_hc",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/quimica/3-medio-hc",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      3,
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/quimica/3-medio-hc",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Evaluar el desarrollo del conocimiento científico y tecnológico en nanoquímica y química de polímeros, considerando sus aplicaciones y consecuencias en ámbitos tales como el ambiental, médico, agrícola e industrial.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2036,
+            2036
+          ],
+          "codigo_oficial": "CN-QUIM-3y4-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/quimica/3-medio-hc",
+          "id": "CN-QUIM-3y4-OAC-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Explicar, por medio de investigaciones experimentales y no experimentales, fenómenos ácido-base, de óxido-reducción y de polimerización-despolimerización presentes en sistemas naturales y en aplicaciones tecnológicas.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2037,
+            2037
+          ],
+          "codigo_oficial": "CN-QUIM-3y4-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/quimica/3-medio-hc",
+          "id": "CN-QUIM-3y4-OAC-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Argumentar y comunicar, con base en evidencia científica, cómo la termodinámica y la cinética de reacciones químicas contribuyen a comprender el funcionamiento de los sistemas naturales y sus respuestas a cambios ejercidos sobre estos.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2039,
+            2039
+          ],
+          "codigo_oficial": "CN-QUIM-3y4-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/quimica/3-medio-hc",
+          "id": "CN-QUIM-3y4-OAC-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Explicar efectos del cambio climático sobre los ciclos biogeoquímicos y los equilibrios químicos que ocurren en los océanos, la atmósfera, las aguas dulces y los suelos, así como sus consecuencias sobre el bienestar de las personas y el desarrollo sostenible.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2040,
+            2040
+          ],
+          "codigo_oficial": "CN-QUIM-3y4-OAC-04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/quimica/3-medio-hc",
+          "id": "CN-QUIM-3y4-OAC-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Analizar el origen, las vías de exposición, los efectos y las propiedades de contaminantes químicos provenientes de actividades domésticas e industriales (como minería, agricultura y desarrollo urbano) sobre los sistemas naturales y los servicios ecosistémicos que estos brindan a las personas y a la sociedad.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2041,
+            2041
+          ],
+          "codigo_oficial": "CN-QUIM-3y4-OAC-05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/quimica/3-medio-hc",
+          "id": "CN-QUIM-3y4-OAC-05"
+        },
+        {
+          "numero_oficial": 6,
+          "descripcion": "Evaluar la contribución de la química y sus aplicaciones tecnológicas en el entendimiento, la prevención y mitigación de efectos derivados del cambio climático y la restauración de los sistemas naturales afectados.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2042,
+            2042
+          ],
+          "codigo_oficial": "CN-QUIM-3y4-OAC-06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/quimica/3-medio-hc",
+          "id": "CN-QUIM-3y4-OAC-06"
+        },
+        {
+          "numero_oficial": 7,
+          "descripcion": "Valorar la importancia de la integración de los conocimientos de la química con otras ciencias para el análisis y la propuesta de soluciones a problemas actuales, considerando las implicancias éticas, sociales y ambientales.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2044,
+            2044
+          ],
+          "codigo_oficial": "CN-QUIM-3y4-OAC-07",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/quimica/3-medio-hc",
+          "id": "CN-QUIM-3y4-OAC-07"
+        }
+      ]
+    }
+  ]
+}

@@ -1,13 +1,13 @@
 {
-  "fecha_actualizacion": "2026-09-20",
-  "fase": "parvularia_bcep_pdf_oficial",
-  "archivos_curriculares_totales": 105,
-  "asignaturas_verificadas_oficialmente": 101,
+  "fecha_actualizacion": "2026-11-06",
+  "fase": "auditoria_media_fg_hc",
+  "archivos_curriculares_totales": 194,
+  "asignaturas_verificadas_oficialmente": 190,
   "propuestas_oficiales_verificadas": 4,
   "archivos_pendientes": 0,
-  "oa_contenido_verificados": 1536,
+  "oa_contenido_verificados": 2170,
   "oat_verificados": 166,
-  "objetivos_oficiales_verificados": 1702,
+  "objetivos_oficiales_verificados": 2336,
   "cursos_completos": [
     "1_basico",
     "2_basico",
@@ -57,11 +57,10 @@
       }
     }
   },
-  "siguiente_bloque": "ninguno",
+  "siguiente_bloque": "especialidades_tecnico_profesionales_y_religion_segun_programa",
   "ultima_validacion": "success",
-  "estado_fusion": "en_validacion_pr",
-  "commit_fusion": "feeb748d09117a3a957935fda1793af4a69fdd75",
-  "nota": "Educación Parvularia fue re-auditada contra las BCEP 2018. Se mantienen 206 objetivos únicos oficiales en los tres tramos curriculares (SC, NM, NT); se corrigió OA 04 CES SC y se eliminaron residuos de navegación del sitio en descripciones.",
+  "estado_fusion": "rama_en_revision",
+  "nota": "Media ampliada de 19 a 108 archivos. 27 electivos HC y 8 opciones FG electiva en ambos cursos; ciencias 1M/2M conservan alias por eje; se eliminan residuos de navegación. La cobertura declarada no incluye especialidades TP ni programas confesionales de Religión.",
   "auditoria_parvularia": {
     "fuente": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
     "fecha": "2026-09-20",
@@ -78,5 +77,6 @@
     "selector": "restringido al núcleo principal + OAT complementarios sin duplicar el núcleo seleccionado",
     "fuente_tipo": "PDF oficial BCEP 2018",
     "criterio_planificador": "núcleo principal restringido + OAT complementarios; criterios de planificación/evaluación extraídos de BCEP"
-  }
+  },
+  "alcance_media": "OA de contenido: formación general regular, formación general electiva y 27 asignaturas de profundización HC. Habilidades: solo las secciones explícitamente verificadas. Actitudes: pendientes de auditoría específica."
 }

@@ -1,0 +1,122 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "4° Medio",
+    "asignatura": "Mundo Global",
+    "plan": "formacion_general_electiva",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/mundo-global/4-medio-fg",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      3,
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/mundo-global/4-medio-fg",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Analizar procesos migratorios contemporáneos en distintas regiones del mundo, considerando múltiples causas, principales características, impactos en la sociedad de origen y de destino, y los desafíos para las sociedades y los Estados nacionales.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1711,
+            1711
+          ],
+          "codigo_oficial": "FG-MGLO-3y4-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/mundo-global/4-medio-fg",
+          "id": "FG-MGLO-3y4-OAC-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Investigar algunos aspectos de la economía global actual, como cambios en la producción y en el mercado del trabajo, el rol del comercio mundial y del mercado financiero, y nuevas formas de consumo, aplicando conceptos de la economía (escasez, oferta y demanda, precio, balanza comercial, entre otros).",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1712,
+            1712
+          ],
+          "codigo_oficial": "FG-MGLO-3y4-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/mundo-global/4-medio-fg",
+          "id": "FG-MGLO-3y4-OAC-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Explicar el cambio climático como fenómeno global, incluyendo controversias sobre sus múltiples causas, los grados de responsabilidad de distintos actores y sus principales consecuencias para la población.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1713,
+            1713
+          ],
+          "codigo_oficial": "FG-MGLO-3y4-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/mundo-global/4-medio-fg",
+          "id": "FG-MGLO-3y4-OAC-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Analizar, por medio de la investigación, desastres socio-naturales, considerando amenazas naturales, el papel de la sociedad y el Estado en la prevención y gestión del riesgo, factores que inciden en la vulnerabilidad de la población y avances de Chile y otros países en la materia.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1715,
+            1715
+          ],
+          "codigo_oficial": "FG-MGLO-3y4-OAC-04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/mundo-global/4-medio-fg",
+          "id": "FG-MGLO-3y4-OAC-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Explicar, por medio de la investigación, transformaciones del Estado-nación en la actualidad, en relación con aspectos como la ciudadanía en un mundo cada vez más interconectado, la internacionalización de la economía y la relación con otros Estados y organismos intergubernamentales.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1716,
+            1716
+          ],
+          "codigo_oficial": "FG-MGLO-3y4-OAC-05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/mundo-global/4-medio-fg",
+          "id": "FG-MGLO-3y4-OAC-05"
+        },
+        {
+          "numero_oficial": 6,
+          "descripcion": "Analizar algunos conflictos internacionales que involucran a Estados nacionales, sociedades o grupos, explicando sus contextos y posibilidades de resolución y aplicando conceptos de la ciencia política como poder, soberanía, ideología, derechos humanos, opinión pública, entre otros.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1717,
+            1717
+          ],
+          "codigo_oficial": "FG-MGLO-3y4-OAC-06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/mundo-global/4-medio-fg",
+          "id": "FG-MGLO-3y4-OAC-06"
+        },
+        {
+          "numero_oficial": 7,
+          "descripcion": "Participar en forma colaborativa en el diseño de propuestas para dar solución a problemas presentes a nivel local relacionados con temas abordados en el nivel.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1719,
+            1719
+          ],
+          "codigo_oficial": "FG-MGLO-3y4-OAC-07",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/mundo-global/4-medio-fg",
+          "id": "FG-MGLO-3y4-OAC-07"
+        }
+      ]
+    }
+  ]
+}

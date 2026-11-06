@@ -1,0 +1,110 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "3° Medio",
+    "asignatura": "Ciencias del ejercicio físico y deportivo",
+    "plan": "formacion_diferenciada_hc",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ciencias-ejercicio-fisico-deportivo/3-medio-hc",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      3,
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ciencias-ejercicio-fisico-deportivo/3-medio-hc",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Practicar una variedad de actividades físico-deportivas que sean de su interés, respetando sus necesidades e individualidades.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2084,
+            2084
+          ],
+          "codigo_oficial": "EF-CEFD-3y4-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ciencias-ejercicio-fisico-deportivo/3-medio-hc",
+          "id": "EF-CEFD-3y4-OAC-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Evaluar las adaptaciones agudas y crónicas que provoca el ejercicio físico para comprender el impacto que produce en el rendimiento físico y deportivo.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2086,
+            2086
+          ],
+          "codigo_oficial": "EF-CEFD-3y4-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ciencias-ejercicio-fisico-deportivo/3-medio-hc",
+          "id": "EF-CEFD-3y4-OAC-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Implementar y evaluar programas de entrenamiento físico para mejorar su condición física y la de otros.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2088,
+            2088
+          ],
+          "codigo_oficial": "EF-CEFD-3y4-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ciencias-ejercicio-fisico-deportivo/3-medio-hc",
+          "id": "EF-CEFD-3y4-OAC-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Analizar los efectos que provoca la actividad física, la alimentación saludable y las ayudas ergogénicas en el rendimiento físico y deportivo.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2089,
+            2089
+          ],
+          "codigo_oficial": "EF-CEFD-3y4-OAC-04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ciencias-ejercicio-fisico-deportivo/3-medio-hc",
+          "id": "EF-CEFD-3y4-OAC-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Diseñar y aplicar diferentes sistemas de entrenamiento para mejorar el rendimiento físico y deportivo.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2091,
+            2091
+          ],
+          "codigo_oficial": "EF-CEFD-3y4-OAC-05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ciencias-ejercicio-fisico-deportivo/3-medio-hc",
+          "id": "EF-CEFD-3y4-OAC-05"
+        },
+        {
+          "numero_oficial": 6,
+          "descripcion": "Analizar factores fisiológicos, biomecánicos, psicológicos y sociológicos que influyen en el rendimiento físico y deportivo.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2093,
+            2093
+          ],
+          "codigo_oficial": "EF-CEFD-3y4-OAC-06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ciencias-ejercicio-fisico-deportivo/3-medio-hc",
+          "id": "EF-CEFD-3y4-OAC-06"
+        }
+      ]
+    }
+  ]
+}

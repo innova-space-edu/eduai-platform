@@ -1,3 +1,19 @@
+# Catálogo curricular MINEDUC
+
+Enseñanza media se carga desde los archivos de `media/`, registrados mediante `lib/mineduc-media.generated.ts`. La revisión del 6 de noviembre de 2026 incluye 108 combinaciones de curso/asignatura y 815 apariciones de OA (550 códigos distintos), con 27 electivos HC y 8 opciones de formación general electiva disponibles en 3° y 4° medio.
+
+Consultar [auditoría, alcance, fuentes y validación](../../docs/AUDITORIA_OA_MEDIA_20261106.md). La cobertura verificada de esta revisión corresponde a OA de contenido de formación general y HC; no incluye las especialidades TP ni programas confesionales.
+
+```bash
+npm run curriculum:media:rebuild
+npm run test:curriculum
+npm run test:curriculum:media
+```
+
+La reconstrucción reproduce copias oficiales archivadas; no descarga versiones nuevas. No editar manualmente el módulo generado. Cada objetivo conserva su código y su fuente. Los alias de Biología, Física y Química de 1°/2° medio mantienen los códigos de Ciencias Naturales.
+
+---
+
 # Parvularia multi-OA / multi-núcleo
 
 Estos archivos dejan lista la base para planificaciones integradas de Educación Parvularia.
@@ -25,3 +41,4 @@ Estos archivos dejan lista la base para planificaciones integradas de Educación
 - Los OA podrán venir de diferentes núcleos o ámbitos.
 - Podrás sumar hasta 2 OAT transversales.
 - La tarjeta de cada OA mostrará `Ámbito · Núcleo`, para que no se mezclen sin contexto.
+

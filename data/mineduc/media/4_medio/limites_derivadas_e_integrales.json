@@ -1,0 +1,232 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "4° Medio",
+    "asignatura": "Límites, derivadas e integrales",
+    "plan": "formacion_diferenciada_hc",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/limites-derivadas-integrales/4-medio-hc",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido",
+      "oa_habilidades"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      3,
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/limites-derivadas-integrales/4-medio-hc",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
+  },
+  "objetivos_habilidad": [
+    {
+      "numero_oficial": "a",
+      "descripcion": "Construir y evaluar estrategias de manera colaborativa al resolver problemas no rutinarios.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2415,
+        2415
+      ],
+      "id": "4-limites_derivadas_e_integrales-OAH-a",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "b",
+      "descripcion": "Resolver problemas que impliquen variar algunos parámetros en el modelo utilizado y observar cómo eso influye en los resultados obtenidos.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2417,
+        2417
+      ],
+      "id": "4-limites_derivadas_e_integrales-OAH-b",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "c",
+      "descripcion": "Tomar decisiones fundamentadas en evidencia estadística y/o en la evaluación de resultados obtenidos a partir de un modelo probabilístico.",
+      "eje": "Argumentar y Comunicar",
+      "referencia_lineas": [
+        2421,
+        2421
+      ],
+      "id": "4-limites_derivadas_e_integrales-OAH-c",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "d",
+      "descripcion": "Argumentar, utilizando lenguaje simbólico y diferentes representaciones para justificar la veracidad o falsedad de una conjetura, y evaluar el alcance y los límites de los argumentos utilizados.",
+      "eje": "Argumentar y Comunicar",
+      "referencia_lineas": [
+        2426,
+        2426
+      ],
+      "id": "4-limites_derivadas_e_integrales-OAH-d",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "e",
+      "descripcion": "Construir modelos realizando conexiones entre variables para predecir posibles escenarios de solución a un problema, y tomar decisiones fundamentadas.",
+      "eje": "Modelar",
+      "referencia_lineas": [
+        2429,
+        2429
+      ],
+      "id": "4-limites_derivadas_e_integrales-OAH-e",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "f",
+      "descripcion": "Evaluar modelos para estudiar un fenómeno, analizando críticamente las simplificaciones requeridas y considerando las limitaciones de aquellos.",
+      "eje": "Modelar",
+      "referencia_lineas": [
+        2431,
+        2431
+      ],
+      "id": "4-limites_derivadas_e_integrales-OAH-f",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "g",
+      "descripcion": "Elaborar representaciones, tanto en forma manual como digital, y justificar cómo una misma información puede ser utilizada según el tipo de representación.",
+      "eje": "Representar",
+      "referencia_lineas": [
+        2435,
+        2435
+      ],
+      "id": "4-limites_derivadas_e_integrales-OAH-g",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "h",
+      "descripcion": "Evaluar diferentes representaciones, de acuerdo a su pertinencia con el problema a solucionar.",
+      "eje": "Representar",
+      "referencia_lineas": [
+        2436,
+        2436
+      ],
+      "id": "4-limites_derivadas_e_integrales-OAH-h",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "i",
+      "descripcion": "Buscar, seleccionar, manejar y producir información matemática/cuantitativa confiable a través de la web.",
+      "eje": "Habilidades digitales",
+      "referencia_lineas": [
+        2440,
+        2440
+      ],
+      "id": "4-limites_derivadas_e_integrales-OAH-i",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "j",
+      "descripcion": "Desarrollar un trabajo colaborativo en línea para discusión y resolución de tareas matemáticas, usando herramientas electrónicas de productividad, entornos virtuales y redes sociales.",
+      "eje": "Habilidades digitales",
+      "referencia_lineas": [
+        2442,
+        2442
+      ],
+      "id": "4-limites_derivadas_e_integrales-OAH-j",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "k",
+      "descripcion": "Analizar y evaluar el impacto de las tecnologías digitales en contextos sociales, económicos y culturales.",
+      "eje": "Habilidades digitales",
+      "referencia_lineas": [
+        2443,
+        2443
+      ],
+      "id": "4-limites_derivadas_e_integrales-OAH-k",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    },
+    {
+      "numero_oficial": "l",
+      "descripcion": "Conocer tanto los derechos propios como los de los otros, y aplicar estrategias de protección de la información en ambientes digitales.",
+      "eje": "Habilidades digitales",
+      "referencia_lineas": [
+        2445,
+        2445
+      ],
+      "id": "4-limites_derivadas_e_integrales-OAH-l",
+      "source_url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    }
+  ],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Utilizar diversas formar de representación al argumentar acerca de la resultante de la composición de funciones y la existencia de la función inversa de una función dada.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2465,
+            2465
+          ],
+          "codigo_oficial": "MA-LIDI-3y4-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/limites-derivadas-integrales/4-medio-hc",
+          "id": "MA-LIDI-3y4-OAC-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Argumentar acerca de la existencia de límites de funciones en el infinito y en un punto para determinar convergencia y continuidad en contextos matemáticos, de las ciencias y de la vida diaria, en forma manuscrita y utilizando herramientas tecnológicas digitales.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2467,
+            2467
+          ],
+          "codigo_oficial": "MA-LIDI-3y4-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/limites-derivadas-integrales/4-medio-hc",
+          "id": "MA-LIDI-3y4-OAC-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Modelar situaciones o fenómenos que involucren rapidez instantánea de cambio y evaluar la necesidad eventual de ajustar el modelo obtenido.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2468,
+            2468
+          ],
+          "codigo_oficial": "MA-LIDI-3y4-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/limites-derivadas-integrales/4-medio-hc",
+          "id": "MA-LIDI-3y4-OAC-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Resolver problemas que involucren crecimiento o decrecimiento, concavidad, puntos máximos, mínimos o de inflexión de una función, a partir del cálculo de la primera y segunda derivada, en forma manuscrita y utilizando herramientas tecnológicas digitales.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2470,
+            2470
+          ],
+          "codigo_oficial": "MA-LIDI-3y4-OAC-04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/limites-derivadas-integrales/4-medio-hc",
+          "id": "MA-LIDI-3y4-OAC-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Modelar situaciones o fenómenos que involucren el concepto de integral como área bajo la curva en contextos matemáticos, de las ciencias y de la vida diaria, en forma manuscrita y utilizando herramientas tecnológicas digitales, y evaluar la necesidad eventual de ajustar el modelo obtenido.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            2471,
+            2471
+          ],
+          "codigo_oficial": "MA-LIDI-3y4-OAC-05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/limites-derivadas-integrales/4-medio-hc",
+          "id": "MA-LIDI-3y4-OAC-05"
+        }
+      ]
+    }
+  ]
+}

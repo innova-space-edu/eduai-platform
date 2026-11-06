@@ -3,15 +3,24 @@
     "nivel": "Media",
     "curso": "1° Medio",
     "asignatura": "Tecnología",
-    "fuente": "Currículum Nacional - MINEDUC Chile",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
     "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/tecnologia/1-medio",
     "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
     "estado_verificacion": "verificado_oficial",
     "alcance_verificacion": [
       "oa_contenido"
     ],
-    "fecha_consulta": "2026-07-18",
-    "nota": "Los OA fueron obtenidos directamente de páginas oficiales específicas de Currículum Nacional. La agrupación interna no altera el texto oficial."
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      1
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/tecnologia/1-medio",
+      "https://www.bcn.cl/leychile/navegar?i=1084868"
+    ]
   },
   "objetivos_habilidad": [],
   "objetivos_actitud": [],
@@ -19,52 +28,88 @@
     {
       "numero": 1,
       "id": "eje-resolucion-de-problemas-tecnologicos",
-      "nombre": "Resolución de problemas tecnológicos",
-      "tipo_agrupacion": "eje_curricular",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
       "oa": [
         {
-          "id": "TE1M-OA-01",
-          "codigo_oficial": "TE1M OA 01",
+          "numero_oficial": 1,
           "descripcion": "Identificar oportunidades o necesidades personales, grupales o locales que impliquen la creación de un servicio, utilizando recursos digitales u otros medios.",
-          "eje": "Resolución de problemas tecnológicos"
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            206,
+            207
+          ],
+          "codigo_oficial": "TE1M OA 01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/tecnologia/1-medio",
+          "id": "TE1M-OA-01"
         },
         {
-          "id": "TE1M-OA-02",
-          "codigo_oficial": "TE1M OA 02",
+          "numero_oficial": 2,
           "descripcion": "Desarrollar un servicio que implique la utilización de recursos digitales u otros medios, considerando aspectos éticos, sus potenciales impactos y normas de cuidado y seguridad.",
-          "eje": "Resolución de problemas tecnológicos"
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            209,
+            211
+          ],
+          "codigo_oficial": "TE1M OA 02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/tecnologia/1-medio",
+          "id": "TE1M-OA-02"
         },
         {
-          "id": "TE1M-OA-03",
-          "codigo_oficial": "TE1M OA 03",
+          "numero_oficial": 3,
           "descripcion": "Evaluar el servicio desarrollado considerando criterios propios, técnicos y valóricos, y proponer mejoras asociadas tanto a los procesos como al producto final.",
-          "eje": "Resolución de problemas tecnológicos"
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            213,
+            214
+          ],
+          "codigo_oficial": "TE1M OA 03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/tecnologia/1-medio",
+          "id": "TE1M-OA-03"
         },
         {
-          "id": "TE1M-OA-04",
-          "codigo_oficial": "TE1M OA 04",
+          "numero_oficial": 4,
           "descripcion": "Comunicar el diseño, la planificación u otros procesos del desarrollo de un servicio, utilizando herramientas TIC, considerando diferentes tipos de objetivos y audiencias y teniendo en cuenta aspectos éticos.",
-          "eje": "Resolución de problemas tecnológicos"
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            216,
+            218
+          ],
+          "codigo_oficial": "TE1M OA 04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/tecnologia/1-medio",
+          "id": "TE1M-OA-04"
         }
       ]
     },
     {
       "numero": 2,
       "id": "eje-tecnologia-ambiente-y-sociedad",
-      "nombre": "Tecnología, ambiente y sociedad",
+      "nombre": "Eje Tecnología, ambiente y sociedad",
       "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "TE1M-OA-05",
-          "codigo_oficial": "TE1M OA 05",
+          "numero_oficial": 5,
           "descripcion": "Analizar las formas en que los productos tecnológicos y los entornos evolucionan, caracterizando los diversos factores que influyen en ese cambio.",
-          "eje": "Tecnología, ambiente y sociedad"
+          "eje": "Eje Tecnología, ambiente y sociedad",
+          "referencia_lineas": [
+            222,
+            223
+          ],
+          "codigo_oficial": "TE1M OA 05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/tecnologia/1-medio",
+          "id": "TE1M-OA-05"
         },
         {
-          "id": "TE1M-OA-06",
-          "codigo_oficial": "TE1M OA 06",
+          "numero_oficial": 6,
           "descripcion": "Inferir, basándose en la evolución de los productos tecnológicos y los entornos, los efectos positivos o negativos que estos han tenido en la sociedad.",
-          "eje": "Tecnología, ambiente y sociedad"
+          "eje": "Eje Tecnología, ambiente y sociedad",
+          "referencia_lineas": [
+            225,
+            227
+          ],
+          "codigo_oficial": "TE1M OA 06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/tecnologia/1-medio",
+          "id": "TE1M-OA-06"
         }
       ]
     }

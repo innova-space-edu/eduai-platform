@@ -1,0 +1,125 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "1° Medio",
+    "asignatura": "Artes Visuales",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/1-medio",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      1
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/1-medio",
+      "https://www.bcn.cl/leychile/navegar?i=1084868"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Crear proyectos visuales con diversos propósitos, basados en la apreciación y reflexión acerca de la arquitectura, los espacios y el diseño urbano, en diferentes medios y contextos.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            508,
+            510
+          ],
+          "codigo_oficial": "AR1M OA 01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/1-medio",
+          "id": "AR1M-OA-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Crear trabajos y proyectos visuales basados en sus imaginarios personales, investigando el manejo de materiales sustentables en procedimientos de grabado y pintura mural.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            512,
+            513
+          ],
+          "codigo_oficial": "AR1M OA 02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/1-medio",
+          "id": "AR1M-OA-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Crear proyectos visuales basados en imaginarios personales, investigando en medios contemporáneos como libros de artista y arte digital.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            515,
+            517
+          ],
+          "codigo_oficial": "AR1M OA 03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/1-medio",
+          "id": "AR1M-OA-03"
+        }
+      ]
+    },
+    {
+      "numero": 2,
+      "id": "eje-eje-apreciar-y-responder-frente-al-arte",
+      "nombre": "Eje Apreciar y responder frente al arte",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 4,
+          "descripcion": "Realizar juicios críticos de manifestaciones visuales considerando las condiciones contextuales de su creador y utilizando criterios estéticos pertinentes.",
+          "eje": "Eje Apreciar y responder frente al arte",
+          "referencia_lineas": [
+            521,
+            522
+          ],
+          "codigo_oficial": "AR1M OA 04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/1-medio",
+          "id": "AR1M-OA-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Realizar juicios críticos de trabajos y proyectos visuales personales y de sus pares, fundamentados en criterios referidos al contexto, la materialidad, el lenguaje visual y el propósito expresivo.",
+          "eje": "Eje Apreciar y responder frente al arte",
+          "referencia_lineas": [
+            524,
+            526
+          ],
+          "codigo_oficial": "AR1M OA 05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/1-medio",
+          "id": "AR1M-OA-05"
+        }
+      ]
+    },
+    {
+      "numero": 3,
+      "id": "eje-eje-difundir-y-comunicar",
+      "nombre": "Eje Difundir y comunicar",
+      "tipo_agrupacion": "eje_curricular",
+      "oa": [
+        {
+          "numero_oficial": 6,
+          "descripcion": "Diseñar propuestas de difusión hacia la comunidad de trabajos y proyectos de arte, en el contexto escolar y local, de forma directa o virtual, teniendo presente las manifestaciones visuales a exponer, el espacio, el montaje, el público y el aporte a la comunidad, entre otros.",
+          "eje": "Eje Difundir y comunicar",
+          "referencia_lineas": [
+            530,
+            531
+          ],
+          "codigo_oficial": "AR1M OA 06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/1-medio",
+          "id": "AR1M-OA-06"
+        }
+      ]
+    }
+  ]
+}

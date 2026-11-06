@@ -1,0 +1,122 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "4° Medio",
+    "asignatura": "Biología celular y molecular",
+    "plan": "formacion_diferenciada_hc",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-celular-molecular/3-medio-hc",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      3,
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-celular-molecular/3-medio-hc",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Investigar el desarrollo del conocimiento de biología celular y molecular a lo largo de la historia y su relación con diversas disciplinas como la química, la física y la matemática, entre otras.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1970,
+            1970
+          ],
+          "codigo_oficial": "CN-BCMO-3y4-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-celular-molecular/3-medio-hc",
+          "id": "CN-BCMO-3y4-OAC-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Explicar la estructura y organización de la célula, basada en biomoléculas, membranas y organelos, su reproducción, mantención y recambio, en procesos de metabolismo, motilidad y comunicación, como fundamento de la continuidad y evolución del fenómeno de la vida.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1971,
+            1971
+          ],
+          "codigo_oficial": "CN-BCMO-3y4-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-celular-molecular/3-medio-hc",
+          "id": "CN-BCMO-3y4-OAC-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Analizar críticamente el significado biológico del dogma central de la biología molecular en relación con el flujo de la información genética en células desde el ADN al ARN y a las proteínas.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1973,
+            1973
+          ],
+          "codigo_oficial": "CN-BCMO-3y4-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-celular-molecular/3-medio-hc",
+          "id": "CN-BCMO-3y4-OAC-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Describir, sobre la base de evidencia, los mecanismos de regulación génica y explicar su relación con los procesos de diferenciación y proliferación celular en respuesta a estímulos ambientales, el envejecimiento y las enfermedades como el cáncer.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1974,
+            1974
+          ],
+          "codigo_oficial": "CN-BCMO-3y4-OAC-04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-celular-molecular/3-medio-hc",
+          "id": "CN-BCMO-3y4-OAC-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Explicar las relaciones entre estructuras y funciones de proteínas en procesos como la actividad enzimática, flujo de iones a través de membranas y cambios conformacionales en procesos de motilidad celular y contracción muscular.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1976,
+            1976
+          ],
+          "codigo_oficial": "CN-BCMO-3y4-OAC-05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-celular-molecular/3-medio-hc",
+          "id": "CN-BCMO-3y4-OAC-05"
+        },
+        {
+          "numero_oficial": 6,
+          "descripcion": "Analizar el desarrollo del conocimiento de biología celular y molecular en Chile y el mundo, considerando diversas líneas de investigación y la relación entre ciencia, tecnología y sociedad.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1977,
+            1977
+          ],
+          "codigo_oficial": "CN-BCMO-3y4-OAC-06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-celular-molecular/3-medio-hc",
+          "id": "CN-BCMO-3y4-OAC-06"
+        },
+        {
+          "numero_oficial": 7,
+          "descripcion": "Analizar aplicaciones biotecnológicas en diversas áreas, como tratamientos para el cáncer, preservación y uso de células madre, y producción de organismos transgénicos, entre otros, y evaluar sus implicancias éticas, sociales y legales.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1979,
+            1979
+          ],
+          "codigo_oficial": "CN-BCMO-3y4-OAC-07",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-celular-molecular/3-medio-hc",
+          "id": "CN-BCMO-3y4-OAC-07"
+        }
+      ]
+    }
+  ]
+}

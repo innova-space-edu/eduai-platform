@@ -1,0 +1,98 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "3° Medio",
+    "asignatura": "Educación Física y Salud 1",
+    "plan": "formacion_general_electiva",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-fisica-salud-1/3-medio-fg",
+    "base_curricular": "Bases Curriculares 3° y 4° Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      3,
+      4
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-fisica-salud-1/3-medio-fg",
+      "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+    ]
+  },
+  "objetivos_habilidad": [],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Aplicar individual y colectivamente las habilidades motrices especializadas de manera creativa y segura, en una variedad de actividades físicas que sean de su interés y en diferentes entornos.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1589,
+            1589
+          ],
+          "codigo_oficial": "FG-EFS1-3y4-OAC-01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-fisica-salud-1/3-medio-fg",
+          "id": "FG-EFS1-3y4-OAC-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Evaluar el impacto de las estrategias y tácticas individuales y colectivas utilizadas para la resolución de problemas en el juego, el deporte y la recreación, asumiendo distintos roles y tareas.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1591,
+            1591
+          ],
+          "codigo_oficial": "FG-EFS1-3y4-OAC-02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-fisica-salud-1/3-medio-fg",
+          "id": "FG-EFS1-3y4-OAC-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Diseñar y aplicar un plan de entrenamiento para mejorar su rendimiento físico, considerando sus características personales y funcionales.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1592,
+            1592
+          ],
+          "codigo_oficial": "FG-EFS1-3y4-OAC-03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-fisica-salud-1/3-medio-fg",
+          "id": "FG-EFS1-3y4-OAC-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Promover el bienestar, el autocuidado, la vida activa y la alimentación saludable en su comunidad, valorando la diversidad de las personas a través de la aplicación de programas y proyectos deportivos, recreativos y socioculturales.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1594,
+            1594
+          ],
+          "codigo_oficial": "FG-EFS1-3y4-OAC-04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-fisica-salud-1/3-medio-fg",
+          "id": "FG-EFS1-3y4-OAC-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Analizar, por medio de la práctica regular de actividad física, cómo los factores sociales, culturales, económicos y tecnológicos favorecen el desarrollo de oportunidades para la adquisición de un estilo de vida activo y saludable a nivel local, regional y global.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            1595,
+            1595
+          ],
+          "codigo_oficial": "FG-EFS1-3y4-OAC-05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-fisica-salud-1/3-medio-fg",
+          "id": "FG-EFS1-3y4-OAC-05"
+        }
+      ]
+    }
+  ]
+}

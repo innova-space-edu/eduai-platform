@@ -1,0 +1,482 @@
+{
+  "metadata": {
+    "nivel": "Media",
+    "curso": "2° Medio",
+    "asignatura": "Historia, Geografía y Cs. Sociales",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+    "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
+    "estado_verificacion": "verificado_oficial",
+    "alcance_verificacion": [
+      "oa_contenido",
+      "oa_habilidades"
+    ],
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      2
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+      "https://www.bcn.cl/leychile/navegar?i=1060374"
+    ]
+  },
+  "objetivos_habilidad": [
+    {
+      "numero_oficial": "a",
+      "descripcion": "Establecer y fundamentar periodizaciones históricas mediante líneas de tiempo, reconociendo la sucesión y la simultaneidad de acontecimientos o procesos históricos vistos en el nivel.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        3854,
+        3854
+      ],
+      "id": "2-historia_geografia_y_cs_sociales-OAH-a",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "b",
+      "descripcion": "Analizar elementos de continuidad y cambio entre períodos y procesos abordados en el nivel.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        3856,
+        3856
+      ],
+      "id": "2-historia_geografia_y_cs_sociales-OAH-b",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "c",
+      "descripcion": "Distinguir las distintas duraciones (tiempo corto, medio y largo) y los diferentes ritmos o velocidades con que suceden los fenómenos históricos.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        3858,
+        3858
+      ],
+      "id": "2-historia_geografia_y_cs_sociales-OAH-c",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "d",
+      "descripcion": "Representar la distribución espacial de diferentes fenómenos geográficos e históricos, por medio de la construcción de mapas a diferentes escalas y de la utilización de herramientas geográficas y tecnológicas.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        3859,
+        3859
+      ],
+      "id": "2-historia_geografia_y_cs_sociales-OAH-d",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "e",
+      "descripcion": "Analizar datos e información geográfica, utilizando TIC's u otras herramientas geográficas para elaborar inferencias, proponer explicaciones de los patrones, tendencias, relaciones y plantear predicciones.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        3861,
+        3861
+      ],
+      "id": "2-historia_geografia_y_cs_sociales-OAH-e",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "f",
+      "descripcion": "Seleccionar fuentes de información, considerando:\n- la confiabilidad de la fuente (autor, origen o contexto, intención, validez de los datos)\n- la relevancia y valor de la información\n- el uso de diversas fuentes para obtener información que permita enriquecer y profundizar el análisis.",
+      "eje": "Análisis y trabajo con fuentes de información",
+      "referencia_lineas": [
+        3864,
+        3870
+      ],
+      "id": "2-historia_geografia_y_cs_sociales-OAH-f",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "g",
+      "descripcion": "Analizar y evaluar críticamente la información de diversas fuentes para utilizarla como evidencia en argumentaciones sobre temas del nivel.",
+      "eje": "Análisis y trabajo con fuentes de información",
+      "referencia_lineas": [
+        3872,
+        3872
+      ],
+      "id": "2-historia_geografia_y_cs_sociales-OAH-g",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "h",
+      "descripcion": "Comparar distintas interpretaciones historiográficas y geográficas sobre los temas estudiados en el nivel.",
+      "eje": "Análisis y trabajo con fuentes de información",
+      "referencia_lineas": [
+        3873,
+        3873
+      ],
+      "id": "2-historia_geografia_y_cs_sociales-OAH-h",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "i",
+      "descripcion": "Investigar sobre temas del nivel, considerando los siguientes elementos:\n- definición de un problema y/o pregunta de investigación\n- elaboración y fundamentación de hipótesis\n- planificación de la investigación sobre la base de la revisión y selección de la información obtenida de fuentes\n- elaboración de un marco teórico que incluya las principales ideas y conceptos del tema a investigar\n- citar la información obtenida de acuerdo a normas estandarizadas\n- análisis de los resultados y elaboración de conclusiones relacionadas con la hipótesis planteada\n- comunicación de los resultados de la investigación\n- utilización de TIC y de otras herramientas.",
+      "eje": "Análisis y trabajo con fuentes de información",
+      "referencia_lineas": [
+        3875,
+        3890
+      ],
+      "id": "2-historia_geografia_y_cs_sociales-OAH-i",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "j",
+      "descripcion": "Aplicar habilidades de pensamiento crítico tales como:\n- formular preguntas significativas para comprender y profundizar los temas estudiados en el nivel.\n- inferir y elaborar conclusiones respecto a los temas del nivel\n- cuestionar simplificaciones y prejuicios\n- argumentar sus opiniones en base a evidencia\n- analizar puntos de vista e identificar sesgos\n- comparar y contrastar procesos y fenómenos históricos y geográficos\n- analizar la multicausalidad de los procesos históricos y geográficos.",
+      "eje": "Pensamiento crítico",
+      "referencia_lineas": [
+        3894,
+        3907
+      ],
+      "id": "2-historia_geografia_y_cs_sociales-OAH-j",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "k",
+      "descripcion": "Participar activamente en conversaciones grupales y debates, argumentando opiniones, posturas y propuestas para llegar a acuerdos, y profundizando en el intercambio de ideas.",
+      "eje": "Comunicación",
+      "referencia_lineas": [
+        3910,
+        3910
+      ],
+      "id": "2-historia_geografia_y_cs_sociales-OAH-k",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "l",
+      "descripcion": "Comunicar los resultados de sus investigaciones por diversos medios, utilizando una estructura lógica y efectiva, y argumentos basados en evidencia pertinente.",
+      "eje": "Comunicación",
+      "referencia_lineas": [
+        3912,
+        3912
+      ],
+      "id": "2-historia_geografia_y_cs_sociales-OAH-l",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "m",
+      "descripcion": "Desarrollar una argumentación escrita utilizando términos y conceptos históricos y geográficos, que incluya ideas, análisis y evidencia pertinente.",
+      "eje": "Comunicación",
+      "referencia_lineas": [
+        3914,
+        3914
+      ],
+      "id": "2-historia_geografia_y_cs_sociales-OAH-m",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    }
+  ],
+  "objetivos_actitud": [],
+  "unidades": [
+    {
+      "numero": 1,
+      "id": "eje-objetivos-de-aprendizaje",
+      "nombre": "Objetivos de Aprendizaje",
+      "tipo_agrupacion": "lista_oficial",
+      "oa": [
+        {
+          "numero_oficial": 1,
+          "descripcion": "Relacionar la transformación cultural del período de entreguerras con la ruptura de los cánones culturales y estéticos tradicionales, y reconocer cómo se manifestó en las vanguardias artísticas (por ejemplo, el dadaísmo, el surrealismo, el jazz, la moda, entre otros) y en la aparición de una cultura de masas (cine, radio, publicidad, prensa, deporte).",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3919,
+            3919
+          ],
+          "codigo_oficial": "HI2M OA 01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-01"
+        },
+        {
+          "numero_oficial": 2,
+          "descripcion": "Analizar la crisis del Estado liberal decimonónico a comienzos del siglo XX, considerando la Gran Depresión de 1929 y el surgimiento de distintos modelos políticos y económicos en Europa, Estados Unidos y América Latina, como los totalitarismos y su oposición a la democracia liberal (por ejemplo, nazismo, comunismo y fascismo), el populismo latinoamericano y los inicios del Estado de Bienestar.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3920,
+            3920
+          ],
+          "codigo_oficial": "HI2M OA 02",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Analizar la Segunda Guerra Mundial considerando la fragilidad del orden mundial de entreguerras, el enfrentamiento ideológico entre los regímenes de Hitler, Stalin y las democracias occidentales, el horror de la población por los genocidios como el exterminio judío, los desplazamientos forzados de personas, los bombardeos y la alta cifra de víctimas civiles, la extensión planetaria del conflicto y el potencial destructivo de la bomba atómica.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3921,
+            3921
+          ],
+          "codigo_oficial": "HI2M OA 03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Evaluar las consecuencias de la Segunda Guerra Mundial, considerando el surgimiento de Estados Unidos y la URSS como superpotencias y la pérdida de hegemonía de Europa, el inicio del proceso de descolonización, los acuerdos de las conferencias de paz y la creación de un nuevo marco regulador de las relaciones internacionales reflejado en la ONU y en la Declaración Universal de Derechos Humanos.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3922,
+            3924
+          ],
+          "codigo_oficial": "HI2M OA 04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Analizar la crisis del sistema político del periodo parlamentario y la posterior reconstrucción de la institucionalidad por medio de la Constitución de 1925, del fortalecimiento del régimen presidencial y de la reforma del sistema de partidos.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3925,
+            3925
+          ],
+          "codigo_oficial": "HI2M OA 05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-05"
+        },
+        {
+          "numero_oficial": 6,
+          "descripcion": "Analizar las principales transformaciones económicas, políticas y sociales que siguieron a la Gran Depresión en Chile, considerando el fin de la riqueza del salitre y del modelo de crecimiento hacia afuera, la redefinición del rol del Estado como promotor de la industrialización (ISI, CORFO) y del bienestar social (por ejemplo, escolarización, salud, vivienda y previsión), y la creciente participación de Estados Unidos en la economía local.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3926,
+            3926
+          ],
+          "codigo_oficial": "HI2M OA 06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-06"
+        },
+        {
+          "numero_oficial": 7,
+          "descripcion": "Evaluar cómo la participación de nuevos actores sociales y la expansión de la cultura de masas, a mediados de siglo XX, contribuyeron a la democratización de la sociedad chilena, considerando la incorporación de las mujeres a la ciudadanía política, el empoderamiento de la clase media y de la clase obrera, y el creciente acceso a la radio, el cine, el deporte, entre otros.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3927,
+            3929
+          ],
+          "codigo_oficial": "HI2M OA 07",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-07"
+        },
+        {
+          "numero_oficial": 8,
+          "descripcion": "Analizar la Guerra Fría como la confrontación ideológica de dos proyectos antagónicos que, bajo la amenaza del enfrentamiento nuclear, se manifestó en distintos escenarios locales, y dar ejemplos de cómo afectó diversas esferas, como la política, la cultura, el deporte y las ciencias.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3930,
+            3930
+          ],
+          "codigo_oficial": "HI2M OA 08",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-08"
+        },
+        {
+          "numero_oficial": 9,
+          "descripcion": "Reconocer las transformaciones que experimentó la sociedad occidental en diversos ámbitos durante la Guerra Fría, como el crecimiento económico y el auge del Estado de Bienestar, la expansión del consumo y de los medios de comunicación de masas, la ampliación de los derechos civiles de grupos marginados, el desarrollo tecnológico, entre otros.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3931,
+            3931
+          ],
+          "codigo_oficial": "HI2M OA 09",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-09"
+        },
+        {
+          "numero_oficial": 10,
+          "descripcion": "Caracterizar el contexto de movilización social en América Latina como un escenario de tensión permanente entre revolución y reforma, considerando la Revolución cubana, la influencia de Estados Unidos, los golpes de Estado, las dictaduras militares (por ejemplo, Argentina, Chile, Brasil, Uruguay y Paraguay, entre otros) y la violación de los derechos humanos.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3932,
+            3932
+          ],
+          "codigo_oficial": "HI2M OA 10",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-10"
+        },
+        {
+          "numero_oficial": 11,
+          "descripcion": "Analizar los principales procesos que marcaron el fin de la Guerra Fría, considerando la crisis de la URSS y el derrumbe del comunismo, las transformaciones geopolíticas, el auge del neoliberalismo y la aceleración de la globalización (por ejemplo, la internacionalización de la economía, la revolución tecnológica, la sociedad de la información).",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3933,
+            3935
+          ],
+          "codigo_oficial": "HI2M OA 11",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-11"
+        },
+        {
+          "numero_oficial": 12,
+          "descripcion": "Caracterizar la extendida pobreza y precariedad de la sociedad chilena de mediados del siglo XX (magros indicadores sociodemográficos, bajo poder adquisitivo y de acceso al crédito, desnutrición y marginalidad) y evaluar el impacto que generó en esta sociedad la migración del campo a la ciudad (por ejemplo, el progresivo crecimiento de la población urbana, la segregación urbana y la escasez de viviendas.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3936,
+            3936
+          ],
+          "codigo_oficial": "HI2M OA 12",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-12"
+        },
+        {
+          "numero_oficial": 13,
+          "descripcion": "Analizar el Chile de la década de 1960 como un escenario caracterizado por la organización y la movilización de nuevos actores sociales (por ejemplo, jóvenes, campesinado, pobladores), y evaluar cómo el sistema político respondió a estas demandas, considerando las reformas estructurales y los proyectos excluyentes de la Democracia Cristiana (\"revolución en libertad\") y de la Unidad Popular (\"vía chilena al socialismo\").",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3937,
+            3937
+          ],
+          "codigo_oficial": "HI2M OA 13",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-13"
+        },
+        {
+          "numero_oficial": 14,
+          "descripcion": "Analizar el ambiente de crisis a inicios de la década del 70, considerando aspectos como la polarización social y política, la retórica de la violencia, la desvalorización de la institucionalidad democrática, los conflictos en torno a la reforma agraria, las estatizaciones y expropiaciones, la crisis económica y la hiperinflación, la movilización social, la intervención extranjera y el rol de las Fuerzas Armadas.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3938,
+            3938
+          ],
+          "codigo_oficial": "HI2M OA 14",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-14"
+        },
+        {
+          "numero_oficial": 15,
+          "descripcion": "Analizar y comparar críticamente distintas interpretaciones historiográficas sobre el golpe de Estado de 1973 y el quiebre de la democracia.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3939,
+            3941
+          ],
+          "codigo_oficial": "HI2M OA 15",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-15"
+        },
+        {
+          "numero_oficial": 16,
+          "descripcion": "Explicar que durante la dictadura militar se suprimió el Estado de derecho y se violaron sistemáticamente los derechos humanos, reconociendo que hubo instituciones civiles y religiosas que procuraron la defensa de las víctimas.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3943,
+            3943
+          ],
+          "codigo_oficial": "HI2M OA 16",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-16"
+        },
+        {
+          "numero_oficial": 17,
+          "descripcion": "Caracterizar el modelo económico neoliberal implementado en Chile durante el régimen o dictadura militar, considerando aspectos como la transformación del rol del Estado y la disminución del gasto social, la supremacía del libre mercado como asignador de recursos, la apertura comercial y la disponibilidad de bienes, la política de privatizaciones e incentivo a la empresa privada y el cambio en las relaciones y derechos laborales, y evaluar sus consecuencias sociales en el corto y largo plazo.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3944,
+            3944
+          ],
+          "codigo_oficial": "HI2M OA 17",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-17"
+        },
+        {
+          "numero_oficial": 18,
+          "descripcion": "Analizar la nueva institucionalidad política creada por la Constitución de 1980, considerando los artículos transitorios, el cuórum calificado, la función tutelar de las Fuerzas Armadas, los senadores designados y el Consejo de Seguridad del Estado, y evaluar cambios y continuidades con el presente.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3945,
+            3945
+          ],
+          "codigo_oficial": "HI2M OA 18",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-18"
+        },
+        {
+          "numero_oficial": 19,
+          "descripcion": "Explicar los factores que incidieron en el proceso de recuperación de la democracia durante la década de 1980, considerando la crisis económica, el surgimiento de protestas, la rearticulación del mundo político y el rol mediador de la Iglesia Católica, de organismos de defensa de derechos humanos y de la comunidad internacional.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3946,
+            3946
+          ],
+          "codigo_oficial": "HI2M OA 19",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-19"
+        },
+        {
+          "numero_oficial": 20,
+          "descripcion": "Analizar la transición a la democracia como un proceso marcado por el plebiscito de 1988, la búsqueda de acuerdos entre el gobierno y la oposición, las reformas constitucionales, las tensiones cívico militares, el consenso generado en torno a la democracia representativa como sistema político y la reivindicación de los derechos humanos mediante diversas políticas de reparación.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3947,
+            3947
+          ],
+          "codigo_oficial": "HI2M OA 20",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-20"
+        },
+        {
+          "numero_oficial": 21,
+          "descripcion": "Analizar la sociedad chilena posterior a la recuperación de la democracia, considerando la estructura social, la disponibilidad y el acceso a bienes, la infraestructura, los medios y las tecnologías de comunicación, el sistema educacional, el mercado del trabajo y la demanda de derechos de grupos históricamente discriminados, entre otros.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3948,
+            3950
+          ],
+          "codigo_oficial": "HI2M OA 21",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-21"
+        },
+        {
+          "numero_oficial": 22,
+          "descripcion": "Analizar el concepto de derechos humanos, considerando características como su universalidad, indivisibilidad, interdependencia e imprescriptibilidad y la institucionalidad creada para resguardarlos a nivel nacional e internacional, reconociendo, en este contexto, los derechos vinculados a los grupos de especial protección.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3951,
+            3951
+          ],
+          "codigo_oficial": "HI2M OA 22",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-22"
+        },
+        {
+          "numero_oficial": 23,
+          "descripcion": "Explicar los elementos que constituyen un Estado de derecho, como la Constitución, la división de los poderes del Estado, el respeto a los derechos humanos, entre otros; analizar su importancia para la gobernabilidad, la representación, la participación ciudadana y la convivencia pacífica; y debatir sobre su perfeccionamiento, defensa y riesgos a los que está expuesto.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3952,
+            3952
+          ],
+          "codigo_oficial": "HI2M OA 23",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-23"
+        },
+        {
+          "numero_oficial": 24,
+          "descripcion": "Analizar y debatir sobre los desafíos pendientes para el país, por ejemplo, reducir la pobreza y la desigualdad, garantizar los derechos de los grupos discriminados, lograr un desarrollo sustentable, perfeccionar el sistema político y fortalecer la relación con los países vecinos, y reconocer los deberes del Estado y la responsabilidad de todos los miembros de la sociedad para avanzar en ellos.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3953,
+            3953
+          ],
+          "codigo_oficial": "HI2M OA 24",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-24"
+        },
+        {
+          "numero_oficial": 25,
+          "descripcion": "Reconocer la diversidad inherente a las sociedades como manifestación de la libertad y de la dignidad humana, y evaluar las oportunidades y desafíos que un mundo globalizado entrega para evitar toda forma de discriminación, sea por raza o etnia, nacionalidad, situación socioeconómica, religión o creencia, género, orientación sexual o discapacidad, entre otras.",
+          "eje": "Objetivos de Aprendizaje",
+          "referencia_lineas": [
+            3954,
+            3954
+          ],
+          "codigo_oficial": "HI2M OA 25",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+          "id": "HI2M-OA-25"
+        }
+      ]
+    }
+  ]
+}

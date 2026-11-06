@@ -1,0 +1,1258 @@
+[
+  {
+    "path": "media/1_medio/lengua_literatura.json",
+    "curso": 1,
+    "asignatura": "Lengua y Literatura",
+    "plan": "formacion_general",
+    "expected_count": 24,
+    "source": "12",
+    "range": [
+      1122,
+      1354
+    ]
+  },
+  {
+    "path": "media/2_medio/lengua_literatura.json",
+    "curso": 2,
+    "asignatura": "Lengua y Literatura",
+    "plan": "formacion_general",
+    "expected_count": 24,
+    "source": "12",
+    "range": [
+      1354,
+      1593
+    ]
+  },
+  {
+    "path": "media/1_medio/matematica.json",
+    "curso": 1,
+    "asignatura": "Matemática",
+    "plan": "formacion_general",
+    "expected_count": 15,
+    "source": "12",
+    "range": [
+      2192,
+      2265
+    ]
+  },
+  {
+    "path": "media/2_medio/matematica.json",
+    "curso": 2,
+    "asignatura": "Matemática",
+    "plan": "formacion_general",
+    "expected_count": 12,
+    "source": "12",
+    "range": [
+      2323,
+      2425
+    ]
+  },
+  {
+    "path": "media/1_medio/ciencias_naturales.json",
+    "curso": 1,
+    "asignatura": "Ciencias Naturales",
+    "plan": "formacion_general",
+    "expected_count": 20,
+    "source": "12",
+    "range": [
+      3041,
+      3176
+    ]
+  },
+  {
+    "path": "media/2_medio/ciencias_naturales.json",
+    "curso": 2,
+    "asignatura": "Ciencias Naturales",
+    "plan": "formacion_general",
+    "expected_count": 18,
+    "source": "12",
+    "range": [
+      3241,
+      3297
+    ]
+  },
+  {
+    "path": "media/1_medio/historia_geografia_y_cs_sociales.json",
+    "curso": 1,
+    "asignatura": "Historia, Geografía y Cs. Sociales",
+    "plan": "formacion_general",
+    "expected_count": 25,
+    "source": "12",
+    "range": [
+      3804,
+      3843
+    ]
+  },
+  {
+    "path": "media/2_medio/historia_geografia_y_cs_sociales.json",
+    "curso": 2,
+    "asignatura": "Historia, Geografía y Cs. Sociales",
+    "plan": "formacion_general",
+    "expected_count": 25,
+    "source": "12",
+    "range": [
+      3919,
+      3956
+    ]
+  },
+  {
+    "path": "media/1_medio/ingles.json",
+    "curso": 1,
+    "asignatura": "Inglés",
+    "plan": "formacion_general",
+    "expected_count": 16,
+    "source": "12",
+    "range": [
+      4593,
+      4747
+    ]
+  },
+  {
+    "path": "media/2_medio/ingles.json",
+    "curso": 2,
+    "asignatura": "Inglés",
+    "plan": "formacion_general",
+    "expected_count": 16,
+    "source": "12",
+    "range": [
+      4747,
+      4903
+    ]
+  },
+  {
+    "path": "media/1_medio/educacion_fisica_y_salud.json",
+    "curso": 1,
+    "asignatura": "Educación Física y Salud",
+    "plan": "formacion_general",
+    "expected_count": 5,
+    "source": "12",
+    "range": [
+      5127,
+      5171
+    ]
+  },
+  {
+    "path": "media/2_medio/educacion_fisica_y_salud.json",
+    "curso": 2,
+    "asignatura": "Educación Física y Salud",
+    "plan": "formacion_general",
+    "expected_count": 5,
+    "source": "12",
+    "range": [
+      5178,
+      5223
+    ]
+  },
+  {
+    "path": "media/1_medio/tecnologia.json",
+    "curso": 1,
+    "asignatura": "Tecnología",
+    "plan": "formacion_general",
+    "expected_count": 6,
+    "source": "arts",
+    "range": [
+      206,
+      229
+    ]
+  },
+  {
+    "path": "media/2_medio/tecnologia.json",
+    "curso": 2,
+    "asignatura": "Tecnología",
+    "plan": "formacion_general",
+    "expected_count": 6,
+    "source": "arts",
+    "range": [
+      235,
+      257
+    ]
+  },
+  {
+    "path": "media/1_medio/artes_visuales.json",
+    "curso": 1,
+    "asignatura": "Artes Visuales",
+    "plan": "formacion_general",
+    "expected_count": 6,
+    "source": "arts",
+    "range": [
+      508,
+      533
+    ]
+  },
+  {
+    "path": "media/2_medio/artes_visuales.json",
+    "curso": 2,
+    "asignatura": "Artes Visuales",
+    "plan": "formacion_general",
+    "expected_count": 6,
+    "source": "arts",
+    "range": [
+      539,
+      564
+    ]
+  },
+  {
+    "path": "media/1_medio/musica.json",
+    "curso": 1,
+    "asignatura": "Música",
+    "plan": "formacion_general",
+    "expected_count": 7,
+    "source": "arts",
+    "range": [
+      845,
+      876
+    ]
+  },
+  {
+    "path": "media/2_medio/musica.json",
+    "curso": 2,
+    "asignatura": "Música",
+    "plan": "formacion_general",
+    "expected_count": 7,
+    "source": "arts",
+    "range": [
+      882,
+      910
+    ]
+  },
+  {
+    "path": "media/1_medio/orientacion.json",
+    "curso": 1,
+    "asignatura": "Orientación",
+    "plan": "formacion_general",
+    "expected_count": 10,
+    "source": "orientation",
+    "range": [
+      223,
+      262
+    ]
+  },
+  {
+    "path": "media/2_medio/orientacion.json",
+    "curso": 2,
+    "asignatura": "Orientación",
+    "plan": "formacion_general",
+    "expected_count": 10,
+    "source": "orientation",
+    "range": [
+      223,
+      262
+    ]
+  },
+  {
+    "path": "media/3_medio/educacion_ciudadana.json",
+    "curso": 3,
+    "asignatura": "Educación Ciudadana",
+    "plan": "formacion_general",
+    "expected_count": 8,
+    "source": "34",
+    "range": [
+      771,
+      783
+    ]
+  },
+  {
+    "path": "media/4_medio/educacion_ciudadana.json",
+    "curso": 4,
+    "asignatura": "Educación Ciudadana",
+    "plan": "formacion_general",
+    "expected_count": 8,
+    "source": "34",
+    "range": [
+      788,
+      799
+    ]
+  },
+  {
+    "path": "media/3_medio/filosofia.json",
+    "curso": 3,
+    "asignatura": "Filosofía",
+    "plan": "formacion_general",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      891,
+      901
+    ]
+  },
+  {
+    "path": "media/4_medio/filosofia.json",
+    "curso": 4,
+    "asignatura": "Filosofía",
+    "plan": "formacion_general",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      906,
+      914
+    ]
+  },
+  {
+    "path": "media/3_medio/ingles.json",
+    "curso": 3,
+    "asignatura": "Inglés",
+    "plan": "formacion_general",
+    "expected_count": 4,
+    "source": "34",
+    "range": [
+      993,
+      999
+    ]
+  },
+  {
+    "path": "media/4_medio/ingles.json",
+    "curso": 4,
+    "asignatura": "Inglés",
+    "plan": "formacion_general",
+    "expected_count": 4,
+    "source": "34",
+    "range": [
+      1002,
+      1009
+    ]
+  },
+  {
+    "path": "media/3_medio/lengua_literatura.json",
+    "curso": 3,
+    "asignatura": "Lengua y Literatura",
+    "plan": "formacion_general",
+    "expected_count": 9,
+    "source": "34",
+    "range": [
+      1109,
+      1179
+    ]
+  },
+  {
+    "path": "media/4_medio/lengua_literatura.json",
+    "curso": 4,
+    "asignatura": "Lengua y Literatura",
+    "plan": "formacion_general",
+    "expected_count": 8,
+    "source": "34",
+    "range": [
+      1179,
+      1235
+    ]
+  },
+  {
+    "path": "media/3_medio/matematica.json",
+    "curso": 3,
+    "asignatura": "Matemática",
+    "plan": "formacion_general",
+    "expected_count": 4,
+    "source": "34",
+    "range": [
+      1343,
+      1349
+    ]
+  },
+  {
+    "path": "media/4_medio/matematica.json",
+    "curso": 4,
+    "asignatura": "Matemática",
+    "plan": "formacion_general",
+    "expected_count": 4,
+    "source": "34",
+    "range": [
+      1355,
+      1360
+    ]
+  },
+  {
+    "path": "media/3_medio/artes_visuales.json",
+    "curso": 3,
+    "asignatura": "Artes Visuales",
+    "plan": "formacion_general_electiva",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      1461,
+      1476
+    ]
+  },
+  {
+    "path": "media/3_medio/danza.json",
+    "curso": 3,
+    "asignatura": "Danza",
+    "plan": "formacion_general_electiva",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      1481,
+      1495
+    ]
+  },
+  {
+    "path": "media/3_medio/musica.json",
+    "curso": 3,
+    "asignatura": "Música",
+    "plan": "formacion_general_electiva",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      1500,
+      1515
+    ]
+  },
+  {
+    "path": "media/3_medio/teatro.json",
+    "curso": 3,
+    "asignatura": "Teatro",
+    "plan": "formacion_general_electiva",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      1521,
+      1533
+    ]
+  },
+  {
+    "path": "media/3_medio/educacion_fisica_y_salud_1.json",
+    "curso": 3,
+    "asignatura": "Educación Física y Salud 1",
+    "plan": "formacion_general_electiva",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      1589,
+      1597
+    ]
+  },
+  {
+    "path": "media/3_medio/educacion_fisica_y_salud_2.json",
+    "curso": 3,
+    "asignatura": "Educación Física y Salud 2",
+    "plan": "formacion_general_electiva",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      1600,
+      1608
+    ]
+  },
+  {
+    "path": "media/3_medio/mundo_global.json",
+    "curso": 3,
+    "asignatura": "Mundo Global",
+    "plan": "formacion_general_electiva",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      1711,
+      1720
+    ]
+  },
+  {
+    "path": "media/3_medio/chile_y_la_region_latinoamericana.json",
+    "curso": 3,
+    "asignatura": "Chile y la Región Latinoamericana",
+    "plan": "formacion_general_electiva",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      1726,
+      1735
+    ]
+  },
+  {
+    "path": "media/3_medio/artes_visuales_audiovisuales_y_multimediales.json",
+    "curso": 3,
+    "asignatura": "Artes visuales, audiovisuales y multimediales",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      1768,
+      1779
+    ]
+  },
+  {
+    "path": "media/3_medio/creacion_y_composicion_musical.json",
+    "curso": 3,
+    "asignatura": "Creación y composición musical",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      1792,
+      1802
+    ]
+  },
+  {
+    "path": "media/3_medio/diseno_y_arquitectura.json",
+    "curso": 3,
+    "asignatura": "Diseño y arquitectura",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      1814,
+      1825
+    ]
+  },
+  {
+    "path": "media/3_medio/interpretacion_y_creacion_en_danza.json",
+    "curso": 3,
+    "asignatura": "Interpretación y creación en danza",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 8,
+    "source": "34",
+    "range": [
+      1837,
+      1849
+    ]
+  },
+  {
+    "path": "media/3_medio/interpretacion_y_creacion_en_teatro.json",
+    "curso": 3,
+    "asignatura": "Interpretación y creación en teatro",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 8,
+    "source": "34",
+    "range": [
+      1866,
+      1877
+    ]
+  },
+  {
+    "path": "media/3_medio/interpretacion_musical.json",
+    "curso": 3,
+    "asignatura": "Interpretación musical",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      1890,
+      1900
+    ]
+  },
+  {
+    "path": "media/3_medio/biologia_de_los_ecosistemas.json",
+    "curso": 3,
+    "asignatura": "Biología de los ecosistemas",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      1950,
+      1957
+    ]
+  },
+  {
+    "path": "media/3_medio/biologia_celular_y_molecular.json",
+    "curso": 3,
+    "asignatura": "Biología celular y molecular",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      1970,
+      1981
+    ]
+  },
+  {
+    "path": "media/3_medio/ciencias_de_la_salud.json",
+    "curso": 3,
+    "asignatura": "Ciencias de la salud",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      1994,
+      2002
+    ]
+  },
+  {
+    "path": "media/3_medio/fisica.json",
+    "curso": 3,
+    "asignatura": "Física",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      2015,
+      2023
+    ]
+  },
+  {
+    "path": "media/3_medio/quimica.json",
+    "curso": 3,
+    "asignatura": "Química",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      2036,
+      2046
+    ]
+  },
+  {
+    "path": "media/3_medio/promocion_de_estilos_de_vida_activos_y_saludables.json",
+    "curso": 3,
+    "asignatura": "Promoción de estilos de vida activos y saludables",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      2061,
+      2071
+    ]
+  },
+  {
+    "path": "media/3_medio/ciencias_del_ejercicio_fisico_y_deportivo.json",
+    "curso": 3,
+    "asignatura": "Ciencias del ejercicio físico y deportivo",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      2084,
+      2095
+    ]
+  },
+  {
+    "path": "media/3_medio/expresion_corporal.json",
+    "curso": 3,
+    "asignatura": "Expresión corporal",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 4,
+    "source": "34",
+    "range": [
+      2107,
+      2114
+    ]
+  },
+  {
+    "path": "media/3_medio/estetica.json",
+    "curso": 3,
+    "asignatura": "Estética",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      2153,
+      2164
+    ]
+  },
+  {
+    "path": "media/3_medio/seminario_de_filosofia.json",
+    "curso": 3,
+    "asignatura": "Seminario de filosofía",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      2205,
+      2213
+    ]
+  },
+  {
+    "path": "media/3_medio/comprension_historica_del_presente.json",
+    "curso": 3,
+    "asignatura": "Comprensión histórica del presente",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      2267,
+      2275
+    ]
+  },
+  {
+    "path": "media/3_medio/geografia_territorio_y_desafios_socioambientales.json",
+    "curso": 3,
+    "asignatura": "Geografía, territorio y desafíos socioambientales",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      2290,
+      2299
+    ]
+  },
+  {
+    "path": "media/3_medio/economia_y_sociedad.json",
+    "curso": 3,
+    "asignatura": "Economía y sociedad",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 8,
+    "source": "34",
+    "range": [
+      2317,
+      2329
+    ]
+  },
+  {
+    "path": "media/3_medio/taller_de_literatura.json",
+    "curso": 3,
+    "asignatura": "Taller de literatura",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      2347,
+      2357
+    ]
+  },
+  {
+    "path": "media/3_medio/lectura_y_escritura_especializadas.json",
+    "curso": 3,
+    "asignatura": "Lectura y escritura especializadas",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      2370,
+      2378
+    ]
+  },
+  {
+    "path": "media/3_medio/participacion_y_argumentacion_en_democracia.json",
+    "curso": 3,
+    "asignatura": "Participación y argumentación en democracia",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      2391,
+      2402
+    ]
+  },
+  {
+    "path": "media/3_medio/limites_derivadas_e_integrales.json",
+    "curso": 3,
+    "asignatura": "Límites, derivadas e integrales",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      2465,
+      2473
+    ]
+  },
+  {
+    "path": "media/3_medio/probabilidades_y_estadistica_descriptiva_e_inferencial.json",
+    "curso": 3,
+    "asignatura": "Probabilidades y estadística descriptiva e inferencial",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 4,
+    "source": "34",
+    "range": [
+      2490,
+      2496
+    ]
+  },
+  {
+    "path": "media/3_medio/pensamiento_computacional_y_programacion.json",
+    "curso": 3,
+    "asignatura": "Pensamiento computacional y programación",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      2510,
+      2521
+    ]
+  },
+  {
+    "path": "media/3_medio/geometria_3d.json",
+    "curso": 3,
+    "asignatura": "Geometría 3D",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      2535,
+      2543
+    ]
+  },
+  {
+    "path": "media/4_medio/artes_visuales.json",
+    "curso": 4,
+    "asignatura": "Artes Visuales",
+    "plan": "formacion_general_electiva",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      1461,
+      1476
+    ]
+  },
+  {
+    "path": "media/4_medio/danza.json",
+    "curso": 4,
+    "asignatura": "Danza",
+    "plan": "formacion_general_electiva",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      1481,
+      1495
+    ]
+  },
+  {
+    "path": "media/4_medio/musica.json",
+    "curso": 4,
+    "asignatura": "Música",
+    "plan": "formacion_general_electiva",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      1500,
+      1515
+    ]
+  },
+  {
+    "path": "media/4_medio/teatro.json",
+    "curso": 4,
+    "asignatura": "Teatro",
+    "plan": "formacion_general_electiva",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      1521,
+      1533
+    ]
+  },
+  {
+    "path": "media/4_medio/educacion_fisica_y_salud_1.json",
+    "curso": 4,
+    "asignatura": "Educación Física y Salud 1",
+    "plan": "formacion_general_electiva",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      1589,
+      1597
+    ]
+  },
+  {
+    "path": "media/4_medio/educacion_fisica_y_salud_2.json",
+    "curso": 4,
+    "asignatura": "Educación Física y Salud 2",
+    "plan": "formacion_general_electiva",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      1600,
+      1608
+    ]
+  },
+  {
+    "path": "media/4_medio/mundo_global.json",
+    "curso": 4,
+    "asignatura": "Mundo Global",
+    "plan": "formacion_general_electiva",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      1711,
+      1720
+    ]
+  },
+  {
+    "path": "media/4_medio/chile_y_la_region_latinoamericana.json",
+    "curso": 4,
+    "asignatura": "Chile y la Región Latinoamericana",
+    "plan": "formacion_general_electiva",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      1726,
+      1735
+    ]
+  },
+  {
+    "path": "media/4_medio/artes_visuales_audiovisuales_y_multimediales.json",
+    "curso": 4,
+    "asignatura": "Artes visuales, audiovisuales y multimediales",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      1768,
+      1779
+    ]
+  },
+  {
+    "path": "media/4_medio/creacion_y_composicion_musical.json",
+    "curso": 4,
+    "asignatura": "Creación y composición musical",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      1792,
+      1802
+    ]
+  },
+  {
+    "path": "media/4_medio/diseno_y_arquitectura.json",
+    "curso": 4,
+    "asignatura": "Diseño y arquitectura",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      1814,
+      1825
+    ]
+  },
+  {
+    "path": "media/4_medio/interpretacion_y_creacion_en_danza.json",
+    "curso": 4,
+    "asignatura": "Interpretación y creación en danza",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 8,
+    "source": "34",
+    "range": [
+      1837,
+      1849
+    ]
+  },
+  {
+    "path": "media/4_medio/interpretacion_y_creacion_en_teatro.json",
+    "curso": 4,
+    "asignatura": "Interpretación y creación en teatro",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 8,
+    "source": "34",
+    "range": [
+      1866,
+      1877
+    ]
+  },
+  {
+    "path": "media/4_medio/interpretacion_musical.json",
+    "curso": 4,
+    "asignatura": "Interpretación musical",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      1890,
+      1900
+    ]
+  },
+  {
+    "path": "media/4_medio/biologia_de_los_ecosistemas.json",
+    "curso": 4,
+    "asignatura": "Biología de los ecosistemas",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      1950,
+      1957
+    ]
+  },
+  {
+    "path": "media/4_medio/biologia_celular_y_molecular.json",
+    "curso": 4,
+    "asignatura": "Biología celular y molecular",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      1970,
+      1981
+    ]
+  },
+  {
+    "path": "media/4_medio/ciencias_de_la_salud.json",
+    "curso": 4,
+    "asignatura": "Ciencias de la salud",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      1994,
+      2002
+    ]
+  },
+  {
+    "path": "media/4_medio/fisica.json",
+    "curso": 4,
+    "asignatura": "Física",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      2015,
+      2023
+    ]
+  },
+  {
+    "path": "media/4_medio/quimica.json",
+    "curso": 4,
+    "asignatura": "Química",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      2036,
+      2046
+    ]
+  },
+  {
+    "path": "media/4_medio/promocion_de_estilos_de_vida_activos_y_saludables.json",
+    "curso": 4,
+    "asignatura": "Promoción de estilos de vida activos y saludables",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      2061,
+      2071
+    ]
+  },
+  {
+    "path": "media/4_medio/ciencias_del_ejercicio_fisico_y_deportivo.json",
+    "curso": 4,
+    "asignatura": "Ciencias del ejercicio físico y deportivo",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      2084,
+      2095
+    ]
+  },
+  {
+    "path": "media/4_medio/expresion_corporal.json",
+    "curso": 4,
+    "asignatura": "Expresión corporal",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 4,
+    "source": "34",
+    "range": [
+      2107,
+      2114
+    ]
+  },
+  {
+    "path": "media/4_medio/estetica.json",
+    "curso": 4,
+    "asignatura": "Estética",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      2153,
+      2164
+    ]
+  },
+  {
+    "path": "media/4_medio/seminario_de_filosofia.json",
+    "curso": 4,
+    "asignatura": "Seminario de filosofía",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      2205,
+      2213
+    ]
+  },
+  {
+    "path": "media/4_medio/comprension_historica_del_presente.json",
+    "curso": 4,
+    "asignatura": "Comprensión histórica del presente",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      2267,
+      2275
+    ]
+  },
+  {
+    "path": "media/4_medio/geografia_territorio_y_desafios_socioambientales.json",
+    "curso": 4,
+    "asignatura": "Geografía, territorio y desafíos socioambientales",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      2290,
+      2299
+    ]
+  },
+  {
+    "path": "media/4_medio/economia_y_sociedad.json",
+    "curso": 4,
+    "asignatura": "Economía y sociedad",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 8,
+    "source": "34",
+    "range": [
+      2317,
+      2329
+    ]
+  },
+  {
+    "path": "media/4_medio/taller_de_literatura.json",
+    "curso": 4,
+    "asignatura": "Taller de literatura",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      2347,
+      2357
+    ]
+  },
+  {
+    "path": "media/4_medio/lectura_y_escritura_especializadas.json",
+    "curso": 4,
+    "asignatura": "Lectura y escritura especializadas",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      2370,
+      2378
+    ]
+  },
+  {
+    "path": "media/4_medio/participacion_y_argumentacion_en_democracia.json",
+    "curso": 4,
+    "asignatura": "Participación y argumentación en democracia",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 7,
+    "source": "34",
+    "range": [
+      2391,
+      2402
+    ]
+  },
+  {
+    "path": "media/4_medio/limites_derivadas_e_integrales.json",
+    "curso": 4,
+    "asignatura": "Límites, derivadas e integrales",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      2465,
+      2473
+    ]
+  },
+  {
+    "path": "media/4_medio/probabilidades_y_estadistica_descriptiva_e_inferencial.json",
+    "curso": 4,
+    "asignatura": "Probabilidades y estadística descriptiva e inferencial",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 4,
+    "source": "34",
+    "range": [
+      2490,
+      2496
+    ]
+  },
+  {
+    "path": "media/4_medio/pensamiento_computacional_y_programacion.json",
+    "curso": 4,
+    "asignatura": "Pensamiento computacional y programación",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      2510,
+      2521
+    ]
+  },
+  {
+    "path": "media/4_medio/geometria_3d.json",
+    "curso": 4,
+    "asignatura": "Geometría 3D",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 5,
+    "source": "34",
+    "range": [
+      2535,
+      2543
+    ]
+  },
+  {
+    "path": "media/3_medio/filosofia_politica.json",
+    "curso": 3,
+    "asignatura": "Filosofía política",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      0,
+      0
+    ]
+  },
+  {
+    "path": "media/4_medio/filosofia_politica.json",
+    "curso": 4,
+    "asignatura": "Filosofía política",
+    "plan": "formacion_diferenciada_hc",
+    "expected_count": 6,
+    "source": "34",
+    "range": [
+      0,
+      0
+    ]
+  },
+  {
+    "path": "media/1_medio/biologia.json",
+    "curso": 1,
+    "asignatura": "Biología",
+    "plan": "formacion_general",
+    "expected_count": 8
+  },
+  {
+    "path": "media/1_medio/fisica.json",
+    "curso": 1,
+    "asignatura": "Física",
+    "plan": "formacion_general",
+    "expected_count": 8
+  },
+  {
+    "path": "media/1_medio/quimica.json",
+    "curso": 1,
+    "asignatura": "Química",
+    "plan": "formacion_general",
+    "expected_count": 4
+  },
+  {
+    "path": "media/2_medio/biologia.json",
+    "curso": 2,
+    "asignatura": "Biología",
+    "plan": "formacion_general",
+    "expected_count": 8
+  },
+  {
+    "path": "media/2_medio/fisica.json",
+    "curso": 2,
+    "asignatura": "Física",
+    "plan": "formacion_general",
+    "expected_count": 6
+  },
+  {
+    "path": "media/2_medio/quimica.json",
+    "curso": 2,
+    "asignatura": "Química",
+    "plan": "formacion_general",
+    "expected_count": 4
+  },
+  {
+    "path": "media/3_medio/ciencias_para_la_ciudadania.json",
+    "curso": 3,
+    "asignatura": "Ciencias para la Ciudadanía",
+    "plan": "formacion_general",
+    "expected_count": 12
+  },
+  {
+    "path": "media/4_medio/ciencias_para_la_ciudadania.json",
+    "curso": 4,
+    "asignatura": "Ciencias para la Ciudadanía",
+    "plan": "formacion_general",
+    "expected_count": 12
+  }
+]

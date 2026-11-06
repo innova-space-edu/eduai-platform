@@ -3,138 +3,388 @@
     "nivel": "Media",
     "curso": "1° Medio",
     "asignatura": "Matemática",
-    "fuente": "Currículum Nacional - MINEDUC Chile",
-    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/matematica/1-medio",
+    "plan": "formacion_general",
+    "fuente": "MINEDUC — Currículum Nacional, contrastado con texto normativo en Ley Chile",
+    "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
     "base_curricular": "Bases Curriculares 7º Básico a 2º Medio",
     "estado_verificacion": "verificado_oficial",
     "alcance_verificacion": [
-      "oa_contenido"
+      "oa_contenido",
+      "oa_habilidades"
     ],
-    "fecha_consulta": "2026-07-18",
-    "nota": "Los OA fueron obtenidos directamente de páginas oficiales específicas de Currículum Nacional. La agrupación interna no altera el texto oficial."
+    "fecha_consulta": "2026-11-06",
+    "sistema_identificacion": "codigos_oficiales_portal",
+    "nota": "La numeración se conserva del texto normativo. Los identificadores internos no equivalen a códigos del portal. Agrupación por ejes, no unidades oficiales del programa.",
+    "cursos_aplicables": [
+      1
+    ],
+    "source_urls": [
+      "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
+      "https://www.bcn.cl/leychile/navegar?i=1060374"
+    ]
   },
-  "objetivos_habilidad": [],
+  "objetivos_habilidad": [
+    {
+      "numero_oficial": "a",
+      "descripcion": "Resolver problemas utilizando estrategias como las siguientes:\n- simplificar el problema y estimar el resultado\n- descomponer el problema en subproblemas más sencillos\n- buscar patrones\n- usar herramientas computacionales",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2144,
+        2152
+      ],
+      "id": "1-matematica-OAH-a",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "b",
+      "descripcion": "Evaluar el proceso y comprobar resultados y soluciones dadas de un problema matemático.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2154,
+        2154
+      ],
+      "id": "1-matematica-OAH-b",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "c",
+      "descripcion": "Utilizar lenguaje matemático para identificar sus propias ideas o respuestas.",
+      "eje": "Objetivos de Aprendizaje",
+      "referencia_lineas": [
+        2156,
+        2156
+      ],
+      "id": "1-matematica-OAH-c",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "d",
+      "descripcion": "Describir relaciones y situaciones matemáticas usando lenguaje matemático, esquemas y gráficos.",
+      "eje": "Argumentar y Comunicar",
+      "referencia_lineas": [
+        2159,
+        2159
+      ],
+      "id": "1-matematica-OAH-d",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "e",
+      "descripcion": "Explicar\n- soluciones propias y los procedimientos utilizados\n- demostraciones de resultados mediante definiciones, axiomas, propiedades y teoremas\n- generalizaciones por medio de conectores lógicos y cuantificadores utilizándolos apropiadamente",
+      "eje": "Argumentar y Comunicar",
+      "referencia_lineas": [
+        2161,
+        2167
+      ],
+      "id": "1-matematica-OAH-e",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "f",
+      "descripcion": "Fundamentar conjeturas usando lenguaje algebraico para comprobar o descartar la validez de los enunciados.",
+      "eje": "Argumentar y Comunicar",
+      "referencia_lineas": [
+        2169,
+        2169
+      ],
+      "id": "1-matematica-OAH-f",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "g",
+      "descripcion": "Realizar demostraciones simples de resultados e identificar en una demostración, si hay saltos o errores.",
+      "eje": "Argumentar y Comunicar",
+      "referencia_lineas": [
+        2170,
+        2170
+      ],
+      "id": "1-matematica-OAH-g",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "h",
+      "descripcion": "Usar modelos, utilizando un lenguaje funcional para resolver problemas cotidianos y para representar patrones y fenómenos de la ciencia y la realidad.",
+      "eje": "Modelar",
+      "referencia_lineas": [
+        2174,
+        2174
+      ],
+      "id": "1-matematica-OAH-h",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "i",
+      "descripcion": "Seleccionar modelos e identificar cuando dos variables dependen linealmente o afínmente en un intervalo de valores.",
+      "eje": "Modelar",
+      "referencia_lineas": [
+        2176,
+        2176
+      ],
+      "id": "1-matematica-OAH-i",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "j",
+      "descripcion": "Ajustar modelos, eligiendo los parámetros adecuados para que se acerque más a la realidad.",
+      "eje": "Modelar",
+      "referencia_lineas": [
+        2178,
+        2178
+      ],
+      "id": "1-matematica-OAH-j",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "k",
+      "descripcion": "Evaluar modelos, comparándolos entre sí y con la realidad y determinando sus limitaciones.",
+      "eje": "Modelar",
+      "referencia_lineas": [
+        2179,
+        2179
+      ],
+      "id": "1-matematica-OAH-k",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "l",
+      "descripcion": "Elegir o elaborar representaciones de acuerdo a las necesidades de la actividad, identificando sus limitaciones y validez de éstas.",
+      "eje": "Representar",
+      "referencia_lineas": [
+        2183,
+        2183
+      ],
+      "id": "1-matematica-OAH-l",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "m",
+      "descripcion": "Transitar entre los distintos niveles de representación de funciones.",
+      "eje": "Representar",
+      "referencia_lineas": [
+        2185,
+        2185
+      ],
+      "id": "1-matematica-OAH-m",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "n",
+      "descripcion": "Organizar, analizar y hacer inferencias acerca de información representada en tablas y gráficos.",
+      "eje": "Representar",
+      "referencia_lineas": [
+        2187,
+        2187
+      ],
+      "id": "1-matematica-OAH-n",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    },
+    {
+      "numero_oficial": "o",
+      "descripcion": "Representar y ejemplificar utilizando analogías, metáforas y situaciones familiares para resolver problemas.",
+      "eje": "Representar",
+      "referencia_lineas": [
+        2188,
+        2188
+      ],
+      "id": "1-matematica-OAH-o",
+      "source_url": "https://www.bcn.cl/leychile/navegar?i=1060374"
+    }
+  ],
   "objetivos_actitud": [],
   "unidades": [
     {
       "numero": 1,
       "id": "eje-numeros",
-      "nombre": "Números",
+      "nombre": "NÚMEROS",
       "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "MA1M-OA-01",
-          "codigo_oficial": "MA1M OA 01",
+          "numero_oficial": 1,
           "descripcion": "Calcular operaciones con números racionales en forma simbólica.",
-          "eje": "Números"
+          "eje": "NÚMEROS",
+          "referencia_lineas": [
+            2194,
+            2194
+          ],
+          "codigo_oficial": "MA1M OA 01",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
+          "id": "MA1M-OA-01"
         },
         {
-          "id": "MA1M-OA-02",
+          "numero_oficial": 2,
+          "descripcion": "Mostrar que comprenden las potencias de base racional y exponente entero:\n- Transfiriendo propiedades de la multiplicación y división de potencias a los ámbitos numéricos correspondientes.\n- Relacionándolas con el crecimiento y decrecimiento de cantidades.\n- Resolviendo problemas de la vida diaria y otras asignaturas.",
+          "eje": "NÚMEROS",
+          "referencia_lineas": [
+            2196,
+            2201
+          ],
           "codigo_oficial": "MA1M OA 02",
-          "descripcion": "Mostrar que comprenden las potencias de base racional y exponente entero:\n- Transfiriendo propiedades de la multiplicación y división de potencias a los ámbitos numéricos correspondientes\n- Relacionándolas con el crecimiento y decrecimiento de cantidades\n- Resolviendo problemas de la vida diaria y otras asignaturas",
-          "eje": "Números"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
+          "id": "MA1M-OA-02"
+        },
+        {
+          "numero_oficial": 3,
+          "descripcion": "Desarrollar los productos notables de manera concreta, pictórica y simbólica:\n- Transformando productos en sumas y viceversa.\n- Aplicándolos a situaciones concretas.\n- Completando el cuadrado del binomio.\n- Utilizándolas en la reducción y desarrollo de expresiones algebraicas.",
+          "eje": "NÚMEROS",
+          "referencia_lineas": [
+            2203,
+            2211
+          ],
+          "codigo_oficial": "MA1M OA 03",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
+          "id": "MA1M-OA-03"
+        },
+        {
+          "numero_oficial": 4,
+          "descripcion": "Resolver sistemas de ecuaciones lineales (2x2) relacionados con problemas de la vida diaria y de otras asignaturas, mediante representaciones gráficas y simbólicas, de manera manual y/o con software educativo.",
+          "eje": "NÚMEROS",
+          "referencia_lineas": [
+            2212,
+            2212
+          ],
+          "codigo_oficial": "MA1M OA 04",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
+          "id": "MA1M-OA-04"
+        },
+        {
+          "numero_oficial": 5,
+          "descripcion": "Graficar relaciones lineales en dos variables de la forma f(x, y) = ax + by; por ejemplo: un haz de rectas paralelas en el plano cartesiano, líneas de nivel en planos inclinados (techo), propagación de olas en el mar y la formación de algunas capas de rocas:\n- Creando tablas de valores con a, b fijo y x, y variable.\n- Representando una ecuación lineal dada por medio de un gráfico, de manera manual y/o con software educativo.\n- Escribiendo la relación entre las variables de un gráfico dado; por ejemplo, variando c en la ecuación ax + by = c ; (a, b, c ϵ Q) (decimales hasta la décima).",
+          "eje": "NÚMEROS",
+          "referencia_lineas": [
+            2214,
+            2219
+          ],
+          "codigo_oficial": "MA1M OA 05",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
+          "id": "MA1M-OA-05"
         }
       ]
     },
     {
       "numero": 2,
-      "id": "eje-algebra-y-funciones",
-      "nombre": "Álgebra y funciones",
-      "tipo_agrupacion": "eje_curricular",
-      "oa": [
-        {
-          "id": "MA1M-OA-03",
-          "codigo_oficial": "MA1M OA 03",
-          "descripcion": "Desarrollar los productos notables de manera concreta, pictórica y simbólica:\n- Transformando productos en sumas y viceversa\n- Aplicándolos a situaciones concretas\n- Completando el cuadrado del binomio\n- Utilizándolas en la reducción y desarrollo de expresiones algebraicas",
-          "eje": "Álgebra y funciones"
-        },
-        {
-          "id": "MA1M-OA-04",
-          "codigo_oficial": "MA1M OA 04",
-          "descripcion": "Resolver sistemas de ecuaciones lineales (2x2) relacionados con problemas de la vida diaria y de otras asignaturas, mediante representaciones gráficas y simbólicas, de manera manual y/o con software educativo.",
-          "eje": "Álgebra y funciones"
-        },
-        {
-          "id": "MA1M-OA-05",
-          "codigo_oficial": "MA1M OA 05",
-          "descripcion": "Graficar relaciones lineales en dos variables de la forma f(x, y) = ax + by; por ejemplo: un haz de rectas paralelas en el plano cartesiano, líneas de nivel en planos inclinados (techo), propagación de olas en el mar y la formación de algunas capas de rocas:\n- Creando tablas de valores con a, b fijo y x, y variable\n- Representando una ecuación lineal dada por medio de un gráfico, de manera manual y/o con software educativo\n- Escribiendo la relación entre las variables de un gráfico dado; por ejemplo, variando c en la ecuación ax + by = c ; (a, b, c ϵ Q) (decimales hasta la décima)",
-          "eje": "Álgebra y funciones"
-        }
-      ]
-    },
-    {
-      "numero": 3,
       "id": "eje-geometria",
-      "nombre": "Geometría",
+      "nombre": "GEOMETRÍA",
       "tipo_agrupacion": "eje_curricular",
       "oa": [
         {
-          "id": "MA1M-OA-06",
-          "codigo_oficial": "MA1M OA 06",
+          "numero_oficial": 6,
           "descripcion": "Desarrollar la fórmula de los valores del área y del perímetro de sectores y segmentos circulares, respectivamente, a partir de ángulos centrales de 60°, 90°, 120° y 180°, por medio de representaciones concretas.",
-          "eje": "Geometría"
+          "eje": "GEOMETRÍA",
+          "referencia_lineas": [
+            2222,
+            2222
+          ],
+          "codigo_oficial": "MA1M OA 06",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
+          "id": "MA1M-OA-06"
         },
         {
-          "id": "MA1M-OA-07",
+          "numero_oficial": 7,
+          "descripcion": "Desarrollar las fórmulas para encontrar el área de la superficie y el volumen del cono:\n- Desplegando la red del cono para la fórmula del área de superficie.\n- Experimentando de manera concreta para encontrar la relación entre el volumen del cilindro y el cono.\n- Aplicando las fórmulas a la resolución de problemas geométricos y de la vida diaria.",
+          "eje": "GEOMETRÍA",
+          "referencia_lineas": [
+            2224,
+            2229
+          ],
           "codigo_oficial": "MA1M OA 07",
-          "descripcion": "Desarrollar las fórmulas para encontrar el área de la superficie y el volumen del cono:\n- Desplegando la red del cono para la fórmula del área de superficie\n- Experimentando de manera concreta para encontrar la relación entre el volumen del cilindro y el cono\n- Aplicando las fórmulas a la resolución de problemas geométricos y de la vida diaria",
-          "eje": "Geometría"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
+          "id": "MA1M-OA-07"
         },
         {
-          "id": "MA1M-OA-08",
+          "numero_oficial": 8,
+          "descripcion": "Mostrar que comprenden el concepto de homotecia:\n- Relacionándola con la perspectiva, el funcionamiento de instrumentos ópticos y el ojo humano.\n- Midiendo segmentos adecuados para determinar las propiedades de la homotecia.\n- Aplicando propiedades de la homotecia en la construcción de objetos, de manera manual y/o con software educativo.\n- Resolviendo problemas de la vida cotidiana y de otras asignaturas.",
+          "eje": "GEOMETRÍA",
+          "referencia_lineas": [
+            2231,
+            2238
+          ],
           "codigo_oficial": "MA1M OA 08",
-          "descripcion": "Mostrar que comprenden el concepto de homotecia:\n- Relacionándola con la perspectiva, el funcionamiento de instrumentos ópticos y el ojo humano\n- Midiendo segmentos adecuados para determinar las propiedades de la homotecia\n- Aplicando propiedades de la homotecia en la construcción de objetos, de manera manual y/o con software educativo\n- Resolviendo problemas de la vida cotidiana y de otras asignaturas",
-          "eje": "Geometría"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
+          "id": "MA1M-OA-08"
         },
         {
-          "id": "MA1M-OA-09",
-          "codigo_oficial": "MA1M OA 09",
+          "numero_oficial": 9,
           "descripcion": "Desarrollar el teorema de Tales mediante las propiedades de la homotecia, para aplicarlo en la resolución de problemas.",
-          "eje": "Geometría"
+          "eje": "GEOMETRÍA",
+          "referencia_lineas": [
+            2240,
+            2240
+          ],
+          "codigo_oficial": "MA1M OA 09",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
+          "id": "MA1M-OA-09"
         },
         {
-          "id": "MA1M-OA-10",
-          "codigo_oficial": "MA1M OA 10",
+          "numero_oficial": 10,
           "descripcion": "Aplicar propiedades de semejanza y de proporcionalidad a modelos a escala y otras situaciones de la vida diaria y otras asignaturas.",
-          "eje": "Geometría"
+          "eje": "GEOMETRÍA",
+          "referencia_lineas": [
+            2242,
+            2242
+          ],
+          "codigo_oficial": "MA1M OA 10",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
+          "id": "MA1M-OA-10"
         },
         {
-          "id": "MA1M-OA-11",
-          "codigo_oficial": "MA1M OA 11",
+          "numero_oficial": 11,
           "descripcion": "Representar el concepto de homotecia de forma vectorial, relacionándolo con el producto de un vector por un escalar, de manera manual y/o con software educativo.",
-          "eje": "Geometría"
-        }
-      ]
-    },
-    {
-      "numero": 4,
-      "id": "eje-probabilidad-y-estadistica",
-      "nombre": "Probabilidad y estadística",
-      "tipo_agrupacion": "eje_curricular",
-      "oa": [
+          "eje": "GEOMETRÍA",
+          "referencia_lineas": [
+            2244,
+            2245
+          ],
+          "codigo_oficial": "MA1M OA 11",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
+          "id": "MA1M-OA-11"
+        },
         {
-          "id": "MA1M-OA-12",
-          "codigo_oficial": "MA1M OA 12",
+          "numero_oficial": 12,
           "descripcion": "Registrar distribuciones de dos características distintas, de una misma población, en una tabla de doble entrada y en una nube de puntos.",
-          "eje": "Probabilidad y estadística"
+          "eje": "GEOMETRÍA",
+          "referencia_lineas": [
+            2247,
+            2247
+          ],
+          "codigo_oficial": "MA1M OA 12",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
+          "id": "MA1M-OA-12"
         },
         {
-          "id": "MA1M-OA-13",
+          "numero_oficial": 13,
+          "descripcion": "Comparar poblaciones mediante la confección de gráficos \"xy\" para dos atributos de muestras, de manera concreta y pictórica:\n- Utilizando nubes de puntos en dos colores.\n- Separando la nube por medio de una recta trazada de manera intuitiva.",
+          "eje": "GEOMETRÍA",
+          "referencia_lineas": [
+            2249,
+            2253
+          ],
           "codigo_oficial": "MA1M OA 13",
-          "descripcion": "Comparar poblaciones mediante la confección de gráficos \"xy\" para dos atributos de muestras, de manera concreta y pictórica:\n- Utilizando nubes de puntos en dos colores\n- Separando la nube por medio de una recta trazada de manera intuitiva",
-          "eje": "Probabilidad y estadística"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
+          "id": "MA1M-OA-13"
         },
         {
-          "id": "MA1M-OA-14",
-          "codigo_oficial": "MA1M OA 14",
+          "numero_oficial": 14,
           "descripcion": "Desarrollar las reglas de las probabilidades, la regla aditiva, la regla multiplicativa y la combinación de ambas, de manera concreta, pictórica y simbólica, de manera manual y/o con software educativo, en el contexto de la resolución de problemas.",
-          "eje": "Probabilidad y estadística"
+          "eje": "GEOMETRÍA",
+          "referencia_lineas": [
+            2254,
+            2254
+          ],
+          "codigo_oficial": "MA1M OA 14",
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
+          "id": "MA1M-OA-14"
         },
         {
-          "id": "MA1M-OA-15",
+          "numero_oficial": 15,
+          "descripcion": "Mostrar que comprenden el concepto de azar:\n- Experimentando con la tabla de Galton y con paseos aleatorios sencillos de manera manual y/o con software educativo.\n- Realizando análisis estadísticos, empezando por frecuencias relativas.\n- Utilizando probabilidades para describir el comportamiento azaroso.\n- Resolviendo problemas de la vida diaria y de otras asignaturas.",
+          "eje": "GEOMETRÍA",
+          "referencia_lineas": [
+            2256,
+            2263
+          ],
           "codigo_oficial": "MA1M OA 15",
-          "descripcion": "Mostrar que comprenden el concepto de azar:\n- Experimentando con la tabla de Galton y con paseos aleatorios sencillos de manera manual y/o con software educativo\n- Realizando análisis estadísticos, empezando por frecuencias relativas\n- Utilizando probabilidades para describir el comportamiento azaroso\n- Resolviendo problemas de la vida diaria y de otras asignaturas",
-          "eje": "Probabilidad y estadística"
+          "source_url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
+          "id": "MA1M-OA-15"
         }
       ]
     }

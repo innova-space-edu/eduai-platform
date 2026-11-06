@@ -1,7 +1,7 @@
 {
   "version": 1,
-  "revision": "fase_12_parvularia_fuente_bcep_pdf_oficial",
-  "fecha_actualizacion": "2026-09-20",
+  "revision": "auditoria_media_20261106_fg_y_27_electivos_hc",
+  "fecha_actualizacion": "2026-11-06",
   "politica": {
     "estado_verificado": "Solo se usa verificado_oficial cuando código y texto fueron cotejados con una base curricular oficial específica.",
     "estado_propuesta": "verificado_propuesta_oficial identifica propuestas curriculares oficiales cotejadas, sin presentarlas como bases obligatorias.",
@@ -841,206 +841,436 @@
       "cantidad_oa_contenido": 7
     },
     "media/1_medio/matematica": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/matematica/1-medio",
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/1-medio",
+        "https://www.bcn.cl/leychile/navegar?i=1060374"
+      ],
+      "fecha_consulta": "2026-11-06",
       "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
+      "cantidad_oa_contenido": 15,
+      "codigos": [
         "MA1M OA 01",
+        "MA1M OA 02",
+        "MA1M OA 03",
+        "MA1M OA 04",
+        "MA1M OA 05",
+        "MA1M OA 06",
+        "MA1M OA 07",
+        "MA1M OA 08",
+        "MA1M OA 09",
+        "MA1M OA 10",
+        "MA1M OA 11",
+        "MA1M OA 12",
+        "MA1M OA 13",
+        "MA1M OA 14",
         "MA1M OA 15"
       ],
-      "cantidad_oa_contenido": 15
+      "plan": "formacion_general"
     },
     "media/1_medio/lengua_literatura": {
       "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/lengua-literatura/1-medio",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/lengua-literatura/1-medio",
+        "https://www.bcn.cl/leychile/navegar?i=1060374"
+      ],
+      "fecha_consulta": "2026-11-06",
       "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
+      "cantidad_oa_contenido": 24,
+      "codigos": [
         "LE1M OA 01",
+        "LE1M OA 02",
+        "LE1M OA 03",
+        "LE1M OA 04",
+        "LE1M OA 05",
+        "LE1M OA 06",
+        "LE1M OA 07",
+        "LE1M OA 08",
+        "LE1M OA 09",
+        "LE1M OA 10",
+        "LE1M OA 11",
+        "LE1M OA 12",
+        "LE1M OA 13",
+        "LE1M OA 14",
+        "LE1M OA 15",
+        "LE1M OA 16",
+        "LE1M OA 17",
+        "LE1M OA 18",
+        "LE1M OA 19",
+        "LE1M OA 20",
+        "LE1M OA 21",
+        "LE1M OA 22",
+        "LE1M OA 23",
         "LE1M OA 24"
       ],
-      "cantidad_oa_contenido": 24
+      "plan": "formacion_general"
     },
     "media/1_medio/tecnologia": {
       "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/tecnologia/1-medio",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/tecnologia/1-medio",
+        "https://www.bcn.cl/leychile/navegar?i=1084868"
+      ],
+      "fecha_consulta": "2026-11-06",
       "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
+      "cantidad_oa_contenido": 6,
+      "codigos": [
         "TE1M OA 01",
+        "TE1M OA 02",
+        "TE1M OA 03",
+        "TE1M OA 04",
+        "TE1M OA 05",
         "TE1M OA 06"
       ],
-      "cantidad_oa_contenido": 6
+      "plan": "formacion_general"
     },
     "media/1_medio/biologia": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/1-medio",
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+        "https://www.bcn.cl/leychile/navegar?i=1060374"
+      ],
+      "fecha_consulta": "2026-11-06",
       "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
+      "cantidad_oa_contenido": 8,
+      "codigos": [
         "CN1M OA 01",
+        "CN1M OA 02",
+        "CN1M OA 03",
+        "CN1M OA 04",
+        "CN1M OA 05",
+        "CN1M OA 06",
+        "CN1M OA 07",
         "CN1M OA 08"
       ],
-      "cantidad_oa_contenido": 8
+      "plan": "formacion_general"
     },
     "media/1_medio/fisica": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/1-medio",
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+        "https://www.bcn.cl/leychile/navegar?i=1060374"
+      ],
+      "fecha_consulta": "2026-11-06",
       "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
+      "cantidad_oa_contenido": 8,
+      "codigos": [
         "CN1M OA 09",
+        "CN1M OA 10",
+        "CN1M OA 11",
+        "CN1M OA 12",
+        "CN1M OA 13",
+        "CN1M OA 14",
+        "CN1M OA 15",
         "CN1M OA 16"
       ],
-      "cantidad_oa_contenido": 8
+      "plan": "formacion_general"
     },
     "media/1_medio/quimica": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/1-medio",
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+        "https://www.bcn.cl/leychile/navegar?i=1060374"
+      ],
+      "fecha_consulta": "2026-11-06",
       "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
+      "cantidad_oa_contenido": 4,
+      "codigos": [
         "CN1M OA 17",
+        "CN1M OA 18",
+        "CN1M OA 19",
         "CN1M OA 20"
       ],
-      "cantidad_oa_contenido": 4
+      "plan": "formacion_general"
     },
     "media/2_medio/matematica": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/matematica/2-medio",
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/2-medio",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/matematica/2-medio",
+        "https://www.bcn.cl/leychile/navegar?i=1060374"
+      ],
+      "fecha_consulta": "2026-11-06",
       "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
+      "cantidad_oa_contenido": 12,
+      "codigos": [
         "MA2M OA 01",
+        "MA2M OA 02",
+        "MA2M OA 03",
+        "MA2M OA 04",
+        "MA2M OA 05",
+        "MA2M OA 06",
+        "MA2M OA 07",
+        "MA2M OA 08",
+        "MA2M OA 09",
+        "MA2M OA 10",
+        "MA2M OA 11",
         "MA2M OA 12"
       ],
-      "cantidad_oa_contenido": 12
+      "plan": "formacion_general"
     },
     "media/2_medio/lengua_literatura": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/lengua-literatura/2-medio",
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/lengua-literatura/2-medio/le2m-oa-01",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/lengua-literatura/2-medio/le2m-oa-01",
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/lengua-literatura/2-medio/le2m-oa-02",
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/lengua-literatura/2-medio/le2m-oa-20",
+        "https://www.bcn.cl/leychile/navegar?i=1060374"
+      ],
+      "fecha_consulta": "2026-11-06",
       "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
+      "cantidad_oa_contenido": 24,
+      "codigos": [
         "LE2M OA 01",
+        "LE2M OA 02",
+        "LE2M OA 03",
+        "LE2M OA 04",
+        "LE2M OA 05",
+        "LE2M OA 06",
+        "LE2M OA 07",
+        "LE2M OA 08",
+        "LE2M OA 09",
+        "LE2M OA 10",
+        "LE2M OA 11",
+        "LE2M OA 12",
+        "LE2M OA 13",
+        "LE2M OA 14",
+        "LE2M OA 15",
+        "LE2M OA 16",
+        "LE2M OA 17",
+        "LE2M OA 18",
+        "LE2M OA 19",
+        "LE2M OA 20",
+        "LE2M OA 21",
+        "LE2M OA 22",
+        "LE2M OA 23",
         "LE2M OA 24"
       ],
-      "cantidad_oa_contenido": 24
+      "plan": "formacion_general"
     },
     "media/2_medio/tecnologia": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/tecnologia/2-medio",
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/tecnologia/2-medio",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/tecnologia/2-medio",
+        "https://www.bcn.cl/leychile/navegar?i=1084868"
+      ],
+      "fecha_consulta": "2026-11-06",
       "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
+      "cantidad_oa_contenido": 6,
+      "codigos": [
         "TE2M OA 01",
+        "TE2M OA 02",
+        "TE2M OA 03",
+        "TE2M OA 04",
+        "TE2M OA 05",
         "TE2M OA 06"
       ],
-      "cantidad_oa_contenido": 6
+      "plan": "formacion_general"
     },
     "media/2_medio/biologia": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/2-medio",
+      "url": "https://www.bcn.cl/leychile/navegar?i=1060374",
+      "urls": [
+        "https://www.bcn.cl/leychile/navegar?i=1060374"
+      ],
+      "fecha_consulta": "2026-11-06",
       "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
+      "cantidad_oa_contenido": 8,
+      "codigos": [
         "CN2M OA 01",
+        "CN2M OA 02",
+        "CN2M OA 03",
+        "CN2M OA 04",
+        "CN2M OA 05",
+        "CN2M OA 06",
+        "CN2M OA 07",
         "CN2M OA 08"
       ],
-      "cantidad_oa_contenido": 8
+      "plan": "formacion_general"
     },
     "media/2_medio/fisica": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/2-medio",
+      "url": "https://www.bcn.cl/leychile/navegar?i=1060374",
+      "urls": [
+        "https://www.bcn.cl/leychile/navegar?i=1060374"
+      ],
+      "fecha_consulta": "2026-11-06",
       "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
+      "cantidad_oa_contenido": 6,
+      "codigos": [
         "CN2M OA 09",
+        "CN2M OA 10",
+        "CN2M OA 11",
+        "CN2M OA 12",
+        "CN2M OA 13",
         "CN2M OA 14"
       ],
-      "cantidad_oa_contenido": 6
+      "plan": "formacion_general"
     },
     "media/2_medio/quimica": {
-      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ciencias-naturales/2-medio",
+      "url": "https://www.bcn.cl/leychile/navegar?i=1060374",
+      "urls": [
+        "https://www.bcn.cl/leychile/navegar?i=1060374"
+      ],
+      "fecha_consulta": "2026-11-06",
       "base_curricular_id": "basica-7-media-2",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
+      "cantidad_oa_contenido": 4,
+      "codigos": [
         "CN2M OA 15",
+        "CN2M OA 16",
+        "CN2M OA 17",
         "CN2M OA 18"
       ],
-      "cantidad_oa_contenido": 4
+      "plan": "formacion_general"
     },
     "media/3_medio/matematica": {
       "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/matematica-3o-medio/3-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/matematica-3o-medio/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
       "base_curricular_id": "media-3-4",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
+      "cantidad_oa_contenido": 4,
+      "codigos": [
         "FG-MATE-3M-OAC-01",
+        "FG-MATE-3M-OAC-02",
+        "FG-MATE-3M-OAC-03",
         "FG-MATE-3M-OAC-04"
       ],
-      "cantidad_oa_contenido": 4
+      "plan": "formacion_general"
     },
     "media/4_medio/matematica": {
       "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/matematica-4o-medio/4-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/matematica-4o-medio/4-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
       "base_curricular_id": "media-3-4",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
+      "cantidad_oa_contenido": 4,
+      "codigos": [
         "FG-MATE-4M-OAC-01",
+        "FG-MATE-4M-OAC-02",
+        "FG-MATE-4M-OAC-03",
         "FG-MATE-4M-OAC-04"
       ],
-      "cantidad_oa_contenido": 4
+      "plan": "formacion_general"
     },
     "media/3_medio/educacion_ciudadana": {
       "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-3-medio/3-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-3-medio/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
       "base_curricular_id": "media-3-4",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
+      "cantidad_oa_contenido": 8,
+      "codigos": [
         "FG-ECIU-3M-OAC-01",
+        "FG-ECIU-3M-OAC-02",
+        "FG-ECIU-3M-OAC-03",
+        "FG-ECIU-3M-OAC-04",
+        "FG-ECIU-3M-OAC-05",
+        "FG-ECIU-3M-OAC-06",
+        "FG-ECIU-3M-OAC-07",
         "FG-ECIU-3M-OAC-08"
       ],
-      "cantidad_oa_contenido": 8
+      "plan": "formacion_general"
     },
     "media/4_medio/educacion_ciudadana": {
       "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-4m/4-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-ciudadana-4m/4-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
       "base_curricular_id": "media-3-4",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
+      "cantidad_oa_contenido": 8,
+      "codigos": [
         "FG-ECIU-4M-OAC-01",
+        "FG-ECIU-4M-OAC-02",
+        "FG-ECIU-4M-OAC-03",
+        "FG-ECIU-4M-OAC-04",
+        "FG-ECIU-4M-OAC-05",
+        "FG-ECIU-4M-OAC-06",
+        "FG-ECIU-4M-OAC-07",
         "FG-ECIU-4M-OAC-08"
       ],
-      "cantidad_oa_contenido": 8
+      "plan": "formacion_general"
     },
     "media/4_medio/lengua_literatura": {
-      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/lengua-literatura-4o-medio/4-medio-fg",
+      "url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078",
+      "urls": [
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
       "base_curricular_id": "media-3-4",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
+      "cantidad_oa_contenido": 8,
+      "codigos": [
         "FG-LELI-4M-OAC-01",
+        "FG-LELI-4M-OAC-02",
+        "FG-LELI-4M-OAC-03",
+        "FG-LELI-4M-OAC-04",
+        "FG-LELI-4M-OAC-05",
+        "FG-LELI-4M-OAC-06",
+        "FG-LELI-4M-OAC-07",
         "FG-LELI-4M-OAC-08"
       ],
-      "cantidad_oa_contenido": 8
+      "plan": "formacion_general"
     },
     "media/3_medio/ciencias_para_la_ciudadania": {
-      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ambiente-sostenibilidad/3-medio-fg",
-      "base_curricular_id": "media-3-4",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
-        "FG-CIAS-3y4-OAC-01",
-        "FG-CITS-3y4-OAC-03"
-      ],
-      "cantidad_oa_contenido": 12,
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/bienestar-salud/3-medio-fg",
       "urls": [
-        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ambiente-sostenibilidad/3-medio-fg",
         "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/bienestar-salud/3-medio-fg",
         "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/seguridad-prevencion-autocuidado/3-medio-fg",
-        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/tecnologia-sociedad/3-medio-fg"
-      ]
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ambiente-sostenibilidad/3-medio-fg",
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/tecnologia-sociedad/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 12,
+      "codigos": [
+        "FG-CIBS-3y4-OAC-01",
+        "FG-CIBS-3y4-OAC-02",
+        "FG-CIBS-3y4-OAC-03",
+        "FG-CISA-3y4-OAC-01",
+        "FG-CISA-3y4-OAC-02",
+        "FG-CISA-3y4-OAC-03",
+        "FG-CIAS-3y4-OAC-01",
+        "FG-CIAS-3y4-OAC-02",
+        "FG-CIAS-3y4-OAC-03",
+        "FG-CITS-3y4-OAC-01",
+        "FG-CITS-3y4-OAC-02",
+        "FG-CITS-3y4-OAC-03"
+      ],
+      "plan": "formacion_general"
     },
     "media/4_medio/ciencias_para_la_ciudadania": {
-      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ambiente-sostenibilidad/3-medio-fg",
-      "base_curricular_id": "media-3-4",
-      "fecha_consulta": "2026-07-18",
-      "alcance": [
-        "FG-CIAS-3y4-OAC-01",
-        "FG-CITS-3y4-OAC-03"
-      ],
-      "cantidad_oa_contenido": 12,
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/bienestar-salud/3-medio-fg",
       "urls": [
-        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ambiente-sostenibilidad/3-medio-fg",
         "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/bienestar-salud/3-medio-fg",
         "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/seguridad-prevencion-autocuidado/3-medio-fg",
-        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/tecnologia-sociedad/3-medio-fg"
-      ]
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ambiente-sostenibilidad/3-medio-fg",
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/tecnologia-sociedad/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 12,
+      "codigos": [
+        "FG-CIBS-3y4-OAC-01",
+        "FG-CIBS-3y4-OAC-02",
+        "FG-CIBS-3y4-OAC-03",
+        "FG-CISA-3y4-OAC-01",
+        "FG-CISA-3y4-OAC-02",
+        "FG-CISA-3y4-OAC-03",
+        "FG-CIAS-3y4-OAC-01",
+        "FG-CIAS-3y4-OAC-02",
+        "FG-CIAS-3y4-OAC-03",
+        "FG-CITS-3y4-OAC-01",
+        "FG-CITS-3y4-OAC-02",
+        "FG-CITS-3y4-OAC-03"
+      ],
+      "plan": "formacion_general"
     },
     "parvularia/sala_cuna_menor": {
       "url": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
@@ -1137,6 +1367,1810 @@
       "bcep_pdf": "https://parvularia.mineduc.cl/wp-content/uploads/2019/09/Bases_Curriculares_Ed_Parvularia_2018-1.pdf",
       "estado_auditoria": "verificado_bcep_2018",
       "fuente_canonica": "BCEP 2018 PDF oficial Subsecretaría de Educación Parvularia"
+    },
+    "media/1_medio/artes_visuales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/1-medio",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/1-medio",
+        "https://www.bcn.cl/leychile/navegar?i=1084868"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "basica-7-media-2",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "AR1M OA 01",
+        "AR1M OA 02",
+        "AR1M OA 03",
+        "AR1M OA 04",
+        "AR1M OA 05",
+        "AR1M OA 06"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/1_medio/ciencias_naturales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/ciencias-naturales/1-medio",
+        "https://www.bcn.cl/leychile/navegar?i=1060374"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "basica-7-media-2",
+      "cantidad_oa_contenido": 20,
+      "codigos": [
+        "CN1M OA 01",
+        "CN1M OA 02",
+        "CN1M OA 03",
+        "CN1M OA 04",
+        "CN1M OA 05",
+        "CN1M OA 06",
+        "CN1M OA 07",
+        "CN1M OA 08",
+        "CN1M OA 09",
+        "CN1M OA 10",
+        "CN1M OA 11",
+        "CN1M OA 12",
+        "CN1M OA 13",
+        "CN1M OA 14",
+        "CN1M OA 15",
+        "CN1M OA 16",
+        "CN1M OA 17",
+        "CN1M OA 18",
+        "CN1M OA 19",
+        "CN1M OA 20"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/1_medio/educacion_fisica_y_salud": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/educacion-fisica-salud/1-medio",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/educacion-fisica-salud/1-medio",
+        "https://www.bcn.cl/leychile/navegar?i=1060374"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "basica-7-media-2",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "EF1M OA 01",
+        "EF1M OA 02",
+        "EF1M OA 03",
+        "EF1M OA 04",
+        "EF1M OA 05"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/1_medio/historia_geografia_y_cs_sociales": {
+      "url": "https://www.bcn.cl/leychile/navegar?i=1060374",
+      "urls": [
+        "https://www.bcn.cl/leychile/navegar?i=1060374"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "basica-7-media-2",
+      "cantidad_oa_contenido": 25,
+      "codigos": [
+        "HI1M OA 01",
+        "HI1M OA 02",
+        "HI1M OA 03",
+        "HI1M OA 04",
+        "HI1M OA 05",
+        "HI1M OA 06",
+        "HI1M OA 07",
+        "HI1M OA 08",
+        "HI1M OA 09",
+        "HI1M OA 10",
+        "HI1M OA 11",
+        "HI1M OA 12",
+        "HI1M OA 13",
+        "HI1M OA 14",
+        "HI1M OA 15",
+        "HI1M OA 16",
+        "HI1M OA 17",
+        "HI1M OA 18",
+        "HI1M OA 19",
+        "HI1M OA 20",
+        "HI1M OA 21",
+        "HI1M OA 22",
+        "HI1M OA 23",
+        "HI1M OA 24",
+        "HI1M OA 25"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/1_medio/ingles": {
+      "url": "https://www.bcn.cl/leychile/navegar?i=1060374",
+      "urls": [
+        "https://www.bcn.cl/leychile/navegar?i=1060374"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "basica-7-media-2",
+      "cantidad_oa_contenido": 16,
+      "codigos": [
+        "IN1M OA 01",
+        "IN1M OA 02",
+        "IN1M OA 03",
+        "IN1M OA 04",
+        "IN1M OA 05",
+        "IN1M OA 06",
+        "IN1M OA 07",
+        "IN1M OA 08",
+        "IN1M OA 09",
+        "IN1M OA 10",
+        "IN1M OA 11",
+        "IN1M OA 12",
+        "IN1M OA 13",
+        "IN1M OA 14",
+        "IN1M OA 15",
+        "IN1M OA 16"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/1_medio/musica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-01",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-01",
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-02",
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-03",
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-04",
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-06",
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/1-medio/mu1m-oa-07",
+        "https://www.bcn.cl/leychile/navegar?i=1084868"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "basica-7-media-2",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "MU1M OA 01",
+        "MU1M OA 02",
+        "MU1M OA 03",
+        "MU1M OA 04",
+        "MU1M OA 05",
+        "MU1M OA 06",
+        "MU1M OA 07"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/1_medio/orientacion": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/1-medio/or1m-oa-01",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/1-medio/or1m-oa-01",
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/1-medio/or1m-oa-02",
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/1-medio/or1m-oa-04",
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/1-medio/or1m-oa-05",
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/1-medio/or1m-oa-08",
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/1-medio/or1m-oa-09",
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/1-medio/or1m-oa-10",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1093403"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "basica-7-media-2",
+      "cantidad_oa_contenido": 10,
+      "codigos": [
+        "OR1M OA 01",
+        "OR1M OA 02",
+        "OR1M OA 03",
+        "OR1M OA 04",
+        "OR1M OA 05",
+        "OR1M OA 06",
+        "OR1M OA 07",
+        "OR1M OA 08",
+        "OR1M OA 09",
+        "OR1M OA 10"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/2_medio/artes_visuales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/2-medio",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/artes-visuales/2-medio",
+        "https://www.bcn.cl/leychile/navegar?i=1084868"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "basica-7-media-2",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "AR2M OA 01",
+        "AR2M OA 02",
+        "AR2M OA 03",
+        "AR2M OA 04",
+        "AR2M OA 05",
+        "AR2M OA 06"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/2_medio/ciencias_naturales": {
+      "url": "https://www.bcn.cl/leychile/navegar?i=1060374",
+      "urls": [
+        "https://www.bcn.cl/leychile/navegar?i=1060374"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "basica-7-media-2",
+      "cantidad_oa_contenido": 18,
+      "codigos": [
+        "CN2M OA 01",
+        "CN2M OA 02",
+        "CN2M OA 03",
+        "CN2M OA 04",
+        "CN2M OA 05",
+        "CN2M OA 06",
+        "CN2M OA 07",
+        "CN2M OA 08",
+        "CN2M OA 09",
+        "CN2M OA 10",
+        "CN2M OA 11",
+        "CN2M OA 12",
+        "CN2M OA 13",
+        "CN2M OA 14",
+        "CN2M OA 15",
+        "CN2M OA 16",
+        "CN2M OA 17",
+        "CN2M OA 18"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/2_medio/educacion_fisica_y_salud": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/educacion-fisica-salud/2-medio",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/educacion-fisica-salud/2-medio",
+        "https://www.bcn.cl/leychile/navegar?i=1060374"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "basica-7-media-2",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "EF2M OA 01",
+        "EF2M OA 02",
+        "EF2M OA 03",
+        "EF2M OA 04",
+        "EF2M OA 05"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/2_medio/historia_geografia_y_cs_sociales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/historia-geografia-ciencias-sociales/2-medio",
+        "https://www.bcn.cl/leychile/navegar?i=1060374"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "basica-7-media-2",
+      "cantidad_oa_contenido": 25,
+      "codigos": [
+        "HI2M OA 01",
+        "HI2M OA 02",
+        "HI2M OA 03",
+        "HI2M OA 04",
+        "HI2M OA 05",
+        "HI2M OA 06",
+        "HI2M OA 07",
+        "HI2M OA 08",
+        "HI2M OA 09",
+        "HI2M OA 10",
+        "HI2M OA 11",
+        "HI2M OA 12",
+        "HI2M OA 13",
+        "HI2M OA 14",
+        "HI2M OA 15",
+        "HI2M OA 16",
+        "HI2M OA 17",
+        "HI2M OA 18",
+        "HI2M OA 19",
+        "HI2M OA 20",
+        "HI2M OA 21",
+        "HI2M OA 22",
+        "HI2M OA 23",
+        "HI2M OA 24",
+        "HI2M OA 25"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/2_medio/ingles": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2-medio/ingles/2-medio",
+        "https://www.bcn.cl/leychile/navegar?i=1060374"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "basica-7-media-2",
+      "cantidad_oa_contenido": 16,
+      "codigos": [
+        "IN2M OA 01",
+        "IN2M OA 02",
+        "IN2M OA 03",
+        "IN2M OA 04",
+        "IN2M OA 05",
+        "IN2M OA 06",
+        "IN2M OA 07",
+        "IN2M OA 08",
+        "IN2M OA 09",
+        "IN2M OA 10",
+        "IN2M OA 11",
+        "IN2M OA 12",
+        "IN2M OA 13",
+        "IN2M OA 14",
+        "IN2M OA 15",
+        "IN2M OA 16"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/2_medio/musica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/2-medio/mu2m-oa-01",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/2-medio/mu2m-oa-01",
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/2-medio/mu2m-oa-02",
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/2-medio/mu2m-oa-03",
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/2-medio/mu2m-oa-04",
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/2-medio/mu2m-oa-05",
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/musica/2-medio/mu2m-oa-07",
+        "https://www.bcn.cl/leychile/navegar?i=1084868"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "basica-7-media-2",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "MU2M OA 01",
+        "MU2M OA 02",
+        "MU2M OA 03",
+        "MU2M OA 04",
+        "MU2M OA 05",
+        "MU2M OA 06",
+        "MU2M OA 07"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/2_medio/orientacion": {
+      "url": "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/2-medio",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/7o-basico-2o-medio/orientacion/2-medio",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1093403"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "basica-7-media-2",
+      "cantidad_oa_contenido": 10,
+      "codigos": [
+        "OR2M OA 01",
+        "OR2M OA 02",
+        "OR2M OA 03",
+        "OR2M OA 04",
+        "OR2M OA 05",
+        "OR2M OA 06",
+        "OR2M OA 07",
+        "OR2M OA 08",
+        "OR2M OA 09",
+        "OR2M OA 10"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/3_medio/artes_visuales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/artes-visuales/3-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/artes-visuales/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "FG-ARTE-3y4-OAC-01",
+        "FG-ARTE-3y4-OAC-02",
+        "FG-ARTE-3y4-OAC-03",
+        "FG-ARTE-3y4-OAC-04",
+        "FG-ARTE-3y4-OAC-05",
+        "FG-ARTE-3y4-OAC-06",
+        "FG-ARTE-3y4-OAC-07"
+      ],
+      "plan": "formacion_general_electiva"
+    },
+    "media/3_medio/artes_visuales_audiovisuales_y_multimediales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/artes-visuales-audiovisuales-multimediales/4-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/artes-visuales-audiovisuales-multimediales/4-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "AR-AVAM-3y4-OAC-01",
+        "AR-AVAM-3y4-OAC-02",
+        "AR-AVAM-3y4-OAC-03",
+        "AR-AVAM-3y4-OAC-04",
+        "AR-AVAM-3y4-OAC-05",
+        "AR-AVAM-3y4-OAC-06",
+        "AR-AVAM-3y4-OAC-07"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/biologia_celular_y_molecular": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-celular-molecular/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-celular-molecular/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "CN-BCMO-3y4-OAC-01",
+        "CN-BCMO-3y4-OAC-02",
+        "CN-BCMO-3y4-OAC-03",
+        "CN-BCMO-3y4-OAC-04",
+        "CN-BCMO-3y4-OAC-05",
+        "CN-BCMO-3y4-OAC-06",
+        "CN-BCMO-3y4-OAC-07"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/biologia_de_los_ecosistemas": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-ecosistemas/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-ecosistemas/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "CN-BECO-3y4-OAC-01",
+        "CN-BECO-3y4-OAC-02",
+        "CN-BECO-3y4-OAC-03",
+        "CN-BECO-3y4-OAC-04",
+        "CN-BECO-3y4-OAC-05"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/chile_y_la_region_latinoamericana": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/chile-region-latinoamericana/3-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/chile-region-latinoamericana/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "FG-CHLA-3y4-OAC-01",
+        "FG-CHLA-3y4-OAC-02",
+        "FG-CHLA-3y4-OAC-03",
+        "FG-CHLA-3y4-OAC-04",
+        "FG-CHLA-3y4-OAC-05",
+        "FG-CHLA-3y4-OAC-06",
+        "FG-CHLA-3y4-OAC-07"
+      ],
+      "plan": "formacion_general_electiva"
+    },
+    "media/3_medio/ciencias_de_la_salud": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ciencias-salud/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ciencias-salud/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "CN-CSAL-3y4-OAC-01",
+        "CN-CSAL-3y4-OAC-02",
+        "CN-CSAL-3y4-OAC-03",
+        "CN-CSAL-3y4-OAC-04",
+        "CN-CSAL-3y4-OAC-05"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/ciencias_del_ejercicio_fisico_y_deportivo": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ciencias-ejercicio-fisico-deportivo/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ciencias-ejercicio-fisico-deportivo/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "EF-CEFD-3y4-OAC-01",
+        "EF-CEFD-3y4-OAC-02",
+        "EF-CEFD-3y4-OAC-03",
+        "EF-CEFD-3y4-OAC-04",
+        "EF-CEFD-3y4-OAC-05",
+        "EF-CEFD-3y4-OAC-06"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/comprension_historica_del_presente": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/comprension-historica-presente/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/comprension-historica-presente/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "HI-CHDP-3y4-OAC-01",
+        "HI-CHDP-3y4-OAC-02",
+        "HI-CHDP-3y4-OAC-03",
+        "HI-CHDP-3y4-OAC-04",
+        "HI-CHDP-3y4-OAC-05"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/creacion_y_composicion_musical": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/creacion-composicion-musical/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/creacion-composicion-musical/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "AR-CCMU-3y4-OAC-01",
+        "AR-CCMU-3y4-OAC-02",
+        "AR-CCMU-3y4-OAC-03",
+        "AR-CCMU-3y4-OAC-04",
+        "AR-CCMU-3y4-OAC-05",
+        "AR-CCMU-3y4-OAC-06",
+        "AR-CCMU-3y4-OAC-07"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/danza": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/danza/3-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/danza/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "FG-DANZ-3y4-OAC-01",
+        "FG-DANZ-3y4-OAC-02",
+        "FG-DANZ-3y4-OAC-03",
+        "FG-DANZ-3y4-OAC-04",
+        "FG-DANZ-3y4-OAC-05",
+        "FG-DANZ-3y4-OAC-06"
+      ],
+      "plan": "formacion_general_electiva"
+    },
+    "media/3_medio/diseno_y_arquitectura": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/diseno-arquitectura/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/diseno-arquitectura/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "AR-DARQ-3y4-OAC-01",
+        "AR-DARQ-3y4-OAC-02",
+        "AR-DARQ-3y4-OAC-03",
+        "AR-DARQ-3y4-OAC-04",
+        "AR-DARQ-3y4-OAC-05",
+        "AR-DARQ-3y4-OAC-06",
+        "AR-DARQ-3y4-OAC-07"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/economia_y_sociedad": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/economia-sociedad/4-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/economia-sociedad/4-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 8,
+      "codigos": [
+        "HI-ECSO-3y4-OAC-01",
+        "HI-ECSO-3y4-OAC-02",
+        "HI-ECSO-3y4-OAC-03",
+        "HI-ECSO-3y4-OAC-04",
+        "HI-ECSO-3y4-OAC-05",
+        "HI-ECSO-3y4-OAC-06",
+        "HI-ECSO-3y4-OAC-07",
+        "HI-ECSO-3y4-OAC-08"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/educacion_fisica_y_salud_1": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-fisica-salud-1/3-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-fisica-salud-1/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "FG-EFS1-3y4-OAC-01",
+        "FG-EFS1-3y4-OAC-02",
+        "FG-EFS1-3y4-OAC-03",
+        "FG-EFS1-3y4-OAC-04",
+        "FG-EFS1-3y4-OAC-05"
+      ],
+      "plan": "formacion_general_electiva"
+    },
+    "media/3_medio/educacion_fisica_y_salud_2": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-fisica-salud-2/3-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-fisica-salud-2/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "FG-EFS2-3y4-OAC-01",
+        "FG-EFS2-3y4-OAC-02",
+        "FG-EFS2-3y4-OAC-03",
+        "FG-EFS2-3y4-OAC-04",
+        "FG-EFS2-3y4-OAC-05"
+      ],
+      "plan": "formacion_general_electiva"
+    },
+    "media/3_medio/estetica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/estetica/4-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/estetica/4-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "FI-ESTE-3y4-OAC-01",
+        "FI-ESTE-3y4-OAC-02",
+        "FI-ESTE-3y4-OAC-03",
+        "FI-ESTE-3y4-OAC-04",
+        "FI-ESTE-3y4-OAC-05",
+        "FI-ESTE-3y4-OAC-06",
+        "FI-ESTE-3y4-OAC-07"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/expresion_corporal": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/expresion-corporal/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/expresion-corporal/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 4,
+      "codigos": [
+        "EF-EXCO-3y4-OAC-01",
+        "EF-EXCO-3y4-OAC-02",
+        "EF-EXCO-3y4-OAC-03",
+        "EF-EXCO-3y4-OAC-04"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/filosofia": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/filosofia-3-medio/3-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/filosofia-3-medio/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "FG-FILO-3M-OAC-01",
+        "FG-FILO-3M-OAC-02",
+        "FG-FILO-3M-OAC-03",
+        "FG-FILO-3M-OAC-04",
+        "FG-FILO-3M-OAC-05",
+        "FG-FILO-3M-OAC-06"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/3_medio/filosofia_politica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/filosofia-politica/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/filosofia-politica/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "FI-FIPO-3y4-OAC-01",
+        "FI-FIPO-3y4-OAC-02",
+        "FI-FIPO-3y4-OAC-03",
+        "FI-FIPO-3y4-OAC-04",
+        "FI-FIPO-3y4-OAC-05",
+        "FI-FIPO-3y4-OAC-06"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/fisica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/fisica/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/fisica/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "CN-FISI-3y4-OAC-01",
+        "CN-FISI-3y4-OAC-02",
+        "CN-FISI-3y4-OAC-03",
+        "CN-FISI-3y4-OAC-04",
+        "CN-FISI-3y4-OAC-05",
+        "CN-FISI-3y4-OAC-06"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/geografia_territorio_y_desafios_socioambientales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/geografia-territorio-desafios-socioambientales/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/geografia-territorio-desafios-socioambientales/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "HI-GTYD-3y4-OAC-01",
+        "HI-GTYD-3y4-OAC-02",
+        "HI-GTYD-3y4-OAC-03",
+        "HI-GTYD-3y4-OAC-04",
+        "HI-GTYD-3y4-OAC-05",
+        "HI-GTYD-3y4-OAC-06"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/geometria_3d": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/geometria-3d/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/geometria-3d/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "MA-GE3D-3y4-OAC-01",
+        "MA-GE3D-3y4-OAC-02",
+        "MA-GE3D-3y4-OAC-03",
+        "MA-GE3D-3y4-OAC-04",
+        "MA-GE3D-3y4-OAC-05"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/ingles": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ingles-3o-medio/3-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ingles-3o-medio/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 4,
+      "codigos": [
+        "FG-INGL-3M-OAC-01",
+        "FG-INGL-3M-OAC-02",
+        "FG-INGL-3M-OAC-03",
+        "FG-INGL-3M-OAC-04"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/3_medio/interpretacion_musical": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-musical/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-musical/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "AR-IMUS-3y4-OAC-01",
+        "AR-IMUS-3y4-OAC-02",
+        "AR-IMUS-3y4-OAC-03",
+        "AR-IMUS-3y4-OAC-04",
+        "AR-IMUS-3y4-OAC-05",
+        "AR-IMUS-3y4-OAC-06",
+        "AR-IMUS-3y4-OAC-07"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/interpretacion_y_creacion_en_danza": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-creacion-danza/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-creacion-danza/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 8,
+      "codigos": [
+        "AR-ICDA-3y4-OAC-01",
+        "AR-ICDA-3y4-OAC-02",
+        "AR-ICDA-3y4-OAC-03",
+        "AR-ICDA-3y4-OAC-04",
+        "AR-ICDA-3y4-OAC-05",
+        "AR-ICDA-3y4-OAC-06",
+        "AR-ICDA-3y4-OAC-07",
+        "AR-ICDA-3y4-OAC-08"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/interpretacion_y_creacion_en_teatro": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-creacion-teatro/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-creacion-teatro/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 8,
+      "codigos": [
+        "AR-ICTE-3y4-OAC-01",
+        "AR-ICTE-3y4-OAC-02",
+        "AR-ICTE-3y4-OAC-03",
+        "AR-ICTE-3y4-OAC-04",
+        "AR-ICTE-3y4-OAC-05",
+        "AR-ICTE-3y4-OAC-06",
+        "AR-ICTE-3y4-OAC-07",
+        "AR-ICTE-3y4-OAC-08"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/lectura_y_escritura_especializadas": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/lectura-escritura-especializadas/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/lectura-escritura-especializadas/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "LL-LEES-3y4-OAC-01",
+        "LL-LEES-3y4-OAC-02",
+        "LL-LEES-3y4-OAC-03",
+        "LL-LEES-3y4-OAC-04",
+        "LL-LEES-3y4-OAC-05"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/lengua_literatura": {
+      "url": "https://www.bcn.cl/leychile/navegar?idNorma=1136078",
+      "urls": [
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 9,
+      "codigos": [
+        "FG-LELI-3M-OAC-01",
+        "FG-LELI-3M-OAC-02",
+        "FG-LELI-3M-OAC-03",
+        "FG-LELI-3M-OAC-04",
+        "FG-LELI-3M-OAC-05",
+        "FG-LELI-3M-OAC-06",
+        "FG-LELI-3M-OAC-07",
+        "FG-LELI-3M-OAC-08",
+        "FG-LELI-3M-OAC-09"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/3_medio/limites_derivadas_e_integrales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/limites-derivadas-integrales/4-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/limites-derivadas-integrales/4-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "MA-LIDI-3y4-OAC-01",
+        "MA-LIDI-3y4-OAC-02",
+        "MA-LIDI-3y4-OAC-03",
+        "MA-LIDI-3y4-OAC-04",
+        "MA-LIDI-3y4-OAC-05"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/mundo_global": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/mundo-global/4-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/mundo-global/4-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "FG-MGLO-3y4-OAC-01",
+        "FG-MGLO-3y4-OAC-02",
+        "FG-MGLO-3y4-OAC-03",
+        "FG-MGLO-3y4-OAC-04",
+        "FG-MGLO-3y4-OAC-05",
+        "FG-MGLO-3y4-OAC-06",
+        "FG-MGLO-3y4-OAC-07"
+      ],
+      "plan": "formacion_general_electiva"
+    },
+    "media/3_medio/musica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/musica/3-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/musica/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "FG-MUSI-3y4-OAC-01",
+        "FG-MUSI-3y4-OAC-02",
+        "FG-MUSI-3y4-OAC-03",
+        "FG-MUSI-3y4-OAC-04",
+        "FG-MUSI-3y4-OAC-05",
+        "FG-MUSI-3y4-OAC-06",
+        "FG-MUSI-3y4-OAC-07"
+      ],
+      "plan": "formacion_general_electiva"
+    },
+    "media/3_medio/participacion_y_argumentacion_en_democracia": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/participacion-argumentacion-democracia/4-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/participacion-argumentacion-democracia/4-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "LL-PADM-3y4-OAC-01",
+        "LL-PADM-3y4-OAC-02",
+        "LL-PADM-3y4-OAC-03",
+        "LL-PADM-3y4-OAC-04",
+        "LL-PADM-3y4-OAC-05",
+        "LL-PADM-3y4-OAC-06",
+        "LL-PADM-3y4-OAC-07"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/pensamiento_computacional_y_programacion": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/pensamiento-computacional-programacion/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/pensamiento-computacional-programacion/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "MA-PCPR-3y4-OAC-01",
+        "MA-PCPR-3y4-OAC-02",
+        "MA-PCPR-3y4-OAC-03",
+        "MA-PCPR-3y4-OAC-04",
+        "MA-PCPR-3y4-OAC-05",
+        "MA-PCPR-3y4-OAC-06"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/probabilidades_y_estadistica_descriptiva_e_inferencial": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/probabilidades-estadistica-descriptiva-inferencial/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/probabilidades-estadistica-descriptiva-inferencial/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 4,
+      "codigos": [
+        "MA-PEDI-3y4-OAC-01",
+        "MA-PEDI-3y4-OAC-02",
+        "MA-PEDI-3y4-OAC-03",
+        "MA-PEDI-3y4-OAC-04"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/promocion_de_estilos_de_vida_activos_y_saludables": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/promocion-estilos-vida-activos-saludables/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/promocion-estilos-vida-activos-saludables/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "EF-PVAS-3y4-OAC-01",
+        "EF-PVAS-3y4-OAC-02",
+        "EF-PVAS-3y4-OAC-03",
+        "EF-PVAS-3y4-OAC-04",
+        "EF-PVAS-3y4-OAC-05",
+        "EF-PVAS-3y4-OAC-06"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/quimica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/quimica/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/quimica/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "CN-QUIM-3y4-OAC-01",
+        "CN-QUIM-3y4-OAC-02",
+        "CN-QUIM-3y4-OAC-03",
+        "CN-QUIM-3y4-OAC-04",
+        "CN-QUIM-3y4-OAC-05",
+        "CN-QUIM-3y4-OAC-06",
+        "CN-QUIM-3y4-OAC-07"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/seminario_de_filosofia": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/seminario-filosofia/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/seminario-filosofia/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "FI-SEFI-3y4-OAC-01",
+        "FI-SEFI-3y4-OAC-02",
+        "FI-SEFI-3y4-OAC-03",
+        "FI-SEFI-3y4-OAC-04",
+        "FI-SEFI-3y4-OAC-05"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/taller_de_literatura": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/taller-literatura/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/taller-literatura/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "LL-TALI-3y4-OAC-01",
+        "LL-TALI-3y4-OAC-02",
+        "LL-TALI-3y4-OAC-03",
+        "LL-TALI-3y4-OAC-04",
+        "LL-TALI-3y4-OAC-05",
+        "LL-TALI-3y4-OAC-06"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/3_medio/teatro": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/teatro/3-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/teatro/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "FG-TEAT-3y4-OAC-01",
+        "FG-TEAT-3y4-OAC-02",
+        "FG-TEAT-3y4-OAC-03",
+        "FG-TEAT-3y4-OAC-04",
+        "FG-TEAT-3y4-OAC-05",
+        "FG-TEAT-3y4-OAC-06"
+      ],
+      "plan": "formacion_general_electiva"
+    },
+    "media/4_medio/artes_visuales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/artes-visuales/3-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/artes-visuales/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "FG-ARTE-3y4-OAC-01",
+        "FG-ARTE-3y4-OAC-02",
+        "FG-ARTE-3y4-OAC-03",
+        "FG-ARTE-3y4-OAC-04",
+        "FG-ARTE-3y4-OAC-05",
+        "FG-ARTE-3y4-OAC-06",
+        "FG-ARTE-3y4-OAC-07"
+      ],
+      "plan": "formacion_general_electiva"
+    },
+    "media/4_medio/artes_visuales_audiovisuales_y_multimediales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/artes-visuales-audiovisuales-multimediales/4-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/artes-visuales-audiovisuales-multimediales/4-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "AR-AVAM-3y4-OAC-01",
+        "AR-AVAM-3y4-OAC-02",
+        "AR-AVAM-3y4-OAC-03",
+        "AR-AVAM-3y4-OAC-04",
+        "AR-AVAM-3y4-OAC-05",
+        "AR-AVAM-3y4-OAC-06",
+        "AR-AVAM-3y4-OAC-07"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/biologia_celular_y_molecular": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-celular-molecular/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-celular-molecular/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "CN-BCMO-3y4-OAC-01",
+        "CN-BCMO-3y4-OAC-02",
+        "CN-BCMO-3y4-OAC-03",
+        "CN-BCMO-3y4-OAC-04",
+        "CN-BCMO-3y4-OAC-05",
+        "CN-BCMO-3y4-OAC-06",
+        "CN-BCMO-3y4-OAC-07"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/biologia_de_los_ecosistemas": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-ecosistemas/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/biologia-ecosistemas/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "CN-BECO-3y4-OAC-01",
+        "CN-BECO-3y4-OAC-02",
+        "CN-BECO-3y4-OAC-03",
+        "CN-BECO-3y4-OAC-04",
+        "CN-BECO-3y4-OAC-05"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/chile_y_la_region_latinoamericana": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/chile-region-latinoamericana/3-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/chile-region-latinoamericana/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "FG-CHLA-3y4-OAC-01",
+        "FG-CHLA-3y4-OAC-02",
+        "FG-CHLA-3y4-OAC-03",
+        "FG-CHLA-3y4-OAC-04",
+        "FG-CHLA-3y4-OAC-05",
+        "FG-CHLA-3y4-OAC-06",
+        "FG-CHLA-3y4-OAC-07"
+      ],
+      "plan": "formacion_general_electiva"
+    },
+    "media/4_medio/ciencias_de_la_salud": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ciencias-salud/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ciencias-salud/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "CN-CSAL-3y4-OAC-01",
+        "CN-CSAL-3y4-OAC-02",
+        "CN-CSAL-3y4-OAC-03",
+        "CN-CSAL-3y4-OAC-04",
+        "CN-CSAL-3y4-OAC-05"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/ciencias_del_ejercicio_fisico_y_deportivo": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ciencias-ejercicio-fisico-deportivo/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ciencias-ejercicio-fisico-deportivo/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "EF-CEFD-3y4-OAC-01",
+        "EF-CEFD-3y4-OAC-02",
+        "EF-CEFD-3y4-OAC-03",
+        "EF-CEFD-3y4-OAC-04",
+        "EF-CEFD-3y4-OAC-05",
+        "EF-CEFD-3y4-OAC-06"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/comprension_historica_del_presente": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/comprension-historica-presente/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/comprension-historica-presente/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "HI-CHDP-3y4-OAC-01",
+        "HI-CHDP-3y4-OAC-02",
+        "HI-CHDP-3y4-OAC-03",
+        "HI-CHDP-3y4-OAC-04",
+        "HI-CHDP-3y4-OAC-05"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/creacion_y_composicion_musical": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/creacion-composicion-musical/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/creacion-composicion-musical/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "AR-CCMU-3y4-OAC-01",
+        "AR-CCMU-3y4-OAC-02",
+        "AR-CCMU-3y4-OAC-03",
+        "AR-CCMU-3y4-OAC-04",
+        "AR-CCMU-3y4-OAC-05",
+        "AR-CCMU-3y4-OAC-06",
+        "AR-CCMU-3y4-OAC-07"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/danza": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/danza/3-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/danza/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "FG-DANZ-3y4-OAC-01",
+        "FG-DANZ-3y4-OAC-02",
+        "FG-DANZ-3y4-OAC-03",
+        "FG-DANZ-3y4-OAC-04",
+        "FG-DANZ-3y4-OAC-05",
+        "FG-DANZ-3y4-OAC-06"
+      ],
+      "plan": "formacion_general_electiva"
+    },
+    "media/4_medio/diseno_y_arquitectura": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/diseno-arquitectura/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/diseno-arquitectura/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "AR-DARQ-3y4-OAC-01",
+        "AR-DARQ-3y4-OAC-02",
+        "AR-DARQ-3y4-OAC-03",
+        "AR-DARQ-3y4-OAC-04",
+        "AR-DARQ-3y4-OAC-05",
+        "AR-DARQ-3y4-OAC-06",
+        "AR-DARQ-3y4-OAC-07"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/economia_y_sociedad": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/economia-sociedad/4-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/economia-sociedad/4-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 8,
+      "codigos": [
+        "HI-ECSO-3y4-OAC-01",
+        "HI-ECSO-3y4-OAC-02",
+        "HI-ECSO-3y4-OAC-03",
+        "HI-ECSO-3y4-OAC-04",
+        "HI-ECSO-3y4-OAC-05",
+        "HI-ECSO-3y4-OAC-06",
+        "HI-ECSO-3y4-OAC-07",
+        "HI-ECSO-3y4-OAC-08"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/educacion_fisica_y_salud_1": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-fisica-salud-1/3-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-fisica-salud-1/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "FG-EFS1-3y4-OAC-01",
+        "FG-EFS1-3y4-OAC-02",
+        "FG-EFS1-3y4-OAC-03",
+        "FG-EFS1-3y4-OAC-04",
+        "FG-EFS1-3y4-OAC-05"
+      ],
+      "plan": "formacion_general_electiva"
+    },
+    "media/4_medio/educacion_fisica_y_salud_2": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-fisica-salud-2/3-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/educacion-fisica-salud-2/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "FG-EFS2-3y4-OAC-01",
+        "FG-EFS2-3y4-OAC-02",
+        "FG-EFS2-3y4-OAC-03",
+        "FG-EFS2-3y4-OAC-04",
+        "FG-EFS2-3y4-OAC-05"
+      ],
+      "plan": "formacion_general_electiva"
+    },
+    "media/4_medio/estetica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/estetica/4-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/estetica/4-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "FI-ESTE-3y4-OAC-01",
+        "FI-ESTE-3y4-OAC-02",
+        "FI-ESTE-3y4-OAC-03",
+        "FI-ESTE-3y4-OAC-04",
+        "FI-ESTE-3y4-OAC-05",
+        "FI-ESTE-3y4-OAC-06",
+        "FI-ESTE-3y4-OAC-07"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/expresion_corporal": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/expresion-corporal/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/expresion-corporal/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 4,
+      "codigos": [
+        "EF-EXCO-3y4-OAC-01",
+        "EF-EXCO-3y4-OAC-02",
+        "EF-EXCO-3y4-OAC-03",
+        "EF-EXCO-3y4-OAC-04"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/filosofia": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/filosofia-4o-medio/4-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/filosofia-4o-medio/4-medio-fg",
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/filosofia-4o-medio/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "FG-FILO-4M-OAC-01",
+        "FG-FILO-4M-OAC-02",
+        "FG-FILO-4M-OAC-03",
+        "FG-FILO-4M-OAC-04",
+        "FG-FILO-4M-OAC-05"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/4_medio/filosofia_politica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/filosofia-politica/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/filosofia-politica/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "FI-FIPO-3y4-OAC-01",
+        "FI-FIPO-3y4-OAC-02",
+        "FI-FIPO-3y4-OAC-03",
+        "FI-FIPO-3y4-OAC-04",
+        "FI-FIPO-3y4-OAC-05",
+        "FI-FIPO-3y4-OAC-06"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/fisica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/fisica/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/fisica/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "CN-FISI-3y4-OAC-01",
+        "CN-FISI-3y4-OAC-02",
+        "CN-FISI-3y4-OAC-03",
+        "CN-FISI-3y4-OAC-04",
+        "CN-FISI-3y4-OAC-05",
+        "CN-FISI-3y4-OAC-06"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/geografia_territorio_y_desafios_socioambientales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/geografia-territorio-desafios-socioambientales/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/geografia-territorio-desafios-socioambientales/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "HI-GTYD-3y4-OAC-01",
+        "HI-GTYD-3y4-OAC-02",
+        "HI-GTYD-3y4-OAC-03",
+        "HI-GTYD-3y4-OAC-04",
+        "HI-GTYD-3y4-OAC-05",
+        "HI-GTYD-3y4-OAC-06"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/geometria_3d": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/geometria-3d/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/geometria-3d/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "MA-GE3D-3y4-OAC-01",
+        "MA-GE3D-3y4-OAC-02",
+        "MA-GE3D-3y4-OAC-03",
+        "MA-GE3D-3y4-OAC-04",
+        "MA-GE3D-3y4-OAC-05"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/ingles": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ingles-4o-medio/4-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/ingles-4o-medio/4-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 4,
+      "codigos": [
+        "FG-INGL-4M-OAC-01",
+        "FG-INGL-4M-OAC-02",
+        "FG-INGL-4M-OAC-03",
+        "FG-INGL-4M-OAC-04"
+      ],
+      "plan": "formacion_general"
+    },
+    "media/4_medio/interpretacion_musical": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-musical/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-musical/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "AR-IMUS-3y4-OAC-01",
+        "AR-IMUS-3y4-OAC-02",
+        "AR-IMUS-3y4-OAC-03",
+        "AR-IMUS-3y4-OAC-04",
+        "AR-IMUS-3y4-OAC-05",
+        "AR-IMUS-3y4-OAC-06",
+        "AR-IMUS-3y4-OAC-07"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/interpretacion_y_creacion_en_danza": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-creacion-danza/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-creacion-danza/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 8,
+      "codigos": [
+        "AR-ICDA-3y4-OAC-01",
+        "AR-ICDA-3y4-OAC-02",
+        "AR-ICDA-3y4-OAC-03",
+        "AR-ICDA-3y4-OAC-04",
+        "AR-ICDA-3y4-OAC-05",
+        "AR-ICDA-3y4-OAC-06",
+        "AR-ICDA-3y4-OAC-07",
+        "AR-ICDA-3y4-OAC-08"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/interpretacion_y_creacion_en_teatro": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-creacion-teatro/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/interpretacion-creacion-teatro/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 8,
+      "codigos": [
+        "AR-ICTE-3y4-OAC-01",
+        "AR-ICTE-3y4-OAC-02",
+        "AR-ICTE-3y4-OAC-03",
+        "AR-ICTE-3y4-OAC-04",
+        "AR-ICTE-3y4-OAC-05",
+        "AR-ICTE-3y4-OAC-06",
+        "AR-ICTE-3y4-OAC-07",
+        "AR-ICTE-3y4-OAC-08"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/lectura_y_escritura_especializadas": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/lectura-escritura-especializadas/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/lectura-escritura-especializadas/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "LL-LEES-3y4-OAC-01",
+        "LL-LEES-3y4-OAC-02",
+        "LL-LEES-3y4-OAC-03",
+        "LL-LEES-3y4-OAC-04",
+        "LL-LEES-3y4-OAC-05"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/limites_derivadas_e_integrales": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/limites-derivadas-integrales/4-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/limites-derivadas-integrales/4-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "MA-LIDI-3y4-OAC-01",
+        "MA-LIDI-3y4-OAC-02",
+        "MA-LIDI-3y4-OAC-03",
+        "MA-LIDI-3y4-OAC-04",
+        "MA-LIDI-3y4-OAC-05"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/mundo_global": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/mundo-global/4-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/mundo-global/4-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "FG-MGLO-3y4-OAC-01",
+        "FG-MGLO-3y4-OAC-02",
+        "FG-MGLO-3y4-OAC-03",
+        "FG-MGLO-3y4-OAC-04",
+        "FG-MGLO-3y4-OAC-05",
+        "FG-MGLO-3y4-OAC-06",
+        "FG-MGLO-3y4-OAC-07"
+      ],
+      "plan": "formacion_general_electiva"
+    },
+    "media/4_medio/musica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/musica/3-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/musica/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "FG-MUSI-3y4-OAC-01",
+        "FG-MUSI-3y4-OAC-02",
+        "FG-MUSI-3y4-OAC-03",
+        "FG-MUSI-3y4-OAC-04",
+        "FG-MUSI-3y4-OAC-05",
+        "FG-MUSI-3y4-OAC-06",
+        "FG-MUSI-3y4-OAC-07"
+      ],
+      "plan": "formacion_general_electiva"
+    },
+    "media/4_medio/participacion_y_argumentacion_en_democracia": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/participacion-argumentacion-democracia/4-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/participacion-argumentacion-democracia/4-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "LL-PADM-3y4-OAC-01",
+        "LL-PADM-3y4-OAC-02",
+        "LL-PADM-3y4-OAC-03",
+        "LL-PADM-3y4-OAC-04",
+        "LL-PADM-3y4-OAC-05",
+        "LL-PADM-3y4-OAC-06",
+        "LL-PADM-3y4-OAC-07"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/pensamiento_computacional_y_programacion": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/pensamiento-computacional-programacion/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/pensamiento-computacional-programacion/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "MA-PCPR-3y4-OAC-01",
+        "MA-PCPR-3y4-OAC-02",
+        "MA-PCPR-3y4-OAC-03",
+        "MA-PCPR-3y4-OAC-04",
+        "MA-PCPR-3y4-OAC-05",
+        "MA-PCPR-3y4-OAC-06"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/probabilidades_y_estadistica_descriptiva_e_inferencial": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/probabilidades-estadistica-descriptiva-inferencial/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/probabilidades-estadistica-descriptiva-inferencial/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 4,
+      "codigos": [
+        "MA-PEDI-3y4-OAC-01",
+        "MA-PEDI-3y4-OAC-02",
+        "MA-PEDI-3y4-OAC-03",
+        "MA-PEDI-3y4-OAC-04"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/promocion_de_estilos_de_vida_activos_y_saludables": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/promocion-estilos-vida-activos-saludables/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/promocion-estilos-vida-activos-saludables/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "EF-PVAS-3y4-OAC-01",
+        "EF-PVAS-3y4-OAC-02",
+        "EF-PVAS-3y4-OAC-03",
+        "EF-PVAS-3y4-OAC-04",
+        "EF-PVAS-3y4-OAC-05",
+        "EF-PVAS-3y4-OAC-06"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/quimica": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/quimica/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/quimica/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 7,
+      "codigos": [
+        "CN-QUIM-3y4-OAC-01",
+        "CN-QUIM-3y4-OAC-02",
+        "CN-QUIM-3y4-OAC-03",
+        "CN-QUIM-3y4-OAC-04",
+        "CN-QUIM-3y4-OAC-05",
+        "CN-QUIM-3y4-OAC-06",
+        "CN-QUIM-3y4-OAC-07"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/seminario_de_filosofia": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/seminario-filosofia/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/seminario-filosofia/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 5,
+      "codigos": [
+        "FI-SEFI-3y4-OAC-01",
+        "FI-SEFI-3y4-OAC-02",
+        "FI-SEFI-3y4-OAC-03",
+        "FI-SEFI-3y4-OAC-04",
+        "FI-SEFI-3y4-OAC-05"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/taller_de_literatura": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/taller-literatura/3-medio-hc",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/taller-literatura/3-medio-hc",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "LL-TALI-3y4-OAC-01",
+        "LL-TALI-3y4-OAC-02",
+        "LL-TALI-3y4-OAC-03",
+        "LL-TALI-3y4-OAC-04",
+        "LL-TALI-3y4-OAC-05",
+        "LL-TALI-3y4-OAC-06"
+      ],
+      "plan": "formacion_diferenciada_hc"
+    },
+    "media/4_medio/teatro": {
+      "url": "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/teatro/3-medio-fg",
+      "urls": [
+        "https://www.curriculumnacional.cl/curriculum/3o-4o-medio/teatro/3-medio-fg",
+        "https://www.bcn.cl/leychile/navegar?idNorma=1136078"
+      ],
+      "fecha_consulta": "2026-11-06",
+      "base_curricular_id": "media-3-4",
+      "cantidad_oa_contenido": 6,
+      "codigos": [
+        "FG-TEAT-3y4-OAC-01",
+        "FG-TEAT-3y4-OAC-02",
+        "FG-TEAT-3y4-OAC-03",
+        "FG-TEAT-3y4-OAC-04",
+        "FG-TEAT-3y4-OAC-05",
+        "FG-TEAT-3y4-OAC-06"
+      ],
+      "plan": "formacion_general_electiva"
     }
   },
   "propuestas_oficiales_verificadas": {
