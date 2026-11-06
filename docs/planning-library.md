@@ -10,7 +10,7 @@ Los proveedores Google y compatibles informan tokens reales cuando están dispon
 
 ## Activación
 
-Aplicar sql/planning-library.sql mediante la migración confirmada de Supabase. Es aditiva, usa funciones security invoker y conserva RLS por propietario. Antes de activar, ejecutar las pruebas de aislamiento y verificar índices y funciones. El código degrada a generación normal si las funciones todavía no existen.
+Migraciones aplicadas en Supabase: 20261106211009_connect_private_planning_library.sql y 20261106211153_fix_planning_library_owner_delete.sql. Es aditiva, usa funciones security invoker y conserva RLS por propietario. Pruebas transaccionales con rol authenticated verificadas: sincronización de correcciones, copias independientes, búsqueda propia, aislamiento entre propietarios, contador y eliminación. La eliminación retira la copia derivada mediante DELETE autorizado por propietario, porque la política SELECT existente impide actualizar deleted_at. El código degrada a generación normal si las funciones no existen en otro entorno.
 
 ## Verificación
 
