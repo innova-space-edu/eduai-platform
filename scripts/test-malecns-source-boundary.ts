@@ -2,6 +2,8 @@ import assert from "node:assert/strict"
 import { classifyMaleCNSSource, getMaleCNSVerifiedContext } from "../lib/eduai/malecns-source-boundary"
 import { getEduAIPlatformKnowledgeContext } from "../lib/eduai/platform-knowledge"
 
+async function main() {
+
 // This fake DB fails immediately: project-specific answers must never depend
 // on or accidentally load the old V29/V45C records in Supabase.
 const staleDb = { from: () => { throw new Error("STALE DATABASE ACCESSED") } } as never
@@ -50,3 +52,7 @@ assert.match(followUp, /C0\.13/)
 assert.equal(getMaleCNSVerifiedContext("¿Cómo aprende una neurona?"), null)
 
 console.log("[malecns-source-boundary] internal/external/compare, admin-gating, freshness, follow-up and stale-db bypass verified")
+
+}
+
+void main().catch(error => { console.error(error); process.exitCode = 1 })
