@@ -232,8 +232,9 @@ export default function NotebookChat({
           </div>
         )}
 
-        {messages.map((msg) => (
+        {messages.map((msg, index) => (
           <MessageBubble key={msg.id} message={msg}
+            originalPrompt={messages.slice(0, index).reverse().find(previous => previous.role === "user")?.content}
             isSpeaking={speakingId === msg.id}
             onSpeak={() => speak(msg.id, msg.content)} />
         ))}
@@ -283,9 +284,10 @@ export default function NotebookChat({
 
 // ─── MessageBubble con TTS ────────────────────────────────────────────────────
 
-function MessageBubble({ message, isSpeaking, onSpeak }: {
+function MessageBubble({ message, isSpeaking, onSpeak, originalPrompt }: {
   message:    NotebookMessage
   isSpeaking: boolean
+  originalPrompt?: string
   onSpeak:    () => void
 }) {
   const isUser = message.role === "user"
@@ -309,7 +311,7 @@ function MessageBubble({ message, isSpeaking, onSpeak }: {
       </div>
 
       {/* Acciones para mensajes del asistente */}
-      {!isUser && <TrainingFeedback answer={message.content} module="notebook" />}
+      {!isUser && <TrainingFeedback answer={message.content} prompt={originalPrompt} module="notebook" />}
       {!isUser && (
         <div className="flex items-center gap-2 ml-2">
           {/* Botón TTS */}
