@@ -15,6 +15,7 @@ export default function TrainingFeedback({ answer, prompt = "", module = "chat" 
   const [confirmed, setConfirmed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState("")
+  const [validationHint, setValidationHint] = useState("")
 
   function startRating(next: Rating) {
     setRating(next)
@@ -22,6 +23,7 @@ export default function TrainingFeedback({ answer, prompt = "", module = "chat" 
     setChoice(null)
     setConfirmed(false)
     setNotice("")
+    setValidationHint("")
   }
 
   async function compare() {
@@ -32,6 +34,7 @@ export default function TrainingFeedback({ answer, prompt = "", module = "chat" 
     setChoice(null)
     setConfirmed(false)
     setNotice("")
+    setValidationHint("")
     try {
       const response = await fetch("/api/ai/training/compare", {
         method: "POST",
@@ -54,11 +57,28 @@ export default function TrainingFeedback({ answer, prompt = "", module = "chat" 
       ? choice === "A" ? "useful" : choice === "B" ? "corrected" : null
       : rating
     const selectedCorrection = alternative && choice === "B" ? alternative : correction
-    if (!selectedRating || !confirmed || busy) return
-    if (selectedRating === "corrected" && selectedCorrection.trim().length < 12) return
+    if (busy) return
+    // Mantener el botón visible y accionable: nunca fallar silenciosamente.
+    if (!selectedRating) {
+      setValidationHint("Selecciona la respuesta A o B antes de enviarla.")
+      return
+    }
+    if (question.trim().length < 8) {
+      setValidationHint("La pregunta original debe tener al menos 8 caracteres.")
+      return
+    }
+    if (selectedRating === "corrected" && selectedCorrection.trim().length < 12) {
+      setValidationHint("Escribe una respuesta correcta de al menos 12 caracteres.")
+      return
+    }
+    if (!confirmed) {
+      setValidationHint("Para enviar, marca la casilla que confirma que revisaste el contenido y puedes aportarlo.")
+      return
+    }
 
     setBusy(true)
     setNotice("")
+    setValidationHint("")
     try {
       const response = await fetch("/api/ai/training", {
         method: "POST",
@@ -119,7 +139,7 @@ export default function TrainingFeedback({ answer, prompt = "", module = "chat" 
                 className={"block cursor-pointer rounded-lg border p-3 " +
                   (choice === option.key ? "border-indigo-500 bg-indigo-500/10" : "border-slate-400/30")}>
                 <span className="mb-2 flex items-center gap-2 font-semibold">
-                  <input type="radio" checked={choice === option.key} onChange={() => setChoice(option.key)} />
+                  <input type="radio" checked={choice === option.key} onChange={() => setChoice(option.key); setValidationHint("")} />
                   {option.label}
                 </span>
                 <span className="block max-h-64 overflow-auto whitespace-pre-wrap break-words text-sm leading-relaxed">
@@ -153,7 +173,7 @@ export default function TrainingFeedback({ answer, prompt = "", module = "chat" 
       {(rating || alternative) && (
         <div className="mt-3 grid gap-2">
           <label className="flex items-start gap-2">
-            <input type="checkbox" checked={confirmed} onChange={e => setConfirmed(e.target.checked)} />
+            <input type="checkbox" checked={confirmed} onChange={e => { setConfirmed(e.target.checked); setValidationHint("") }} />
             Revisé el contenido: no incluye datos personales ni material que no pueda aportar.
           </label>
           <p>Participación voluntaria de adultos.{" "}
@@ -161,14 +181,23 @@ export default function TrainingFeedback({ answer, prompt = "", module = "chat" 
               Autorizar o retirar aportes al entrenamiento
             </a>.
           </p>
-          <div className="flex flex-wrap gap-3">
-            <button type="button" disabled={busy || !confirmed || question.trim().length < 8 ||
-              Boolean(alternative && !choice) ||
-              Boolean(rating === "corrected" && correction.trim().length < 12)}
-              onClick={() => void submit()} className="font-semibold disabled:opacity-40">
-              {busy ? "Enviando…" : alternative ? "Guardar respuesta elegida" : "Enviar valoración"}
+          {validationHint && (
+            <p role="alert" id="training-send-hint" className="rounded-lg border border-amber-400/40 bg-amber-500/10 px-3 py-2 font-medium text-amber-800 dark:text-amber-200">
+              {validationHint}
+            </p>
+          )}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              disabled={busy}
+              aria-describedby={validationHint ? "training-send-hint" : undefined}
+              onClick={() => void submit()}
+              className="inline-flex min-h-10 items-center justify-center rounded-xl bg-indigo-600 px-5 py-2.5 font-semibold text-white shadow-sm transition-colors hover:bg-indigo-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 disabled:cursor-wait disabled:opacity-60"
+            >
+              {busy ? "Enviando respuesta…" : alternative && choice ? `Enviar respuesta ${choice}` : "Enviar respuesta"}
             </button>
-            <button type="button" disabled={busy} onClick={() => { setRating(null); setAlternative(""); setChoice(null); setConfirmed(false) }}>
+            <button type="button" disabled={busy} className="px-2 py-2 font-medium underline underline-offset-2"
+              onClick={() => { setRating(null); setAlternative(""); setChoice(null); setConfirmed(false); setValidationHint("") }}>
               Cancelar
             </button>
           </div>
