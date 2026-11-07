@@ -55,4 +55,27 @@ for (const input of genuineMusicRequests) {
   assert.equal(detectToolFromMessage(input), "recommend_focus_music", `No se activó Música: ${input}`)
 }
 
+
+// Una consulta de revisión/inspección NO equivale a corregir el texto escrito.
+const inspectionRequests = [
+  "Soy administrador, ya lo tengo listo. ¿Puedes revisar si existe algún repositorio de GitHub que permita que un encargado supervise sin usar CMD?",
+  "Revisa si el programa tiene herramientas para el encargado.",
+  "¿Puedes revisar la configuración del servidor y decir qué falta?",
+  "Revisa qué actividades están disponibles para educación parvularia.",
+  "¿Podrías revisar si hay algún proyecto similar y darme opciones?",
+]
+for (const input of inspectionRequests) {
+  assert.equal(detectToolFromMessage(input), null, "No se debe corregir una consulta: " + input)
+}
+
+const proofreadingRequests = [
+  "Corrige este texto: necesito enviar una carta formal.",
+  "Revisa la ortografía de este texto, por favor.",
+  "Mejora la redacción del documento.",
+  "Revisar el párrafo de la propuesta.",
+]
+for (const input of proofreadingRequests) {
+  assert.equal(detectToolFromMessage(input), "proofread_text", "No se detectó una edición explícita: " + input)
+}
+
 console.log(`[claw-intent] ${nonMusicalRequests.length} solicitudes NO musicales y ${genuineMusicRequests.length} musicales verificadas`)
