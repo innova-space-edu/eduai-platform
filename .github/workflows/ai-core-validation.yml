@@ -103,6 +103,8 @@ jobs:
         run: node scripts/apply-production-hardening-stage2.mjs
       - name: Probar fingerprints y routing
         run: npm run test:ai-core
+      - name: Evitar corrección textual por error de intención
+        run: npm run test:claw-intent
       - name: Probar biblioteca privada de planificaciones
         run: npm run test:planning-library
       - name: Verificar TypeScript real

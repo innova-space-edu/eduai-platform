@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { detectToolFromMessage, isMusicListeningRequest } from "../lib/superagent/tool-registry"
+import { detectToolFromMessage, isMusicListeningRequest, resolveGeneratedImageUrl } from "../lib/superagent/tool-registry"
 
 const nonMusicalRequests = [
   "Quiero solicitar una reunión de trabajo a la directora para abordar IA, carros de tablet que llegan el 9 de noviembre, servidor propio, presupuesto para tecnologías y proyectos de la sala de música.",
@@ -54,5 +54,41 @@ for (const input of genuineMusicRequests) {
   assert.equal(isMusicListeningRequest(input), true, `La intención musical no se detectó: ${input}`)
   assert.equal(detectToolFromMessage(input), "recommend_focus_music", `No se activó Música: ${input}`)
 }
+
+
+// Una consulta de revisión/inspección NO equivale a corregir el texto escrito.
+const inspectionRequests = [
+  "Soy administrador, ya lo tengo listo. ¿Puedes revisar si existe algún repositorio de GitHub que permita que un encargado supervise sin usar CMD?",
+  "Revisa si el programa tiene herramientas para el encargado.",
+  "¿Puedes revisar la configuración del servidor y decir qué falta?",
+  "Revisa qué actividades están disponibles para educación parvularia.",
+  "¿Podrías revisar si hay algún proyecto similar y darme opciones?",
+]
+for (const input of inspectionRequests) {
+  assert.equal(detectToolFromMessage(input), null, "No se debe corregir una consulta: " + input)
+}
+
+const proofreadingRequests = [
+  "Corrige este texto: necesito enviar una carta formal.",
+  "Revisa la ortografía de este texto, por favor.",
+  "Mejora la redacción del documento.",
+  "Revisar el párrafo de la propuesta.",
+]
+for (const input of proofreadingRequests) {
+  assert.equal(detectToolFromMessage(input), "proofread_text", "No se detectó una edición explícita: " + input)
+}
+
+
+// Regression: when the image API provides both a large Base64 image and a Storage
+// URL, Claw must render the permanent URL, never an unsupported data: URI.
+const storedImageUrl = "https://example.supabase.co/storage/v1/object/public/generated-images/user/asset.png"
+assert.equal(resolveGeneratedImageUrl({
+  imageUrl: "data:image/png;base64,iVBORw0KGgo=",
+  persistentUrl: storedImageUrl,
+}), storedImageUrl)
+assert.equal(resolveGeneratedImageUrl({ imageUrl: storedImageUrl }), storedImageUrl)
+assert.equal(resolveGeneratedImageUrl({ imageUrl: "data:image/png;base64,iVBORw0KGgo=" }), null)
+assert.equal(resolveGeneratedImageUrl({ imageUrl: "javascript:alert(1)" }), null)
+assert.equal(resolveGeneratedImageUrl({ imageUrl: "" }), null)
 
 console.log(`[claw-intent] ${nonMusicalRequests.length} solicitudes NO musicales y ${genuineMusicRequests.length} musicales verificadas`)

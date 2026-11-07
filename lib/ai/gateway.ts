@@ -260,6 +260,8 @@ export async function runAIText(input: {
   fallbackToDefault?: boolean
   lite?: boolean
   fastPath?: boolean
+  // A/B comparisons are provisional: never collect an unselected answer.
+  captureTraining?: boolean
   context?: AIRequestContext
   supabase?: SupabaseClient | null
 }): Promise<GatewayResult<string>> {
@@ -410,8 +412,10 @@ export async function runAIText(input: {
         })
       }
 
-      await captureTrainingCandidate({ supabase: input.supabase, userId: input.context?.userId, module: input.context?.module,
-        messages: input.messages, answer: result.text, provider: result.provider, model: result.model })
+      if (input.captureTraining !== false) {
+        await captureTrainingCandidate({ supabase: input.supabase, userId: input.context?.userId, module: input.context?.module,
+          messages: input.messages, answer: result.text, provider: result.provider, model: result.model })
+      }
 
       return {
         data: result.text,

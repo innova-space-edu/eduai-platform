@@ -149,6 +149,22 @@ function pickSubject(message: string): string {
   return "";
 }
 
+/**
+ * Claw renders Markdown through react-markdown. Base64 data:image URLs are
+ * blocked by its default URL sanitizer and would also make chat history huge.
+ * Prefer the permanent Storage URL; cached generations already expose HTTPS.
+ */
+export function resolveGeneratedImageUrl(payload: Record<string, unknown>): string | null {
+  for (const candidate of [payload.persistentUrl, payload.imageUrl]) {
+    if (typeof candidate !== "string" || !candidate.trim()) continue
+    try {
+      const parsed = new URL(candidate)
+      if (parsed.protocol === "https:" && parsed.hostname) return parsed.toString()
+    } catch { /* Invalid/malformed URL: try the next candidate. */ }
+  }
+  return null
+}
+
 // ── Definición de tools ───────────────────────────────────────────────────────
 
 export const TOOL_REGISTRY: ToolDefinition[] = [
@@ -805,6 +821,7 @@ Incluye 4-5 criterios medibles.`;
             provider: "auto",
             mode: "quality",
             source: "superagent",
+            requireStorage: true,
             educationalContext:
               "Imagen solicitada desde EduAI Claw para uso educativo.",
           },
@@ -815,7 +832,8 @@ Incluye 4-5 criterios medibles.`;
         if (!res.ok)
           throw new Error(String(data.error || `HTTP ${res.status}`));
 
-        const imageUrl = String(data.imageUrl || "");
+        const imageUrl = resolveGeneratedImageUrl(data);
+        if (!imageUrl) throw new Error("La imagen se generó, pero no dispone de una URL permanente válida. Comprueba el almacenamiento de Image Studio.");
         const provider = String(data.provider || "motor unificado");
         return {
           success: true,
@@ -825,7 +843,7 @@ Incluye 4-5 criterios medibles.`;
       } catch (err) {
         const fallbackPrompt = normalizeText(args.prompt || args.content);
         return {
-          success: true,
+          success: false,
           output: `🎨 No pude generar la imagen directamente desde el chat (${err instanceof Error ? err.message : String(err)}).\n\nTe dejo el acceso correcto al generador unificado: [abrir Image Studio](/image-studio).\n\nPrompt sugerido:\n\n\`\`\`\n${fallbackPrompt}\n\`\`\``,
           error: err instanceof Error ? err.message : String(err),
         };
@@ -1237,7 +1255,12 @@ export function detectToolFromMessage(message: string): ToolName | null {
   if (/resum(e|ir|en)\s*(este|el|texto|document)/i.test(m))
     return "summarize_text";
   if (/traduc(e|ir|ci[oó]n)/i.test(m)) return "translate_text";
-  if (/corrige|corregir|revisa|mejora.*(texto|redacci[oó]n|ortograf[ií]a)|ortograf[ií]a/i.test(m))
+  // "¿Puedes revisar si existe...?" es una consulta, NO una orden de corrección textual.
+  // Exigir intención de edición más un objeto textual evita secuestrar preguntas.
+  const explicitProofreading =
+    /\b(?:corrige|corregir|corr[ií]geme|revisa|revisar|mejora|mejorar|arregla)\b[^.!?\n]{0,120}\b(?:texto|redacci[oó]n|ortograf[ií]a|gram[aá]tica|escritura|p[aá]rrafo|frase|ensayo|documento)\b/i.test(m) ||
+    /\b(?:corrige|corregir|corr[ií]geme)\s*(?::|esto\s*:|lo\s+siguiente\s*:)/i.test(m);
+  if (explicitProofreading)
     return "proofread_text";
   if (/explic(a|ar)\s*(el|la|qu[eé]\s*es|concepto)/i.test(m))
     return "explain_concept";
