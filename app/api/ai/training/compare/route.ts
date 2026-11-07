@@ -20,8 +20,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Contenido demasiado extenso" }, { status: 413, headers })
 
   let body: Record<string, unknown>
-  try { body = JSON.parse(raw) }
-  catch { return NextResponse.json({ error: "Solicitud inválida" }, { status: 400, headers }) }
+  try {
+    const parsed: unknown = JSON.parse(raw)
+    body = parsed !== null && typeof parsed === "object" && !Array.isArray(parsed)
+      ? parsed as Record<string, unknown> : {}
+  } catch {
+    return NextResponse.json({ error: "Solicitud inválida" }, { status: 400, headers })
+  }
 
   const prompt = typeof body.prompt === "string" ? body.prompt.trim() : ""
   const answerA = typeof body.answer === "string" ? body.answer.trim() : ""
