@@ -1,5 +1,6 @@
 "use client"
 
+import TrainingFeedback from "@/components/ai/TrainingFeedback"
 import { useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link"
 import MiraVoicePopup from "@/components/mira/MiraVoicePopup"
@@ -756,6 +757,7 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
                   </button>
                 )}
                 {message.role === "assistant" ? renderContent(message.content) : <p className="whitespace-pre-wrap">{message.content}</p>}
+                {message.role === "assistant" && !loading && <TrainingFeedback answer={message.content} prompt={messages.slice(0,index).reverse().find(m=>m.role==="user")?.content} module="claw" />}
               </div>
             </div>
           ))}

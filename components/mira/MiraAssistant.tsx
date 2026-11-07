@@ -1,5 +1,6 @@
 "use client"
 
+import TrainingFeedback from "@/components/ai/TrainingFeedback"
 import Link from "next/link"
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react"
 import {
@@ -212,6 +213,7 @@ export default function MiraAssistant() {
                 <div key={message.id} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
                   <article className={`max-w-[88%] rounded-2xl px-4 py-3 text-sm leading-7 ${message.role === "user" ? "bg-cyan-500 text-slate-950" : "border border-white/10 bg-white/[0.045] text-slate-100"}`}>
                     <div className="whitespace-pre-wrap">{message.content}</div>
+                    {message.role === "assistant" && <TrainingFeedback answer={message.content} prompt={messages.slice(0,messages.indexOf(message)).reverse().find(m=>m.role==="user")?.content} module="mira" />}
                     {message.role === "assistant" ? (
                       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-white/10 pt-2 text-[10px] text-slate-500">
                         {message.provider ? <span>{message.provider}{message.model ? ` · ${message.model}` : ""}</span> : null}

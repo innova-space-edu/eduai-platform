@@ -1,4 +1,5 @@
 "use client"
+import TrainingFeedback from "@/components/ai/TrainingFeedback"
 import { useState, useRef, useEffect, useCallback } from "react"
 import Link from "next/link"
 import MiraVoicePopup from "@/components/mira/MiraVoicePopup"
@@ -464,10 +465,13 @@ export default function TraductorPage() {
                     </p>
                   </div>
                 ) : (
+                  <>
                   <div
                     className="text-sm leading-relaxed prose-sm max-w-none"
                     dangerouslySetInnerHTML={{ __html: renderMd(msg.content) }}
                   />
+                  <TrainingFeedback answer={msg.content} prompt={messages.slice(0,i).reverse().find(m=>m.role==="user")?.content} module="traductor" />
+                  </>
                 )}
               </div>
             </div>

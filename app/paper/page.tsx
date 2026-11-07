@@ -1,5 +1,6 @@
 "use client"
 
+import TrainingFeedback from "@/components/ai/TrainingFeedback"
 import { useEffect, useMemo, useRef, useState, useCallback } from "react"
 import Link from "next/link"
 import { createClient } from "@/lib/supabase/client"
@@ -329,6 +330,7 @@ function MessageBubble({ msg, paperTitle, pageCount, chunkCount, paperSummary }:
           <div className="rounded-2xl rounded-tl-sm px-4 py-3 bg-card-soft-theme border border-soft">
             <div className="prose prose-sm max-w-none">
               {renderMarkdown(msg.content)}
+              <TrainingFeedback answer={msg.content} module="paper" />
             </div>
           </div>
         )}

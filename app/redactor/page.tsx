@@ -57,7 +57,7 @@ export default function RedactorPage() {
           {messages.map((msg, i) =>
             msg.role === "user"
               ? <UserBubble key={i} content={msg.content} />
-              : <AgentBubble key={i} icon="✍️" accentColor={ACCENT}>
+              : <AgentBubble trainingAnswer={msg.content} trainingPrompt={messages.slice(0,i).reverse().find(m=>m.role==="user")?.content} key={i} icon="✍️" accentColor={ACCENT}>
                   <div className="prose prose-sm max-w-none [&_h2]:text-purple-700 [&_strong]:text-main">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                   </div>

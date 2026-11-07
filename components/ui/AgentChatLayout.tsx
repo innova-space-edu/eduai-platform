@@ -14,6 +14,7 @@
 "use client"
 
 import { useRef } from "react"
+import TrainingFeedback from "@/components/ai/TrainingFeedback"
 
 // ── AgentChatLayout ───────────────────────────────────────────────────────────
 interface LayoutProps {
@@ -86,9 +87,11 @@ export function UserBubble({ content }: { content: string }) {
 
 // ── AgentBubble ───────────────────────────────────────────────────────────────
 export function AgentBubble({
-  icon, accentColor = "#3b82f6", children,
+  icon, accentColor = "#3b82f6", children, trainingAnswer, trainingPrompt,
 }: {
   icon: string
+  trainingAnswer?: string
+  trainingPrompt?: string
   accentColor?: string
   children: React.ReactNode
 }) {
@@ -105,6 +108,7 @@ export function AgentBubble({
         style={{ background: "var(--bg-input)", border: "1px solid var(--border-soft)" }}
       >
         {children}
+        {trainingAnswer && <TrainingFeedback answer={trainingAnswer} prompt={trainingPrompt} module="agent" />}
       </div>
     </div>
   )

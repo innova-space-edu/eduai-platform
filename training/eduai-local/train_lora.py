@@ -41,6 +41,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--dataset", default="training/eduai-local/example-instructions.jsonl")
     parser.add_argument("--output", default="")
     parser.add_argument("--max-length", type=int, default=2048)
+    parser.add_argument("--max-steps", type=int, default=-1)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--revision", default="main")
     parser.add_argument("--epochs", type=float, default=2.0)
     parser.add_argument("--learning-rate", type=float, default=2e-4)
     parser.add_argument("--batch-size", type=int, default=2)
@@ -102,12 +105,12 @@ def main() -> None:
     if not dataset_path.exists():
         raise SystemExit(f"Dataset no encontrado: {dataset_path}")
 
-    tokenizer = AutoTokenizer.from_pretrained(base_model, trust_remote_code=True)
+    tokenizer = AutoTokenizer.from_pretrained(base_model, trust_remote_code=False, revision=args.revision)
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
 
     quantization_config = None
-    model_kwargs = {"trust_remote_code": True}
+    model_kwargs = {"trust_remote_code": False, "revision": args.revision}
     if args.load_in_4bit:
         if not torch.cuda.is_available():
             raise SystemExit("--load-in-4bit requiere CUDA.")
@@ -140,6 +143,7 @@ def main() -> None:
         task_type="CAUSAL_LM",
         target_modules="all-linear",
     )
+    model.config.use_cache = False
     model = get_peft_model(model, lora)
 
     raw = load_dataset("json", data_files=str(dataset_path), split="train")
@@ -159,13 +163,16 @@ def main() -> None:
     train_args = TrainingArguments(
         output_dir=str(output),
         num_train_epochs=args.epochs,
+        max_steps=args.max_steps,
+        seed=args.seed,
+        data_seed=args.seed,
         per_device_train_batch_size=args.batch_size,
         gradient_accumulation_steps=args.grad_accum,
         learning_rate=args.learning_rate,
         warmup_ratio=0.05,
         lr_scheduler_type="cosine",
         logging_steps=10,
-        save_strategy="epoch",
+        save_strategy="no",
         report_to=[],
         bf16=torch.cuda.is_available() and torch.cuda.is_bf16_supported(),
         fp16=torch.cuda.is_available() and not torch.cuda.is_bf16_supported(),
@@ -187,6 +194,9 @@ def main() -> None:
         "profile": args.profile,
         "profileLabel": profile["label"],
         "baseModel": base_model,
+        "revision": args.revision,
+        "seed": args.seed,
+        "maxSteps": args.max_steps,
         "targetHardware": profile["targetHardware"],
         "runtimeQuant": profile["runtimeQuant"],
         "dataset": str(dataset_path),

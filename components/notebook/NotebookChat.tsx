@@ -2,6 +2,7 @@
 // components/notebook/NotebookChat.tsx  v3
 // Mejoras: botón TTS en mensajes del asistente (Web Speech API + fallback edge-tts)
 
+import TrainingFeedback from "@/components/ai/TrainingFeedback"
 import { useState, useRef, useEffect, useCallback } from "react"
 import { Send, Loader2, RefreshCw, BookOpen, ChevronDown, ChevronUp, Volume2, VolumeX } from "lucide-react"
 import ReactMarkdown from "react-markdown"
@@ -308,6 +309,7 @@ function MessageBubble({ message, isSpeaking, onSpeak }: {
       </div>
 
       {/* Acciones para mensajes del asistente */}
+      {!isUser && <TrainingFeedback answer={message.content} module="notebook" />}
       {!isUser && (
         <div className="flex items-center gap-2 ml-2">
           {/* Botón TTS */}

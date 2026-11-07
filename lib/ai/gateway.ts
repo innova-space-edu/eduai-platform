@@ -1,3 +1,4 @@
+import { captureTrainingCandidate } from "./training/capture"
 import { ZERO_AI_USAGE, type AIUsage } from "./usage"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import {
@@ -409,6 +410,9 @@ export async function runAIText(input: {
         })
       }
 
+      await captureTrainingCandidate({ supabase: input.supabase, userId: input.context?.userId, module: input.context?.module,
+        messages: input.messages, answer: result.text, provider: result.provider, model: result.model })
+
       return {
         data: result.text,
         text: result.text,
@@ -662,6 +666,9 @@ export async function runAIStructured<T = Record<string, unknown>>(input: {
           metadata: { structured: true },
         })
       }
+
+      await captureTrainingCandidate({ supabase: input.supabase, userId: input.context?.userId, module: input.context?.module,
+        messages: input.messages, answer: result.text, provider: result.provider, model: result.model })
 
       return {
         data: result.data,

@@ -1,5 +1,6 @@
 "use client"
 
+import TrainingFeedback from "@/components/ai/TrainingFeedback"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
   BookOpen,
@@ -407,6 +408,7 @@ function MessageBubble({ message, isSpeaking, onSpeak }: {
         )}
       </div>
 
+      {!isUser && <TrainingFeedback answer={message.content} module="notebook-pro" />}
       {!isUser && (
         <div className="ml-2 flex items-center gap-2">
           <button type="button" onClick={copy} className="flex items-center gap-1 text-[9px] text-muted2 hover:text-blue-500">

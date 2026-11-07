@@ -7,6 +7,7 @@
 
 "use client"
 
+import TrainingFeedback from "@/components/ai/TrainingFeedback"
 import React, {
   useCallback, useEffect, useRef, useState
 } from "react"
@@ -219,6 +220,7 @@ export default function SuperAgentChat({
                     className="text-sm leading-relaxed"
                     dangerouslySetInnerHTML={{ __html: renderMd(msg.content) }}
                   />
+                  {msg.role === "assistant" && <TrainingFeedback answer={msg.content} prompt={messages.slice(0,messages.indexOf(msg)).reverse().find(m=>m.role==="user")?.content} module="superagent" />}
                   {showProviderInfo && msg.role === "assistant" && msg.provider && (
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                       <span className={`text-[10px] font-medium ${providerColor(msg.provider)}`}>

@@ -218,3 +218,6 @@ El alcance experimental queda cerrado con estas capacidades:
 
 El router de producción permanece deshabilitado. La promoción a producción requiere un artefacto EDUAI propio entrenado, su Quality Gate aprobado, benchmark en los perfiles objetivo y decisión explícita del administrador.
 
+## Kaggle y aportes revisados
+
+Piloto QLoRA ejecutado y adaptador recuperable desde notebooks privados. La infraestructura de aportes y feedback se describe en [eduai-training-kaggle.md](../../docs/eduai-training-kaggle.md). El piloto no supera el Quality Gate y no habilita el router de producción. Los próximos lotes se construyen con aportes autorizados y revisados; no se incorporan automáticamente datos privados de toda la plataforma.
