@@ -1,5 +1,5 @@
 import assert from "node:assert/strict"
-import { detectToolFromMessage, isMusicListeningRequest } from "../lib/superagent/tool-registry"
+import { detectToolFromMessage, isMusicListeningRequest, resolveGeneratedImageUrl } from "../lib/superagent/tool-registry"
 
 const nonMusicalRequests = [
   "Quiero solicitar una reunión de trabajo a la directora para abordar IA, carros de tablet que llegan el 9 de noviembre, servidor propio, presupuesto para tecnologías y proyectos de la sala de música.",
@@ -77,5 +77,18 @@ const proofreadingRequests = [
 for (const input of proofreadingRequests) {
   assert.equal(detectToolFromMessage(input), "proofread_text", "No se detectó una edición explícita: " + input)
 }
+
+
+// Regression: when the image API provides both a large Base64 image and a Storage
+// URL, Claw must render the permanent URL, never an unsupported data: URI.
+const storedImageUrl = "https://example.supabase.co/storage/v1/object/public/generated-images/user/asset.png"
+assert.equal(resolveGeneratedImageUrl({
+  imageUrl: "data:image/png;base64,iVBORw0KGgo=",
+  persistentUrl: storedImageUrl,
+}), storedImageUrl)
+assert.equal(resolveGeneratedImageUrl({ imageUrl: storedImageUrl }), storedImageUrl)
+assert.equal(resolveGeneratedImageUrl({ imageUrl: "data:image/png;base64,iVBORw0KGgo=" }), null)
+assert.equal(resolveGeneratedImageUrl({ imageUrl: "javascript:alert(1)" }), null)
+assert.equal(resolveGeneratedImageUrl({ imageUrl: "" }), null)
 
 console.log(`[claw-intent] ${nonMusicalRequests.length} solicitudes NO musicales y ${genuineMusicRequests.length} musicales verificadas`)
