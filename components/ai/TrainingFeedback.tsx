@@ -139,7 +139,7 @@ export default function TrainingFeedback({ answer, prompt = "", module = "chat" 
                 className={"block cursor-pointer rounded-lg border p-3 " +
                   (choice === option.key ? "border-indigo-500 bg-indigo-500/10" : "border-slate-400/30")}>
                 <span className="mb-2 flex items-center gap-2 font-semibold">
-                  <input type="radio" checked={choice === option.key} onChange={() => setChoice(option.key); setValidationHint("")} />
+                  <input type="radio" checked={choice === option.key} onChange={() => { setChoice(option.key); setValidationHint("") }} />
                   {option.label}
                 </span>
                 <span className="block max-h-64 overflow-auto whitespace-pre-wrap break-words text-sm leading-relaxed">
