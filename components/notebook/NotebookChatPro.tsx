@@ -329,10 +329,11 @@ export default function NotebookChatPro({
           </div>
         )}
 
-        {messages.map((message) => (
+        {messages.map((message, index) => (
           <MessageBubble
             key={message.id}
             message={message}
+            originalPrompt={messages.slice(0, index).reverse().find(previous => previous.role === "user")?.content}
             isSpeaking={speakingId === message.id}
             onSpeak={() => speak(message.id, message.content)}
           />
@@ -382,9 +383,10 @@ export default function NotebookChatPro({
   )
 }
 
-function MessageBubble({ message, isSpeaking, onSpeak }: {
+function MessageBubble({ message, isSpeaking, onSpeak, originalPrompt }: {
   message: NotebookMessage
   isSpeaking: boolean
+  originalPrompt?: string
   onSpeak: () => void
 }) {
   const isUser = message.role === "user"
@@ -408,7 +410,7 @@ function MessageBubble({ message, isSpeaking, onSpeak }: {
         )}
       </div>
 
-      {!isUser && <TrainingFeedback answer={message.content} module="notebook-pro" />}
+      {!isUser && <TrainingFeedback answer={message.content} prompt={originalPrompt} module="notebook-pro" />}
       {!isUser && (
         <div className="ml-2 flex items-center gap-2">
           <button type="button" onClick={copy} className="flex items-center gap-1 text-[9px] text-muted2 hover:text-blue-500">
