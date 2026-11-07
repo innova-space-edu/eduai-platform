@@ -22,7 +22,7 @@ from assistant_labels import build_assistant_only_labels
 if not torch.cuda.is_available(): raise RuntimeError('CUDA is required')
 CONFIG=json.loads((ROOT/'training/eduai-local/campaign/config.json').read_text())
 PROFILES=json.loads((ROOT/'training/eduai-local/profiles.json').read_text())
-MODEL=PROFILES[PROFILE]['baseModel'];REVISION=HfApi().model_info(MODEL).sha
+MODEL=PROFILES[PROFILE]['baseModel'];REVISION=CONFIG['revisions'][PROFILE]
 OUTPUT=Path('/kaggle/working')/PROFILE;OUTPUT.mkdir(parents=True,exist_ok=True);DATA=ROOT/'dataset';manifest=campaign_data.build(DATA)
 if manifest['datasetId']!=os.environ.get('EDUAI_DATASET_ID',globals().get('EXPECTED_DATASET_ID')): raise RuntimeError('Dataset fingerprint differs from the registered campaign')
 START=time.monotonic();DEADLINE=START+CONFIG['maxMinutesPerProfile']*60
@@ -34,6 +34,7 @@ def write(name,obj):
     (OUTPUT/name).write_text(json.dumps(obj,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
 
 def load_rows(name): return [json.loads(line) for line in (DATA/(name+'.jsonl')).read_text().splitlines() if line.strip()]
+if hashlib.sha256(json.dumps(transfer_cases(),ensure_ascii=False,sort_keys=True,separators=(',',':')).encode()).hexdigest()!=CONFIG['transferCasesSha256']: raise RuntimeError('Transfer cases changed')
 TEST=load_rows('test')+transfer_cases();TRAIN=load_rows('train');VALIDATION=load_rows('validation')
 for name,rows in [('train',TRAIN),('validation',VALIDATION)]:
     (DATA/(name+'-messages.jsonl')).write_text(''.join(campaign_data.dumps({'messages':r['messages']})+'\n' for r in rows))
