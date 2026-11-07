@@ -9,7 +9,7 @@ p.add_argument('--max-steps',type=int,default=24)
 p.add_argument('--export', dest='dataset_export')
 a = p.parse_args()
 if not 1<=a.max_steps<=1000: raise ValueError('max-steps debe estar entre 1 y 1000')
-paths = ['train_lora.py','assistant_labels.py','profiles.json','eval-cases.jsonl','evaluate_openai_compatible.py']
+paths = ['model_loader.py','tokenizer_loader.py','train_lora.py','assistant_labels.py','profiles.json','eval-cases.jsonl','evaluate_openai_compatible.py']
 files = {'training/eduai-local/'+name:(ROOT/'training/eduai-local'/name).read_text() for name in paths}
 if a.dataset_export:
     bundle = json.loads(Path(a.dataset_export).read_text())

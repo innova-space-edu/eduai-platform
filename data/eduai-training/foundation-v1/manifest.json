@@ -1,0 +1,22 @@
+{
+  "version": "eduai-foundation-v1",
+  "scope": "synthetic_foundation_not_pedagogical_validation",
+  "counts": {
+    "train": 1400,
+    "validation": 300,
+    "test": 300
+  },
+  "families": {
+    "train": 70,
+    "validation": 15,
+    "test": 15
+  },
+  "files": {
+    "train.jsonl": "98e5f583907fdf607a586673a3419787be1c775d2a6e162577b55fde7cec1c71",
+    "validation.jsonl": "773ef6f4668bf8c5eca0c8df50f2ecf5b6b1c768107fd6fca3fe1d3401c3d4b3",
+    "test.jsonl": "9014b35face1aaefff49666b15a1d957f8b5ef0f4129391c58e5ceb88c0009b4"
+  },
+  "testPolicy": "sealed_final_no_tuning",
+  "productionReady": false,
+  "datasetId": "0f6b9c3eef6f91c1d12123177ef0e3ee8e6f314ecab92652286b3ebb55c89d34"
+}

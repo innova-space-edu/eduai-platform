@@ -1,0 +1,23 @@
+[
+  {
+    "profile": "eduai-nano",
+    "revision": "9921cd4d82c0e3986887aa4b376f9446729ef8a3",
+    "maxTokens": 325,
+    "eos": 7,
+    "architecture": "lfm2"
+  },
+  {
+    "profile": "eduai-lite",
+    "revision": "b9d816ab510f9a28dca37cb182e9da8b0226e13c",
+    "maxTokens": 325,
+    "eos": 7,
+    "architecture": "lfm2"
+  },
+  {
+    "profile": "eduai-performance",
+    "revision": "7141b56cd4650af95c7c7b86983443aed050c96a",
+    "maxTokens": 306,
+    "eos": 124900,
+    "architecture": "lfm2"
+  }
+]

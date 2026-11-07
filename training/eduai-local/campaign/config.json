@@ -1,0 +1,34 @@
+{
+  "id": "eduai-foundation-v1",
+  "profiles": [
+    "eduai-nano",
+    "eduai-lite",
+    "eduai-performance"
+  ],
+  "seeds": [
+    42,
+    1337,
+    2026
+  ],
+  "epochs": 2,
+  "batchSize": 2,
+  "gradientAccumulation": 8,
+  "learningRate": 0.0001,
+  "maxLength": 1536,
+  "evaluationSteps": 50,
+  "earlyStoppingPatience": 2,
+  "maxMinutesPerProfile": 150,
+  "promotion": {
+    "automatic": false,
+    "criticalFailuresAllowed": 0,
+    "humanReviewRequired": true,
+    "regressionTolerancePoints": 2
+  },
+  "notes": "Foundation experiment only. No hyperparameter selection based on final test. All seeds and budget fixed before execution.",
+  "revisions": {
+    "eduai-nano": "9921cd4d82c0e3986887aa4b376f9446729ef8a3",
+    "eduai-lite": "b9d816ab510f9a28dca37cb182e9da8b0226e13c",
+    "eduai-performance": "7141b56cd4650af95c7c7b86983443aed050c96a"
+  },
+  "transferCasesSha256": "2eb328d5b215b17790e86cb47b87f2cf634ee2cf45635569f74b884d3dd9592c"
+}

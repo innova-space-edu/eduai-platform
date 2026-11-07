@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import hashlib
 from pathlib import Path
 
 import torch
@@ -22,9 +23,12 @@ from transformers import (
     Trainer,
     TrainingArguments,
     set_seed,
+    EarlyStoppingCallback,
 )
 
 from assistant_labels import build_assistant_only_labels
+from tokenizer_loader import load_tokenizer
+from model_loader import load_native_model
 
 ROOT = Path(__file__).resolve().parents[2]
 PROFILE_FILE = ROOT / "training" / "eduai-local" / "profiles.json"
@@ -51,6 +55,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--grad-accum", type=int, default=8)
     parser.add_argument("--load-in-4bit", action="store_true")
     parser.add_argument("--train-on-prompts", action="store_true")
+    parser.add_argument("--validation-dataset",default="")
+    parser.add_argument("--eval-steps",type=int,default=50)
+    parser.add_argument("--early-stopping-patience",type=int,default=2)
+    parser.add_argument("--strict-length",action="store_true")
     return parser.parse_args()
 
 
@@ -71,7 +79,7 @@ def to_text(example: dict, tokenizer) -> str:
     return f"Usuario: {body}\nAsistente: {output}"
 
 
-def encode_example(example: dict, tokenizer, max_length: int, train_on_prompts: bool) -> dict:
+def encode_example(example: dict, tokenizer, max_length: int, train_on_prompts: bool, strict_length: bool = False) -> dict:
     messages = example.get("messages")
     if not isinstance(messages, list) or not messages:
         text = to_text(example, tokenizer)
@@ -86,6 +94,7 @@ def encode_example(example: dict, tokenizer, max_length: int, train_on_prompts: 
     labels = ids.copy() if train_on_prompts else build_assistant_only_labels(tokenizer, messages, ids)
 
     if len(ids) > max_length:
+        if strict_length: raise ValueError("Campaign example exceeds max-length; no truncation allowed")
         ids = ids[-max_length:]
         labels = labels[-max_length:]
 
@@ -107,12 +116,12 @@ def main() -> None:
     if not dataset_path.exists():
         raise SystemExit(f"Dataset no encontrado: {dataset_path}")
 
-    tokenizer = AutoTokenizer.from_pretrained(base_model, trust_remote_code=False, revision=args.revision)
+    tokenizer = load_tokenizer(base_model,args.revision)
     if tokenizer.pad_token_id is None:
         tokenizer.pad_token = tokenizer.eos_token
 
     quantization_config = None
-    model_kwargs = {"trust_remote_code": False, "revision": args.revision}
+    model_kwargs = {}
     if args.load_in_4bit:
         if not torch.cuda.is_available():
             raise SystemExit("--load-in-4bit requiere CUDA.")
@@ -133,7 +142,7 @@ def main() -> None:
         if torch.cuda.is_available():
             model_kwargs["device_map"] = "auto"
 
-    model = AutoModelForCausalLM.from_pretrained(base_model, **model_kwargs)
+    model = load_native_model(base_model,args.revision,**model_kwargs)
     if quantization_config is not None:
         model = prepare_model_for_kbit_training(model)
 
@@ -155,10 +164,22 @@ def main() -> None:
             tokenizer,
             max_length=args.max_length,
             train_on_prompts=args.train_on_prompts,
+            strict_length=args.strict_length,
         ),
         remove_columns=raw.column_names,
     )
 
+    eval_tokenized = None
+    if args.validation_dataset:
+        validation_raw = load_dataset("json",data_files=args.validation_dataset,split="train")
+        eval_tokenized = validation_raw.map(lambda row: encode_example(row,tokenizer,args.max_length,args.train_on_prompts,args.strict_length),remove_columns=validation_raw.column_names)
+    def trainable_hash():
+        digest = hashlib.sha256()
+        for name,param in model.named_parameters():
+            if param.requires_grad:
+                digest.update(name.encode()); digest.update(param.detach().float().cpu().numpy().tobytes())
+        return digest.hexdigest()
+    initial_trainable_hash = trainable_hash()
     output = Path(output_path)
     output.mkdir(parents=True, exist_ok=True)
 
@@ -174,7 +195,16 @@ def main() -> None:
         warmup_ratio=0.05,
         lr_scheduler_type="cosine",
         logging_steps=10,
-        save_strategy="no",
+        save_strategy="steps" if eval_tokenized is not None else "no",
+        eval_strategy="steps" if eval_tokenized is not None else "no",
+        eval_steps=args.eval_steps,
+        save_steps=args.eval_steps,
+        save_total_limit=1,
+        load_best_model_at_end=eval_tokenized is not None,
+        metric_for_best_model="eval_loss" if eval_tokenized is not None else None,
+        greater_is_better=False,
+        per_device_eval_batch_size=1,
+        prediction_loss_only=True,
         report_to=[],
         bf16=torch.cuda.is_available() and torch.cuda.is_bf16_supported(),
         fp16=torch.cuda.is_available() and not torch.cuda.is_bf16_supported(),
@@ -186,9 +216,11 @@ def main() -> None:
         model=model,
         args=train_args,
         train_dataset=tokenized,
+        eval_dataset=eval_tokenized,
+        callbacks=[EarlyStoppingCallback(early_stopping_patience=args.early_stopping_patience)] if eval_tokenized is not None else [],
         data_collator=DataCollatorForSeq2Seq(tokenizer=tokenizer, padding=True, label_pad_token_id=-100, return_tensors="pt"),
     )
-    trainer.train()
+    train_result = trainer.train()
     trainer.save_model(str(output))
     tokenizer.save_pretrained(str(output))
 
@@ -207,6 +239,12 @@ def main() -> None:
         "examples": len(raw),
         "maxLength": args.max_length,
         "assistantOnlyLoss": not args.train_on_prompts,
+        "initialTrainableSha256": initial_trainable_hash,
+        "finalTrainableSha256": trainable_hash(),
+        "trainMetrics": train_result.metrics,
+        "bestValidationLoss": trainer.state.best_metric,
+        "history": trainer.state.log_history,
+        "bestCheckpoint": trainer.state.best_model_checkpoint,
     }
     (output / "eduai-training-manifest.json").write_text(
         json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
