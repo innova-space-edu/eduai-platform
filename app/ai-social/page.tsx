@@ -1,6 +1,7 @@
 // app/ai-social/page.tsx
 "use client"
 
+import TrainingFeedback from "@/components/ai/TrainingFeedback"
 import Link from "next/link"
 import { useCallback, useEffect, useRef, useState } from "react"
 
@@ -104,6 +105,7 @@ function MessageBubble({ msg, isUser }: { msg: SocialMessage; isUser: boolean })
             ? "bg-cyan-500/15 border border-cyan-500/20 text-main rounded-tr-sm"
             : "bg-card-soft-theme text-main rounded-tl-sm"}`}>
           {msg.content}
+          {!isUser && <TrainingFeedback answer={msg.content} module="ai-social" />}
         </div>
         {!isUser && msg.model && (
           <span className="text-[9px] text-muted2 px-1">

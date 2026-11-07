@@ -1,4 +1,5 @@
 "use client"
+import TrainingFeedback from "@/components/ai/TrainingFeedback"
 import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import MathRenderer from "@/components/ui/MathRenderer"
@@ -120,6 +121,7 @@ export default function MatematicoPage() {
                 {msg.role === "assistant" ? (
                   <>
                     <MathRenderer content={msg.content} />
+                    <TrainingFeedback answer={msg.content} prompt={messages.slice(0,i).reverse().find(m=>m.role==="user")?.content} module="matematico" />
                     {msg.provider && (
                       <p className="text-muted2 text-xs mt-2 pt-2 border-t border-soft">via {msg.provider}</p>
                     )}

@@ -1,0 +1,64 @@
+{
+  "status": "pilot_completed",
+  "productionReady": false,
+  "promotion": "requires_reviewed_dataset_and_pedagogical_benchmark",
+  "model": "LiquidAI/LFM2.5-1.2B-Instruct",
+  "revision": "b9d816ab510f9a28dca37cb182e9da8b0226e13c",
+  "examples": 15,
+  "datasetSha256": "cea24881f15ee1ca7a21895e55af2f959907694040c708d8ed3c85fe9ce3542b",
+  "baselineScore": 23.08,
+  "candidateScore": 38.46,
+  "criticalFailures": 4,
+  "nonRegression": true,
+  "gpu": "Tesla T4",
+  "artifactFiles": [
+    {
+      "name": "README.md",
+      "bytes": 5212,
+      "sha256": "b835f3ff9191a64d6cdc6e3c0f838665483d11308dfecacfc4e7f5b489f89fa3"
+    },
+    {
+      "name": "adapter_config.json",
+      "bytes": 939,
+      "sha256": "a10aae6f86f83457489384bf785112b3463739074873fc9d5ebfcb533522c9d3"
+    },
+    {
+      "name": "adapter_model.safetensors",
+      "bytes": 44457856,
+      "sha256": "bed5b83f157c9cdac9c665fd0d48449dfe7a7f82a85b9ead7f225057acc04555"
+    },
+    {
+      "name": "chat_template.jinja",
+      "bytes": 5487,
+      "sha256": "ba551d58630afa3190b1be3602e28301f3d2e9bbac978dfc49d6d825171648b6"
+    },
+    {
+      "name": "eduai-training-manifest.json",
+      "bytes": 512,
+      "sha256": "e080674ca95d3a19e062d3bf3e91d1d0a39e8ff2c3459b0dae300a74400881a0"
+    },
+    {
+      "name": "special_tokens_map.json",
+      "bytes": 434,
+      "sha256": "742aefe2b7dec496e8caffdba03a75d0c1a9925d53bd3f3e0d388c96b591b6f4"
+    },
+    {
+      "name": "tokenizer.json",
+      "bytes": 4733389,
+      "sha256": "df1d8d5ec5d091b460562ffd545e4a5e91d17d4a0db7ebe733be34ed374377bd"
+    },
+    {
+      "name": "tokenizer_config.json",
+      "bytes": 92225,
+      "sha256": "2a52ec012d3df831ba434b081bef3726a6ee22501f062ad8353c557a0cfa0d01"
+    },
+    {
+      "name": "training_args.bin",
+      "bytes": 5905,
+      "sha256": "968bb7668f7a0a2e95a688313bf7d022ca3974b93567e48ceace26e85b316e58"
+    }
+  ],
+  "stage": "piloto técnico",
+  "backupVerified": true,
+  "artifactsNotebook": "https://www.kaggle.com/code/esthefano/eduai-lite-pilot-artifacts"
+}

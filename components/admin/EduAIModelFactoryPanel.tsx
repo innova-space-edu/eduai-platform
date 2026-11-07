@@ -1,5 +1,6 @@
 "use client";
 
+import TrainingContributionsPanel from "@/components/admin/TrainingContributionsPanel";
 import { useEffect, useState } from "react";
 import {
   BrainCircuit,
@@ -252,6 +253,8 @@ export default function EduAIModelFactoryPanel() {
           {loading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />} Actualizar estado
         </button>
       </div>
+
+      <TrainingContributionsPanel />
 
       {error ? <div className="mt-4 rounded-2xl border border-red-400/20 bg-red-950/20 p-3 text-xs text-red-200">{error}</div> : null}
       {candidateMessage ? <div className="mt-4 rounded-2xl border border-emerald-400/15 bg-emerald-950/15 p-3 text-xs text-emerald-100">{candidateMessage}</div> : null}

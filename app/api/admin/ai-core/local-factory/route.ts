@@ -31,7 +31,7 @@ export async function GET() {
         runtimeArtifact: "GGUF por perfil",
         trainingMethod: "LoRA / QLoRA",
         knowledgeStrategy: "Knowledge Pack/RAG + fine-tuning de comportamiento",
-        trainingLocation: "GPU externa; nunca en los notebooks de usuario",
+        trainingLocation: "Kaggle privado; nunca en los notebooks de usuario",
         inferenceTarget: "wllama · navegador · CPU/WASM o WebGPU",
         profiles: ["eduai-nano", "eduai-lite", "eduai-performance"],
         evaluationStrategy: "13 casos reproducibles · 6 críticos · endpoint OpenAI-compatible",

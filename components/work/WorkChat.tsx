@@ -1,5 +1,6 @@
 "use client"
 
+import TrainingFeedback from "@/components/ai/TrainingFeedback"
 import { useCallback, useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import {
@@ -473,6 +474,7 @@ export function WorkChat({
                     </div>
                     {message.role === "assistant" && (
                       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-soft pt-2 text-[10px] text-muted2">
+                        <TrainingFeedback answer={message.content} prompt={messages.slice(0,messages.indexOf(message)).reverse().find(m=>m.role==="user")?.content} module="work" />
                         {message.provider && <span>{message.provider}{message.model ? ` · ${message.model}` : ""}</span>}
                         {message.toolUsed && <span className="rounded-full bg-teal-500/10 px-2 py-0.5 text-teal-600">{message.toolUsed.replace(/_/g, " ")}</span>}
                         {!!message.citations?.length && <span>{message.citations.length} fuentes</span>}

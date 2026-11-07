@@ -1,5 +1,6 @@
 "use client"
 
+import TrainingFeedback from "@/components/ai/TrainingFeedback"
 import { useEffect, useRef, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import {
@@ -162,6 +163,7 @@ export default function WorkspaceAssistant({ projectId, projectName, onSaved }: 
               {message.role === "user" ? message.content : (
                 <div className="prose prose-sm dark:prose-invert max-w-none break-words prose-p:my-2 prose-li:my-1">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{message.content}</ReactMarkdown>
+                  <TrainingFeedback answer={message.content} prompt={messages.slice(0,messages.indexOf(message)).reverse().find(m=>m.role==="user")?.content} module="workspace" />
                 </div>
               )}
             </div>
