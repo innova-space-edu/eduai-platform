@@ -26,7 +26,10 @@ const internalAdmin = await getEduAIPlatformKnowledgeContext(staleDb, "Estado de
 assert.match(internalAdmin, /C0\.13 OneEpoch-NewOnly/)
 assert.match(internalAdmin, /48,4375%/)
 assert.match(internalAdmin, /promovido=false/)
-assert.match(internalAdmin, /no hay aquí consulta en tiempo real/i)
+assert.match(internalAdmin, /Claw no consulta Kaggle en tiempo real/i)
+assert.match(internalAdmin, /ensayo joint validation=41,875%/)
+assert.match(internalAdmin, /encoder_change reportados fueron 0\.0/)
+assert.match(internalAdmin, /promoted=false/)
 assert.doesNotMatch(internalAdmin, /V45C Scalable es el protocolo de escalamiento actualmente preparado/)
 
 const external = await getEduAIPlatformKnowledgeContext(staleDb, "Datos del connectoma Male CNS de Janelia")
