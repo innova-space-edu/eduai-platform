@@ -83,7 +83,7 @@ function timeAgo(iso: string) {
 }
 
 // ─── Message bubble ───────────────────────────────────────────────────────────
-function MessageBubble({ msg, isUser }: { msg: SocialMessage; isUser: boolean }) {
+function MessageBubble({ msg, isUser, originalPrompt }: { msg: SocialMessage; isUser: boolean; originalPrompt?: string }) {
   const colors = ROLE_COLORS[msg.role] || ROLE_COLORS.assistant
   return (
     <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
@@ -105,7 +105,7 @@ function MessageBubble({ msg, isUser }: { msg: SocialMessage; isUser: boolean })
             ? "bg-cyan-500/15 border border-cyan-500/20 text-main rounded-tr-sm"
             : "bg-card-soft-theme text-main rounded-tl-sm"}`}>
           {msg.content}
-          {!isUser && <TrainingFeedback answer={msg.content} module="ai-social" />}
+          {!isUser && <TrainingFeedback answer={msg.content} prompt={originalPrompt} module="ai-social" />}
         </div>
         {!isUser && msg.model && (
           <span className="text-[9px] text-muted2 px-1">
@@ -547,8 +547,9 @@ export default function AISocialPage() {
               <p className="text-sm">La conversación aparecerá aquí</p>
             </div>
           ) : (
-            session.messages.map(msg => (
-              <MessageBubble key={msg.id} msg={msg} isUser={msg.authorId === "user"} />
+            session.messages.map((msg, index) => (
+              <MessageBubble key={msg.id} msg={msg} isUser={msg.authorId === "user"}
+                originalPrompt={session.messages.slice(0, index).reverse().find(previous => previous.authorId === "user")?.content} />
             ))
           )}
 
