@@ -68,7 +68,7 @@ export function getMaleCNSVerifiedContext(
   const sections = source === "external"
     ? [EXTERNAL]
     : source === "internal"
-      ? [internal, "Referente estructural externo, sin mezclar métricas: " + EXTERNAL]
+      ? [internal, "Referencia externa: el conectoma de Janelia es un conjunto de datos estructurales independiente. No incorporar aquí las cifras externas salvo que el usuario solicite una comparación."]
       : [internal, EXTERNAL]
   return ["CONTEXTO DE FUENTES DISTINTAS · snapshot de referencia, no consulta live", ...sections, POLICY].join("\n\n")
 }
