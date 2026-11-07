@@ -296,8 +296,9 @@ function DocumentOverviewCard({
 }
 
 // ─── Message Bubble ───────────────────────────────────────────────────────────
-function MessageBubble({ msg, paperTitle, pageCount, chunkCount, paperSummary }: {
+function MessageBubble({ msg, paperTitle, pageCount, chunkCount, paperSummary, originalPrompt }: {
   msg: PaperMessage
+  originalPrompt?: string
   paperTitle?: string
   pageCount?: number
   chunkCount?: number
@@ -330,7 +331,7 @@ function MessageBubble({ msg, paperTitle, pageCount, chunkCount, paperSummary }:
           <div className="rounded-2xl rounded-tl-sm px-4 py-3 bg-card-soft-theme border border-soft">
             <div className="prose prose-sm max-w-none">
               {renderMarkdown(msg.content)}
-              <TrainingFeedback answer={msg.content} module="paper" />
+              <TrainingFeedback answer={msg.content} prompt={originalPrompt} module="paper" />
             </div>
           </div>
         )}
@@ -870,6 +871,7 @@ export default function PaperPage() {
             <MessageBubble
               key={index}
               msg={msg}
+              originalPrompt={messages.slice(0, index).reverse().find(previous => previous.role === "user")?.content}
               paperTitle={paperTitle}
               pageCount={paperPageCount}
               chunkCount={chunkCount}
