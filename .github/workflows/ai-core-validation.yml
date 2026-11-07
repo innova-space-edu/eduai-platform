@@ -105,6 +105,8 @@ jobs:
         run: npm run test:ai-core
       - name: Evitar corrección textual por error de intención
         run: npm run test:claw-intent
+      - name: Separar MaleCNS público y experimental
+        run: npx tsx scripts/test-malecns-source-boundary.ts
       - name: Probar biblioteca privada de planificaciones
         run: npm run test:planning-library
       - name: Verificar TypeScript real

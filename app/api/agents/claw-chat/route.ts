@@ -17,6 +17,7 @@ import { streamAIText, type GatewayMessage } from "@/lib/ai/gateway";
 import { getEnabledTools, isMusicListeningRequest } from "@/lib/superagent/tool-registry";
 import { EDUAI_PAGES, searchEduAIPages } from "@/lib/superagent/eduai-map";
 import { getEduAIPlatformKnowledgeContext } from "@/lib/eduai/platform-knowledge";
+import { classifyMaleCNSSource } from "@/lib/eduai/malecns-source-boundary";
 import { normalizeChatText } from "@/lib/text/normalize-chat-text";
 
 type RouteSuggestion = { label: string; href: string; emoji: string };
@@ -248,7 +249,23 @@ export async function POST(req: NextRequest) {
     const inferredTopic = context.subject || context.selectedTopic || inferTopicFromPath(inferredPath);
     const messages = normalizeHistory(history, cleanMessage);
     const displayName = typeof userName === "string" && userName.trim() && userName.trim().toLowerCase() !== "usuario" ? userName.trim().slice(0, 100) : undefined;
-    const platformKnowledge = await getEduAIPlatformKnowledgeContext(supabase, cleanMessage, messages);
+    // Privileged, unpublished research details require a real, server-verified
+    // admin account. Never infer authorization from pageContext.mode (client input).
+    const researchRelevant = [cleanMessage, ...messages.filter(m => m.role === "user").slice(-6).map(m => m.content)]
+      .some(text => classifyMaleCNSSource(text) !== null);
+    let allowInternalResearch = false;
+    if (researchRelevant && user.email) {
+      try {
+        const { data: admin } = await supabase.from("admin_emails")
+          .select("email").eq("email", user.email).maybeSingle();
+        allowInternalResearch = Boolean(admin);
+      } catch {
+        // An unavailable admin table means public knowledge only.
+      }
+    }
+    const platformKnowledge = await getEduAIPlatformKnowledgeContext(supabase, cleanMessage, messages, {
+      allowInternalResearch,
+    });
     const safeFiles = safeAttachments(attachments);
     const sourceContext = attachmentContext(safeFiles);
 
