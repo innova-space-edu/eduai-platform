@@ -17,9 +17,9 @@ Piloto privado `esthefano/eduai-lite-training-pilot`, completado en Tesla T4 con
 
 Administrador → Model Lab → Model Factory → Aprendizaje con aportes y correcciones. Revisar candidatos, aprobar o excluir y exportar JSON. El RPC de exportación es exclusivo de service_role y el endpoint verifica admin_emails; bloquea filas y autorizaciones durante la instantánea. Mantiene pregunta y sus respuestas alternativas en una misma partición para evitar fugas entre entrenamiento y validación.
 
-    python training/eduai-local/build_kaggle_bundle.py --export eduai-reviewed-training.json --output eduai-kaggle.py
+    python training/eduai-local/build_kaggle_bundle.py --profile eduai-lite --export eduai-reviewed-training.json --output eduai-kaggle.py
 
-El script es autocontenido, sin credenciales de EduAI, Supabase ni GitHub. Se prepara como notebook privado de Kaggle con T4 e Internet para descargar el modelo y dependencias. El piloto usa por defecto 24 pasos; no representa una receta de entrenamiento de producción. El corpus revisado debe ampliarse y ajustarse con una evaluación separada por tareas antes de cualquier promoción.
+El script es autocontenido, sin credenciales de EduAI, Supabase ni GitHub. Se prepara como notebook privado de Kaggle con T4 e Internet para descargar el modelo y dependencias. El empaquetador acepta eduai-nano, eduai-lite y eduai-performance, además de --max-steps (1–1000). El piloto usa por defecto 24 pasos; no representa una receta de entrenamiento de producción. El corpus revisado debe ampliarse y ajustarse con una evaluación separada por tareas antes de cualquier promoción.
 
 El runner mide la misma suite antes y después, registra revisión del modelo, GPU, semilla, SHA-256 y artefactos; si hay partición de validación exportada mide además su pérdida assistant-only (hasta 50 ejemplos compatibles, máximo 1024 tokens). Ningún resultado se promueve automáticamente. Las verificaciones por palabras clave no sustituyen una evaluación humana de exactitud o planificación.
 

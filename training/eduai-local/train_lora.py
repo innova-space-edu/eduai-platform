@@ -21,6 +21,7 @@ from transformers import (
     DataCollatorForSeq2Seq,
     Trainer,
     TrainingArguments,
+    set_seed,
 )
 
 from assistant_labels import build_assistant_only_labels
@@ -96,6 +97,7 @@ def encode_example(example: dict, tokenizer, max_length: int, train_on_prompts: 
 
 def main() -> None:
     args = parse_args()
+    set_seed(args.seed)
     profiles = load_profiles()
     profile = profiles[args.profile]
     base_model = args.base_model.strip() or profile["baseModel"]

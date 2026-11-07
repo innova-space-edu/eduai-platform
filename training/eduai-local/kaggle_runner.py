@@ -16,9 +16,12 @@ sys.path.insert(0,str(ROOT/'training/eduai-local'))
 if not torch.cuda.is_available():
     raise RuntimeError('GPU no disponible: no iniciar entrenamiento en CPU')
 set_seed(42)
-MODEL = 'LiquidAI/LFM2.5-1.2B-Instruct'
+PROFILE = globals().get('EDUAI_RUN_PROFILE','eduai-lite')
+MAX_STEPS = globals().get('EDUAI_MAX_STEPS',24)
+profile = json.loads((ROOT/'training/eduai-local/profiles.json').read_text())[PROFILE]
+MODEL = profile['baseModel']
 REVISION = HfApi().model_info(MODEL).sha
-OUT = ROOT / 'artifacts/ai/eduai-lite-lora'
+OUT = ROOT / profile['output']
 DATA = ROOT / 'training/eduai-local/run-train.jsonl'
 CASES = ROOT / 'training/eduai-local/eval-cases.jsonl'
 rows = [json.loads(x) for x in DATA.read_text().splitlines() if x.strip()]
@@ -67,12 +70,17 @@ def evaluate(adapter=None):
 baseline = evaluate()
 (ROOT/'baseline-evaluation.json').write_text(json.dumps(baseline,ensure_ascii=False,indent=2))
 # One process per phase releases CUDA state and keeps dependency setup separate.
-subprocess.run([sys.executable, 'training/eduai-local/train_lora.py', '--profile','eduai-lite','--dataset',str(DATA),'--output',str(OUT),'--revision',REVISION,'--load-in-4bit','--batch-size','1','--grad-accum','4','--max-length','1024','--epochs','2','--max-steps','24','--learning-rate','0.0001'], check=True)
+subprocess.run([sys.executable, 'training/eduai-local/train_lora.py', '--profile',PROFILE,'--dataset',str(DATA),'--output',str(OUT),'--revision',REVISION,'--load-in-4bit','--batch-size','1','--grad-accum','4','--max-length','1024','--epochs','2','--max-steps',str(MAX_STEPS),'--learning-rate','0.0001'], check=True)
 candidate = evaluate(OUT)
 (ROOT/'candidate-evaluation.json').write_text(json.dumps(candidate,ensure_ascii=False,indent=2))
 # Technical pilot is deliberately never promoted, even if the keyword checks pass.
-report = {'status':'pilot_completed','productionReady':False,'promotion':'requires_reviewed_dataset_and_pedagogical_benchmark','model':MODEL,'revision':REVISION,'examples':len(rows),'datasetSha256':hashlib.sha256(DATA.read_bytes()).hexdigest(),'baselineScore':baseline['score'],'candidateScore':candidate['score'],'criticalFailures':candidate['criticalFailures'],'nonRegression':candidate['score']>=baseline['score'] and candidate['criticalFailures']<=baseline['criticalFailures'],'gpu':torch.cuda.get_device_name(0),'artifactFiles':[]}
+report = {'status':'pilot_completed','productionReady':False,'promotion':'requires_reviewed_dataset_and_pedagogical_benchmark','profile':PROFILE,'model':MODEL,'revision':REVISION,'examples':len(rows),'datasetSha256':hashlib.sha256(DATA.read_bytes()).hexdigest(),'baselineScore':baseline['score'],'candidateScore':candidate['score'],'criticalFailures':candidate['criticalFailures'],'nonRegression':candidate['score']>=baseline['score'] and candidate['criticalFailures']<=baseline['criticalFailures'],'gpu':torch.cuda.get_device_name(0),'artifactFiles':[]}
 for file in sorted(OUT.glob('*')):
     if file.is_file(): report['artifactFiles'].append({'name':file.name,'bytes':file.stat().st_size,'sha256':hashlib.sha256(file.read_bytes()).hexdigest()})
 (ROOT/'run-report.json').write_text(json.dumps(report,ensure_ascii=False,indent=2))
 print(json.dumps(report),flush=True)
+
+# The bridge reader accepts report basenames; expose small reports at output root.
+import shutil
+for name in ['run-report.json','baseline-evaluation.json','candidate-evaluation.json']:
+    shutil.copy2(ROOT/name,Path('/kaggle/working')/name)
