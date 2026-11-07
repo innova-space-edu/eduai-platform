@@ -221,3 +221,7 @@ El router de producción permanece deshabilitado. La promoción a producción re
 ## Kaggle y aportes revisados
 
 Piloto QLoRA ejecutado y adaptador recuperable desde notebooks privados. La infraestructura de aportes y feedback se describe en [eduai-training-kaggle.md](../../docs/eduai-training-kaggle.md). El piloto no supera el Quality Gate y no habilita el router de producción. Los próximos lotes se construyen con aportes autorizados y revisados; no se incorporan automáticamente datos privados de toda la plataforma.
+
+## Campaña rigurosa de tres perfiles
+
+La matriz reproducible y sus límites están documentados en [campaign/README.md](campaign/README.md): corpus sintético de fundamentos con hashes, particiones por familias, desafíos de transferencia, tres semillas por modelo, checkpoint por validación, comparación pareada y rúbricas docentes ciegas. Los resultados no habilitan automáticamente producción.

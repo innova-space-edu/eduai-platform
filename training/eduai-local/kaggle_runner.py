@@ -13,6 +13,8 @@ from huggingface_hub import HfApi
 from transformers import AutoTokenizer, AutoModelForCausalLM, BitsAndBytesConfig, set_seed
 from peft import PeftModel
 sys.path.insert(0,str(ROOT/'training/eduai-local'))
+from tokenizer_loader import load_tokenizer
+from model_loader import load_native_model
 if not torch.cuda.is_available():
     raise RuntimeError('GPU no disponible: no iniciar entrenamiento en CPU')
 set_seed(42)
@@ -36,10 +38,10 @@ spec = importlib.util.spec_from_file_location('eduai_evaluate', ROOT / 'training
 evaluator = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(evaluator)
 quant = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_quant_type='nf4', bnb_4bit_use_double_quant=True, bnb_4bit_compute_dtype=torch.float16)
-tokenizer = AutoTokenizer.from_pretrained(MODEL, revision=REVISION, trust_remote_code=False)
+tokenizer = load_tokenizer(MODEL,REVISION)
 
 def evaluate(adapter=None):
-    model = AutoModelForCausalLM.from_pretrained(MODEL, revision=REVISION, quantization_config=quant, device_map={'':0}, trust_remote_code=False)
+    model = load_native_model(MODEL,REVISION,quantization_config=quant,device_map={'':0})
     if adapter: model = PeftModel.from_pretrained(model, str(adapter))
     model.eval()
     results = []

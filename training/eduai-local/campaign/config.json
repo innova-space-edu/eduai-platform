@@ -1,0 +1,15 @@
+{
+  "id": "eduai-foundation-v1",
+  "profiles": ["eduai-nano", "eduai-lite", "eduai-performance"],
+  "seeds": [42, 1337, 2026],
+  "epochs": 2,
+  "batchSize": 2,
+  "gradientAccumulation": 8,
+  "learningRate": 0.0001,
+  "maxLength": 1536,
+  "evaluationSteps": 50,
+  "earlyStoppingPatience": 2,
+  "maxMinutesPerProfile": 150,
+  "promotion": {"automatic": false, "criticalFailuresAllowed": 0, "humanReviewRequired": true, "regressionTolerancePoints": 2},
+  "notes": "Foundation experiment only. No hyperparameter selection based on final test. All seeds and budget fixed before execution."
+}
