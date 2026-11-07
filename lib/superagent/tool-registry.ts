@@ -1237,7 +1237,12 @@ export function detectToolFromMessage(message: string): ToolName | null {
   if (/resum(e|ir|en)\s*(este|el|texto|document)/i.test(m))
     return "summarize_text";
   if (/traduc(e|ir|ci[oó]n)/i.test(m)) return "translate_text";
-  if (/corrige|corregir|revisa|mejora.*(texto|redacci[oó]n|ortograf[ií]a)|ortograf[ií]a/i.test(m))
+  // "¿Puedes revisar si existe...?" es una consulta, NO una orden de corrección textual.
+  // Exigir intención de edición más un objeto textual evita secuestrar preguntas.
+  const explicitProofreading =
+    /\b(?:corrige|corregir|corr[ií]geme|revisa|revisar|mejora|mejorar|arregla)\b[^.!?\n]{0,120}\b(?:texto|redacci[oó]n|ortograf[ií]a|gram[aá]tica|escritura|p[aá]rrafo|frase|ensayo|documento)\b/i.test(m) ||
+    /\b(?:corrige|corregir|corr[ií]geme)\s*(?::|esto\s*:|lo\s+siguiente\s*:)/i.test(m);
+  if (explicitProofreading)
     return "proofread_text";
   if (/explic(a|ar)\s*(el|la|qu[eé]\s*es|concepto)/i.test(m))
     return "explain_concept";
