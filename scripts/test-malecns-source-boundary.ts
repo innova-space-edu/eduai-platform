@@ -49,6 +49,14 @@ const followUp = await getEduAIPlatformKnowledgeContext(staleDb, "Cuéntame más
 ], { allowInternalResearch: true })
 assert.match(followUp, /C0\.13/)
 
+const neuronFollowUp = await getEduAIPlatformKnowledgeContext(staleDb, "¿Y cuántas neuronas activas tenemos?", [
+  { role: "user", content: "¿Qué es MaleCNS de nuestro proyecto?" },
+  { role: "assistant", content: "Es nuestro proyecto experimental." },
+  { role: "user", content: "¿Y cuántas neuronas activas tenemos?" },
+], { allowInternalResearch: true })
+assert.match(neuronFollowUp, /8\.192 neuronas activas/)
+assert.doesNotMatch(neuronFollowUp, /124,2 millones de contactos/)
+
 assert.equal(getMaleCNSVerifiedContext("¿Cómo aprende una neurona?"), null)
 
 console.log("[malecns-source-boundary] internal/external/compare, admin-gating, freshness, follow-up and stale-db bypass verified")
