@@ -39,6 +39,7 @@ assert.ok(compareRoute.includes('prepareTrainingPair(prompt, answerB)'))
 assert.ok(compareRoute.includes('no corregir su ortografía'))
 assert.ok(gateway.includes('if (input.captureTraining !== false)'))
 assert.ok(feedbackUI.includes('Comparar 2 respuestas'))
+assert.ok(feedbackUI.includes('isMediaResult'), 'Do not train image/audio tool outputs as text')
 assert.ok(feedbackUI.includes('Guardar respuesta elegida'))
 assert.ok(feedbackUI.includes('choice === "B" ? "corrected"'))
 
