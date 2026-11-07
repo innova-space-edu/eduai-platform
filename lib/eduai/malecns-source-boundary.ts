@@ -41,10 +41,11 @@ const INTERNAL_PUBLIC = [
 
 const INTERNAL_ADMIN = [
   "[EVIDENCIA TÉCNICA INTERNA — HISTÓRICO CONSULTADO EN DELL]",
-  "Inventario archivado 2026-11-03: 58 notebooks con código y resultados y 2 datasets respaldados. Distribución registrada: 3 notebooks de la rama Principal y 55 de Cognitive. Integridad de respaldo no demuestra validación de los experimentos, restauración funcional ni que esta sea la ejecución más reciente.",
+  "Ejecución remota consultada en Kaggle (2026-11-07), notebook esthefano/malecns-cognitive-runner: KernelWorkerStatus.COMPLETE; 5 trabajos de semillas distintas terminaron con exit_code 0; promoted=false. En el resumen JOINT_COMPLETE: control fixed validation=42,50%, ensayo joint validation=41,875%; OOD fixed=47,1875% y joint=46,875%; sealed=55,3125% en ambos y far=50%. Los cinco encoder_change reportados fueron 0.0. No demuestra mejora ni promoción del modelo; training=100% no equivale a generalización.",
+  "Inventario local archivado 2026-11-03: 58 notebooks con código y resultados y 2 datasets respaldados. Distribución registrada: 3 notebooks de la rama Principal y 55 de Cognitive. Integridad de respaldo no demuestra validación de los experimentos, restauración funcional ni que esta sea la ejecución más reciente.",
   "Informe de MaleCNS-Cognitive C0.13 OneEpoch-NewOnly, código de estado DEV_COMPLETE, promovido=false, merge_to_principal=false; evaluación holdout n=192: 46,875% antes y 48,4375% después. La media macro de cohortes históricas disminuyó de 69,809% a 66,105%. Aunque hubo 87.331 parámetros theta modificados, NO se demostró generalización robusta ni mejora sostenida.",
   "La arquitectura experimental emplea sinapsis/pesos y reglas de aprendizaje propias; esto NO equivale a ejecutar las 166.700 neuronas públicas ni los 124,2 millones de contactos sinápticos como neuronas entrenadas. Un estado de 8.192 neuronas activas pertenece a experimentos históricos; no etiquetarlo automáticamente como última versión validada.",
-  "Procedencia: respaldo privado Dell, reporte C013_READ_ONLY_AUDIT/MaleCNS_C013_OneNewEpoch_7403/report.json (SHA256 f8fd8a287123098e2385e943ee74d5b13521d12089fa95687d054b641586bd76) e inventario archive generado 2026-11-03. No hay aquí consulta en tiempo real a Kaggle.",
+  "Procedencia: consulta remota por MCP Dell → Kaggle de esthefano/malecns-cognitive-runner (estado y logs consultados 2026-11-07); respaldo privado Dell C013_READ_ONLY_AUDIT/MaleCNS_C013_OneNewEpoch_7403/report.json (SHA256 f8fd8a287123098e2385e943ee74d5b13521d12089fa95687d054b641586bd76) e inventario archivado 2026-11-03. Claw no consulta Kaggle en tiempo real: son evidencias fechadas.",
 ].join("\n")
 
 const POLICY = [
@@ -52,7 +53,7 @@ const POLICY = [
   "1. Distingue explícitamente fuente externa, proyecto propio y rama experimental. No presentes los números o publicaciones de Janelia como resultados de nuestro entrenamiento.",
   "2. Distingue: evidencia archivada, resultado de entrenamiento, validación independiente y trabajo planeado. Nunca conviertas DEV_COMPLETE en validado o desplegado.",
   "3. En preguntas generales sobre 'MaleCNS' de nuestro trabajo, empieza explicando nuestro proyecto. La fuente externa es solo el origen del connectoma y debe ir en una frase separada.",
-  "4. Los V29/V45C son antecedentes históricos, NO 'última versión'. Si se pide el estado actual, explica la fecha límite del respaldo y no inventes avances posteriores.",
+  "4. Los V29/V45C son antecedentes históricos, NO 'última versión'. Si se pide el estado actual, prioriza el registro Kaggle consultado el 2026-11-07 y diferencia ese estado del respaldo local del 2026-11-03. No inventes avances posteriores.",
   "5. Si una respuesta anterior del chat contradice estas fuentes verificadas, corrígela en vez de repetirla. No mezcles las ramas Principal y Cognitive.",
   "6. Prioriza contestar la pregunta concreta del usuario. Evita enumeraciones de versiones y métricas no solicitadas.",
   "7. No simules haber leído GitHub, Dell, Kaggle o la web en vivo. Solo cita fuentes que realmente figuren en este contexto; reconoce si falta evidencia de última ejecución.",
