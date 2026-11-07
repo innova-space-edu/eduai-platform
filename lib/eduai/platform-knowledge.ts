@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
+import { getMaleCNSVerifiedContext } from "./malecns-source-boundary"
 
 export type EduAIPlatformKnowledgeItem = {
   knowledge_key: string
@@ -466,7 +467,9 @@ function selectKnowledgeKeys(query: string) {
     }
   }
 
-  const isMaleCns = /(malecns|connectoma|drosophila|165122|165k|neuronas|v29|v45c|mushroom body|eligibility)/.test(q)
+  // No secuestrar preguntas genéricas sobre neuronas, memoria o Drosophila.
+  // Las consultas específicamente MaleCNS se resuelven por una fuente aislada.
+  const isMaleCns = /\bmalecns\b|\bmale[ -]?cns\b/.test(q)
   if (isMaleCns) {
     if (/(v45c|escal|256|512|1024|8192|165k|165122|capacidad)/.test(q)) {
       add("malecns_scaling_v45c", "malecns_overview")
@@ -559,8 +562,13 @@ export async function getEduAIPlatformKnowledgeContext(
   supabase: SupabaseClient,
   userMessage: string,
   history: ConversationMessage[] = [],
+  options: { allowInternalResearch?: boolean } = {},
 ): Promise<string> {
   const query = resolveKnowledgeQuery(userMessage, history)
+  // MaleCNS/ScientificBrain research is deliberately separated from stale DB
+  // rows (V29/V45C) and from Janelia's published connectome statistics.
+  const maleCNSContext = getMaleCNSVerifiedContext(query, options.allowInternalResearch === true)
+  if (maleCNSContext) return maleCNSContext
   if (!PLATFORM_KNOWLEDGE_QUERY.test(query)) return ""
 
   const keys = selectKnowledgeKeys(query)
