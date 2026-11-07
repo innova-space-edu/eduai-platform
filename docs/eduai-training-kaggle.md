@@ -13,6 +13,16 @@ Piloto privado `esthefano/eduai-lite-training-pilot`, completado en Tesla T4 con
 - Filtros conservadores rechazan contactos, identificadores, credenciales y señales sensibles. No constituyen anonimización garantizada. El revisor verifica también nombres y cualquier dato personal que un patrón no pueda detectar.
 - Archivos, voces, imágenes, video, conversaciones privadas y datos de estudiantes no se envían en bruto. Este entrenamiento es de texto/comportamiento; no entrena un generador audiovisual.
 
+## Comparación A/B de respuestas en los chats
+
+- El chat sigue atendiendo la solicitud original. Una consulta como «¿puedes revisar si existe una herramienta?» no se envía al corrector ortográfico; esa herramienta requiere intención explícita de editar texto.
+- En «Mejorar EDUAI → Comparar 2 respuestas», la respuesta A es la que ya entregó el chat. El usuario solicita la generación de una respuesta B alternativa que debe resolver **la misma instrucción**. Esta segunda llamada es opcional, no se ejecuta en cada mensaje y no sustituye la respuesta visible.
+- Para comparar se exige sesión, consentimiento vigente de un adulto y un par pregunta/respuesta compatible con los filtros de privacidad. Los chats con fuentes no autorizadas o datos sensibles no deben aportarse. Si la pregunta requiere documentos o navegación que el generador alternativo no tiene, debe reconocer esa limitación.
+- La generación B usa el Gateway con "captureTraining: false": **ninguna respuesta no seleccionada se añade automáticamente** al conjunto de entrenamiento.
+- Al seleccionar A, se registra la respuesta actual como ejemplo útil; al seleccionar B, se registra como corrección y se rechaza el candidato original, si existe. El elegido queda pendiente de revisión humana y solo después podrá incluirse en la exportación supervisada. Si ambas son incorrectas, puede escribirse la respuesta correcta.
+- Esta versión recopila ejemplos supervisados a partir de la preferencia; **no crea un dataset DPO de pares preferido/rechazado**. Para entrenamiento de preferencias propiamente dicho se requiere una estructura separada, verificación de alineación y revisión de privacidad antes de la exportación.
+- La comparación no acredita veracidad: el revisor debe comprobar relevancia, exactitud, derechos y que la respuesta elegida atienda realmente la pregunta.
+
 ## Operación
 
 Administrador → Model Lab → Model Factory → Aprendizaje con aportes y correcciones. Revisar candidatos, aprobar o excluir y exportar JSON. El RPC de exportación es exclusivo de service_role y el endpoint verifica admin_emails; bloquea filas y autorizaciones durante la instantánea. Mantiene pregunta y sus respuestas alternativas en una misma partición para evitar fugas entre entrenamiento y validación.
