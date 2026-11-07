@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js"
-import { getMaleCNSVerifiedContext } from "./malecns-source-boundary"
+import { classifyMaleCNSSource, getMaleCNSVerifiedContext } from "./malecns-source-boundary"
 
 export type EduAIPlatformKnowledgeItem = {
   knowledge_key: string
@@ -439,13 +439,21 @@ function resolveKnowledgeQuery(
   history: ConversationMessage[] = [],
 ) {
   const current = String(userMessage || "").trim()
-  if (PLATFORM_KNOWLEDGE_QUERY.test(current)) return current
+  if (classifyMaleCNSSource(current)) return current
 
-  if (FOLLOW_UP_QUERY.test(current)) {
-    const previous = previousRelevantUserMessage(current, history)
-    if (previous) return `${previous} · seguimiento: ${current}`
+  // Follow-ups can include terms like "neuronas", so a naive keyword match
+  // would forget the previously chosen internal/public project identity.
+  const previous = previousRelevantUserMessage(current, history)
+  const looksLikeFollowUp = current.length <= 160 && (
+    FOLLOW_UP_QUERY.test(current) ||
+    /^(?:[¿?]?\s*(?:y\s+)?(?:cu[aá]l|cu[aá]nt[ao]s?|qu[eé]|c[oó]mo|por\s+qu[eé]|en\s+qu[eé]|hasta\s+cu[aá]ndo|ahora|actualmente|sigue|versi[oó]n|resultados?|estado)\b)/i.test(current)
+  )
+  if (looksLikeFollowUp && previous && classifyMaleCNSSource(previous)) {
+    return `${previous} · seguimiento: ${current}`
   }
 
+  if (PLATFORM_KNOWLEDGE_QUERY.test(current)) return current
+  if (FOLLOW_UP_QUERY.test(current) && previous) return `${previous} · seguimiento: ${current}`
   return current
 }
 
