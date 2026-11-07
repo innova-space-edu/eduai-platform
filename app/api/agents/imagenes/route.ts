@@ -1246,12 +1246,14 @@ export async function POST(req: Request) {
     return Response.json(
       {
         success: true,
-        imageUrl: imageBase64,
+        // Claw embeds the result as Markdown, where data:image URLs are rejected.
+        // Send a compact permanent URL only for this chat integration.
+        imageUrl: source === "superagent" && stored ? stored.publicUrl : imageBase64,
         optimizedPrompt,
         provider: usedProvider,
         model: usedModel,
         mode,
-        type: "base64",
+        type: source === "superagent" && stored ? "url" : "base64",
         providerOrder: order,
         attempts,
         promptOptimized: promptWasOptimized,
