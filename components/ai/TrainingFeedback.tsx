@@ -92,8 +92,8 @@ export default function TrainingFeedback({ answer, prompt = "", module = "chat" 
   // This is a text-only supervised-training workflow. Never offer A/B text
   // preference for generated images, audio or video; these require separate
   // multimodal evaluation and consent before they can become training examples.
-  const isMediaResult = /!\\[[^\\]]*\\]\\((?:data:image\\/|https?:\\/\\/|\\/api\\/)/i.test(answer) ||
-    /<(?:audio|video)\\b/i.test(answer)
+  const isMediaResult = /!\[[^\]]*\]\((?:data:image\/|https?:\/\/|\/api\/)/i.test(answer) ||
+    /<(?:audio|video)\b/i.test(answer)
   if (!answer.trim() || isMediaResult) return null
 
   return (
