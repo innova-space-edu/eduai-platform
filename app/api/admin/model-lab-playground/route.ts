@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { LAB_MODELS, LAB_R5_ENABLED, selectLabModels, type LabModelId } from "@/lib/ai/model-lab/catalog";
+import { LAB_MODELS, LAB_MODEL_IDS, LAB_R5_ENABLED, selectLabModels, type LabModelId } from "@/lib/ai/model-lab/catalog";
 import { referenceExactMath } from "@/lib/ai/model-lab/exact-reference";
-import { configuredLabInference, inferLabModel, probeLabInference, type LabChatMessage } from "@/lib/ai/model-lab/private-gateway";
+import { configuredLabInference, inferLabModel, enqueueLabInference, inspectLabInferenceJob, probeLabInference, type LabChatMessage } from "@/lib/ai/model-lab/private-gateway";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,8 +48,20 @@ function safeHistory(value:unknown):LabChatMessage[]{
   });
 }
 function respond(data:unknown,status=200){return NextResponse.json(data,{status,headers:HEADERS})}
-export async function GET(){
+export async function GET(request:NextRequest){
   if(!await requireAdmin())return respond({error:"Acceso solo para administración."},403);
+  const jobId=request.nextUrl.searchParams.get("job");
+  if(jobId!==null){
+    const model=request.nextUrl.searchParams.get("model");
+    if(!model||!LAB_MODEL_IDS.has(model))return respond({error:"Modelo no reconocido."},400);
+    if(model.endsWith("-r5")&&!LAB_R5_ENABLED())
+      return respond({error:"R5 todavía no está aprobado."},403);
+    try{
+      return respond(await inspectLabInferenceJob(model,jobId));
+    }catch(error){
+      return respond({error:error instanceof Error?error.message:"Error al consultar la tarea."},503);
+    }
+  }
   const status=await probeLabInference();
   return respond({
     online:status.online,
@@ -91,6 +103,24 @@ export async function POST(request:NextRequest){
   if(models.some(id=>!available.has(id)))return respond({error:"Uno de los adaptadores seleccionados no está instalado en el servidor Dell.",models:status.models},503);
   const historyByModel=input.history&&typeof input.history==="object"&&!Array.isArray(input.history)
     ?input.history as Record<string,unknown>:{};
+  if(input.async===true){
+    const jobs:Array<{model:LabModelId;jobId?:string;error?:string}>=[];
+    for(const model of models){
+      const messages:LabChatMessage[]=[
+        {role:"system",content:"Eres un modelo experimental EDUAI. Responde en español, sin fingir herramientas ni consultas externas. Sigue las instrucciones de la pregunta. Si desconoces algo, indícalo."},
+        ...safeHistory(historyByModel[model]),
+        {role:"user",content:prompt},
+      ];
+      try{
+        const jobId=await enqueueLabInference(model,messages);
+        jobs.push({model,jobId});
+      }catch(error){
+        jobs.push({model,error:error instanceof Error?error.message:"No se pudo enviar la tarea."});
+      }
+    }
+    return respond({jobs,reference:mode==="exact"?referenceExactMath(prompt):null,
+      mode,version,productionReady:false,transport:"jobs"});
+  }
   const responses: Array<{
     model:LabModelId;ok:boolean;text?:string;latencyMs?:number;
     promptTokens?:number|null;completionTokens?:number|null;engine?:string;error?:string;
