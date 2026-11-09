@@ -78,6 +78,9 @@ sudo chmod 0750 "$DEST/models" "$DEST/models/nano-r2" "$DEST/models/lite-r2"
 sudo chmod 0640 "$DEST/models/nano-r2/"* "$DEST/models/lite-r2/"*
 sudo chown -R 10001:10001 "$DEST/cache"
 sudo chmod 0750 "$DEST/cache"
+# Existing Cloudflare Tunnel runs on the portal_default bridge on this Dell.
+sudo docker network inspect portal_default >/dev/null ||
+  { echo "No existe la red portal_default para el túnel Cloudflare." >&2; exit 5; }
 echo "[INFO] Construyendo e iniciando contenedor privado (solo localhost:8122)."
 sudo docker compose --env-file "$TOKENFILE" -f "$DIR/compose.example.yml" up -d --build
 for i in $(seq 1 40); do
