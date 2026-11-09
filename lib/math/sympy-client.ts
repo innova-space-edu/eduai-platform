@@ -37,7 +37,7 @@ export async function solveViaSympy(input: ExactInput): Promise<ExactResult> {
         || !Array.isArray(item.steps) || item.steps.some((s) => typeof s !== "string" || s.length > 4096)) {
         return { supported: false, verified: false, reason: "SYMPY_UNVERIFIED" };
       }
-      return { supported: true, verified: true, operation: String(input.operation), engine: "sympy" as never,
+      return { supported: true, verified: true, operation: String(input.operation), engine: "sympy",
         answer: item.answer, steps: item.steps as string[] };
     } finally { clearTimeout(timer); }
   } catch {
