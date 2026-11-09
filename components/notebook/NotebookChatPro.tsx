@@ -18,7 +18,7 @@ import {
   Volume2,
   VolumeX,
 } from "lucide-react"
-import ReactMarkdown from "react-markdown"
+import MathRenderer from "@/components/ui/MathRenderer"
 import type { NotebookMessage, NotebookSummary } from "@/lib/notebook/types"
 
 interface NotebookChatProProps {
@@ -273,7 +273,7 @@ export default function NotebookChatPro({
           {showSummary && (
             <div className="max-h-64 overflow-y-auto px-4 pb-4">
               <div className="prose prose-sm max-w-none text-xs text-sub">
-                <ReactMarkdown>{summary.summary_markdown}</ReactMarkdown>
+                <MathRenderer content={summary.summary_markdown} />
               </div>
               {summary.key_points?.length > 0 && (
                 <div className="mt-3 grid gap-1.5 sm:grid-cols-2">
@@ -342,7 +342,7 @@ export default function NotebookChatPro({
         {streaming && (
           <div className="max-w-[90%] self-start rounded-2xl bg-card-soft-theme px-4 py-3 text-sm text-main">
             {streamText ? (
-              <div className="prose prose-sm max-w-none text-main"><ReactMarkdown>{streamText}</ReactMarkdown></div>
+              <div className="prose prose-sm max-w-none text-main"><MathRenderer content={streamText} /></div>
             ) : (
               <div className="flex items-center gap-2 text-xs text-muted2"><Loader2 size={13} className="animate-spin" /> Revisando las fuentes...</div>
             )}
@@ -406,7 +406,7 @@ function MessageBubble({ message, isSpeaking, onSpeak, originalPrompt }: {
         {isUser ? (
           <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
         ) : (
-          <div className="prose prose-sm max-w-none text-main"><ReactMarkdown>{message.content}</ReactMarkdown></div>
+          <div className="prose prose-sm max-w-none text-main"><MathRenderer content={message.content} /></div>
         )}
       </div>
 

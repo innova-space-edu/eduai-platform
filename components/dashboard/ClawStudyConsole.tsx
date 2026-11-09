@@ -757,6 +757,11 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
                   </button>
                 )}
                 {message.role === "assistant" ? renderContent(message.content) : <p className="whitespace-pre-wrap">{message.content}</p>}
+                {message.role === "assistant" && message.content.trim().length > 100 && (
+                  <button type="button" onClick={() => { void copyAssistantMessage(message.content, index); window.open("https://www.canva.com/", "_blank", "noopener,noreferrer") }} className="mt-1 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[10px] font-semibold text-blue-700 hover:bg-blue-500/10" title="Copia el texto y abre Canva; no publica automáticamente">
+                    <ImageIcon size={12} /> Copiar y abrir Canva
+                  </button>
+                )}
                 {message.role === "assistant" && !loading && <TrainingFeedback answer={message.content} prompt={messages.slice(0,index).reverse().find(m=>m.role==="user")?.content} module="claw" />}
               </div>
             </div>

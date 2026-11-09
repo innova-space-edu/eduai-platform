@@ -5,7 +5,7 @@
 import TrainingFeedback from "@/components/ai/TrainingFeedback"
 import { useState, useRef, useEffect, useCallback } from "react"
 import { Send, Loader2, RefreshCw, BookOpen, ChevronDown, ChevronUp, Volume2, VolumeX } from "lucide-react"
-import ReactMarkdown from "react-markdown"
+import MathRenderer from "@/components/ui/MathRenderer"
 import type { NotebookMessage, NotebookSummary } from "@/lib/notebook/types"
 
 interface NotebookChatProps {
@@ -243,7 +243,7 @@ export default function NotebookChat({
           <div className="rounded-2xl px-4 py-3 text-sm max-w-[88%]"
             style={{ background: "var(--bg-card-soft)", color: "var(--text-primary)" }}>
             <div className="prose prose-sm max-w-none" style={{ color: "var(--text-primary)" }}>
-              <ReactMarkdown>{streamText}</ReactMarkdown>
+              <MathRenderer content={streamText} />
             </div>
           </div>
         )}
@@ -304,7 +304,7 @@ function MessageBubble({ message, isSpeaking, onSpeak, originalPrompt }: {
           ? <p className="text-sm whitespace-pre-wrap leading-relaxed">{message.content}</p>
           : (
             <div className="prose prose-sm max-w-none" style={{ color: "var(--text-primary)" }}>
-              <ReactMarkdown>{message.content}</ReactMarkdown>
+              <MathRenderer content={message.content} />
             </div>
           )
         }
