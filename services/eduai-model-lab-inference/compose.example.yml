@@ -1,0 +1,24 @@
+services:
+  nano-lite-inference:
+    build: .
+    container_name: eduai-model-lab-inference
+    restart: unless-stopped
+    environment:
+      EDUAI_MODEL_LAB_TOKEN: ${EDUAI_MODEL_LAB_TOKEN:?Set a high entropy private token}
+      EDUAI_MODEL_LAB_MODELS_DIR: /models
+      EDUAI_MODEL_LAB_R5_APPROVED: "false"
+      HF_HOME: /cache/huggingface
+    ports:
+      - "127.0.0.1:8122:8000"
+    volumes:
+      - /srv/eduai-model-lab/models:/models:ro
+      - /srv/eduai-model-lab/cache:/cache
+    cpus: 4.0
+    mem_limit: 12g
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=128m
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
