@@ -781,6 +781,14 @@ export function getParvulariaIntegratedItems(curso: string): OA[] {
     .filter((item, index, arr) => arr.findIndex((x) => x.id === item.id) === index)
 }
 
+export function getParvulariaNucleoItems(curso: string, asignatura: string): OA[] {
+  if (!asignatura) return []
+  const nucleo = normalizeAsignatura(asignatura, "parvularia")
+  return getParvulariaIntegratedItems(curso).filter(
+    (item) => normalizeAsignatura(item.nucleo || "", "parvularia") === nucleo
+  )
+}
+
 export function getOAs(nivel: NivelKey, curso: string, asignatura: string): OA[] {
   const record = getCurriculumRecord(nivel, curso, asignatura)
   if (!record) return []
