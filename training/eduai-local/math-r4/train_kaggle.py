@@ -149,30 +149,77 @@ def run(profile,training,validation,tests,challenges):
   model.config.use_cache=False
   return summarize(rows,responses)
 
- # Note: validation controls candidate selection. Test sets are read only after winner is frozen.
- validated=Samples(validation);best_loss=float("inf");best_seed=None;trials=[]
+ # Validation-only checkpoint ranking, never from old R2/V4 or held-out tests.
+ # Balanced 300-example validation: 50 examples for each of six skills.
+ by_validation_category=defaultdict(list)
+ for row in validation:
+  by_validation_category[row["category"]].append(row)
+ select_validation=[]
+ for key in sorted(by_validation_category):
+  selected=by_validation_category[key][:50]
+  if len(selected)<50:raise RuntimeError("INSUFFICIENT_VALIDATION_CATEGORY "+key)
+  select_validation.extend(selected)
+ if len(select_validation)!=300:raise RuntimeError("INVALID_VALIDATION_SPLIT")
+ base_for_validation, baseline_model_validation=load()
+ baseline_validation=evaluate(baseline_model_validation,select_validation)
+ base_objective=objective(baseline_validation,profile["focus"])
+ del baseline_model_validation,base_for_validation
+ gc.collect();torch.cuda.empty_cache()
+ best_rank=None;best_seed=None;best_stage=None;best_loss=float("inf")
+ best_validation=None;best_validation_gate=False;trials=[]
  for seed in TRAIN_SEEDS:
   torch.manual_seed(seed);torch.cuda.manual_seed_all(seed);random.seed(seed)
-  a1=args(TrainingArguments,profile,folder,seed,1,70);a2=args(TrainingArguments,profile,folder,seed,2,90)
   base,model=load();phases=[]
-  for stage,(args_obj,levels) in enumerate(((a1,(1,2)),(a2,(2,3))),1):
-   rows=[r for r in training if r["difficulty"] in levels]
-   trainer=Trainer(model=model,args=args_obj,train_dataset=Samples(rows),eval_dataset=validated,data_collator=collator)
+  for stage,levels,epochs in ((1,(1,2),2.0),(2,(2,3),2.0)):
+   stage_rows=[r for r in training if r["difficulty"] in levels]
+   if not stage_rows:raise RuntimeError("EMPTY_STAGE")
+   # At least one full shuffled pass, preferably two; computed before GPU steps.
+   per_step=2*4  # batch size x gradient accumulation, single Kaggle GPU
+   steps_per_epoch=math.ceil(len(stage_rows)/per_step)
+   estimated_steps=math.ceil(steps_per_epoch*epochs)
+   if estimated_steps>800:raise RuntimeError("STAGE_GPU_BUDGET_EXCEEDED "+str(estimated_steps))
+   a_stage=args(TrainingArguments,profile,folder,seed,stage,epochs)
+   trainer=Trainer(model=model,args=a_stage,train_dataset=Samples(stage_rows),
+                  data_collator=collator)
    start=time.monotonic();stats=trainer.train()
-   evaluation=trainer.evaluate();loss=float(evaluation["eval_loss"])
-   phases.append({"stage":stage,"steps":args_obj.max_steps,"trainLoss":float(stats.training_loss),
-        "validationLoss":loss,"seconds":round(time.monotonic()-start,2)})
+   actual_steps=int(trainer.state.global_step)
+   if actual_steps<steps_per_epoch:raise RuntimeError("INCOMPLETE_STAGE_DATA_COVERAGE")
    del trainer
-  final_loss=phases[-1]["validationLoss"]
-  trials.append({"seed":seed,"stages":phases,"validationLoss":final_loss})
-  print("TRAINING_SEED_COMPLETED",name,seed,final_loss,flush=True)
-  if final_loss<best_loss:
-   best_loss=final_loss;best_seed=seed
-   chosen=folder/"selected-adapter"
-   if chosen.exists():shutil.rmtree(chosen)
-   model.save_pretrained(str(chosen),safe_serialization=True);template.save_pretrained(str(chosen))
+   valid=evaluate(model,select_validation)
+   scoring=objective(valid,profile["focus"])
+   accepted=validation_gate(valid,baseline_validation,profile["focus"])
+   phase={"stage":stage,"epochsRequested":epochs,"examples":len(stage_rows),
+          "optimizerStepsExpected":estimated_steps,"optimizerStepsActual":actual_steps,
+          "completedAtLeastOneEpoch":actual_steps>=steps_per_epoch,
+          "trainLoss":float(stats.training_loss),"validationScore":scoring,
+          "validationGatePassed":accepted,
+          "validationExactCorrect":valid["correct"],
+          "validationSemanticCorrect":valid["semanticCorrect"],
+          "validationFormatErrors":valid["formatErrors"],
+          "validationTruncated":valid["truncated"],
+          "seconds":round(time.monotonic()-start,2)}
+   phases.append(phase)
+   # Eligibility precedes score. Loss is only a tie-breaker.
+   rank=(int(accepted),scoring["score"],scoring["criticalMacro"],-float(stats.training_loss))
+   if best_rank is None or rank>best_rank:
+    best_rank=rank;best_seed=seed;best_stage=stage
+    best_loss=float(stats.training_loss)
+    best_validation=valid;best_validation_gate=accepted
+    chosen=folder/"selected-adapter"
+    if chosen.exists():shutil.rmtree(chosen)
+    model.save_pretrained(str(chosen),safe_serialization=True)
+    template.save_pretrained(str(chosen))
+   print("VALIDATION_CHECKPOINT",name,seed,stage,"rank",rank,flush=True)
+  trials.append({"seed":seed,"stages":phases})
+  print("TRAINING_SEED_COMPLETED",name,seed,flush=True)
   del model,base;gc.collect();torch.cuda.empty_cache()
- print("SELECTED_SEED_BY_VALIDATION",name,best_seed,best_loss,flush=True)
+ if best_seed is None:raise RuntimeError("NO_VALIDATION_CHECKPOINT")
+ write(folder/"validation-selection.json",{
+   "baseline":baseline_validation,"baselineObjective":base_objective,
+   "selected":best_validation,"selectedSeed":best_seed,"selectedStage":best_stage,
+   "passedGate":best_validation_gate,"selectionMetric":"validationExactAnswerObjective"})
+ print("SELECTED_BY_VALIDATION_ACCURACY",name,best_seed,best_stage,
+       best_rank,"gate",best_validation_gate,flush=True)
  # Evaluate baseline and the single selected candidate on independent sets.
  baseline_base,baseline_model=load()
  baseline=[evaluate(baseline_model,rows) for rows in tests]
@@ -201,9 +248,12 @@ def run(profile,training,validation,tests,challenges):
  thresholds=all(by_cat[k]["after"]>=100*v for k,v in profile["min_score"].items())
  no_critical_regressions=all(by_cat[k]["deltaPoints"]>=0 for k in profile["focus"])
  improvements=after>before
- preferred=bool(improvements and thresholds and legacy_retained and no_critical_regressions)
- report={"campaign":"eduai-math-r4","profile":name,"model":profile["model"],"status":"completed",
-   "productionReady":False,"selectedSeed":best_seed,"selectionMetric":"validationLoss",
+ preferred=bool(best_validation_gate and improvements and thresholds and legacy_retained and no_critical_regressions)
+ report={"campaign":"eduai-math-r5-preflight","profile":name,"model":profile["model"],"status":"completed",
+   "productionReady":False,"selectedSeed":best_seed,"selectionMetric":"validationExactAnswerObjective",
+   "selectedStage":best_stage,"baselineValidation":base_objective,
+   "selectedValidation":objective(best_validation,profile["focus"]),
+   "preferredOnValidation":best_validation_gate,
    "trainSeeds":list(TRAIN_SEEDS),"testSeeds":list(TEST_SEEDS),"trainTrials":trials,
    "newEvaluation":{"beforeCorrect":before,"afterCorrect":after,"total":total,
                     "beforePct":round(100*before/total,2),"afterPct":round(100*after/total,2)},
@@ -240,7 +290,7 @@ def main():
     import torch
     torch.cuda.empty_cache()
    except Exception:pass
- write(ROOT/"campaign-summary.json",{"campaign":"eduai-math-r4","completedProfiles":done,"errors":errors,
+ write(ROOT/"campaign-summary.json",{"campaign":"eduai-math-r5-preflight","completedProfiles":done,"errors":errors,
     "productionReady":False,"trainingSeeds":list(TRAIN_SEEDS),"evaluationSeeds":list(TEST_SEEDS)})
  if errors:raise RuntimeError("R4_PROFILES_FAILED "+str(errors))
 if __name__=="__main__":main()
