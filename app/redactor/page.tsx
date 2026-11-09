@@ -1,7 +1,6 @@
 "use client"
 import { useState, useRef, useEffect } from "react"
-import ReactMarkdown from "react-markdown"
-import remarkGfm from "remark-gfm"
+import MathRenderer from "@/components/ui/MathRenderer"
 import { useRouter } from "next/navigation"
 import AgentHeader from "@/components/ui/AgentHeader"
 import AgentChatLayout, { UserBubble, AgentBubble, QuickPrompts, ChatInput } from "@/components/ui/AgentChatLayout"
@@ -59,7 +58,7 @@ export default function RedactorPage() {
               ? <UserBubble key={i} content={msg.content} />
               : <AgentBubble trainingAnswer={msg.content} trainingPrompt={messages.slice(0,i).reverse().find(m=>m.role==="user")?.content} key={i} icon="✍️" accentColor={ACCENT}>
                   <div className="prose prose-sm max-w-none [&_h2]:text-purple-700 [&_strong]:text-main">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                    <MathRenderer content={msg.content} />
                   </div>
                 </AgentBubble>
           )}

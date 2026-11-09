@@ -18,6 +18,7 @@ import ReactMarkdown from "react-markdown"
 import remarkGfm from "remark-gfm"
 import remarkMath from "remark-math"
 import rehypeKatex from "rehype-katex"
+import { prepareRichChatContent } from "@/lib/text/prepare-rich-chat-content"
 import { getWorkMode } from "@/lib/work/config"
 import type { ResearchScope, WorkCitation, WorkMode } from "@/lib/work/types"
 
@@ -470,7 +471,7 @@ export function WorkChat({
                             <img src={src} alt={alt || "Imagen generada por EduAI"} className="my-3 max-h-[520px] w-full rounded-xl border border-soft bg-white object-contain" />
                           ),
                         }}
-                      >{normalizeToolMedia(message.content)}</ReactMarkdown>
+                      >{prepareRichChatContent(normalizeToolMedia(message.content))}</ReactMarkdown>
                     </div>
                     {message.role === "assistant" && (
                       <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-soft pt-2 text-[10px] text-muted2">
