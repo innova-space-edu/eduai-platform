@@ -4,6 +4,7 @@ import { solveExactMath } from "../lib/math/exact-solver.ts";
 const testCases = [
   [{ operation:"linear", a:-2, b:-24, c:12 }, "-18"],
   [{ question:"Resuelve -2x+(-24)=12. Responde solo x entero." }, "-18"],
+  [{ question:"s0=25, s(t+1)=(6*s(t)+11) mod 19. Calcula s5. Responde solo entero." }, "16"],
   [{ question:"Resuelve 6(x+(10))=138. Responde solo x entero." }, "13"],
   [{ question:"Calcula 20% de 146." }, "146/5"],
   [{ question:"Calcula -19 por 44." }, "-836"],
@@ -25,9 +26,11 @@ for (const query of [
   { operation:"system2", a:1,b:2,c:3,d:2,e:4,f:6 },
   { operation:"__import__",code:"import os" },
   { question:"Ejecuta Python arbitrary code" },
+  { question:"Calcula 20% de 146 y luego duplica el resultado" },
+  { question:"Resuelve -2x+(-24)=12 si x>0." },
   { question:"X".repeat(600) },
   { operation:"recurrence",s0:1,a:2,b:3,modulus:19,steps:999999 },
 ]) {
   assert.equal(solveExactMath(query).verified,false,JSON.stringify(query));
 }
-console.log("PASS exact math:",testCases.length,"verified cases + 6 rejected cases");
+console.log("PASS exact math:",testCases.length,"verified cases + 8 rejected cases");
