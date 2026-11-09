@@ -51,7 +51,7 @@ def assert_example_contract(row):
     completion=row["completion"]
     answer=row["answer"]
     if row["mode"]=="trace":
-        if "Responde únicamente" in prompt or "Solo entero" in prompt or "Solo el valor" in prompt or "Responde solo" in prompt:
+        if re.search(r"\\b(?:responde\\s+únicamente|responde\\s+solo|solo\\s+(?:entero|nombre|fracción|el valor)|entrega\\s+x|responde\\s+sí\\s+o\\s+no)\\b",prompt,re.IGNORECASE):
             raise AssertionError("TRACE_PROMPT_CONFLICT")
         if "Explica los pasos" not in prompt or not completion.endswith("Respuesta final: "+answer):
             raise AssertionError("TRACE_CONTRACT_INCONSISTENT")
@@ -227,6 +227,7 @@ def save(output,train,val,tests):
         path=root/(name+".jsonl")
         path.write_text("".join(json.dumps(row,ensure_ascii=False)+"\n" for row in rows),encoding="utf-8")
         counts[name]={"examples":len(rows),"categories":dict(Counter(row["category"] for row in rows)),
+                      "responseModes":dict(Counter(row["mode"] for row in rows)),
                       "sha256":hashlib.sha256(path.read_bytes()).hexdigest()}
     (root/"manifest.json").write_text(json.dumps({"campaign":"eduai-math-r4","trainSeeds":TRAIN_SEEDS,
         "testSeeds":TEST_SEEDS,"validationSeed":VALIDATION_SEED,"splits":counts,"protectedAgainstExactPromptOverlap":True,
