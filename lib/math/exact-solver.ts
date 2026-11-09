@@ -7,7 +7,7 @@ export type ExactResult = {
   answer?: string;
   steps?: string[];
   reason?: string;
-  engine?: "rational-typescript";
+  engine?: "rational-typescript" | "sympy";
 };
 export type ExactInput = { question?: string; operation?: string; [key: string]: unknown };
 
