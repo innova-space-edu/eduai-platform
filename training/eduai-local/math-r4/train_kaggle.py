@@ -33,12 +33,26 @@ def as_ids(v):
  if not isinstance(v,(list,tuple)) or not all(isinstance(i,int) for i in v):raise RuntimeError("BAD_TOKENIZER_IDS")
  return list(v)
 def runtime():
+ # Pin the pair already exercised by EDUAI R3 on Kaggle. Never reinstall torch
+ # (the CUDA wheel supplied by Kaggle is much larger and can break GPU support).
+ versions={"transformers":"5.20.2","peft":"0.21.2"}
+ mismatched=[]
+ for name,wanted in versions.items():
+  try:installed=importlib.metadata.version(name)
+  except importlib.metadata.PackageNotFoundError:installed=None
+  if installed!=wanted:mismatched.append(name+"=="+wanted)
  try:v=importlib.metadata.version("torchao")
  except importlib.metadata.PackageNotFoundError:v=None
  if v and v.startswith("0.10."):
   subprocess.check_call([sys.executable,"-m","pip","uninstall","-y","torchao"])
+ if mismatched:
+  print("PINNED_DEPENDENCIES_INSTALLING",mismatched,flush=True)
+  subprocess.check_call([sys.executable,"-m","pip","install","--no-cache-dir",
+     "--disable-pip-version-check",*mismatched])
  import torch,transformers,peft
  if not torch.cuda.is_available():raise RuntimeError("CUDA_REQUIRED")
+ if transformers.__version__!=versions["transformers"] or peft.__version__!=versions["peft"]:
+  raise RuntimeError("DEPENDENCY_VERSION_MISMATCH")
  print("RUNTIME_OK",torch.__version__,transformers.__version__,peft.__version__,flush=True)
 def source(profile):
  n=profile["name"]
