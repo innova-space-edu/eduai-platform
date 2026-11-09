@@ -18,16 +18,16 @@ TRAIN_TRACE_RATE=0.35
 # Explicit formatting contracts: no example may demand a single value and
 # simultaneously supervise a paragraph of reasoning.
 _OUTPUT_SUFFIXES=(
-    r"\\s*Solo el valor de x\\.$",
-    r"\\s*Solo entero\\.$",
-    r"\\s*Entrega x\\.$",
-    r"\\s*Responde solo entero\\.$",
-    r"\\s*Responde sí o no\\.$",
-    r"\\s*Solo nombre\\.$",
-    r"\\s*Responde solo su nombre\\.$",
-    r"\\s*Sí o no\\.$",
-    r"\\s*Solo fracción(?: irreducible)?\\.$",
-    r"\\s*Responde entero\\.$",
+    r"\s*Solo el valor de x\.$",
+    r"\s*Solo entero\.$",
+    r"\s*Entrega x\.$",
+    r"\s*Responde solo entero\.$",
+    r"\s*Responde sí o no\.$",
+    r"\s*Solo nombre\.$",
+    r"\s*Responde solo su nombre\.$",
+    r"\s*Sí o no\.$",
+    r"\s*Solo fracción(?: irreducible)?\.$",
+    r"\s*Responde entero\.$",
 )
 def presentation_prompt(question, mode):
     q=question.strip()
@@ -37,9 +37,9 @@ def presentation_prompt(question, mode):
     if not q:
         raise ValueError("EMPTY_QUESTION")
     if mode=="trace":
-        q += "\\nExplica los pasos y comprueba el cálculo. Termina con una línea «Respuesta final:» seguida del valor."
+        q += "\nExplica los pasos y comprueba el cálculo. Termina con una línea «Respuesta final:» seguida del valor."
     elif mode=="final":
-        q += "\\nResponde únicamente con el resultado final, sin explicación."
+        q += "\nResponde únicamente con el resultado final, sin explicación."
     else:
         raise ValueError("UNKNOWN_RESPONSE_MODE")
     return q
