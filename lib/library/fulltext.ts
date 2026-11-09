@@ -1,4 +1,4 @@
-export type FullTextSourceId = "google-books" | "scielo" | "wikisource" | "wikibooks" | "openstax" | "open-textbook-library"
+export type FullTextSourceId = "google-books" | "scielo" | "wikisource" | "wikibooks" | "openstax" | "open-textbook-library" | "memoria-chilena" | "open-book-publishers"
 
 export type FullTextReaderType = "google" | "pdf" | "wikimedia" | "external"
 
@@ -12,12 +12,14 @@ export type FullTextBook = {
   language: string
   year: string
   license: string
+  licenseUrl?: string
   complete: boolean
   format: string
   coverUrl: string
   sourceUrl: string
   readerType: FullTextReaderType
   readerUrl?: string
+  downloadUrl?: string
   wikiProject?: "wikisource" | "wikibooks"
   wikiTitle?: string
 }
@@ -32,6 +34,8 @@ export type FullTextSearchResponse = {
 export const FULLTEXT_SOURCE_LABELS: Record<FullTextSourceId, string> = {
   "google-books": "Google Books",
   scielo: "SciELO Books",
+  "memoria-chilena": "Memoria Chilena",
+  "open-book-publishers": "Open Book Publishers",
   wikisource: "Wikisource",
   wikibooks: "Wikibooks",
   openstax: "OpenStax",

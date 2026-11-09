@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import * as cheerio from "cheerio"
-import type { FullTextBook, FullTextSearchResponse, FullTextSourceId } from "@/lib/library/fulltext"
+import { FULLTEXT_SOURCE_LABELS, type FullTextBook, type FullTextSearchResponse, type FullTextSourceId } from "@/lib/library/fulltext"
+import { findOpenEditions } from "@/lib/library/open-editions"
 
 const CACHE_SECONDS = 60 * 60 * 6
 const DEFAULT_QUERY = "educación"
@@ -241,6 +242,7 @@ async function searchOpenTextbookLibrary(query: string, signal: AbortSignal): Pr
       sourceUrl,
       readerType: pdf ? "pdf" : "external",
       readerUrl: pdf || undefined,
+      downloadUrl: pdf || undefined,
     }]
   })
 }
@@ -302,7 +304,7 @@ async function searchScielo(query: string, signal: AbortSignal): Promise<FullTex
     const anchor = heading.find("a").first().length ? heading.find("a").first() : heading.parent("a")
     const title = clean(heading.text())
     const url = absoluteUrl(anchor.attr("href") || heading.find("a").attr("href"), searchUrl)
-    if (!title || !url || !url.includes("scielo.org")) return
+    if (!title || !url || new URL(url).origin !== "https://books.scielo.org") return
     const container = heading.closest("article, li, .item, .result, div")
     const context = clean(container.text())
     const cover = absoluteUrl(container.find("img").first().attr("src"), searchUrl)
@@ -342,13 +344,16 @@ async function searchScielo(query: string, signal: AbortSignal): Promise<FullTex
       coverUrl: item.cover,
       sourceUrl: item.url,
       readerType: pdf ? "pdf" : "external",
-      readerUrl: pdf || epub || undefined,
+      readerUrl: pdf || undefined,
+      downloadUrl: pdf || epub || undefined,
     }
   }))
   return enriched
 }
 
 const SOURCE_PRIORITY: Record<FullTextSourceId, number> = {
+  "memoria-chilena": 120,
+  "open-book-publishers": 110,
   openstax: 100,
   "open-textbook-library": 95,
   wikibooks: 90,
@@ -358,21 +363,30 @@ const SOURCE_PRIORITY: Record<FullTextSourceId, number> = {
 }
 
 export async function GET(request: NextRequest) {
-  const query = clean(request.nextUrl.searchParams.get("q")).slice(0, 180) || DEFAULT_QUERY
+  const rawQuery = clean(request.nextUrl.searchParams.get("q")).slice(0, 180)
+  const query = rawQuery || DEFAULT_QUERY
+  const filter = request.nextUrl.searchParams.get("source")
+  if (filter && !Object.hasOwn(FULLTEXT_SOURCE_LABELS, filter)) {
+    return NextResponse.json({ error: "Fuente de libros inválida" }, { status: 400 })
+  }
+  const source = filter as FullTextSourceId | null
   const controller = new AbortController()
   const timeout = setTimeout(() => controller.abort(), 18000)
-
-  const tasks: Array<[FullTextSourceId, Promise<FullTextBook[]>]> = [
-    ["openstax", searchOpenStax(query, controller.signal)],
-    ["open-textbook-library", searchOpenTextbookLibrary(query, controller.signal)],
-    ["wikibooks", searchWikimedia(query, "wikibooks", controller.signal)],
-    ["scielo", searchScielo(query, controller.signal)],
-    ["wikisource", searchWikimedia(query, "wikisource", controller.signal)],
-    ["google-books", searchGoogleBooks(query, controller.signal)],
+  const editions = findOpenEditions(rawQuery, source ?? undefined)
+  const searches: Array<[FullTextSourceId, () => Promise<FullTextBook[]>]> = [
+    ["memoria-chilena", async () => editions.filter((book) => book.sourceId === "memoria-chilena")],
+    ["open-book-publishers", async () => editions.filter((book) => book.sourceId === "open-book-publishers")],
+    ["openstax", () => searchOpenStax(query, controller.signal)],
+    ["open-textbook-library", () => searchOpenTextbookLibrary(query, controller.signal)],
+    ["wikibooks", () => searchWikimedia(query, "wikibooks", controller.signal)],
+    ["scielo", () => searchScielo(query, controller.signal)],
+    ["wikisource", () => searchWikimedia(query, "wikisource", controller.signal)],
+    ["google-books", () => searchGoogleBooks(query, controller.signal)],
   ]
+  const tasks = searches.filter(([id]) => !source || id === source)
 
   try {
-    const settled = await Promise.allSettled(tasks.map(([, task]) => task))
+    const settled = await Promise.allSettled(tasks.map(([, search]) => search()))
     const failedSources: string[] = []
     const books: FullTextBook[] = []
     const sourceCounts: FullTextSearchResponse["sourceCounts"] = {}
@@ -381,7 +395,6 @@ export async function GET(request: NextRequest) {
       const sourceId = tasks[index][0]
       if (result.status === "fulfilled") {
         const values = result.value.filter((book) => book.complete)
-        sourceCounts[sourceId] = values.length
         books.push(...values)
       } else {
         failedSources.push(sourceId)
@@ -400,9 +413,10 @@ export async function GET(request: NextRequest) {
       })
       .slice(0, 72)
 
-    const response: FullTextSearchResponse = { query, books: deduped, sourceCounts, failedSources }
+    for (const book of deduped) sourceCounts[book.sourceId] = (sourceCounts[book.sourceId] || 0) + 1
+    const response: FullTextSearchResponse = { query: rawQuery, books: deduped, sourceCounts, failedSources }
     return NextResponse.json(response, {
-      headers: { "Cache-Control": `public, s-maxage=${CACHE_SECONDS}, stale-while-revalidate=86400` },
+      headers: { "Cache-Control": `public, s-maxage=${failedSources.length ? 60 : CACHE_SECONDS}, stale-while-revalidate=86400` },
     })
   } finally {
     clearTimeout(timeout)
