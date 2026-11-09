@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
-import { ArrowLeft, ArrowRight, ExternalLink, Loader2, Maximize2, Volume2, X } from "lucide-react"
+import { ArrowLeft, ArrowRight, Download, ExternalLink, Loader2, Maximize2, Volume2, X } from "lucide-react"
 import { paginateBookText } from "@/lib/library/catalog"
 import type { FullTextBook } from "@/lib/library/fulltext"
 
@@ -73,11 +73,13 @@ export default function FullTextReader({ book, onClose }: Props) {
               <span className="rounded-full border border-emerald-100 bg-emerald-50 px-2.5 py-1 text-[10px] font-black text-emerald-700">TEXTO COMPLETO</span>
               <span className="text-[11px] font-bold text-slate-400">{book.source}</span>
             </div>
+            <p className="mt-1 text-xs text-slate-600">{book.author}{book.year ? ` · ${book.year}` : ""} · {book.licenseUrl ? <a href={book.licenseUrl} target="_blank" rel="noopener noreferrer" className="underline">{book.license}</a> : book.license}</p>
             <h2 className="mt-1 truncate text-sm font-bold text-slate-950 sm:text-base">{book.title}</h2>
           </div>
           <div className="flex items-center gap-1.5">
             {book.readerType === "wikimedia" && pages.length > 0 && <button onClick={speak} className="flex h-9 items-center gap-2 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-600 hover:bg-slate-50"><Volume2 size={15} /> Escuchar</button>}
-            <a href={book.sourceUrl} target="_blank" rel="noopener noreferrer" className="hidden h-9 items-center gap-2 rounded-xl border border-slate-200 px-3 text-xs font-bold text-slate-600 hover:bg-slate-50 sm:flex"><ExternalLink size={14} /> Fuente</a>
+            {book.downloadUrl && <a href={book.downloadUrl} target="_blank" rel="noopener noreferrer" className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 px-2 text-xs font-bold text-blue-700"><Download size={14} /> {book.format === "EPUB" ? "EPUB" : "PDF"}</a>}
+            <a href={book.sourceUrl} target="_blank" rel="noopener noreferrer" className="flex h-9 items-center gap-1.5 rounded-xl border border-slate-200 px-2 text-xs font-bold text-slate-600 hover:bg-slate-50"><ExternalLink size={14} /> Fuente</a>
             <button onClick={fullscreen} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50"><Maximize2 size={16} /></button>
             <button onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 text-slate-600 hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"><X size={17} /></button>
           </div>
@@ -85,7 +87,10 @@ export default function FullTextReader({ book, onClose }: Props) {
 
         <main className="min-h-0 flex-1 overflow-hidden bg-slate-100">
           {embedded ? (
-            <iframe src={book.readerUrl} title={book.title} className="h-full w-full border-0 bg-white" allow="fullscreen" />
+            <div className="flex h-full flex-col">
+              {book.downloadUrl && <p className="shrink-0 border-b border-slate-200 bg-white px-4 py-2 text-xs text-slate-600">Si el visor no carga, abre el PDF original o consulta la ficha de la fuente.</p>}
+              <iframe src={book.readerUrl} title={book.title} className="min-h-0 w-full flex-1 border-0 bg-white" allow="fullscreen" referrerPolicy="no-referrer" />
+            </div>
           ) : book.readerType === "wikimedia" ? (
             loading ? (
               <div className="flex h-full items-center justify-center"><div className="text-center"><Loader2 size={34} className="mx-auto animate-spin text-blue-600" /><p className="mt-3 text-sm font-bold text-slate-700">Preparando texto completo</p></div></div>

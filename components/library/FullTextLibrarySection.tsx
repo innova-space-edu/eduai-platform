@@ -1,16 +1,16 @@
 "use client"
 
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react"
-import { BookOpenCheck, ExternalLink, Filter, Loader2, Search, ShieldCheck } from "lucide-react"
+import { BookOpenCheck, Download, ExternalLink, Filter, Search, ShieldCheck } from "lucide-react"
 import FullTextReader from "@/components/library/FullTextReader"
 import { FULLTEXT_SOURCE_LABELS, type FullTextBook, type FullTextSearchResponse, type FullTextSourceId } from "@/lib/library/fulltext"
 
 type Props = {
   query?: string
+  sourceFilter?: FullTextSourceId | "all"
 }
 
-const DEFAULT_QUERY = "educación"
-const SOURCE_ORDER: FullTextSourceId[] = ["openstax", "open-textbook-library", "wikibooks", "scielo", "wikisource", "google-books"]
+const SOURCE_ORDER: FullTextSourceId[] = ["memoria-chilena", "open-book-publishers", "openstax", "open-textbook-library", "wikibooks", "scielo", "wikisource", "google-books"]
 
 function sourceBadge(sourceId: FullTextSourceId) {
   if (sourceId === "openstax") return "border-orange-200 bg-orange-50 text-orange-700"
@@ -30,7 +30,7 @@ function coverFallback(book: FullTextBook) {
   )
 }
 
-export default function FullTextLibrarySection({ query = "" }: Props) {
+export default function FullTextLibrarySection({ query = "", sourceFilter = "all" }: Props) {
   const controllerRef = useRef<AbortController | null>(null)
   const [draft, setDraft] = useState("")
   const [localQuery, setLocalQuery] = useState("")
@@ -38,9 +38,14 @@ export default function FullTextLibrarySection({ query = "" }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [source, setSource] = useState<FullTextSourceId | "all">("all")
+  const [downloadableOnly, setDownloadableOnly] = useState(false)
   const [activeBook, setActiveBook] = useState<FullTextBook | null>(null)
 
-  const effectiveQuery = (localQuery || query || DEFAULT_QUERY).trim()
+  const effectiveQuery = (localQuery || query).trim()
+
+  useEffect(() => {
+    setSource(sourceFilter)
+  }, [sourceFilter])
 
   useEffect(() => {
     controllerRef.current?.abort()
@@ -50,6 +55,7 @@ export default function FullTextLibrarySection({ query = "" }: Props) {
     setError("")
 
     const params = new URLSearchParams({ q: effectiveQuery })
+    if (sourceFilter !== "all") params.set("source", sourceFilter)
     fetch(`/api/library/fulltext?${params.toString()}`, { signal: controller.signal, headers: { Accept: "application/json" } })
       .then(async (response) => {
         const payload = await response.json()
@@ -60,7 +66,7 @@ export default function FullTextLibrarySection({ query = "" }: Props) {
         if (!controller.signal.aborted) setData(payload)
       })
       .catch((cause) => {
-        if (cause instanceof DOMException && cause.name === "AbortError") return
+        if (controller.signal.aborted) return
         setData(null)
         setError(cause instanceof Error ? cause.message : "No se pudo consultar las fuentes abiertas")
       })
@@ -72,19 +78,18 @@ export default function FullTextLibrarySection({ query = "" }: Props) {
       })
 
     return () => controller.abort()
-  }, [effectiveQuery])
+  }, [effectiveQuery, sourceFilter])
 
   const books = useMemo(() => {
-    const values = (data?.books || []).filter((book) => book.complete)
+    const values = (data?.books || []).filter((book) => book.complete && (!downloadableOnly || book.downloadUrl))
     return source === "all" ? values : values.filter((book) => book.sourceId === source)
-  }, [data, source])
+  }, [data, source, downloadableOnly])
 
   const submit = (event: FormEvent) => {
     event.preventDefault()
     const value = draft.trim()
-    if (!value) return
     setLocalQuery(value)
-    setSource("all")
+    setSource(sourceFilter)
   }
 
   return (
@@ -97,7 +102,7 @@ export default function FullTextLibrarySection({ query = "" }: Props) {
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-100 bg-white px-3 py-1 text-[10px] font-bold text-emerald-700"><ShieldCheck size={12} /> Solo acceso completo</span>
             </div>
             <h2 className="mt-4 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Biblioteca abierta federada de EDUAI</h2>
-            <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">EDUAI consulta Google Books, SciELO Books, Wikisource, Wikibooks, OpenStax y Open Textbook Library, pero muestra aquí únicamente resultados identificados como libros o textos completos. Los recursos incompletos y vistas previas no entran en esta sección.</p>
+            <p className="mt-2 max-w-4xl text-sm leading-6 text-slate-600">Busca por título, autor o tema. Cada ficha distingue el acceso en el lector de EduAI, el PDF original y la lectura en la fuente.</p>
           </div>
           <div className="rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm shadow-sm">
             <p className="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Resultados completos</p>
@@ -118,15 +123,18 @@ export default function FullTextLibrarySection({ query = "" }: Props) {
         <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-black uppercase tracking-[0.16em] text-slate-400">Consulta actual</p>
-            <p className="mt-1 truncate text-sm font-semibold text-slate-800">{effectiveQuery}</p>
+            <p className="mt-1 truncate text-sm font-semibold text-slate-800">{effectiveQuery || "Selección inicial"}</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-700"><input type="checkbox" checked={downloadableOnly} onChange={(event) => setDownloadableOnly(event.target.checked)} /> Con descarga oficial</label>
+            {sourceFilter === "all" && <>
             <span className="inline-flex items-center gap-1.5 text-[11px] font-bold text-slate-400"><Filter size={13} /> Fuente:</span>
             <button onClick={() => setSource("all")} className={`rounded-full border px-3 py-1.5 text-[10px] font-bold ${source === "all" ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 bg-white text-slate-600"}`}>Todas</button>
             {SOURCE_ORDER.map((sourceId) => {
               const count = data?.sourceCounts[sourceId] || 0
               return <button key={sourceId} onClick={() => setSource(sourceId)} className={`rounded-full border px-3 py-1.5 text-[10px] font-bold ${source === sourceId ? "border-slate-900 bg-slate-900 text-white" : sourceBadge(sourceId)}`}>{FULLTEXT_SOURCE_LABELS[sourceId]} · {count}</button>
             })}
+            </>}
           </div>
         </div>
 
@@ -148,6 +156,8 @@ export default function FullTextLibrarySection({ query = "" }: Props) {
                 <div className="mt-3">
                   <button onClick={() => setActiveBook(book)} className="w-full text-left"><h3 className="line-clamp-2 text-sm font-bold leading-5 text-slate-900 group-hover:text-emerald-700">{book.title}</h3><p className="mt-1 truncate text-xs text-slate-500">{book.author}</p></button>
                   <div className="mt-2 flex items-center justify-between gap-2"><span className={`truncate rounded-full border px-2 py-1 text-[9px] font-black ${sourceBadge(book.sourceId)}`}>{book.source}</span><a href={book.sourceUrl} target="_blank" rel="noopener noreferrer" className="flex h-7 w-7 items-center justify-center rounded-lg border border-slate-200 text-slate-400 hover:text-slate-700"><ExternalLink size={12} /></a></div>
+                  <p className="mt-2 text-xs text-slate-600">{book.language === "es" ? "Español" : book.language === "en" ? "Inglés" : book.language.toUpperCase()} · {book.license}</p>
+                  {book.downloadUrl && <a href={book.downloadUrl} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-blue-700 underline"><Download size={13} /> Archivo original</a>}
                 </div>
               </article>
             ))}

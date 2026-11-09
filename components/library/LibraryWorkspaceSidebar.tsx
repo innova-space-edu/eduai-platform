@@ -24,6 +24,16 @@ import type { LibraryCollection } from "@/lib/library/catalog"
 export type LibraryWorkspaceView =
   | "home"
   | "fulltext"
+  | "memoria-chilena"
+  | "open-book-publishers"
+  | "doab"
+  | "oapen"
+  | "cepal"
+  | "cervantes"
+  | "uchile"
+  | "libros-uchile"
+  | "clacso"
+  | "unesdoc"
   | "mineduc"
   | "bdescolar"
   | "openlibrary"
@@ -50,6 +60,16 @@ export type LibraryWorkspaceView =
 export const WORKSPACE_VIEW_LABELS: Record<LibraryWorkspaceView, string> = {
   home: "Inicio",
   fulltext: "Texto completo",
+  "memoria-chilena": "Memoria Chilena",
+  "open-book-publishers": "Open Book Publishers",
+  doab: "DOAB",
+  oapen: "OAPEN Library",
+  cepal: "Repositorio CEPAL",
+  cervantes: "Biblioteca Virtual Cervantes",
+  uchile: "Repositorio U. de Chile",
+  "libros-uchile": "Libros U. de Chile",
+  clacso: "CLACSO",
+  unesdoc: "UNESDOC",
   mineduc: "Textos MINEDUC",
   bdescolar: "BDEscolar",
   openlibrary: "Open Library",
@@ -100,6 +120,8 @@ const MAIN_ITEMS: NavItem[] = [
 ]
 
 const OPEN_TEXT_ITEMS: NavItem[] = [
+  { id: "memoria-chilena", label: "Memoria Chilena", icon: BookOpen },
+  { id: "open-book-publishers", label: "Open Book Publishers", icon: BookOpen },
   { id: "openstax", label: "OpenStax", icon: BookOpenCheck },
   { id: "open-textbook-library", label: "Open Textbook Library", icon: BookOpen },
   { id: "wikibooks", label: "Wikibooks", icon: BookCopy },
@@ -109,6 +131,14 @@ const OPEN_TEXT_ITEMS: NavItem[] = [
 ]
 
 const OTHER_LIBRARY_ITEMS: NavItem[] = [
+  { id: "doab", label: "DOAB", icon: Globe2 },
+  { id: "oapen", label: "OAPEN Library", icon: LibraryBig },
+  { id: "cepal", label: "Repositorio CEPAL", icon: LibraryBig },
+  { id: "uchile", label: "Repositorio U. de Chile", icon: GraduationCap },
+  { id: "libros-uchile", label: "Libros U. de Chile", icon: BookOpen },
+  { id: "clacso", label: "CLACSO", icon: Globe2 },
+  { id: "unesdoc", label: "UNESDOC", icon: LibraryBig },
+  { id: "cervantes", label: "Biblioteca Virtual Cervantes", icon: BookOpen },
   { id: "bpdigital", label: "BPDigital Chile", icon: LibraryBig },
   { id: "gutenberg", label: "Project Gutenberg", icon: BookOpen },
   { id: "librototal", label: "El Libro Total", icon: BookOpen },

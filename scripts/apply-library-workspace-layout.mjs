@@ -2,7 +2,6 @@ import fs from "node:fs"
 import path from "node:path"
 
 const pagePath = path.join(process.cwd(), "app", "biblioteca", "page.tsx")
-const fullTextPath = path.join(process.cwd(), "components", "library", "FullTextLibrarySection.tsx")
 
 if (!fs.existsSync(pagePath)) {
   console.log("[library-workspace] biblioteca page not found")
@@ -88,6 +87,15 @@ if (!source.includes('{workspaceView === "home" && <>')) {
   source = `${source.slice(0, start)}          {workspaceView === "home" && <>\n${welcomeBlock}\n          </>}\n${source.slice(endIndex)}`
 }
 
+if (!source.includes("Explorar patrimonio chileno")) {
+  const welcomeEnd = '          <AgentPanel stage={agentStage}'
+  source = source.replace(welcomeEnd, `          <div className="my-5 flex flex-wrap gap-2">
+            <button type="button" onClick={() => selectWorkspaceView("memoria-chilena")} className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800">Explorar patrimonio chileno</button>
+            <button type="button" onClick={() => selectWorkspaceView("open-book-publishers")} className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800">Libros académicos abiertos</button>
+            <button type="button" onClick={() => selectWorkspaceView("fulltext")} className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-800">Buscar textos completos</button>
+          </div>\n${welcomeEnd}`)
+}
+
 const mobileCollectionsRegex = /\n          <div className="mt-6 flex gap-2 overflow-x-auto pb-2 lg:hidden">[\s\S]*?<\/div>/
 source = source.replace(mobileCollectionsRegex, "")
 
@@ -95,7 +103,7 @@ const fullTextComponent = '          <FullTextLibrarySection query={searchTerm} 
 if (source.includes(fullTextComponent)) {
   source = source.replace(
     fullTextComponent,
-    `          {(workspaceView === "fulltext" || workspaceView === "openstax" || workspaceView === "open-textbook-library" || workspaceView === "wikibooks" || workspaceView === "wikisource" || workspaceView === "scielo" || workspaceView === "google-books") && (\n            <FullTextLibrarySection\n              query={searchTerm}\n              sourceFilter={workspaceView === "openstax" ? "openstax" : workspaceView === "open-textbook-library" ? "open-textbook-library" : workspaceView === "wikibooks" ? "wikibooks" : workspaceView === "wikisource" ? "wikisource" : workspaceView === "scielo" ? "scielo" : workspaceView === "google-books" ? "google-books" : "all"}\n            />\n          )}`,
+    `          {(workspaceView === "fulltext" || workspaceView === "memoria-chilena" || workspaceView === "open-book-publishers" || workspaceView === "openstax" || workspaceView === "open-textbook-library" || workspaceView === "wikibooks" || workspaceView === "wikisource" || workspaceView === "scielo" || workspaceView === "google-books") && (\n            <FullTextLibrarySection key={workspaceView} query={searchTerm} sourceFilter={workspaceView === "fulltext" ? "all" : workspaceView} />\n          )}`,
   )
 }
 
@@ -138,20 +146,5 @@ if (!source.includes('{workspaceView === "openlibrary" && (\n          <section 
 source = source.replace('          <footer className="mt-12', '          <footer className="mt-8')
 
 fs.writeFileSync(pagePath, source)
-
-if (fs.existsSync(fullTextPath)) {
-  let fullText = fs.readFileSync(fullTextPath, "utf8")
-  if (!fullText.includes('sourceFilter?: FullTextSourceId | "all"')) {
-    fullText = fullText.replace('type Props = {\n  query?: string\n}', 'type Props = {\n  query?: string\n  sourceFilter?: FullTextSourceId | "all"\n}')
-  }
-  fullText = fullText.replace('export default function FullTextLibrarySection({ query = "" }: Props) {', 'export default function FullTextLibrarySection({ query = "", sourceFilter = "all" }: Props) {')
-  if (!fullText.includes('setSource(sourceFilter)\n  }, [sourceFilter])')) {
-    const queryMarker = '  const effectiveQuery = (localQuery || query || DEFAULT_QUERY).trim()\n'
-    if (!fullText.includes(queryMarker)) throw new Error("[library-workspace] fulltext query marker not found")
-    fullText = fullText.replace(queryMarker, `${queryMarker}\n  useEffect(() => {\n    setSource(sourceFilter)\n  }, [sourceFilter])\n`)
-  }
-  fullText = fullText.replace('    setSource("all")\n  }', '    setSource(sourceFilter)\n  }')
-  fs.writeFileSync(fullTextPath, fullText)
-}
 
 console.log("[library-workspace] sidebar workspace layout applied")

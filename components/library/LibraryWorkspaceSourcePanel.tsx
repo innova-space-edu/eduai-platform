@@ -13,6 +13,62 @@ type SourceConfig = {
 }
 
 const SOURCES: Partial<Record<LibraryWorkspaceView, SourceConfig>> = {
+  doab: {
+    title: "Directory of Open Access Books",
+    description: "Índice de libros académicos de acceso abierto. Cada ficha dirige al editor o repositorio con el texto y sus condiciones.",
+    access: "Catálogo abierto",
+    url: "https://www.doabooks.org/",
+    kind: "library",
+  },
+  oapen: {
+    title: "OAPEN Library",
+    description: "Colección de libros académicos de acceso abierto. Consulta la licencia y los formatos en cada ficha.",
+    access: "Lectura y descarga en la fuente",
+    url: "https://library.oapen.org/",
+    kind: "library",
+  },
+  cepal: {
+    title: "Repositorio Digital de la CEPAL",
+    description: "Publicaciones sobre economía, sociedad y medio ambiente de América Latina y el Caribe.",
+    access: "Acceso abierto en la fuente",
+    url: "https://repositorio.cepal.org/",
+    kind: "library",
+  },
+  uchile: {
+    title: "Repositorio Académico de la Universidad de Chile",
+    description: "Producción académica de la Universidad de Chile. Los archivos y las condiciones de acceso se indican por registro.",
+    access: "Acceso según ficha",
+    url: "https://repositorio.uchile.cl/",
+    kind: "library",
+  },
+  "libros-uchile": {
+    title: "Portal de Libros Electrónicos de la Universidad de Chile",
+    description: "Libros publicados por facultades e institutos de la universidad. Cada edición detalla los archivos disponibles.",
+    access: "Libros académicos en la fuente",
+    url: "https://www.libros.uchile.cl/",
+    kind: "library",
+  },
+  clacso: {
+    title: "Librería Latinoamericana y Caribeña de Ciencias Sociales",
+    description: "Catálogo editorial de CLACSO con libros descargables de ciencias sociales, educación e historia regional.",
+    access: "Descarga abierta en la fuente",
+    url: "https://libreria.clacso.org/",
+    kind: "library",
+  },
+  unesdoc: {
+    title: "Biblioteca Digital de la UNESCO",
+    description: "Publicaciones sobre educación, ciencias y cultura. Consulta el idioma, los formatos y la licencia de cada documento.",
+    access: "Acceso según ficha",
+    url: "https://unesdoc.unesco.org/",
+    kind: "library",
+  },
+  cervantes: {
+    title: "Biblioteca Virtual Miguel de Cervantes",
+    description: "Literatura y patrimonio hispánico. Los derechos de los textos y las ediciones se consultan en la fuente.",
+    access: "Lectura en la fuente",
+    url: "https://www.cervantesvirtual.com/",
+    kind: "library",
+  },
   bpdigital: {
     title: "BPDigital Chile",
     description: "Biblioteca Pública Digital de Chile con libros y audiolibros disponibles mediante préstamo oficial.",
@@ -22,7 +78,7 @@ const SOURCES: Partial<Record<LibraryWorkspaceView, SourceConfig>> = {
   },
   gutenberg: {
     title: "Project Gutenberg",
-    description: "Biblioteca de obras de dominio público con lectura completa en HTML, EPUB y otros formatos.",
+    description: "Clásicos en HTML, EPUB y otros formatos. Gutenberg indica los derechos según su jurisdicción y ofrece los formatos en cada ficha.",
     access: "Texto completo",
     url: "https://www.gutenberg.org/browse/languages/es",
     kind: "library",
@@ -145,7 +201,7 @@ export default function LibraryWorkspaceSourcePanel({ view }: { view: LibraryWor
           <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 px-6 py-16 text-center">
             <Icon size={36} className="mx-auto text-slate-300" />
             <h3 className="mt-4 text-lg font-bold text-slate-900">Fuente seleccionada</h3>
-            <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-500">Este servicio no ofrece un visor embebible estable para EDUAI. La selección se mantiene en el centro y el acceso al contenido se realiza en su plataforma original.</p>
+            <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-500">Abre el catálogo oficial para buscar, consultar las condiciones y usar los formatos disponibles.</p>
             <a href={source.url} target="_blank" rel="noopener noreferrer" className="mt-5 inline-flex h-11 items-center gap-2 rounded-xl bg-blue-600 px-5 text-xs font-bold text-white hover:bg-blue-700"><ExternalLink size={14} /> Continuar en {source.title}</a>
           </div>
         </div>
