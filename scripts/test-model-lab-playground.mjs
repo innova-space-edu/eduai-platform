@@ -14,6 +14,8 @@ assert.equal(referenceExactMath("Resuelve 0x + 2 = 2").verified,false);
 assert.equal(referenceExactMath("Resuelve sistemas no lineales de orden 4").supported,false);
 assert.equal(referenceExactMath("Calcula 3 / 0").supported,false);
 assert.equal(referenceExactMath("Resuelve 3x + 7 = 22 y x + 2 = 4").supported,false);
+assert.equal(referenceExactMath("Calcula 20% de 146 y luego suma 10").supported,false);
+assert.equal(referenceExactMath("Resuelve 3x + 7 = 22 pero además x>0").supported,false);
 for(const choice of ["nano","lite","compare"]){
   assert.throws(()=>selectLabModels(choice,"r5"),/R5_NOT_APPROVED/);
 }
