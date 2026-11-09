@@ -202,7 +202,7 @@ def generate(train_count=3000, validation_count=500, test_count=600, exclude=())
             if digest in occupied or question in protected:continue
             occupied.add(digest)
             mode="trace" if (split=="train" and rng.random()<TRAIN_TRACE_RATE) else "final"
-            output=(trace+" Respuesta final: "+answer) if mode=="trace" else answer
+            output=(trace.rstrip()+"\nRespuesta final: "+answer) if mode=="trace" else answer
             row={"id":digest,"category":category,"subtype":kind,"difficulty":level,
                  "raw_question":question,"question":presentation_prompt(question,mode),
                  "answer":answer,"mode":mode,"response_format":mode,
