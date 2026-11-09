@@ -1,3 +1,4 @@
+import { openRouterTextProviderOptions, paidTextFallbacksEnabled, resolveOpenRouterTextModel } from "./ai/free-routing"
 import { resolveGroqTextModel } from "./ai/groq-models"
 /**
  * lib/ai-router-v4.ts
@@ -347,16 +348,10 @@ async function callOpenRouter(
   maxTokens = 2000,
   preferredModel?: string
 ): Promise<AIResponse> {
-  const models = preferredModel
-    ? [preferredModel, "openai/gpt-4o-mini", "meta-llama/llama-3.3-70b-instruct:free"]
-    : [
-        "openai/gpt-4o-mini",
-        "anthropic/claude-3-haiku",
-        "openai/gpt-4o",
-        "anthropic/claude-3.5-sonnet",
-        "meta-llama/llama-3.3-70b-instruct:free",
-        "google/gemma-2-27b-it:free",
-      ]
+  const models = Array.from(new Set([
+    resolveOpenRouterTextModel(preferredModel || process.env.OPENROUTER_TEXT_MODEL),
+    "openrouter/free",
+  ]))
 
   const apiKey = getOpenRouterKey(JSON.stringify({ messages, preferredModel, maxTokens }))
 
@@ -371,6 +366,7 @@ async function callOpenRouter(
       },
       body: JSON.stringify({
         model,
+        provider: openRouterTextProviderOptions(),
         messages,
         max_tokens: maxTokens,
       }),
@@ -481,7 +477,7 @@ export async function callAI(
     {
       name: "together",
       fn: () => callTogetherAI(messages, maxTokens),
-      enabled: getTogetherKeys().length > 0,
+      enabled: paidTextFallbacksEnabled() && getTogetherKeys().length > 0,
     },
   ]
 

@@ -1,3 +1,4 @@
+import { openRouterTextProviderOptions, resolveOpenRouterTextModel } from "@/lib/ai/free-routing"
 import { resolveGroqTextModel, GROQ_FAST_MODEL, GROQ_REASONING_MODEL } from "@/lib/ai/groq-models"
 // app/api/agents/exam-generate/route.ts
 import { NextRequest, NextResponse } from "next/server"
@@ -622,12 +623,10 @@ async function groqFull(
 }
 
 async function openRouterBatch(prompt: string, key: string): Promise<any> {
-  const models = [
-    "meta-llama/llama-3.3-70b-instruct",
-    "qwen/qwen3-32b",
-    "deepseek/deepseek-chat",
-    "openai/gpt-4o-mini",
-  ]
+  const models = Array.from(new Set([
+    resolveOpenRouterTextModel(process.env.OPENROUTER_STRUCTURED_MODEL || process.env.OPENROUTER_TEXT_MODEL),
+    "openrouter/free",
+  ]))
 
   let lastError = ""
 
@@ -643,6 +642,7 @@ async function openRouterBatch(prompt: string, key: string): Promise<any> {
         },
         body: JSON.stringify({
           model,
+          provider: openRouterTextProviderOptions(),
           max_tokens: 3200,
           temperature: 0.35,
           response_format: { type: "json_object" },

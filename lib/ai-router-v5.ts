@@ -1,3 +1,4 @@
+import { OPENROUTER_FREE_MODEL, openRouterTextProviderOptions, paidTextFallbacksEnabled, resolveOpenRouterTextModel } from "./ai/free-routing"
 import { resolveGroqTextModel, GROQ_FAST_MODEL, GROQ_REASONING_MODEL } from "./ai/groq-models"
 /** AI Router v5 — model IDs verified for November 2026.
  * Groq uses GPT-OSS and Qwen 3.8. OpenRouter free routing is dynamic.
@@ -65,22 +66,13 @@ const GROQ_MODELS = {
   reasoning: GROQ_REASONING_MODEL,
 }
 
-/** Gemini: 1,500 req/día, 1M contexto, multimodal */
+/** Gemini Developer API: los límites dependen del proyecto. */
 const GEMINI_MODELS = {
   flash:     process.env.GEMINI_TEXT_MODEL_PRIMARY  || "gemini-3.8-flash",
   flashLite: process.env.GEMINI_TEXT_MODEL_LITE     || "gemini-3.5-flash-lite",
 }
 
-/** OpenRouter: modelos :free gratuitos indefinidos */
-const OR_FREE_MODELS = {
-  kimiK2: "openrouter/free",
-  deepseekR1: "openrouter/free",
-  qwen3: "openrouter/free",
-  llama70b: "openrouter/free",
-  geminiExp: "openrouter/free",
-}
-
-/** Cerebras: 1M tokens/día, 2000 tok/seg */
+// Cerebras is available for explicit selection or opt-in paid fallback.
 const CEREBRAS_MODELS = {
   llama70b: "gpt-oss-120b",
   llama8b: "gpt-oss-120b",
@@ -155,6 +147,7 @@ async function callOpenRouterV5(
   const key = process.env.OPENROUTER_API_KEY
   if (!key) throw new Error("OPENROUTER_API_KEY no configurada")
 
+  model = resolveOpenRouterTextModel(model)
   const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
     method:  "POST",
     headers: {
@@ -163,7 +156,7 @@ async function callOpenRouterV5(
       "HTTP-Referer":   process.env.NEXT_PUBLIC_APP_URL || "https://eduai.school",
       "X-Title":        "EduAI Platform",
     },
-    body: JSON.stringify({ model, messages, max_tokens: maxTokens, temperature: 0.7 }),
+    body: JSON.stringify({ model, messages, max_tokens: maxTokens, temperature: 0.7, provider: openRouterTextProviderOptions() }),
   })
 
   if (!res.ok) {
@@ -236,7 +229,7 @@ export async function callAIv5(
     const res = await {
       groq:        () => callGroqV5(msgs, GROQ_MODELS.quality, maxTokens),
       gemini:      () => callGeminiV5(msgs, GEMINI_MODELS.flash, maxTokens),
-      openrouter:  () => callOpenRouterV5(msgs, openrouterModel ?? OR_FREE_MODELS.kimiK2, maxTokens),
+      openrouter:  () => callOpenRouterV5(msgs, openrouterModel ?? OPENROUTER_FREE_MODEL, maxTokens),
       cerebras:    () => callCerebrasV5(msgs, CEREBRAS_MODELS.llama70b, maxTokens),
     }[forceProvider]()
     return { ...res, taskType: task, latencyMs: Date.now() - t0 }
@@ -248,26 +241,25 @@ export async function callAIv5(
 
   const chains: Record<AITaskType, ProviderFn[]> = {
 
-    // Ultra rápido: Groq primero (sub-100ms), Cerebras fallback
+    // Respuestas breves: Groq primero
     fast: [
       () => callGroqV5(msgs, GROQ_MODELS.fast,    maxTokens),
       () => callGroqV5(msgs, GROQ_MODELS.quality,  maxTokens),
-      () => callCerebrasV5(msgs, CEREBRAS_MODELS.llama8b, maxTokens),
+      ...(paidTextFallbacksEnabled() ? [() => callCerebrasV5(msgs, CEREBRAS_MODELS.llama8b, maxTokens)] : []),
       () => callGeminiV5(msgs, GEMINI_MODELS.flashLite, maxTokens),
     ],
 
-    // Coding/Agentic: Kimi K2 es el líder en 2026
+    // Código y tareas con varias instrucciones
     coding: [
-      () => callGroqV5(msgs, GROQ_MODELS.coding, maxTokens),          // Kimi en Groq
-      () => callOpenRouterV5(msgs, OR_FREE_MODELS.kimiK2, maxTokens), // Kimi free OR
-      () => callGroqV5(msgs, GROQ_MODELS.quality, maxTokens),      // Llama fallback
-      () => callGeminiV5(msgs, GEMINI_MODELS.flash, maxTokens),     // Gemini fallback
+      () => callGroqV5(msgs, GROQ_MODELS.coding, maxTokens),
+      () => callOpenRouterV5(msgs, OPENROUTER_FREE_MODEL, maxTokens),
+      () => callGroqV5(msgs, GROQ_MODELS.quality, maxTokens),
+      () => callGeminiV5(msgs, GEMINI_MODELS.flash, maxTokens),
     ],
 
-    // Razonamiento profundo: Kimi K2 / DeepSeek R1
+    // Razonamiento
     reasoning: [
-      () => callOpenRouterV5(msgs, OR_FREE_MODELS.kimiK2,    maxTokens),
-      () => callOpenRouterV5(msgs, OR_FREE_MODELS.deepseekR1, maxTokens),
+      () => callOpenRouterV5(msgs, OPENROUTER_FREE_MODEL,    maxTokens),
       () => callGroqV5(msgs, GROQ_MODELS.reasoning, maxTokens),
       () => callGeminiV5(msgs, GEMINI_MODELS.flash, maxTokens),
     ],
@@ -275,30 +267,29 @@ export async function callAIv5(
     // Contexto muy largo: Gemini Flash (1M tokens)
     long_context: [
       () => callGeminiV5(msgs, GEMINI_MODELS.flash, Math.min(maxTokens, 8000)),
-      () => callOpenRouterV5(msgs, OR_FREE_MODELS.kimiK2, maxTokens), // 131K ctx
+      () => callOpenRouterV5(msgs, OPENROUTER_FREE_MODEL, maxTokens),
       () => callGroqV5(msgs, GROQ_MODELS.quality, maxTokens),
     ],
 
     // Visión/Multimodal: Gemini Flash
     vision: [
       () => callGeminiV5(msgs, GEMINI_MODELS.flash, maxTokens),
-      () => callOpenRouterV5(msgs, OR_FREE_MODELS.geminiExp, maxTokens),
+      () => callOpenRouterV5(msgs, OPENROUTER_FREE_MODEL, maxTokens),
     ],
 
-    // Batch (muchas requests): Cerebras (1M tokens/día)
+    // Lotes: Cerebras solo con respaldo pagado habilitado
     batch: [
-      () => callCerebrasV5(msgs, CEREBRAS_MODELS.llama70b, maxTokens),
+      ...(paidTextFallbacksEnabled() ? [() => callCerebrasV5(msgs, CEREBRAS_MODELS.llama70b, maxTokens)] : []),
       () => callGroqV5(msgs, GROQ_MODELS.quality, maxTokens),
       () => callGeminiV5(msgs, GEMINI_MODELS.flashLite, maxTokens),
     ],
 
     // General: cadena completa ordenada por calidad/límites
     general: [
-      () => callGeminiV5(msgs, GEMINI_MODELS.flash, maxTokens),     // 1,500/día, 1M ctx
+      () => callGeminiV5(msgs, GEMINI_MODELS.flash, maxTokens),
       () => callGroqV5(msgs, GROQ_MODELS.quality, maxTokens),      // 30 RPM, sub-100ms
-      () => callOpenRouterV5(msgs, OR_FREE_MODELS.kimiK2, maxTokens),// Kimi free
-      () => callOpenRouterV5(msgs, OR_FREE_MODELS.llama70b, maxTokens),
-      () => callCerebrasV5(msgs, CEREBRAS_MODELS.llama70b, maxTokens),
+      () => callOpenRouterV5(msgs, OPENROUTER_FREE_MODEL, maxTokens),
+      ...(paidTextFallbacksEnabled() ? [() => callCerebrasV5(msgs, CEREBRAS_MODELS.llama70b, maxTokens)] : []),
     ],
   }
 
@@ -406,31 +397,31 @@ export function getAvailableProviders(): {
       configured:  !!process.env.GROQ_API_KEY,
       free:        true,
       rpmLimit:    30,
-      dailyLimit:  "14,400 req/día (8B) · 1,000 req/día (70B)",
+      dailyLimit:  "Hasta 1.000 solicitudes al día por modelo listado, sujeto a tokens",
       bestFor:     "Chat rápido, coding, respuestas en tiempo real",
     },
     {
       name:        "Gemini Flash",
       configured:  !!process.env.GEMINI_API_KEY,
       free:        true,
-      rpmLimit:    15,
-      dailyLimit:  "1,500 req/día",
+      rpmLimit:    0,
+      dailyLimit:  "Consultar límites del proyecto en Google AI Studio",
       bestFor:     "Documentos largos, visión, contexto 1M tokens",
     },
     {
-      name:        "Kimi K2 (OpenRouter free)",
+      name:        "OpenRouter Free",
       configured:  !!process.env.OPENROUTER_API_KEY,
       free:        true,
       rpmLimit:    20,
-      dailyLimit:  "Rate-limited, uso moderado",
+      dailyLimit:  "50 solicitudes al día sin compra de créditos",
       bestFor:     "Coding avanzado, razonamiento agentic, UI generation",
     },
     {
       name:        "Cerebras",
       configured:  !!process.env.CEREBRAS_API_KEY,
-      free:        true,
-      rpmLimit:    30,
-      dailyLimit:  "1M tokens/día",
+      free:        false,
+      rpmLimit:    0,
+      dailyLimit:  "Prueba temporal y luego pago por uso",
       bestFor:     "Batch processing, throughput máximo (2,000 tok/seg)",
     },
   ]
@@ -440,11 +431,13 @@ export function getAvailableProviders(): {
 export function getModelForTask(task: AITaskType): { provider: string; model: string } {
   const map: Record<AITaskType, { provider: string; model: string }> = {
     fast:         { provider: "Groq",       model: GROQ_MODELS.fast       },
-    coding:       { provider: "Groq/Kimi",  model: "Kimi K2"                },
-    reasoning:    { provider: "OpenRouter", model: OR_FREE_MODELS.kimiK2    },
+    coding:       { provider: "Groq",       model: GROQ_MODELS.coding     },
+    reasoning:    { provider: "OpenRouter", model: OPENROUTER_FREE_MODEL    },
     long_context: { provider: "Gemini",     model: GEMINI_MODELS.flash      },
     vision:       { provider: "Gemini",     model: GEMINI_MODELS.flash      },
-    batch:        { provider: "Cerebras",   model: CEREBRAS_MODELS.llama70b },
+    batch:        paidTextFallbacksEnabled()
+      ? { provider: "Cerebras", model: CEREBRAS_MODELS.llama70b }
+      : { provider: "Groq", model: GROQ_MODELS.quality },
     general:      { provider: "Gemini",     model: GEMINI_MODELS.flash      },
   }
   return map[task]

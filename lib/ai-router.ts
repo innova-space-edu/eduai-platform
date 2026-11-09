@@ -1,3 +1,4 @@
+import { openRouterTextProviderOptions, resolveOpenRouterTextModel } from "./ai/free-routing"
 import { resolveGroqTextModel } from "./ai/groq-models"
 /**
  * AI Router v3 — EduAI Platform
@@ -148,7 +149,7 @@ export async function callGeminiStream(
 
 // ── OPENROUTER ───────────────────────────────────────────
 async function callOpenRouter(messages: Message[], maxTokens = 2000): Promise<AIResponse> {
-  const models = [process.env.OPENROUTER_TEXT_MODEL || "openrouter/free"]
+  const models = [resolveOpenRouterTextModel(process.env.OPENROUTER_TEXT_MODEL)]
   for (const model of models) {
     const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -158,7 +159,7 @@ async function callOpenRouter(messages: Message[], maxTokens = 2000): Promise<AI
         "HTTP-Referer": "https://eduai-platform-virid.vercel.app",
         "X-Title": "EduAI Platform",
       },
-      body: JSON.stringify({ model, messages, max_tokens: maxTokens }),
+      body: JSON.stringify({ model, messages, max_tokens: maxTokens, provider: openRouterTextProviderOptions() }),
     })
     if (res.ok) {
       const data = await res.json()
