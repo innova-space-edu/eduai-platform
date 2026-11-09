@@ -1,4 +1,4 @@
-"""EDUAI R4 Kaggle runner. Reuses Nano/Lite R2 LoRA, 3 TRAINING seeds, no auto promotion.
+"""EDUAI R5 Kaggle runner. Reuses Nano/Lite R2 LoRA, 3 TRAINING seeds, no auto promotion.
 
 Put this as main.py alongside generate.py; attach private input dataset
 esthefano/eduai-nano-lite-adapters-r2 and enable T4 + Internet.
@@ -261,7 +261,7 @@ def run(profile,training,validation,tests,challenges):
  no_critical_regressions=all(by_cat[k]["deltaPoints"]>=0 for k in profile["focus"])
  improvements=after>before
  preferred=bool(best_validation_gate and improvements and thresholds and legacy_retained and no_critical_regressions)
- report={"campaign":"eduai-math-r5-preflight","profile":name,"model":profile["model"],"status":"completed",
+ report={"campaign":"eduai-math-r5","profile":name,"model":profile["model"],"status":"completed",
    "productionReady":False,"selectedSeed":best_seed,"selectionMetric":"validationExactAnswerObjective",
    "selectedStage":best_stage,"baselineValidation":base_objective,
    "selectedValidation":objective(best_validation,profile["focus"]),
@@ -302,7 +302,7 @@ def main():
     import torch
     torch.cuda.empty_cache()
    except Exception:pass
- write(ROOT/"campaign-summary.json",{"campaign":"eduai-math-r5-preflight","completedProfiles":done,"errors":errors,
+ write(ROOT/"campaign-summary.json",{"campaign":"eduai-math-r5","completedProfiles":done,"errors":errors,
     "productionReady":False,"trainingSeeds":list(TRAIN_SEEDS),"evaluationSeeds":list(TEST_SEEDS)})
  if errors:raise RuntimeError("R4_PROFILES_FAILED "+str(errors))
 if __name__=="__main__":main()
