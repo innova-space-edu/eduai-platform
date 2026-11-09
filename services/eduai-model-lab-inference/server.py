@@ -148,11 +148,11 @@ def generate(model_id: str, messages: list[dict[str, str]], max_tokens: int) -> 
         # Nano can be a base tokenizer without a chat template. Match the
         # same plain-text fallback used in the Kaggle training code.
         def fallback_tokens():
-            formatted = "\\n".join(
+            formatted = "\n".join(
                 ("Sistema" if m["role"] == "system" else
                  "Usuario" if m["role"] == "user" else "Asistente")
                 + ": " + m["content"] for m in messages
-            ) + "\\nAsistente:"
+            ) + "\nAsistente:"
             return torch.tensor([tokenizer.encode(formatted,add_special_tokens=True)],
                                 dtype=torch.long)
         if getattr(tokenizer, "chat_template", None):
