@@ -126,6 +126,16 @@ def run(profile,training,validation,tests,challenges):
   if not any(t.requires_grad for t in model.parameters()):raise RuntimeError("NO_TRAINABLE_ADAPTER")
   model.config.use_cache=False
   return base,model
+ # Encode all examples before the first optimizer step to catch length errors
+ # early, and reuse tokenization across the three training seeds.
+ encoded_stage_datasets={}
+ for stage,levels in ((1,(1,2)),(2,(2,3))):
+  stage_examples=[r for r in training if r["difficulty"] in levels]
+  encoded_stage_datasets[stage]=Samples(stage_examples)
+  if len(encoded_stage_datasets[stage])!=len(stage_examples):
+   raise RuntimeError("STAGE_TOKENIZATION_INCOMPLETE")
+ print("TOKENIZATION_PREFLIGHT_OK",name,
+       {k:len(v) for k,v in encoded_stage_datasets.items()},flush=True)
  collator=DataCollatorForSeq2Seq(tokenizer=template,label_pad_token_id=-100,pad_to_multiple_of=8)
  def evaluate(model,rows):
   model.eval()
@@ -179,11 +189,13 @@ def run(profile,training,validation,tests,challenges):
    estimated_steps=math.ceil(steps_per_epoch*epochs)
    if estimated_steps>800:raise RuntimeError("STAGE_GPU_BUDGET_EXCEEDED "+str(estimated_steps))
    a_stage=args(TrainingArguments,profile,folder,seed,stage,epochs)
-   trainer=Trainer(model=model,args=a_stage,train_dataset=Samples(stage_rows),
+   trainer=Trainer(model=model,args=a_stage,train_dataset=encoded_stage_datasets[stage],
                   data_collator=collator)
    start=time.monotonic();stats=trainer.train()
    actual_steps=int(trainer.state.global_step)
    if actual_steps<steps_per_epoch:raise RuntimeError("INCOMPLETE_STAGE_DATA_COVERAGE")
+   if abs(actual_steps-estimated_steps)>2:
+    raise RuntimeError("TRAINER_STEP_COUNT_MISMATCH "+str((actual_steps,estimated_steps)))
    del trainer
    valid=evaluate(model,select_validation)
    scoring=objective(valid,profile["focus"])
