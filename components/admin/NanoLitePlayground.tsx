@@ -116,15 +116,47 @@ export default function NanoLitePlayground() {
       const response=await fetch("/api/admin/model-lab-playground",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
-        body:JSON.stringify({prompt:question,selection,version,mode,history}),
+        body:JSON.stringify({prompt:question,selection,version,mode,history,async:true}),
         signal:myController.signal,
       });
       const payload=await response.json().catch(()=>({error:"Respuesta inválida."}));
-      if(!response.ok)throw new Error(String(payload.error||"No se pudo ejecutar la prueba."));
+      if(!response.ok)throw new Error(String(payload.error||"No se pudo iniciar la prueba."));
+      type Ticket={model:ModelId;jobId?:string;error?:string};
+      if(!Array.isArray(payload.jobs))throw new Error("El servidor no devolvió tareas de inferencia.");
+      const tickets=payload.jobs as Ticket[];
+      async function poll(ticket:Ticket):Promise<Answer>{
+        if(!ticket.jobId||!/^[A-Za-z0-9_-]{24,64}$/.test(ticket.jobId))
+          return {model:ticket.model,ok:false,error:ticket.error||"No se recibió la tarea de inferencia."};
+        for(let attempt=0;attempt<150;attempt++){
+          if(myController.signal.aborted)throw new Error("POLLING_CANCELLED");
+          await new Promise<void>(resolve=>window.setTimeout(resolve,2000));
+          if(myController.signal.aborted)throw new Error("POLLING_CANCELLED");
+          const params=new URLSearchParams({job:ticket.jobId,model:ticket.model});
+          const check=await fetch("/api/admin/model-lab-playground?"+params.toString(),{
+            cache:"no-store",signal:myController.signal,
+          });
+          const state=await check.json().catch(()=>({error:"Error al consultar tarea."}));
+          if(!check.ok)return {model:ticket.model,ok:false,error:String(state.error||"La consulta falló.")};
+          if(state.state==="running")continue;
+          if(state.state==="error")return {model:ticket.model,ok:false,error:String(state.error||"Error de inferencia.")};
+          if(state.state==="completed"&&state.result?.text){
+            const result=state.result;
+            return {model:ticket.model,ok:true,text:String(result.text),
+              latencyMs:typeof result.latencyMs==="number"?result.latencyMs:undefined,
+              promptTokens:typeof result.promptTokens==="number"?result.promptTokens:null,
+              completionTokens:typeof result.completionTokens==="number"?result.completionTokens:null,
+              engine:typeof result.engine==="string"?result.engine:"transformers-peft"};
+          }
+          return {model:ticket.model,ok:false,error:"La tarea terminó sin una respuesta válida."};
+        }
+        return {model:ticket.model,ok:false,error:"Tiempo de espera agotado (5 minutos). Revisa la inferencia del Dell."};
+      }
+      const answers=await Promise.all(tickets.map(poll));
+      if(myController.signal.aborted)return;
       setTurns(current=>[...current,{
         id:typeof crypto!=="undefined"&&"randomUUID" in crypto?crypto.randomUUID():String(Date.now()),
         prompt:question,version,mode,
-        responses:Array.isArray(payload.responses)?payload.responses:[],
+        responses:answers,
         reference:payload.reference||null,at:new Date().toISOString(),
       }].slice(-10));
       setPrompt("");
@@ -297,7 +329,7 @@ export default function NanoLitePlayground() {
               </div>}
             </article>)}
             {busy&&<div role="status" className="flex items-center gap-2 rounded-xl border border-cyan-400/15 bg-cyan-950/15 p-3 text-xs text-cyan-200">
-              <LoaderCircle className="h-4 w-4 animate-spin"/> Ejecutando los adaptadores seleccionados en el Dell…
+              <LoaderCircle className="h-4 w-4 animate-spin"/> Procesando tareas en el Dell. La primera carga de pesos o el uso de CPU puede tardar varios minutos…
             </div>}
           </div>
           <div className="space-y-3 border-t border-white/10 bg-[#0b192a] p-4 sm:p-5">
