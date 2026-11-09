@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient as createServerClient } from "@/lib/supabase/server"
+import { requireRepositoryAdmin } from "@/lib/repository/admin"
 import { getRepositoryAdminClient } from "@/lib/repository/public-access"
 import {
   createRepositoryCompactPublicAccessToken,
@@ -8,22 +8,6 @@ import {
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-
-async function requireRepositoryAdmin() {
-  const supabase = await createServerClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user?.email) return { user: null, admin: null, error: "No autenticado" }
-
-  const admin = getRepositoryAdminClient()
-  const { data, error } = await admin
-    .from("admin_emails")
-    .select("email")
-    .eq("email", user.email)
-    .maybeSingle()
-
-  if (error || !data) return { user: null, admin: null, error: "Acceso denegado" }
-  return { user, admin, error: null }
-}
 
 function isMissingShortLinkTable(error: { code?: string | null; message?: string | null } | null | undefined) {
   if (!error) return false

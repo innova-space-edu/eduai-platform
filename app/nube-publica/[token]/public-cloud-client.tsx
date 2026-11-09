@@ -381,6 +381,7 @@ export default function PublicCloudClient({ token }: { token: string }) {
 
   const submitUpload = async (event: FormEvent) => {
     event.preventDefault()
+    if (uploading || uploadSuccess) return
     setUploadError("")
     setUploadSuccess("")
 
@@ -390,7 +391,6 @@ export default function PublicCloudClient({ token }: { token: string }) {
     if (uploadMode === "youtube" && !parseYouTubeVideoId(youtubeUrl)) return setUploadError("Ingresa un enlace válido de YouTube.")
 
     setUploading(true)
-    let storagePath = ""
     try {
       if (uploadMode === "youtube") {
         const response = await fetch(endpoint, {
@@ -409,9 +409,6 @@ export default function PublicCloudClient({ token }: { token: string }) {
         })
         const data = await response.json().catch(() => null)
         if (!response.ok) throw new Error(data?.error || "No fue posible registrar el video.")
-        const created = data.item as PublicListItem
-        setItems((current) => [created, ...current.filter((item) => item.id !== created.id)])
-        setSelectedId(created.id)
       } else if (file) {
         const prepareResponse = await fetch(endpoint, {
           method: "POST",
@@ -427,7 +424,7 @@ export default function PublicCloudClient({ token }: { token: string }) {
         const prepared = await prepareResponse.json().catch(() => null)
         if (!prepareResponse.ok) throw new Error(prepared?.error || "No fue posible preparar la carga.")
 
-        storagePath = prepared.storagePath
+        const storagePath = prepared.storagePath
         const { error: uploadError } = await supabase.storage
           .from(REPOSITORY_BUCKET)
           .uploadToSignedUrl(storagePath, prepared.uploadToken, file, {
@@ -454,21 +451,9 @@ export default function PublicCloudClient({ token }: { token: string }) {
         })
         const finalized = await finalizeResponse.json().catch(() => null)
         if (!finalizeResponse.ok) throw new Error(finalized?.error || "No fue posible registrar el material.")
-        const created = finalized.item as PublicListItem
-        setItems((current) => [created, ...current.filter((item) => item.id !== created.id)])
-        setSelectedId(created.id)
       }
-
-      setUploadSuccess("Material publicado. Ya está visible en la Nube EduAI pública y también dentro de EduAI para todos los usuarios.")
-      window.setTimeout(() => setUploadOpen(false), 850)
+      setUploadSuccess("Material enviado a revisión. Aparecerá en la nube si un administrador lo aprueba.")
     } catch (caught) {
-      if (storagePath) {
-        void fetch(endpoint, {
-          method: "DELETE",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ storagePath }),
-        }).catch(() => undefined)
-      }
       setUploadError(caught instanceof Error ? caught.message : "No fue posible subir el material.")
     } finally {
       setUploading(false)
@@ -595,12 +580,12 @@ export default function PublicCloudClient({ token }: { token: string }) {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="public-upload-title">
           <div className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-white/70 bg-white shadow-2xl">
             <div className="sticky top-0 z-10 flex items-start justify-between gap-4 border-b border-slate-200 bg-white/95 px-6 py-4 backdrop-blur">
-              <div><h2 id="public-upload-title" className="text-lg font-bold text-slate-900">Agregar a Nube EduAI pública</h2><p className="text-xs text-slate-500">Se comparte automáticamente en la nube pública y en Nube EduAI para todos los usuarios.</p></div>
-              <button type="button" onClick={() => setUploadOpen(false)} className="rounded-xl p-2 text-slate-500 transition hover:bg-slate-100" aria-label="Cerrar"><X size={18} /></button>
+              <div><h2 id="public-upload-title" className="text-lg font-bold text-slate-900">Agregar a Nube EduAI pública</h2><p className="text-xs text-slate-500">Los aportes desde este enlace se revisan antes de publicarse.</p></div>
+              <button type="button" onClick={() => setUploadOpen(false)} className="rounded-xl p-2 text-slate-500 transition hover:bg-slate-100" aria-label="Cerrar" disabled={uploading}><X size={18} /></button>
             </div>
 
             <form onSubmit={submitUpload} className="space-y-5 p-6">
-              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900"><strong>Material compartido con todos.</strong> Todo lo que subas aquí queda registrado en el mismo catálogo público de Nube EduAI y aparecerá también dentro de la plataforma para los usuarios autenticados.</div>
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-900"><strong>Envío sujeto a revisión.</strong> Un administrador debe aprobarlo para que aparezca en el catálogo. Si tienes cuenta, <a href="/repositorio" className="underline">entra a Nube EduAI</a> para subir material directamente.</div>
 
               <div className="grid grid-cols-2 rounded-2xl bg-slate-100 p-1">
                 <button type="button" onClick={() => setUploadMode("file")} className={`flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition ${uploadMode === "file" ? "bg-white text-blue-700 shadow-sm" : "text-slate-500"}`}><Upload size={16} /> Archivo</button>
@@ -630,7 +615,7 @@ export default function PublicCloudClient({ token }: { token: string }) {
               {uploadError && <div className="flex items-start gap-2 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700"><AlertCircle size={18} className="mt-0.5 shrink-0" />{uploadError}</div>}
               {uploadSuccess && <div className="flex items-start gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700"><Check size={18} className="mt-0.5 shrink-0" />{uploadSuccess}</div>}
 
-              <div className="flex justify-end gap-3"><button type="button" onClick={() => setUploadOpen(false)} className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancelar</button><button type="submit" disabled={uploading} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-black text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 disabled:opacity-50">{uploading ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}{uploading ? "Publicando…" : "Publicar para todos"}</button></div>
+              <div className="flex justify-end gap-3"><button type="button" onClick={() => setUploadOpen(false)} disabled={uploading} className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">{uploadSuccess ? "Cerrar" : "Cancelar"}</button><button type="submit" disabled={uploading || Boolean(uploadSuccess)} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-black text-white shadow-lg shadow-blue-200 transition hover:bg-blue-700 disabled:opacity-50">{uploading ? <Loader2 size={17} className="animate-spin" /> : <Upload size={17} />}{uploading ? "Enviando…" : "Enviar a revisión"}</button></div>
             </form>
           </div>
         </div>

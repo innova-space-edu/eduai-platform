@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import { NextRequest } from "next/server"
 import { proxy } from "../proxy"
-import { isPublicRepositoryRead } from "../lib/repository/public-read"
+import { isPublicRepositoryRead, isPublicRepositorySubmission } from "../lib/repository/public-read"
 
 const publicPaths = [
   "/nube-publica/example",
@@ -33,6 +33,13 @@ async function main() {
     "/api/repository/public-access/example/items/item/edit",
   ]) assert.equal(isPublicRepositoryRead(pathname, "GET"), false)
 
-  console.log("Public repository reads skip session gates; administration and writes stay in normal flow.")
+  const guestUpload = "/api/repository/public-access/example/items"
+  for (const method of ["POST", "PUT"]) {
+    assert.equal(isPublicRepositorySubmission(guestUpload, method), true)
+    assert.equal(isPublicRepositorySubmission(`${guestUpload}/item`, method), false)
+    assert.equal(isPublicRepositorySubmission("/api/repository/moderation", method), false)
+  }
+  assert.equal(isPublicRepositorySubmission(guestUpload, "DELETE"), false)
+  console.log("Public reads and moderated guest submissions skip the session gate; admin routes remain protected.")
 }
 void main()
