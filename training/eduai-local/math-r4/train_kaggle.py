@@ -55,6 +55,12 @@ def runtime():
  if not torch.cuda.is_available():raise RuntimeError("CUDA_REQUIRED")
  if transformers.__version__!=versions["transformers"] or peft.__version__!=versions["peft"]:
   raise RuntimeError("DEPENDENCY_VERSION_MISMATCH")
+ # Validate full argument compatibility before downloading model weights.
+ from transformers import TrainingArguments
+ for candidate in PROFILES:
+  prepared=args(TrainingArguments,candidate,ROOT/"training-args-preflight",41011,1,2.0)
+  print("TRAINING_ARGUMENTS_PREFLIGHT_OK",candidate["name"],
+        "warmup_steps",getattr(prepared,"warmup_steps",None),flush=True)
  print("RUNTIME_OK",torch.__version__,transformers.__version__,peft.__version__,flush=True)
 def source(profile):
  n=profile["name"]
@@ -79,9 +85,11 @@ def args(cls,profile,output,seed,stage,epochs):
   "logging_steps":30,"save_strategy":"no","report_to":[],"seed":seed,"data_seed":seed,
   "dataloader_num_workers":0,"remove_unused_columns":False,"optim":"adamw_torch",
   "gradient_checkpointing":False,"max_grad_norm":0.7}
+ # Transformers 5.20.2 uses warmup_steps; float < 1 means a fraction.
  signature=set(inspect.signature(cls).parameters)
- if "warmup_ratio" in signature:opts["warmup_ratio"]=0.06
- else:raise RuntimeError("UNSUPPORTED_WARMUP")
+ if "warmup_steps" in signature:opts["warmup_steps"]=0.06
+ elif "warmup_ratio" in signature:opts["warmup_ratio"]=0.06
+ else:raise RuntimeError("UNSUPPORTED_WARMUP_ARGS")
  if "eval_strategy" in signature:opts["eval_strategy"]="no"
  elif "evaluation_strategy" in signature:opts["evaluation_strategy"]="no"
  else:raise RuntimeError("UNSUPPORTED_EVALUATION_OPTION")
@@ -304,5 +312,5 @@ def main():
    except Exception:pass
  write(ROOT/"campaign-summary.json",{"campaign":"eduai-math-r5","completedProfiles":done,"errors":errors,
     "productionReady":False,"trainingSeeds":list(TRAIN_SEEDS),"evaluationSeeds":list(TEST_SEEDS)})
- if errors:raise RuntimeError("R4_PROFILES_FAILED "+str(errors))
+ if errors:raise RuntimeError("R5_PROFILES_FAILED "+str(errors))
 if __name__=="__main__":main()
