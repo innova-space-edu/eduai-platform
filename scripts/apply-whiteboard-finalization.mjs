@@ -1,5 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
-import { gunzipSync } from "node:zlib";
+import { readFileSync, writeFileSync } from "node:fs";
 
 const filePath = "components/exam/ExamQuestionNotebook.tsx";
 let source = readFileSync(filePath, "utf8");
@@ -106,41 +105,3 @@ source = source.replace(
 );
 
 writeFileSync(filePath, source);
-
-const templatePaths = [
-  "scripts/whiteboard-template/source1.b64",
-  "scripts/whiteboard-template/source2.b64",
-  "scripts/whiteboard-template/source3.b64",
-];
-const rotationUpgradePath = "scripts/whiteboard-template/rotation-upgrade.b64";
-const aiVisualUpgradePath = "scripts/whiteboard-template/ai-visual-upgrade.b64";
-const layoutFoldersUpgradePath = "scripts/whiteboard-template/layout-folders-upgrade.b64";
-const digitalWhiteboardPath = "components/whiteboard/WhiteboardMathStudio.tsx";
-
-function loadUpgrade(file, functionName) {
-  const upgradeCode = gunzipSync(Buffer.from(readFileSync(file, "utf8").trim(), "base64"))
-    .toString("utf8")
-    .replace(/^export\s+/m, "");
-  return new Function(`${upgradeCode}\nreturn ${functionName};`)();
-}
-
-if (templatePaths.every(existsSync)) {
-  let digitalWhiteboard = templatePaths
-    .map((templatePath) => gunzipSync(Buffer.from(readFileSync(templatePath, "utf8").trim(), "base64")).toString("utf8"))
-    .join("");
-
-  if (existsSync(rotationUpgradePath)) {
-    digitalWhiteboard = loadUpgrade(rotationUpgradePath, "applyWhiteboardRotationUpgrade")(digitalWhiteboard);
-  }
-
-  if (existsSync(aiVisualUpgradePath)) {
-    digitalWhiteboard = loadUpgrade(aiVisualUpgradePath, "applyWhiteboardAiVisualUpgrade")(digitalWhiteboard);
-  }
-
-  if (existsSync(layoutFoldersUpgradePath)) {
-    digitalWhiteboard = loadUpgrade(layoutFoldersUpgradePath, "applyWhiteboardLayoutFoldersUpgrade")(digitalWhiteboard);
-  }
-
-  digitalWhiteboard = digitalWhiteboard.replaceAll(' xmlns="http://www.w3.org/1999/xhtml"', "");
-  writeFileSync(digitalWhiteboardPath, digitalWhiteboard);
-}
