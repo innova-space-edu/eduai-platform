@@ -9,6 +9,7 @@ from collections import Counter, defaultdict
 from fractions import Fraction
 from pathlib import Path
 from generate import generate, save, TRAIN_SEEDS, TEST_SEEDS
+from challenge import build_challenges
 
 os.environ["TOKENIZERS_PARALLELISM"]="false"
 os.environ["WANDB_DISABLED"]="true"
@@ -107,7 +108,7 @@ def summary(rows,answers):
         "question":row["question"],"expected":row["answer"],"got":answer})
  return {"correct":int(correct),"total":len(rows),"accuracyPct":round(correct/len(rows)*100,2),
          "categories":dict(d),"errorExamples":errors}
-def run(profile,training,validation,tests):
+def run(profile,training,validation,tests,challenges):
  import torch
  from peft import PeftModel
  from transformers import AutoTokenizer,AutoModelForCausalLM,Trainer,TrainingArguments,DataCollatorForSeq2Seq
@@ -180,11 +181,13 @@ def run(profile,training,validation,tests):
  baseline_base,baseline_model=load()
  baseline=[evaluate(baseline_model,rows) for rows in tests]
  baseline_legacy={k:evaluate(baseline_model,v) for k,v in protected.items()}
+ baseline_cross_family=evaluate(baseline_model,challenges)
  del baseline_base,baseline_model;gc.collect();torch.cuda.empty_cache()
  selected_base=AutoModelForCausalLM.from_pretrained(profile["model"],revision=profile["revision"],device_map={"":0},dtype=torch.float16,trust_remote_code=False)
  selected_model=PeftModel.from_pretrained(selected_base,str(folder/"selected-adapter"),is_trainable=False)
  candidate=[evaluate(selected_model,rows) for rows in tests]
  candidate_legacy={k:evaluate(selected_model,v) for k,v in protected.items()}
+ candidate_cross_family=evaluate(selected_model,challenges)
  del selected_base,selected_model;gc.collect();torch.cuda.empty_cache()
  cats=sorted({r["category"] for rows in tests for r in rows})
  by_cat={}
@@ -210,7 +213,10 @@ def run(profile,training,validation,tests):
                     "beforePct":round(100*before/total,2),"afterPct":round(100*after/total,2)},
    "byCategory":by_cat,"legacy":{k:{"before":baseline_legacy[k]["correct"],"after":candidate_legacy[k]["correct"],
          "total":candidate_legacy[k]["total"]} for k in protected},
-   "independentFamilyBenchmark":False,"preferredOnSyntheticGate":preferred,
+   "independentFamilyBenchmark":False,
+   "crossFamilyDiagnostic":{"baseline":baseline_cross_family,"candidate":candidate_cross_family,
+     "usedForCheckpointSelection":False,"synthetic":True},
+   "preferredOnSyntheticGate":preferred,
    "productionGate":"BLOCKED: external human validation and broader problem families"}
  write(folder/"report.json",report)
  write(folder/"eval-baseline.json",baseline);write(folder/"eval-candidate.json",candidate)
@@ -222,11 +228,13 @@ def main():
  for p in PROFILES:source(p)
  print("R2_ADAPTER_PREFLIGHT_OK",flush=True)
  train,val,tests=generate(train_count=3000,validation_count=500,test_count=600)
+ challenges=build_challenges()
  save(ROOT/"eduai-math-r4-data",train,val,tests)
+ write(ROOT/"eduai-math-r4-data"/"cross-family-diagnostic.json",challenges)
  runtime()
  done=[];errors=[]
  for profile in PROFILES:
-  try:done.append(run(profile,train,val,tests))
+  try:done.append(run(profile,train,val,tests,challenges))
   except Exception as exc:
    traceback.print_exc();errors.append({"profile":profile["name"],"error":repr(exc)})
    write(ROOT/("eduai-"+profile["name"]+"-math-r4")/"error.json",errors[-1])
