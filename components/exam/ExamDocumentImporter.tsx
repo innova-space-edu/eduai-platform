@@ -1,5 +1,6 @@
 "use client"
 
+import { EXAM_IMPORT_MAX_BYTES, EXAM_IMPORT_MAX_LABEL } from "@/lib/exam/creator-limits"
 import { useMemo, useRef, useState } from "react"
 import ExamMathText from "@/components/ui/ExamMathText"
 
@@ -26,7 +27,7 @@ type Props = {
   onApply: (result: ExamDocumentImportResult, mode: "replace" | "append") => void
 }
 
-const MAX_BYTES = 50 * 1024 * 1024
+const MAX_BYTES = EXAM_IMPORT_MAX_BYTES
 
 function formatBytes(bytes: number) {
   if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`
@@ -67,7 +68,7 @@ export default function ExamDocumentImporter({ onApply }: Props) {
     }
     if (next.size <= 0 || next.size > MAX_BYTES) {
       setFile(null)
-      setError("El archivo debe pesar como máximo 50 MB.")
+      setError(`El archivo debe pesar como máximo ${EXAM_IMPORT_MAX_LABEL}.`)
       setStatus("error")
       return
     }
@@ -89,7 +90,8 @@ export default function ExamDocumentImporter({ onApply }: Props) {
         method: "POST",
         body: form,
       })
-      const data = await response.json()
+      if (response.status === 413) throw new Error(`El archivo debe pesar como máximo ${EXAM_IMPORT_MAX_LABEL}.`)
+      const data = await response.json().catch(() => null)
       if (!response.ok || !data?.success) {
         throw new Error(data?.error || "No se pudo analizar la evaluación.")
       }
@@ -118,7 +120,7 @@ export default function ExamDocumentImporter({ onApply }: Props) {
             EduAI transcribe preguntas, alternativas, imágenes, puntajes y notación matemática al mismo creador. Antes de aplicar podrás revisar qué se detectó.
           </p>
         </div>
-        <span className="rounded-full border border-sky-200 bg-white px-3 py-1 text-[11px] font-bold text-sky-700">PDF · DOCX · máx. 50 MB</span>
+        <span className="rounded-full border border-sky-200 bg-white px-3 py-1 text-[11px] font-bold text-sky-700">PDF · DOCX · máx. {EXAM_IMPORT_MAX_LABEL}</span>
       </div>
 
       <div

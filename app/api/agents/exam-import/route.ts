@@ -1,3 +1,4 @@
+import { EXAM_IMPORT_MAX_BYTES, EXAM_IMPORT_MAX_LABEL } from "@/lib/exam/creator-limits"
 import { NextRequest, NextResponse } from "next/server"
 import { randomUUID } from "crypto"
 import { GoogleGenerativeAI } from "@google/generative-ai"
@@ -12,7 +13,7 @@ import {
 export const runtime = "nodejs"
 export const maxDuration = 120
 
-const MAX_FILE_BYTES = 50 * 1024 * 1024
+const MAX_FILE_BYTES = EXAM_IMPORT_MAX_BYTES
 const MAX_INLINE_IMAGES = 30
 const MAX_CONTEXT_CHARS = 180_000
 
@@ -392,7 +393,7 @@ export async function POST(request: NextRequest) {
 
     if (!(file instanceof File)) return NextResponse.json({ error: "Archivo requerido" }, { status: 400 })
     if (file.size <= 0 || file.size > MAX_FILE_BYTES) {
-      return NextResponse.json({ error: "El archivo debe pesar como máximo 50 MB" }, { status: 413 })
+      return NextResponse.json({ error: `El archivo debe pesar como máximo ${EXAM_IMPORT_MAX_LABEL}` }, { status: 413 })
     }
 
     const lowerName = file.name.toLowerCase()

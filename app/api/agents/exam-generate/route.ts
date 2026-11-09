@@ -1,3 +1,5 @@
+import { EXAM_AI_MAX_QUESTIONS } from "@/lib/exam/creator-limits"
+import { compatibleFallbackModel, generateCompatibleText, hasCompatibleProvider, parseStructuredJson } from "@/lib/ai/providers/openai-compatible"
 import { openRouterTextProviderOptions, resolveOpenRouterTextModel } from "@/lib/ai/free-routing"
 import { resolveGroqTextModel, GROQ_FAST_MODEL, GROQ_REASONING_MODEL } from "@/lib/ai/groq-models"
 // app/api/agents/exam-generate/route.ts
@@ -377,10 +379,38 @@ Matemática: usa LaTeX solo dentro de $...$ o $$...$$; comandos con backslash re
 Antes de responder, revisa internamente que cada respuesta sea coherente con su pregunta y que las alternativas no sean absurdas ni ambiguas.
 `
 const PROVIDER_BATCH = Number(process.env.EXAM_GENERATE_BATCH_SIZE || 3)
-const MAX_AI_QUESTIONS_PER_CALL = Number(process.env.EXAM_GENERATE_MAX_QUESTIONS || 30)
+const MAX_AI_QUESTIONS_PER_CALL = EXAM_AI_MAX_QUESTIONS
 const GROQ_TOKEN_BUDGET_PER_BATCH = Number(process.env.EXAM_GENERATE_GROQ_MAX_TOKENS || 3200)
 
 type BatchPlan = { total: number; mc: number; tf: number; dev: number }
+
+const questionTypes = ["multiple_choice", "true_false", "development", "mixed_choice_development"] as const
+
+function requireBatchShape(questions: any[], batch: BatchPlan) {
+  const expected = [batch.mc, batch.tf, batch.dev, "mixed" in batch ? Number(batch.mixed) : 0]
+  if (questions.length !== batch.total || questionTypes.some((type, index) =>
+    questions.filter(question => question?.type === type && typeof question.question === "string" && question.question.trim()).length !== expected[index]
+  )) {
+    throw new Error("La IA devolvió una tanda incompleta o con tipos distintos de los solicitados.")
+  }
+}
+
+function requireSingleShape(question: any, expectedType?: string) {
+  if (!question?.question?.trim() || (expectedType && question.type !== expectedType)) {
+    throw new Error("La IA no devolvió una pregunta del tipo solicitado.")
+  }
+}
+
+async function cloudflareBatch(prompt: string): Promise<any> {
+  const result = await generateCompatibleText({
+    provider: "cloudflare",
+    model: compatibleFallbackModel("cloudflare", "structured"),
+    messages: [{ role: "system", content: SYSTEM }, { role: "user", content: prompt }],
+    maxOutputTokens: GROQ_TOKEN_BUDGET_PER_BATCH,
+    module: "examenes",
+  })
+  return parseStructuredJson(result.text)
+}
 
 function sleep(ms: number) {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -411,6 +441,8 @@ function friendlyProviderError(message: string): string {
   if (msg.includes("503") || lower.includes("unavailable") || lower.includes("overloaded") || lower.includes("sobrecarg")) {
     return "El proveedor de IA está temporalmente sobrecargado. No necesariamente es problema de tu API key. Intenta nuevamente o usa otro proveedor/fallback."
   }
+
+  if (lower.includes("tanda incompleta")) return "La IA no completó la cantidad y los tipos solicitados. Prueba con una tanda más pequeña."
 
   if (lower.includes("json") || lower.includes("unexpected token")) {
     return "La IA respondió con un formato inválido. Se recomienda generar menos preguntas por tanda o usar un tema más específico."
@@ -614,6 +646,7 @@ async function groqFull(
       (repairPrompt) => groqBatch(repairPrompt, key)
     )
 
+    requireBatchShape(qs, batches[i])
     allQ.push(...qs)
     if (!title && parsed?.title) title = sanitizeLatexText(parsed.title)
     if (i < batches.length - 1) await sleep(900)
@@ -686,7 +719,8 @@ async function openRouterFull(
   mc: number,
   tf: number,
   dev: number,
-  key: string
+  key: string,
+  askBatch = (prompt: string) => openRouterBatch(prompt, key)
 ): Promise<{ title: string; questions: any[] }> {
   const batches = makeBatchPlans(totalQ, mc, tf, dev)
   const allQ: any[] = []
@@ -694,13 +728,14 @@ async function openRouterFull(
 
   for (let i = 0; i < batches.length; i++) {
     const prompt = promptForBatch(basePrompt, batches[i], i, batches.length)
-    const parsed = await openRouterBatch(prompt, key)
+    const parsed = await askBatch(prompt)
     const qs = await validateAndRepairWithProvider(
       parsed?.questions ?? parsed?.items ?? [],
       prompt,
-      (repairPrompt) => openRouterBatch(repairPrompt, key)
+      askBatch
     )
 
+    requireBatchShape(qs, batches[i])
     allQ.push(...qs)
     if (!title && parsed?.title) title = sanitizeLatexText(parsed.title)
     if (i < batches.length - 1) await sleep(900)
@@ -722,9 +757,11 @@ export async function POST(req: NextRequest) {
   const GROQ_KEY = process.env.GROQ_API_KEY
   const OR_KEY = process.env.OPENROUTER_API_KEY_1 || process.env.OPENROUTER_API_KEY
 
-  if (!GROQ_KEY && !OR_KEY) {
+  const cloudflareEnabled = hasCompatibleProvider("cloudflare", "examenes")
+
+  if (!GROQ_KEY && !OR_KEY && !cloudflareEnabled) {
     return NextResponse.json(
-      { error: "Sin API keys configuradas. Agrega GROQ_API_KEY u OPENROUTER_API_KEY en Vercel." },
+      { error: "No hay proveedores de generación de exámenes configurados." },
       { status: 500 }
     )
   }
@@ -736,16 +773,24 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Body inválido" }, { status: 400 })
   }
 
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return NextResponse.json({ error: "Solicitud inválida." }, { status: 400 })
+  }
+
   const { prompt, mode = "full", mc = 0, tf = 0, dev = 0, designTemplateId } = body
   const designPrompt = buildDesignPromptDirective(designTemplateId, "exam")
   const enhancedPrompt = `${prompt}${designPrompt}`
   const designSummary = getDesignTemplateSummary(designTemplateId, "exam")
 
-  if (!prompt) {
+  if (typeof prompt !== "string" || !prompt.trim()) {
     return NextResponse.json({ error: "prompt requerido" }, { status: 400 })
   }
 
   if (mode === "single") {
+    const expectedType = body.questionType
+    if (expectedType !== undefined && !questionTypes.includes(expectedType)) {
+      return NextResponse.json({ error: "El tipo de pregunta no es válido." }, { status: 400 })
+    }
     const singleErrors: string[] = []
 
     // Prioridad Groq: OpenRouter puede devolver 402 si no tiene créditos.
@@ -758,6 +803,7 @@ export async function POST(req: NextRequest) {
           (repairPrompt) => groqBatch(repairPrompt, GROQ_KEY)
         )
 
+        requireSingleShape(q, expectedType)
         return NextResponse.json({ success: true, question: q, answerKeyEntry: buildAnswerKey([q])[0], provider: "groq", _design: designSummary })
       } catch (e: any) {
         singleErrors.push(`Groq: ${e.message}`)
@@ -774,6 +820,7 @@ export async function POST(req: NextRequest) {
           (repairPrompt) => openRouterBatch(repairPrompt, OR_KEY)
         )
 
+        requireSingleShape(q, expectedType)
         return NextResponse.json({ success: true, question: q, answerKeyEntry: buildAnswerKey([q])[0], provider: "openrouter", _design: designSummary })
       } catch (e: any) {
         singleErrors.push(`OpenRouter: ${e.message}`)
@@ -781,8 +828,30 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    if (cloudflareEnabled) {
+      try {
+        const parsed = await cloudflareBatch(enhancedPrompt)
+        const [q] = await validateAndRepairWithProvider(
+          [parsed?.question ?? parsed?.questions?.[0] ?? parsed], enhancedPrompt, cloudflareBatch,
+        )
+        requireSingleShape(q, expectedType)
+        return NextResponse.json({ success: true, question: q, answerKeyEntry: buildAnswerKey([q])[0], provider: "cloudflare", _design: designSummary })
+      } catch (error) {
+        singleErrors.push(`Cloudflare: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
+
     const details = singleErrors.join(" | ")
     return NextResponse.json({ error: friendlyProviderError(details), details }, { status: 500 })
+  }
+
+  const requestedCounts = [body.mc, body.tf, body.dev, body.mixed].filter(value => value !== undefined)
+  if (requestedCounts.some(value => !["number", "string"].includes(typeof value) ||
+    String(value).trim() === "" || !Number.isSafeInteger(Number(value)) || Number(value) < 0)) {
+    return NextResponse.json({ error: "Las cantidades deben ser números enteros no negativos." }, { status: 400 })
+  }
+  if (requestedCounts.length && requestedCounts.every(value => Number(value) === 0)) {
+    return NextResponse.json({ error: "Solicita al menos una pregunta." }, { status: 400 })
   }
 
   const totalQ =
@@ -831,6 +900,15 @@ export async function POST(req: NextRequest) {
     } catch (e: any) {
       providerErrors.push(`OpenRouter: ${e.message}`)
       console.warn("[exam-generate] OpenRouter falló:", e.message)
+    }
+  }
+
+  if (cloudflareEnabled) {
+    try {
+      const { title, questions } = await openRouterFull(enhancedPrompt, totalQ, Number(mc), Number(tf), Number(dev), "", cloudflareBatch)
+      return NextResponse.json({ success: true, title, summary: null, questions, answerKey: buildAnswerKey(questions), qualityReviewRequired: findBlockingQualityIssues(questions), provider: "cloudflare", _design: designSummary })
+    } catch (error) {
+      providerErrors.push(`Cloudflare: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 

@@ -54,8 +54,8 @@ function patchPage() {
 
   source = replaceRequired(
     source,
-    "const AI_TOTAL_LIMIT = 36;",
-    block(["const AI_TOTAL_LIMIT = 36;", `// ${PAGE_MARKER}`]),
+    "const AI_TOTAL_LIMIT = EXAM_AI_MAX_QUESTIONS;",
+    block(["const AI_TOTAL_LIMIT = EXAM_AI_MAX_QUESTIONS;", `// ${PAGE_MARKER}`]),
     "marcador del creador",
   )
 
@@ -97,7 +97,7 @@ function patchPage() {
       '  const [aiSkillFocus, setAiSkillFocus] = useState("");',
       '  const [aiSourceContext, setAiSourceContext] = useState("");',
       "  const [aiAuthenticContext, setAiAuthenticContext] = useState(true);",
-      "  const [aiRequireOA, setAiRequireOA] = useState(true);",
+      "  const [aiRequireOA, setAiRequireOA] = useState(false);",
     ]),
     "estados pedagógicos IA",
   )
@@ -253,7 +253,7 @@ function patchPage() {
     "      curso: curriculumCurso,",
     "      topic: topic.trim(),",
     "      teacherPrompt: aiPrompt.trim(),",
-    "      selectedOAs: aiRequireOA ? selectedOAs : [],",
+    "      selectedOAs,",
     "      modeIds: aiModeIds,",
     "      sourceContext: aiSourceContext.trim(),",
     "      skillFocus: aiSkillFocus.trim(),",
@@ -316,7 +316,7 @@ function patchPage() {
       "      );",
       "      return;",
       "    }",
-      "    if (aiRequireOA && availableOAs.length > 0 && selectedOAs.length === 0) {",
+      "    if (aiRequireOA && selectedOAs.length === 0) {",
       "      setAiError(",
       '        "Selecciona al menos un Objetivo de Aprendizaje. La IA usará ese OA para construir y verificar las preguntas.",',
       "      );",
@@ -518,7 +518,7 @@ function patchPage() {
         "                    Los OA elegidos se enviarán completos a la IA y dirigirán la evaluación.",
       ]),
     )
-    .replace("OpenRouter → Groq fallback automático", "Motor pedagógico multiasignatura · OpenRouter/Groq")
+    .replace("OpenRouter → Groq fallback automático", "Motor pedagógico multiasignatura · Groq, OpenRouter y Cloudflare")
     .replace("CANTIDAD DE PREGUNTAS", "ESTRUCTURA DE LA EVALUACIÓN")
     .replace("RESULTADO FINAL EN LATEX (OPCIONAL)", "RESULTADO FINAL EN LATEX (OPCIONAL, SOLO SI CORRESPONDE)")
 

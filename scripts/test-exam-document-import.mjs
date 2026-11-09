@@ -35,7 +35,7 @@ const examApi = readFileSync("app/api/agents/examen-docente/route.ts", "utf8")
 
 check("1/21 importador conectado al creador", page.includes("ExamDocumentImporter") && page.includes("applyDocumentImport"))
 check("2/21 PDF y DOCX aceptados", component.includes(".pdf,.docx") && route.includes("Solo se aceptan archivos PDF o DOCX"))
-check("3/21 límite de 50 MB", route.includes("MAX_FILE_BYTES = 50 * 1024 * 1024") && component.includes("MAX_BYTES = 50 * 1024 * 1024"))
+check("3/21 límite de carga compartido", route.includes("MAX_FILE_BYTES = EXAM_IMPORT_MAX_BYTES") && component.includes("MAX_BYTES = EXAM_IMPORT_MAX_BYTES"))
 check("4/21 firma PDF validada", route.includes('buffer.subarray(0, 5).toString("ascii") !== "%PDF-"'))
 check("5/21 firma DOCX/ZIP validada", route.includes("buffer[0] === 0x50") && route.includes("buffer[1] === 0x4b"))
 check("6/21 respuestas desconocidas no se convierten en A", route.includes("NUNCA uses la alternativa A/índice 0 como valor por defecto") && core.includes("return null"))
