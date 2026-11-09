@@ -145,9 +145,26 @@ def generate(model_id: str, messages: list[dict[str, str]], max_tokens: int) -> 
     with _MODEL_LOCK:
         import torch
         model, tokenizer, device = load_adapter(model_id)
-        prompt_tokens = tokenizer.apply_chat_template(
-            messages, tokenize=True, add_generation_prompt=True, return_tensors="pt"
-        )
+        # Nano can be a base tokenizer without a chat template. Match the
+        # same plain-text fallback used in the Kaggle training code.
+        def fallback_tokens():
+            formatted = "\\n".join(
+                ("Sistema" if m["role"] == "system" else
+                 "Usuario" if m["role"] == "user" else "Asistente")
+                + ": " + m["content"] for m in messages
+            ) + "\\nAsistente:"
+            return torch.tensor([tokenizer.encode(formatted,add_special_tokens=True)],
+                                dtype=torch.long)
+        if getattr(tokenizer, "chat_template", None):
+            try:
+                prompt_tokens = tokenizer.apply_chat_template(
+                    messages, tokenize=True, add_generation_prompt=True,
+                    return_tensors="pt"
+                )
+            except (TypeError, ValueError):
+                prompt_tokens = fallback_tokens()
+        else:
+            prompt_tokens = fallback_tokens()
         if isinstance(prompt_tokens, dict):
             input_ids = prompt_tokens["input_ids"]
             attention_mask = prompt_tokens.get("attention_mask")
