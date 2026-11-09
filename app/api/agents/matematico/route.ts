@@ -25,8 +25,9 @@ export async function POST(req: Request) {
     }
 
     // Deterministic exact answers for recognized mathematics. No LLM call or code execution.
-    const verifiedMath = solveExactMath({ question: message })
-    if (verifiedMath.verified) {
+    const verifiedMath = process.env.EDUAI_EXACT_MATH_ENABLED === "true"
+      ? solveExactMath({ question: message }) : null
+    if (verifiedMath?.verified) {
       return Response.json({ text: formatExactMath(verifiedMath), provider: "EDUAI Exact Math",
         model: "Rational Solver", reused: false, generationAvoided: true,
         verified: true, engine: verifiedMath.engine, exactResult: verifiedMath })
