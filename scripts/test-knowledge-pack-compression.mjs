@@ -13,7 +13,7 @@ let originalBytes = 0;
 let storedBytes = 0;
 let totalRecords = 0;
 for (const shard of index.shards) {
-  assert.match(shard.file, /^shard-\\d{4}\\.json\\.gz$/);
+  assert.match(shard.file, /^shard-\d{4}\.json\.gz$/);
   const compressed = await readFile(path.join(knowledgeDir, shard.file));
   const raw = gunzipSync(compressed);
   const payload = JSON.parse(raw.toString("utf8"));
