@@ -1,3 +1,4 @@
+import { allowAutomaticTextProvider } from "./free-routing"
 import { captureTrainingCandidate } from "./training/capture"
 import { ZERO_AI_USAGE, type AIUsage } from "./usage"
 import type { SupabaseClient } from "@supabase/supabase-js"
@@ -70,9 +71,10 @@ function providerOrder(
   const defaults = perModuleEnv && !requestedOrder.includes("google")
     ? [...requestedOrder, "google" as const]
     : requestedOrder
-  if (!preferred) return defaults
+  const automatic = capability === "image" ? defaults : defaults.filter(allowAutomaticTextProvider)
+  if (!preferred) return automatic
   return fallbackToDefault
-    ? [preferred, ...defaults.filter((provider) => provider !== preferred)]
+    ? [preferred, ...automatic.filter((provider) => provider !== preferred)]
     : [preferred]
 }
 

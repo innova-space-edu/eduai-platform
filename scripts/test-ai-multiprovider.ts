@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import fs from "node:fs"
 import path from "node:path"
+import { allowAutomaticTextProvider, openRouterTextProviderOptions, resolveOpenRouterTextModel } from "../lib/ai/free-routing"
 import { providerOrderFor } from "../lib/ai/capabilities"
 import {
   compatibleFallbackModel,
@@ -22,12 +23,38 @@ function withEnv(name: string, value: string | undefined, fn: () => void) {
   }
 }
 
+function testFreeRouting() {
+  withEnv("EDUAI_AI_ALLOW_PAID_TEXT_FALLBACKS", undefined, () => {
+    assert.equal(resolveOpenRouterTextModel("openrouter/auto"), "openrouter/free")
+    assert.equal(resolveOpenRouterTextModel("google/gemma-4-26b-a4b-it:free"), "google/gemma-4-26b-a4b-it:free")
+    assert.deepEqual(openRouterTextProviderOptions().max_price, { prompt: 0, completion: 0 })
+    assert.deepEqual(compatibleModelCandidates("openrouter", "text", "openai/gpt-4o"), ["openrouter/free"])
+    assert.equal(allowAutomaticTextProvider("together"), false)
+    assert.equal(allowAutomaticTextProvider("cerebras"), false)
+    assert.equal(allowAutomaticTextProvider("sambanova"), false)
+    assert.equal(allowAutomaticTextProvider("cloudflare"), true)
+  })
+  withEnv("EDUAI_AI_ALLOW_PAID_TEXT_FALLBACKS", "true", () => {
+    assert.equal(resolveOpenRouterTextModel("openrouter/auto"), "openrouter/auto")
+    assert.equal(openRouterTextProviderOptions().max_price, undefined)
+    assert.equal(allowAutomaticTextProvider("together"), true)
+  })
+  withEnv("CLOUDFLARE_WORKERS_AI_API_TOKEN", "test-only", () => {
+    withEnv("CLOUDFLARE_ACCOUNT_ID", "a".repeat(32), () => {
+      withEnv("EDUAI_CLOUDFLARE_AI_ENABLED", undefined, () => assert.equal(hasCompatibleProvider("cloudflare"), false))
+      withEnv("EDUAI_CLOUDFLARE_AI_ENABLED", "true", () => assert.equal(hasCompatibleProvider("cloudflare"), true))
+    })
+  })
+  assert.equal(compatibleFallbackModel("cloudflare", "text"), "@cf/openai/gpt-oss-20b")
+}
+testFreeRouting()
+
 function testProviderOrders() {
-  assert.deepEqual(providerOrderFor("text"), ["google", "groq", "openrouter", "cerebras", "together", "sambanova"])
-  assert.deepEqual(providerOrderFor("structured"), ["google", "groq", "openrouter", "cerebras", "together", "sambanova"])
-  assert.deepEqual(providerOrderFor("long_context"), ["google", "groq", "together", "openrouter", "cerebras", "sambanova"])
+  assert.deepEqual(providerOrderFor("text"), ["google", "groq", "openrouter", "cloudflare", "cerebras", "together", "sambanova"])
+  assert.deepEqual(providerOrderFor("structured"), ["google", "groq", "openrouter", "cloudflare", "cerebras", "together", "sambanova"])
+  assert.deepEqual(providerOrderFor("long_context"), ["google", "groq", "together", "openrouter", "cloudflare", "cerebras", "sambanova"])
   assert.deepEqual(providerOrderFor("research"), ["google", "groq", "openrouter"])
-  assert.deepEqual(providerOrderFor("code"), ["google", "groq", "cerebras", "openrouter", "together", "sambanova"])
+  assert.deepEqual(providerOrderFor("code"), ["google", "groq", "cerebras", "openrouter", "cloudflare", "together", "sambanova"])
 }
 
 function testProviderGuards() {
@@ -56,7 +83,7 @@ function testFallbackModels() {
   })
   withEnv("OPENROUTER_TEXT_MODEL", undefined, () => {
     withEnv("OPENROUTER_STRUCTURED_MODEL", undefined, () => {
-      assert.equal(compatibleFallbackModel("openrouter", "text"), "openrouter/auto")
+      assert.equal(compatibleFallbackModel("openrouter", "text"), "openrouter/free")
       assert.equal(compatibleFallbackModel("openrouter", "structured"), "openrouter/free")
     })
   })

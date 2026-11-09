@@ -20,6 +20,7 @@ export type AIProviderId =
   | "together"
   | "cerebras"
   | "sambanova"
+  | "cloudflare"
   | "local"
 
 export type AIReusePolicy =
@@ -45,10 +46,10 @@ export type AIRequestContext = {
 // `retrieval` representa índices/buscadores cloud como Google File Search y no
 // sustituye el RAG local/propio de EduAI.
 export const DEFAULT_PROVIDER_ORDER: Record<AICapability, AIProviderId[]> = {
-  text: ["google", "groq", "openrouter", "cerebras", "together", "sambanova"],
-  structured: ["google", "groq", "openrouter", "cerebras", "together", "sambanova"],
+  text: ["google", "groq", "openrouter", "cloudflare", "cerebras", "together", "sambanova"],
+  structured: ["google", "groq", "openrouter", "cloudflare", "cerebras", "together", "sambanova"],
   vision: ["google", "openrouter", "together"],
-  long_context: ["google", "groq", "together", "openrouter", "cerebras", "sambanova"],
+  long_context: ["google", "groq", "together", "openrouter", "cloudflare", "cerebras", "sambanova"],
   research: ["google", "groq", "openrouter"],
   retrieval: ["google"],
   embeddings: ["google", "local"],
@@ -57,7 +58,7 @@ export const DEFAULT_PROVIDER_ORDER: Record<AICapability, AIProviderId[]> = {
   audio_transcribe: ["groq", "google"],
   audio_speech: ["google"],
   music: ["google", "local"],
-  code: ["google", "groq", "cerebras", "openrouter", "together", "sambanova"],
+  code: ["google", "groq", "cerebras", "openrouter", "cloudflare", "together", "sambanova"],
 }
 
 const PROVIDERS = new Set<AIProviderId>([
@@ -67,6 +68,7 @@ const PROVIDERS = new Set<AIProviderId>([
   "together",
   "cerebras",
   "sambanova",
+  "cloudflare",
   "local",
 ])
 

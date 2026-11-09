@@ -1,9 +1,10 @@
+import { openRouterTextProviderOptions, resolveOpenRouterTextModel } from "../free-routing"
 import { compatibleUsage, type AIUsage } from "../usage"
 import type { AICapability, AIProviderId } from "../capabilities"
 import type { GatewayMessage } from "./google"
 import { GROQ_FAST_MODEL, GROQ_QUALITY_MODEL, GROQ_REASONING_MODEL, isRetiredGroqModel, resolveGroqTextModel, resolveGroqResearchModel } from "../groq-models"
 
-export type CompatibleProvider = Extract<AIProviderId, "groq" | "openrouter" | "together" | "cerebras" | "sambanova">
+export type CompatibleProvider = Extract<AIProviderId, "groq" | "openrouter" | "together" | "cerebras" | "sambanova" | "cloudflare">
 
 export type CompatibleTextResult = {
   usage?: AIUsage
@@ -12,7 +13,7 @@ export type CompatibleTextResult = {
   model: string
 }
 
-const ENDPOINTS: Record<CompatibleProvider, string> = {
+const ENDPOINTS: Record<Exclude<CompatibleProvider, "cloudflare">, string> = {
   groq: "https://api.groq.com/openai/v1/chat/completions",
   openrouter: "https://openrouter.ai/api/v1/chat/completions",
   together: "https://api.together.xyz/v1/chat/completions",
@@ -50,6 +51,7 @@ const KEY_NAMES: Record<CompatibleProvider, string> = {
   together: "TOGETHER_API_KEY",
   cerebras: "CEREBRAS_API_KEY",
   sambanova: "SAMBANOVA_API_KEY",
+  cloudflare: "CLOUDFLARE_WORKERS_AI_API_TOKEN",
 }
 
 export function compatibleModuleSuffix(module?: string | null): string | undefined {
@@ -74,6 +76,8 @@ function apiKey(provider: CompatibleProvider, module?: string | null): string | 
   // No enviar datos de EDUAI a SambaNova sin activación explícita.
   if (provider === "sambanova" && process.env.EDUAI_SAMBANOVA_ENABLED !== "true") return null
 
+  if (provider === "cloudflare" && (process.env.EDUAI_CLOUDFLARE_AI_ENABLED !== "true" || !cloudflareAccountId())) return null
+
   const base = KEY_NAMES[provider]
   const suffix = compatibleModuleSuffix(module)
   const scoped = suffix ? process.env[`${base}_${suffix}`]?.trim() : ""
@@ -81,7 +85,7 @@ function apiKey(provider: CompatibleProvider, module?: string | null): string | 
 }
 
 export function isCompatibleProviderId(provider: AIProviderId): provider is CompatibleProvider {
-  return provider === "groq" || provider === "openrouter" || provider === "together" || provider === "cerebras" || provider === "sambanova"
+  return provider === "groq" || provider === "openrouter" || provider === "together" || provider === "cerebras" || provider === "sambanova" || provider === "cloudflare"
 }
 
 export function hasCompatibleProvider(provider: AIProviderId, module?: string | null): provider is CompatibleProvider {
@@ -99,10 +103,11 @@ export function compatibleFallbackModel(
       }
       return resolveGroqTextModel()
     case "openrouter":
-      if (capability === "structured") {
-        return process.env.OPENROUTER_STRUCTURED_MODEL || process.env.OPENROUTER_TEXT_MODEL || "openrouter/free"
-      }
-      return process.env.OPENROUTER_TEXT_MODEL || "openrouter/auto"
+      return resolveOpenRouterTextModel(capability === "structured"
+        ? process.env.OPENROUTER_STRUCTURED_MODEL || process.env.OPENROUTER_TEXT_MODEL
+        : process.env.OPENROUTER_TEXT_MODEL)
+    case "cloudflare":
+      return "@cf/openai/gpt-oss-20b"
     case "together":
       return process.env.TOGETHER_TEXT_MODEL || "Qwen/Qwen3.5-9B"
     case "cerebras":
@@ -123,7 +128,7 @@ export function compatibleModelCandidates(
 
   const selected = selectedModel?.trim() || ""
   if (selected && !(provider === "groq" && isRetiredGroqModel(selected))) {
-    candidates.push(selected)
+    candidates.push(provider === "openrouter" ? resolveOpenRouterTextModel(selected) : selected)
   }
 
   if (provider === "groq") {
@@ -156,16 +161,9 @@ export function isCompatibleTransientError(error: unknown): boolean {
   return /\berror\s+(429|500|502|503|504)\b|service unavailable|temporar(?:y|ily)|timeout|timed out/i.test(message)
 }
 
-function openRouterProviderConfig() {
-  const sort = process.env.OPENROUTER_PROVIDER_SORT?.trim() || "price"
-  const allowDataCollection = process.env.OPENROUTER_ALLOW_DATA_COLLECTION === "true"
-  const zdrOnly = process.env.OPENROUTER_ZDR_ONLY === "true"
-
-  return {
-    sort,
-    data_collection: allowDataCollection ? "allow" : "deny",
-    ...(zdrOnly ? { zdr: true } : {}),
-  }
+function cloudflareAccountId() {
+  const account = process.env.CLOUDFLARE_ACCOUNT_ID?.trim() || ""
+  return /^[a-f0-9]{32}$/i.test(account) ? account : null
 }
 
 function headers(provider: CompatibleProvider, key: string): Record<string, string> {
@@ -209,14 +207,14 @@ function requestBody(input: {
     : input.messages
 
   const body: Record<string, unknown> = {
-    model: input.model,
+    model: input.provider === "openrouter" ? resolveOpenRouterTextModel(input.model) : input.model,
     messages,
     max_tokens: input.maxOutputTokens ?? 4000,
     ...(input.stream ? { stream: true } : {}),
   }
 
   if (input.provider === "openrouter") {
-    body.provider = openRouterProviderConfig()
+    body.provider = openRouterTextProviderOptions()
   }
 
   return body
@@ -234,7 +232,10 @@ async function compatibleFetch(input: {
   const key = apiKey(input.provider, input.module)
   if (!key) throw new Error(`No hay API key configurada para ${input.provider}`)
 
-  const response = await fetch(ENDPOINTS[input.provider], {
+  const endpoint = input.provider === "cloudflare"
+    ? `https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId()}/ai/v1/chat/completions`
+    : ENDPOINTS[input.provider]
+  const response = await fetch(endpoint, {
     method: "POST",
     headers: headers(input.provider, key),
     body: JSON.stringify(requestBody(input)),
@@ -271,7 +272,7 @@ export async function generateCompatibleText(input: {
   return {
     text,
     provider: input.provider,
-    model: data.model || input.model,
+    model: data.model || (input.provider === "openrouter" ? resolveOpenRouterTextModel(input.model) : input.model),
     usage: compatibleUsage(data.usage),
   }
 }
