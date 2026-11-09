@@ -32,7 +32,7 @@ _OUTPUT_SUFFIXES=(
 )
 def presentation_prompt(question, mode):
     q=question.strip()
-    q=re.sub(r"\\s*Entrega x\\.$"," Determina solamente x.",q,flags=re.IGNORECASE)
+    q=re.sub(r"\s*Entrega x\.$"," Determina solamente x.",q,flags=re.IGNORECASE)
     for pattern in _OUTPUT_SUFFIXES:
         q=re.sub(pattern,"",q,flags=re.IGNORECASE)
     q=q.rstrip()
