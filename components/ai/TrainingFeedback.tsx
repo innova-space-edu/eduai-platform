@@ -1,12 +1,14 @@
 "use client"
 
-import { useState } from "react"
+import { useId, useState } from "react"
+import MathRenderer from "@/components/ui/MathRenderer"
 
 type Rating = "useful" | "incorrect" | "corrected"
 type Choice = "A" | "B"
 type Props = { answer: string; prompt?: string; module?: string }
 
 export default function TrainingFeedback({ answer, prompt = "", module = "chat" }: Props) {
+  const groupId = useId()
   const [rating, setRating] = useState<Rating | null>(null)
   const [question, setQuestion] = useState(prompt)
   const [correction, setCorrection] = useState("")
@@ -130,29 +132,62 @@ export default function TrainingFeedback({ answer, prompt = "", module = "chat" 
       </div>
 
       {alternative && (
-        <div className="mt-3 space-y-3">
-          <p className="font-semibold">¿Cuál responde mejor a tu pregunta original? Elige una para aportar al entrenamiento.</p>
-          <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Comparar respuestas">
-            {([{ key: "A" as Choice, label: "Respuesta A · original", text: answer },
-              { key: "B" as Choice, label: "Respuesta B · alternativa", text: alternative }]).map(option => (
-              <label key={option.key}
-                className={"block cursor-pointer rounded-lg border p-3 " +
-                  (choice === option.key ? "border-indigo-500 bg-indigo-500/10" : "border-slate-400/30")}>
-                <span className="mb-2 flex items-center gap-2 font-semibold">
-                  <input type="radio" checked={choice === option.key} onChange={() => { setChoice(option.key); setValidationHint("") }} />
-                  {option.label}
-                </span>
-                <span className="block max-h-64 overflow-auto whitespace-pre-wrap break-words text-sm leading-relaxed">
-                  {option.text}
-                </span>
-              </label>
+        <section className="mt-4 space-y-3" aria-label="Evaluación comparativa de respuestas">
+          <div>
+            <h3 className="text-sm font-bold text-main">Elige la mejor respuesta</h3>
+            <p className="mt-1 text-xs leading-relaxed text-muted2">
+              Compara la claridad, exactitud y utilidad de ambas explicaciones. Selecciona la opción que prefieres.
+            </p>
+          </div>
+          <div className="grid min-w-0 gap-3 lg:grid-cols-2" role="radiogroup" aria-label="Elegir la mejor respuesta">
+            {([{ key: "A" as Choice, label: "Respuesta A", description: "Original", text: answer },
+              { key: "B" as Choice, label: "Respuesta B", description: "Alternativa", text: alternative }]).map(option => (
+              <section
+                key={option.key}
+                className={"min-w-0 overflow-hidden rounded-2xl border shadow-sm transition-colors " +
+                  (choice === option.key
+                    ? "border-blue-500 bg-blue-500/5 ring-1 ring-blue-500/25"
+                    : "border-soft bg-card-theme hover:border-blue-300/60")}
+                aria-label={option.label + " " + option.description}
+              >
+                <label htmlFor={groupId + "-" + option.key}
+                  className="flex min-h-14 cursor-pointer items-center gap-2 border-b border-soft px-3 py-2.5 text-main focus-within:bg-blue-500/5">
+                  <input
+                    id={groupId + "-" + option.key}
+                    name={groupId}
+                    type="radio"
+                    value={option.key}
+                    checked={choice === option.key}
+                    onChange={() => { setChoice(option.key); setValidationHint("") }}
+                    className="h-4 w-4 shrink-0 accent-blue-600"
+                  />
+                  <span className="min-w-0">
+                    <span className="block text-xs font-bold">{option.label}</span>
+                    <span className="block text-[11px] font-normal text-muted2">{option.description}</span>
+                  </span>
+                  {choice === option.key && (
+                    <span className="ml-auto rounded-full bg-blue-600 px-2 py-0.5 text-[10px] font-semibold text-white">Seleccionada</span>
+                  )}
+                </label>
+                <div className="h-80 min-w-0 overflow-y-auto overflow-x-hidden px-3 py-3 text-sm leading-relaxed lg:px-4"
+                  aria-label={"Contenido de " + option.label}>
+                  <MathRenderer
+                    content={option.text}
+                    className="min-w-0 text-sm [&_h1:first-child]:mt-0 [&_h2:first-child]:mt-0 [&_h3:first-child]:mt-0 [&_p:last-child]:mb-0 [&_.katex-display]:max-w-full"
+                  />
+                </div>
+              </section>
             ))}
           </div>
-          <p className="opacity-70">La segunda respuesta no sustituye el mensaje del chat. Si ambas son incorrectas, aporta tu propia corrección.</p>
-          <button type="button" disabled={busy} onClick={() => startRating("corrected")} className="underline">
+          <p className="text-xs leading-relaxed text-muted2">
+            La comparación no modifica el mensaje original ni entrena automáticamente al modelo.
+            Si ambas respuestas tienen errores, puedes escribir una corrección.
+          </p>
+          <button type="button" disabled={busy} onClick={() => startRating("corrected")}
+            className="font-semibold text-blue-700 underline underline-offset-2 disabled:opacity-50">
             Ninguna es correcta: escribir una respuesta
           </button>
-        </div>
+        </section>
       )}
 
       {rating && (
@@ -162,10 +197,18 @@ export default function TrainingFeedback({ answer, prompt = "", module = "chat" 
               value={question} maxLength={24000} onChange={e => setQuestion(e.target.value)} />
           </label>
           {rating === "corrected" && (
+            <>
             <label>Respuesta correcta a la pregunta (no una corrección ortográfica de la pregunta)
               <textarea className="mt-1 w-full rounded border border-slate-400/30 bg-transparent p-2"
                 value={correction} maxLength={24000} onChange={e => setCorrection(e.target.value)} />
             </label>
+          {correction.trim() && (
+            <div className="min-w-0 rounded-xl border border-soft bg-card-theme p-3" aria-label="Vista previa de respuesta correcta">
+              <p className="mb-2 text-xs font-bold text-main">Vista previa de tu respuesta</p>
+              <MathRenderer content={correction} className="text-sm [&_p:last-child]:mb-0" />
+            </div>
+          )}
+            </>
           )}
         </div>
       )}

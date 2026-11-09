@@ -39,6 +39,9 @@ jobs:
       - name: Install dependencies
         run: npm install --registry=https://registry.npmjs.org/
 
+      - name: Comprobar comparación A/B con LaTeX y consentimiento
+        run: node scripts/test-training-contributions.mjs
+
       - name: Estadísticas y aprobación institucional
         run: node scripts/test-family-admin-stats.mjs lib/family-consent/admin-stats.ts app/api/family-consent/admin/route.ts app/admin/autorizaciones-familiares/page.tsx
 
