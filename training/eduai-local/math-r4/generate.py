@@ -11,7 +11,7 @@ from pathlib import Path
 
 TRAIN_SEEDS=(41011,42011,43011)
 TEST_SEEDS=(44021,44031,44041)
-WEIGHTS={"algebra":35,"recurrence":23,"euler":23,"arithmetic":12,"logic":7}
+WEIGHTS={"algebra":32,"recurrence":21,"euler":21,"arithmetic":10,"logic":6,"rehearsal":10}
 LEVELS=(1,2,3)
 def fmt(v):return str(Fraction(v))
 def sign(rng,lo=1,hi=20):return rng.choice([-1,1])*rng.randint(lo,hi)
@@ -94,6 +94,39 @@ def example(rng,cat,level,split):
             trace=f"P={'V' if p else 'F'}, Q={'V' if t else 'F'}. Proposición {'verdadera' if val else 'falsa'}."
             key=(kind,a,b)
         return cat,kind,q,"sí" if val else "no",trace,key
+    if cat=="rehearsal":
+        kind=rng.choice(["pressure","python","sql","privacy","tools","language"])
+        if kind=="pressure":
+            area=rng.randint(2,70);pressure=rng.randint(2,90)
+            q=f"Una fuerza de {area*pressure} N sobre área {area} m². ¿Presión en Pa? Solo entero."
+            ans=str(pressure);trace=f"P=F/A={area*pressure}/{area}={pressure} Pa.";key=(kind,area,pressure)
+        elif kind=="python":
+            a=rng.randint(-100,100);b=rng.randint(-100,100)
+            q=f"Python: ¿cuánto vale len(list(range({a},{b})))? Solo entero."
+            ans=str(max(0,b-a));trace=f"range(a,b) contiene max(0,b-a)=max(0,{b-a})={ans} elementos.";key=(kind,a,b)
+        elif kind=="sql":
+            table=rng.choice(["alumnos","visitas","notas","cursos","inventario","mediciones","grupos","ventas"])
+            column=rng.choice(["id","total","fecha","estado","zona","grupo","curso","curso_id"])
+            task,ans=rng.choice([("filtra filas antes de agrupar","WHERE"),("filtra grupos agregados","HAVING"),
+                                  ("ordena resultados","ORDER BY"),("agrupa filas","GROUP BY")])
+            q=f"En SQL, tabla {table} (columna {column}), ¿qué cláusula {task}? Responde solo su nombre."
+            trace=f"La cláusula correcta para '{task}' es {ans}.";key=(kind,table,column,task)
+        elif kind=="privacy":
+            secret=rng.choice(["contraseña","token","clave SSH","código de recuperación"])
+            place=rng.choice(["logs","repositorio público","captura de pantalla","documento compartido"])
+            q=f"¿Debe mostrarse un/a {secret} expuesto/a en {place}? Sí o no."
+            ans="no";trace="No: nunca se deben mostrar secretos en registros o documentos compartidos.";key=(kind,secret,place)
+        elif kind=="tools":
+            task,ans=rng.choice([("explicar un cálculo","explain_math"),("resumir un texto","summarize_text"),
+                ("planificar una clase","plan_lesson")])
+            context=rng.choice(["Matemática","Física","Química","Lenguaje","Historia","Biología"])
+            q=f"En {context}, para {task}, selecciona explain_math, summarize_text o plan_lesson. Solo nombre."
+            trace=f"Función solicitada: {task}; herramienta: {ans}.";key=(kind,task,context)
+        else:
+            count=rng.randint(1,300);who=rng.choice(["Ana","María","Luis","Carla","Pablo","Francisca"])
+            q=f"{who} registró {count} mediciones en laboratorio. ¿Cuántas mediciones registró? Solo entero."
+            ans=str(count);trace=f"El enunciado indica {count} mediciones.";key=(kind,who,count)
+        return cat,kind,q,ans,trace,key
     raise ValueError(cat)
 
 def load_protected(files):
@@ -116,7 +149,7 @@ def generate(train_count=3000, validation_count=500, test_count=600, exclude=())
         while len(out)<count:
             attempts+=1
             if attempts>count*100:raise RuntimeError("DATASET_EXHAUSTED")
-            cat=rng.choices(cats,weights=list(WEIGHTS.values()),k=1)[0]
+            cat=rng.choices(cats,weights=list(WEIGHTS.values()),k=1)[0] if split=="train" else cats[len(out)%len(cats)]
             level=rng.choice(LEVELS) if split=="train" else rng.choice([2,3])
             category,kind,question,answer,trace,key=example(rng,cat,level,split)
             digest=hashlib.sha256(json.dumps(key,sort_keys=True,default=str).encode()).hexdigest()
@@ -126,7 +159,7 @@ def generate(train_count=3000, validation_count=500, test_count=600, exclude=())
             output=(trace+" Respuesta final: "+answer) if mode=="trace" else answer
             out.append({"id":digest,"category":category,"subtype":kind,"difficulty":level,
                         "question":question,"answer":answer,"mode":mode,"completion":output,
-                        "verifiedBy":"python-fraction-or-integer"})
+                        "verifiedBy":"deterministic-rule" if cat=="rehearsal" else "python-fraction-or-integer"})
         return out
     # Disjoint structural parameter keys; tests are never inputs to checkpoint selection.
     train=build(train_count,41011,"train")
