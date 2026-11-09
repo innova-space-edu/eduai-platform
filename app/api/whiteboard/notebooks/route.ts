@@ -119,6 +119,14 @@ export async function POST(request: Request) {
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return NextResponse.json({ error: "Debes iniciar sesión." }, { status: 401, headers: NO_CACHE })
     const body = await request.json()
+    const pages = body?.notebook?.pages
+    if (Array.isArray(pages) && (pages.length > 80 || pages.some(page =>
+      page?.strokes?.length > 900 || page?.blocks?.length > 80
+    ))) {
+      return NextResponse.json({
+        error: "La copia local supera el límite de sincronización: 80 páginas, 900 trazos y 80 objetos por página.",
+      }, { status: 422, headers: NO_CACHE })
+    }
     const notebook = cleanNotebook(body?.notebook)
     if (!notebook) return NextResponse.json({ error: "El cuaderno no tiene un formato válido." }, { status: 400, headers: NO_CACHE })
     await upsertNotebook(supabase, user.id, notebook)
