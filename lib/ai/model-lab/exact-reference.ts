@@ -43,7 +43,8 @@ export function referenceExactMath(input: string): LabExactReference {
     // Do not silently ignore additional equations or constraints.
     const equalityCount=(q.match(/=/g)||[]).length;
     const linear=q.match(/([+-]?\d{1,12})\s*x\s*([+-]\s*\d{1,12})?\s*=\s*([+-]?\d{1,12})(?![\d])/i);
-    if(linear&&equalityCount===1&&(q.match(/\bx\b|(?<=\d)x/gi)||[]).length<=1) {
+    const outputOnly=(tail:string)=>/^[\\s.!?;,]*(?:y\\s+explica\\s+el\\s+procedimiento[\\s.!?;,]*)?$/i.test(tail);
+    if(linear&&equalityCount===1&&outputOnly(q.slice(linear.index!+linear[0].length))&&(q.match(/\bx\b|(?<=\d)x/gi)||[]).length<=1) {
       const a=parse(linear[1]);const b=parse((linear[2]||"0").replace(/\s/g,""));const c=parse(linear[3]);
       if(a.n===0n) return unsupported("DEGENERATE_EQUATION");
       const x=div(sub(c,b),a);
@@ -57,7 +58,7 @@ export function referenceExactMath(input: string): LabExactReference {
     }
     if(equalityCount>0) return unsupported("COMPLEX_EQUATION");
     const pct=q.match(/(?:calcula\s+)?([+-]?\d{1,12}(?:\.\d{1,4})?)\s*%\s+de\s+([+-]?\d{1,12}(?:\.\d{1,4})?)/i);
-    if(pct){
+    if(pct&&outputOnly(q.slice(pct.index!+pct[0].length))){
       const a=parse(pct[1]),b=parse(pct[2]),v=div(mul(a,b),make(100n));
       return result("percentage",v,[fmt(a)+" % de "+fmt(b)+" = "+fmt(a)+" × "+fmt(b)+" / 100 = "+fmt(v)]);
     }
