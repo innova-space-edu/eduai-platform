@@ -4,6 +4,8 @@ import { solveViaSympy } from "@/lib/math/sympy-client";
 
 export const runtime = "nodejs";
 export async function POST(req: Request) {
+  if (process.env.EDUAI_EXACT_MATH_ENABLED !== "true")
+    return Response.json({ error: "EXACT_MATH_DISABLED" }, { status: 503 });
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return Response.json({ error: "No autenticado" }, { status: 401 });
