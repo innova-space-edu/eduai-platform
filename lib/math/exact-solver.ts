@@ -123,7 +123,7 @@ function structured(input: ExactInput): ExactResult {
 function safeMathQuestionTail(rest: string): boolean {
   // Reject additional mathematical constraints; only a short output-format instruction is allowed.
   const tail = rest.trim();
-  return tail === "" || /^[.!?;]?\s*(?:(?:responde\s+)?solo\s+[A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s-]{1,75})?[.!?]?$/.test(tail);
+  return tail === "" || /^[.!?;]?\s*(?:(?:responde\s+)?solo\s+[A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s-]{1,75})?[.!?]?$/i.test(tail);
 }
 function recognized(question: string): ExactInput | null {
   const s=question.replace(/\u2212/g,"-").replace(/\s+/g," ").trim();
