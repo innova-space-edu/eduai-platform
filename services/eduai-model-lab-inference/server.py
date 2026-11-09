@@ -19,9 +19,9 @@ app = FastAPI(title="EDUAI Nano/Lite Inference", docs_url=None, redoc_url=None, 
 ROOT = Path(os.getenv("EDUAI_MODEL_LAB_MODELS_DIR", "/models"))
 BASES = {
     "nano-r2": ("LiquidAI/LFM2.5-350M", None),
-    "lite-r2": ("LiquidAI/LFM2.5-1.2B-Instruct", "b9d816ab510f9a28dca37cb182e9da8b0226e13c"),
+    "lite-r2": ("LiquidAI/LFM2.5-1.2B-Instruct", None),
     "nano-r5": ("LiquidAI/LFM2.5-350M", None),
-    "lite-r5": ("LiquidAI/LFM2.5-1.2B-Instruct", "b9d816ab510f9a28dca37cb182e9da8b0226e13c"),
+    "lite-r5": ("LiquidAI/LFM2.5-1.2B-Instruct", None),
 }
 _MODEL_LOCK = threading.RLock()
 _ACTIVE: dict[str, Any] = {}
