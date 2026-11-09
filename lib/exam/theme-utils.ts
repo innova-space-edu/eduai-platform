@@ -50,32 +50,32 @@ export interface ExamStyleSettings {
 }
 
 export const THEME_LABELS: Record<ExamTheme, string> = {
-  classic: "Clásico claro",
+  classic: "Neutralidad",
   modern: "Moderno suave",
   canva: "Canva educativo",
-  pie_calm: "PIE calma",
-  adhd_focus: "Foco TDAH",
-  high_contrast: "Alta legibilidad",
+  pie_calm: "PIE · lectura clara",
+  adhd_focus: "Enfoque visual",
+  high_contrast: "Alto contraste",
   stem: "STEM claro",
   kids: "Kids visual",
   blue_focus: "Azul foco",
-  green_calm: "Verde calma",
+  green_calm: "Calma",
   lavender_reading: "Lavanda lectura",
-  warm_attention: "Cálido atención",
+  warm_attention: "Optimismo",
 };
 
 export const THEME_DESCRIPTIONS: Record<ExamTheme, string> = {
   classic: "Blanco cálido, texto oscuro y estructura formal.",
   modern: "Minimalista, tarjetas limpias y azul institucional.",
   canva: "Colores pastel, tarjetas grandes y estilo guía visual.",
-  pie_calm: "Blanco suave con verde, baja carga visual y lectura cómoda.",
-  adhd_focus: "Una tarea a la vez, foco marcado y poco ruido.",
+  pie_calm: "Fondo cálido, acentos verde azulado y mayor espaciado.",
+  adhd_focus: "Distribución estrecha y acentos discretos.",
   high_contrast: "Texto muy oscuro, fondo claro cálido y bordes definidos.",
   stem: "Azules claros para matemática, ciencia y tecnología.",
   kids: "Tonos cálidos, amigables y alto apoyo visual.",
-  blue_focus: "Azules suaves para foco sostenido y baja ansiedad.",
-  green_calm: "Verdes suaves para regulación emocional y concentración calmada.",
-  lavender_reading: "Lavanda suave para lectura extendida y menor fatiga visual.",
+  blue_focus: "Azules suaves con texto oscuro.",
+  green_calm: "Acentos verdes suaves con texto oscuro.",
+  lavender_reading: "Acentos lavanda con texto oscuro.",
   warm_attention: "Ámbar suave como acento para orientar sin saturar.",
 };
 
@@ -252,7 +252,7 @@ export const THEME_VARS: Record<ExamTheme, Record<string, string>> = {
     "--exam-text": "#0f172a",
     "--exam-text-sub": "#14532d",
     "--exam-muted": "#4b5563",
-    "--exam-accent": "#059669",
+    "--exam-accent": "#047857",
     "--exam-accent-soft": "#d1fae5",
     "--exam-success": "#047857",
     "--exam-warning": "#b45309",
@@ -288,7 +288,7 @@ export const THEME_VARS: Record<ExamTheme, Record<string, string>> = {
     "--exam-text": "#1f2937",
     "--exam-text-sub": "#92400e",
     "--exam-muted": "#6b7280",
-    "--exam-accent": "#f59e0b",
+    "--exam-accent": "#92400e",
     "--exam-accent-soft": "#fef3c7",
     "--exam-success": "#047857",
     "--exam-warning": "#b45309",
@@ -369,22 +369,28 @@ export function resolveExamStyle(settings?: ExamStyleSettings): ResolvedExamStyl
   const access = settings?.accessibility || {};
 
   let finalFont = font;
+  if (access.pieMode && font === "inter") finalFont = "atkinson";
   if (access.dyslexiaMode && font === "inter") finalFont = "lexend";
   if (access.lowVisionMode && font === "inter") finalFont = "atkinson";
 
   const baseVars = THEME_VARS[theme] || THEME_VARS.classic;
   const extraVars: Record<string, string> = {};
 
-  if (access.pieMode && theme === "classic") Object.assign(extraVars, THEME_VARS.pie_calm);
+  if (access.pieMode) {
+    if (theme === "classic") Object.assign(extraVars, THEME_VARS.pie_calm);
+    extraVars["--exam-spacing"] = "2rem";
+    extraVars["--exam-line-height"] = "1.95";
+    extraVars["--exam-font-size"] = `${Math.max(18, Number.parseInt(baseVars["--exam-font-size"], 10))}px`;
+  }
   if (access.dyslexiaMode) {
     extraVars["--exam-bg"] = extraVars["--exam-bg"] || "#ffffff";
     extraVars["--exam-line-height"] = "1.95";
-    extraVars["--exam-font-size"] = "17px";
+    extraVars["--exam-font-size"] ??= "17px";
   }
   if (access.adhdMode) {
     extraVars["--exam-spacing"] = "2rem";
     extraVars["--exam-line-height"] = "2.05";
-    extraVars["--exam-font-size"] = "17px";
+    extraVars["--exam-font-size"] ??= "17px";
   }
   if (access.lowVisionMode) {
     extraVars["--exam-font-size"] = "19px";

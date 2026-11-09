@@ -39,9 +39,9 @@ function patchPage() {
 
   source = replaceRequired(
     source,
-    'import { getOAs, type NivelKey, type OA } from "@/lib/mineduc-oa";',
+    'import { getOAs, getCurriculumVerification, getParvulariaNucleoItems, type NivelKey, type OA } from "@/lib/mineduc-oa";',
     block([
-      'import { getAvailableAsignaturas, getOAs, type NivelKey, type OA } from "@/lib/mineduc-oa";',
+      'import { getAvailableAsignaturas, getOAs, getCurriculumVerification, getParvulariaNucleoItems, type NivelKey, type OA } from "@/lib/mineduc-oa";',
       'import {',
       '  PEDAGOGICAL_MODES,',
       '  buildSubjectGenerationDirective,',
@@ -66,22 +66,13 @@ function patchPage() {
       '  const [selectedOAIds, setSelectedOAIds] = useState<string[]>([]);',
       "",
       "  const availableSubjects = useMemo(() => {",
-      "    const subjects = getAvailableAsignaturas(curriculumNivel, curriculumCurso);",
-      '    return subjects.length ? subjects : [subject || "Otra asignatura"];',
-      "  }, [curriculumNivel, curriculumCurso, subject]);",
+      "    return curriculumCurso ? getAvailableAsignaturas(curriculumNivel, curriculumCurso) : [];",
+      "  }, [curriculumNivel, curriculumCurso]);",
       "",
       "  const subjectProfile = useMemo(",
       "    () => getSubjectPedagogyProfile(subject),",
       "    [subject],",
       "  );",
-      "",
-      "  useEffect(() => {",
-      "    if (!availableSubjects.length) return;",
-      "    if (!availableSubjects.includes(subject)) {",
-      "      setSubject(availableSubjects[0]);",
-      "      setSelectedOAIds([]);",
-      "    }",
-      "  }, [availableSubjects, subject]);",
     ]),
     "catálogo dinámico de asignaturas",
   )
@@ -121,67 +112,6 @@ function patchPage() {
       "  };",
     ]),
     "control de modos pedagógicos",
-  )
-
-  source = replaceRegexRequired(
-    source,
-    /<select\s+value=\{subject\}[\s\S]*?<\/select>/,
-    block([
-      "<select",
-      "                    value={subject}",
-      "                    onChange={(e) => {",
-      "                      setSubject(e.target.value);",
-      "                      setSelectedOAIds([]);",
-      "                    }}",
-      '                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none focus:border-blue-500/40"',
-      "                  >",
-      "                    {availableSubjects.map((item) => (",
-      "                      <option key={item} value={item}>",
-      "                        {item}",
-      "                      </option>",
-      "                    ))}",
-      "                  </select>",
-    ]),
-    "selector principal de asignatura",
-  )
-
-  source = source.replace(
-    "md:grid-cols-[180px_180px_1fr]",
-    "md:grid-cols-[170px_180px_240px_1fr]",
-  )
-
-  source = replaceRequired(
-    source,
-    block([
-      "                    <div>",
-      '                      <label className="mb-2 block text-xs font-bold text-slate-600">',
-      "                        BUSCAR OA",
-    ]),
-    block([
-      "                    <div>",
-      '                      <label className="mb-2 block text-xs font-bold text-slate-600">',
-      "                        ASIGNATURA",
-      "                      </label>",
-      "                      <select",
-      "                        value={subject}",
-      "                        onChange={(e) => {",
-      "                          setSubject(e.target.value);",
-      "                          setSelectedOAIds([]);",
-      "                        }}",
-      '                        className="w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-semibold text-slate-900 outline-none focus:border-emerald-400 focus:ring-4 focus:ring-emerald-100"',
-      "                      >",
-      "                        {availableSubjects.map((item) => (",
-      "                          <option key={item} value={item}>",
-      "                            {item}",
-      "                          </option>",
-      "                        ))}",
-      "                      </select>",
-      "                    </div>",
-      "                    <div>",
-      '                      <label className="mb-2 block text-xs font-bold text-slate-600">',
-      "                        BUSCAR OA",
-    ]),
-    "asignatura dentro del selector OA",
   )
 
   source = source.replace(
