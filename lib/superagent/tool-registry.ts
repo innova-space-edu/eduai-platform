@@ -1,4 +1,5 @@
 // lib/superagent/tool-registry.ts
+import { solveExactMath } from "@/lib/math/exact-solver"
 // ─────────────────────────────────────────────────────────────────────────────
 // Registro de herramientas del SuperAgent EduAI Claw.
 // Cada tool tiene: nombre, descripción, parámetros y función execute().
@@ -1236,7 +1237,8 @@ export function isMusicListeningRequest(message: string): boolean {
 export function detectToolFromMessage(message: string): ToolName | null {
   const m = message.toLowerCase();
   // Trigger only for explicit, numerically expressed requests; leave conceptual questions to the model.
-  if (process.env.EDUAI_EXACT_MATH_ENABLED === "true" && /^\s*(?:calcula|resuelve)\b/i.test(m) && /[-+*/%=]|\d+%|s0=/i.test(m)) return "solve_math_exact";
+  if (process.env.EDUAI_EXACT_MATH_ENABLED === "true" && message.length <= 500 &&
+      /^\s*(?:calcula|resuelve)\b/i.test(m) && solveExactMath({ question: message }).verified) return "solve_math_exact";
 
 
   if (
