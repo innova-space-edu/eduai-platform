@@ -92,3 +92,40 @@ export async function inferLabModel(model:string,messages:LabChatMessage[]):Prom
     engine:typeof payload.engine==="string"?payload.engine.slice(0,70):"transformers-peft",
   };
 }
+
+/** Non-blocking inference tickets; Vercel does not hold a request while the Dell loads weights. */
+export type LabJobState = {
+  model:string;
+  state:"running"|"completed"|"error";
+  result?:LabInferenceResponse;
+  error?:string;
+};
+export async function enqueueLabInference(model:string,messages:LabChatMessage[]){
+  const payload=await callRemote("/jobs",{
+    method:"POST",
+    body:JSON.stringify({model,messages,max_new_tokens:96}),
+  },12000) as Record<string,unknown>;
+  if(payload.model!==model||typeof payload.job_id!=="string"||!(/^[A-Za-z0-9_-]{24,64}$/.test(payload.job_id))){
+    throw new LabInferenceError("El servidor no devolvió un identificador de tarea válido.",502);
+  }
+  return payload.job_id;
+}
+export async function inspectLabInferenceJob(model:string,jobId:string):Promise<LabJobState>{
+  if(!/^[A-Za-z0-9_-]{24,64}$/.test(jobId))throw new LabInferenceError("Identificador de tarea inválido.",400);
+  const body=await callRemote("/jobs/"+jobId,{method:"GET"},8000) as Record<string,unknown>;
+  if(body.model!==model)throw new LabInferenceError("La tarea no corresponde al modelo solicitado.",403);
+  if(body.state==="running")return {model,state:"running"};
+  if(body.state==="error")return {model,state:"error",error:"El modelo falló durante la inferencia. Revisa el registro del Dell."};
+  const val=body.result;
+  if(body.state!=="completed"||!val||typeof val!=="object")
+    throw new LabInferenceError("Estado de tarea inesperado.",502);
+  const reply=val as Record<string,unknown>;
+  if(reply.model!==model||typeof reply.text!=="string"||!reply.text.trim()||reply.text.length>15000)
+    throw new LabInferenceError("Respuesta del modelo inválida.",502);
+  const number=(value:unknown)=>typeof value==="number"&&Number.isFinite(value)&&value>=0?value:null;
+  return {model,state:"completed",result:{
+    model,text:reply.text,engine:typeof reply.engine==="string"?reply.engine.slice(0,70):"transformers-peft",
+    latencyMs:number(reply.latency_ms)??0,
+    promptTokens:number(reply.prompt_tokens),completionTokens:number(reply.completion_tokens),
+  }};
+}
