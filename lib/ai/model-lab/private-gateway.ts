@@ -35,10 +35,18 @@ async function callRemote(path:string,init:RequestInit,deadlineMs:number){
   if(!cfg)throw new LabInferenceError("El motor Nano/Lite todavía no está conectado al servidor Dell.",503);
   const controller=new AbortController();
   const id=setTimeout(()=>controller.abort(),deadlineMs);
+  const headers:Record<string,string>={
+    "Authorization":"Bearer "+cfg.token,"Content-Type":"application/json",
+  };
+  const cfId=process.env.EDUAI_MODEL_LAB_CF_CLIENT_ID?.trim();
+  const cfSecret=process.env.EDUAI_MODEL_LAB_CF_CLIENT_SECRET?.trim();
+  if(cfId&&cfSecret){
+    headers["CF-Access-Client-Id"]=cfId;
+    headers["CF-Access-Client-Secret"]=cfSecret;
+  }
   try{
     const response=await fetch(cfg.base+path,{
-      ...init,
-      headers:{"Authorization":"Bearer "+cfg.token,"Content-Type":"application/json"},
+      ...init,headers,
       cache:"no-store",signal:controller.signal,
     });
     if(!response.ok){
