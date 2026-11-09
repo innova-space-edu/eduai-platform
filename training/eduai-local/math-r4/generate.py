@@ -1,0 +1,161 @@
+"""EDUAI R4: verified procedural curriculum. Generates DATA, does not train or deploy.
+
+Use: python training/eduai-local/math-r4/generate.py --output /tmp/eduai-r4 --train 3000
+All labels are derived with exact Fraction/integer arithmetic; no remote APIs.
+"""
+from __future__ import annotations
+import argparse, hashlib, json, random, re
+from collections import Counter
+from fractions import Fraction
+from pathlib import Path
+
+TRAIN_SEEDS=(41011,42011,43011)
+TEST_SEEDS=(44021,44031,44041)
+WEIGHTS={"algebra":35,"recurrence":23,"euler":23,"arithmetic":12,"logic":7}
+LEVELS=(1,2,3)
+def fmt(v):return str(Fraction(v))
+def sign(rng,lo=1,hi=20):return rng.choice([-1,1])*rng.randint(lo,hi)
+def example(rng,cat,level,split):
+    shift=1 if split=="train" else 3
+    scale=shift*level
+    if cat=="algebra":
+        kind=rng.choice(["linear","parentheses","system2","substitution"])
+        x=sign(rng,1,15*scale);a=sign(rng,1,12*scale);b=sign(rng,0,13*scale)
+        if kind=="linear":
+            c=a*x+b
+            q=f"Resuelve {a}x+({b})={c}. Solo el valor de x."
+            trace=f"Restar {b}: {a}x={c-b}. Dividir por {a}: x={x}. Verificación: {a}*({x})+({b})={c}."
+            key=("linear",a,b,c);ans=str(x)
+        elif kind=="parentheses":
+            c=a*(x+b)
+            q=f"Resuelve {a}(x+({b}))={c}. Solo el valor de x."
+            trace=f"Dividir por {a}: x+({b})={x+b}. Restar {b}: x={x}. Verificación: {a}*({x}+({b}))={c}."
+            key=("parentheses",a,b,c);ans=str(x)
+        elif kind=="substitution":
+            y=a*x+b
+            q=f"Si y={a}x+({b}), encuentra x cuando y={y}. Solo entero."
+            trace=f"Despejar: x=(y-({b}))/{a}. Sustituir y={y}: x={x}. Verificación: y={a}*({x})+({b})={y}."
+            key=("substitution",a,b,y);ans=str(x)
+        else:
+            y=sign(rng,1,15*scale)
+            for _ in range(200):
+                c,d,e,f=[rng.randint(-9*scale,9*scale) for _ in range(4)]
+                det=c*f-d*e
+                if det:break
+            else:raise RuntimeError("SYSTEM_GENERATION_FAILED")
+            r=c*x+d*y;t=e*x+f*y
+            q=f"Resuelve el sistema {c}x+({d})y={r}; {e}x+({f})y={t}. Entrega x."
+            trace=f"Determinante={det}. x=({r}*{f}-({d})*{t})/{det}={x}; y={y}. Verificación: {c}*({x})+({d})*({y})={r} y {e}*({x})+({f})*({y})={t}."
+            key=("system2",c,d,e,f,r,t);ans=str(x)
+        return cat,kind,q,ans,trace,key
+    if cat=="recurrence":
+        a=rng.randint(2,8);b=rng.randint(0,16);m=rng.choice([11,13,17,19,23,29,31])
+        s0=rng.randint(0,12*scale);n=min(6,level+1)
+        v=s0;parts=[]
+        for i in range(1,n+1):
+            before=v;v=(a*v+b)%m;parts.append(f"s{i}=({a}*{before}+{b}) mod {m}={v}")
+        q=f"s0={s0}; s(t+1)=({a}*s(t)+{b}) mod {m}. Calcula s{n}."
+        return cat,"modular",q,str(v),"; ".join(parts)+f". Resultado s{n}={v}.",("mod",s0,a,b,m,n)
+    if cat=="euler":
+        k=rng.randint(1,12*scale);dt=Fraction(rng.randint(1,5),rng.choice([10,20,25,50,100]))
+        x0=sign(rng,1,12*scale);n=1 if level==1 else min(3,level)
+        factor=1-k*dt;v=Fraction(x0);parts=[f"factor=1-{k}*({dt})={fmt(factor)}"]
+        for i in range(1,n+1):
+            v*=factor;parts.append(f"x{i}=x{i-1}*({fmt(factor)})={fmt(v)}")
+        q=f"Euler explícito: dx/dt=-{k}x, x0={x0}, dt={dt}. Calcula x{n} después de {n} pasos."
+        return cat,"decay",q,fmt(v),"; ".join(parts)+".",("euler",k,dt.numerator,dt.denominator,x0,n)
+    if cat=="arithmetic":
+        kind=rng.choice(["multiply","percentage","rational"])
+        a=sign(rng,1,50*scale)
+        if kind=="multiply":
+            b=sign(rng,1,25*scale);q=f"Calcula {a} por ({b}).";ans=str(a*b)
+            trace=f"Multiplicar magnitudes {abs(a)}*{abs(b)}={abs(a*b)}. Aplicar regla de signos: {ans}."
+            key=(kind,a,b)
+        elif kind=="percentage":
+            p=rng.choice([5,10,20,25,50]);ans=fmt(Fraction(a*p,100));q=f"Calcula {p}% de {a}."
+            trace=f"Porcentaje = ({p}/100)*({a})={ans}.";key=(kind,p,a)
+        else:
+            b=rng.randint(2,25);c=rng.randint(2,30);ans=fmt(Fraction(a,b)+Fraction(c,b))
+            q=f"Calcula ({a}/{b})+({c}/{b}).";trace=f"Denominador común {b}. Sumar numeradores: ({a}+{c})/{b}={ans}."
+            key=(kind,a,b,c)
+        return cat,kind,q,ans,trace,key
+    if cat=="logic":
+        a=sign(rng,1,100*scale);b=sign(rng,1,100*scale)
+        kind=rng.choice(["implication","disjunction","comparison"])
+        p=(a%2==0);t=(b>0)
+        if kind=="comparison":
+            c=sign(rng,1,100*scale);val=a+b>c
+            q=f"¿Es verdadera {a}+({b})>{c}? Responde sí o no."
+            trace=f"Sumar {a}+({b})={a+b}. Comparar con {c}: {'verdadero' if val else 'falso'}."
+            key=(kind,a,b,c)
+        else:
+            val=((not p) or t) if kind=="implication" else (p or t)
+            q=f"P: '{a} es par'; Q: '{b} > 0'. ¿Es verdadera P {'implica Q' if kind=='implication' else 'o Q (incluyente)'}?"
+            trace=f"P={'V' if p else 'F'}, Q={'V' if t else 'F'}. Proposición {'verdadera' if val else 'falsa'}."
+            key=(kind,a,b)
+        return cat,kind,q,"sí" if val else "no",trace,key
+    raise ValueError(cat)
+
+def load_protected(files):
+    questions=set()
+    for name in files:
+        source=Path(name)
+        if not source.is_file():raise FileNotFoundError(name)
+        for line in source.read_text(encoding="utf-8").splitlines():
+            if not line.strip():continue
+            row=json.loads(line)
+            if isinstance(row,dict) and "question" in row:questions.add(row["question"])
+    return questions
+
+def generate(train_count=3000, validation_count=500, test_count=600, exclude=()):
+    if train_count<200 or validation_count<100 or test_count<100:raise ValueError("SAMPLE_COUNT_TOO_SMALL")
+    occupied=set();protected=load_protected(exclude)
+    def build(count,seed,split):
+        rng=random.Random(seed);out=[];attempts=0
+        cats=list(WEIGHTS)
+        while len(out)<count:
+            attempts+=1
+            if attempts>count*100:raise RuntimeError("DATASET_EXHAUSTED")
+            cat=rng.choices(cats,weights=list(WEIGHTS.values()),k=1)[0]
+            level=rng.choice(LEVELS) if split=="train" else rng.choice([2,3])
+            category,kind,question,answer,trace,key=example(rng,cat,level,split)
+            digest=hashlib.sha256(json.dumps(key,sort_keys=True,default=str).encode()).hexdigest()
+            if digest in occupied or question in protected:continue
+            occupied.add(digest)
+            mode="trace" if (split=="train" and rng.random()<0.65) else "final"
+            output=(trace+" Respuesta final: "+answer) if mode=="trace" else answer
+            out.append({"id":digest,"category":category,"subtype":kind,"difficulty":level,
+                        "question":question,"answer":answer,"mode":mode,"completion":output,
+                        "verifiedBy":"python-fraction-or-integer"})
+        return out
+    # Disjoint structural parameter keys; tests are never inputs to checkpoint selection.
+    train=build(train_count,41011,"train")
+    val=build(validation_count,42011,"validation")
+    tests=[build(test_count//3+(1 if i<test_count%3 else 0),seed,"test") for i,seed in enumerate(TEST_SEEDS)]
+    return train,val,tests
+
+def save(output,train,val,tests):
+    root=Path(output);root.mkdir(parents=True,exist_ok=True)
+    counts={}
+    sets=[("train",train),("validation",val)]+[("test-"+str(seed),rows) for seed,rows in zip(TEST_SEEDS,tests)]
+    for name,rows in sets:
+        path=root/(name+".jsonl")
+        path.write_text("".join(json.dumps(row,ensure_ascii=False)+"\n" for row in rows),encoding="utf-8")
+        counts[name]={"examples":len(rows),"categories":dict(Counter(row["category"] for row in rows)),
+                      "sha256":hashlib.sha256(path.read_bytes()).hexdigest()}
+    (root/"manifest.json").write_text(json.dumps({"campaign":"eduai-math-r4","trainSeeds":TRAIN_SEEDS,
+        "testSeeds":TEST_SEEDS,"splits":counts,"protectedAgainstExactPromptOverlap":True,
+        "familyIndependence":False,"productionReady":False,
+        "limitations":"Synthetic procedural templates; external and human tests required."},indent=2),encoding="utf-8")
+    return counts
+
+if __name__=="__main__":
+    p=argparse.ArgumentParser()
+    p.add_argument("--output",required=True)
+    p.add_argument("--train",type=int,default=3000)
+    p.add_argument("--validation",type=int,default=500)
+    p.add_argument("--test",type=int,default=600)
+    p.add_argument("--exclude",action="append",default=[])
+    a=p.parse_args()
+    train,val,tests=generate(a.train,a.validation,a.test,a.exclude)
+    print(json.dumps(save(a.output,train,val,tests),indent=2))
