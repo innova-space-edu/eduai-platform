@@ -43,7 +43,7 @@ export function referenceExactMath(input: string): LabExactReference {
     // Do not silently ignore additional equations or constraints.
     const equalityCount=(q.match(/=/g)||[]).length;
     const linear=q.match(/([+-]?\d{1,12})\s*x\s*([+-]\s*\d{1,12})?\s*=\s*([+-]?\d{1,12})(?![\d])/i);
-    const outputOnly=(tail:string)=>/^[\\s.!?;,]*(?:y\\s+explica\\s+el\\s+procedimiento[\\s.!?;,]*)?$/i.test(tail);
+    const outputOnly=(tail:string)=>/^[\s.!?;,]*(?:y\s+explica\s+el\s+procedimiento[\s.!?;,]*)?$/i.test(tail);
     if(linear&&equalityCount===1&&outputOnly(q.slice(linear.index!+linear[0].length))&&(q.match(/\bx\b|(?<=\d)x/gi)||[]).length<=1) {
       const a=parse(linear[1]);const b=parse((linear[2]||"0").replace(/\s/g,""));const c=parse(linear[3]);
       if(a.n===0n) return unsupported("DEGENERATE_EQUATION");
