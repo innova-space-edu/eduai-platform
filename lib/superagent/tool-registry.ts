@@ -8,6 +8,7 @@
 // ── Tipos base ────────────────────────────────────────────────────────────────
 
 export type ToolName =
+  | "solve_math_exact"
   | "generate_exam_questions"
   | "adapt_for_pie"
   | "plan_curriculum"
@@ -168,6 +169,32 @@ export function resolveGeneratedImageUrl(payload: Record<string, unknown>): stri
 // ── Definición de tools ───────────────────────────────────────────────────────
 
 export const TOOL_REGISTRY: ToolDefinition[] = [
+
+  {
+    name: "solve_math_exact",
+    label: "Cálculo matemático exacto",
+    icon: "∑",
+    description: "Resuelve con verificación exacta sistemas 2×2, ecuaciones, fracciones, porcentajes, Euler y recurrencias. Para cálculo simbólico avanzado requiere servicio SymPy configurado.",
+    category: "content",
+    enabled: process.env.EDUAI_EXACT_MATH_ENABLED === "true",
+    params: [{ name: "question", type: "string", description: "Enunciado matemático concreto", required: true }],
+    async execute(args, baseUrl, options) {
+      const question = normalizeText(args.question || args.content);
+      if (!question || question.length > 500) return { success: false, output: "Introduce un problema concreto de hasta 500 caracteres." };
+      try {
+        const res = await callInternalAPI(baseUrl, "/api/agents/math-exact", { question }, options);
+        const value = await readJsonOrText(res);
+        if (!res.ok || value.verified !== true) return {
+          success: false, output: "No pude verificar este enunciado con el motor exacto. No daré un resultado inventado.",
+          error: String(value.reason || value.error || "UNSUPPORTED_MATH"),
+        };
+        return { success: true, output: String(value.text || ""), data: value };
+      } catch (error) {
+        return { success: false, output: "Motor matemático no disponible.", error: error instanceof Error ? error.message : String(error) };
+      }
+    },
+  },
+
   {
     name: "generate_exam_questions",
     label: "Generar preguntas",
@@ -1208,6 +1235,9 @@ export function isMusicListeningRequest(message: string): boolean {
 /** Detecta qué herramienta ejecutar por la intención expresada en el mensaje. */
 export function detectToolFromMessage(message: string): ToolName | null {
   const m = message.toLowerCase();
+  // Trigger only for explicit, numerically expressed requests; leave conceptual questions to the model.
+  if (/^\s*(?:calcula|resuelve)\b/i.test(m) && /[-+*/%=]|\d+%|s0=/i.test(m)) return "solve_math_exact";
+
 
   if (
     /corrige|arregla|soluciona|fix|error|bug|typescript|build failed/i.test(
