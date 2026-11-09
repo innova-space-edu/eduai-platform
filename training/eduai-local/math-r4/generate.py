@@ -51,7 +51,7 @@ def assert_example_contract(row):
     completion=row["completion"]
     answer=row["answer"]
     if row["mode"]=="trace":
-        if re.search(r"\\b(?:responde\\s+únicamente|responde\\s+solo|solo\\s+(?:entero|nombre|fracción|el valor)|entrega\\s+x|responde\\s+sí\\s+o\\s+no)\\b",prompt,re.IGNORECASE):
+        if re.search(r"\b(?:responde\s+únicamente|responde\s+solo|solo\s+(?:entero|nombre|fracción|el valor)|entrega\s+x|responde\s+sí\s+o\s+no)\b",prompt,re.IGNORECASE):
             raise AssertionError("TRACE_PROMPT_CONFLICT")
         if "Explica los pasos" not in prompt or not completion.endswith("Respuesta final: "+answer):
             raise AssertionError("TRACE_CONTRACT_INCONSISTENT")
