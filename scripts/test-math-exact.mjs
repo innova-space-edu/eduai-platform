@@ -33,4 +33,40 @@ for (const query of [
 ]) {
   assert.equal(solveExactMath(query).verified,false,JSON.stringify(query));
 }
+
+let entropy=0x2adef01d;
+function rand(min,max) {
+  entropy^=entropy<<13;entropy^=entropy>>>17;entropy^=entropy<<5;
+  return min+(entropy>>>0)%(max-min+1);
+}
+function referenceRational(n,d=1n) {
+  if(d<0n){n=-n;d=-d}
+  let a=n<0n?-n:n,b=d;
+  while(b!==0n){const t=a%b;a=b;b=t}
+  const g=a||1n;n/=g;d/=g;
+  return d===1n?String(n):String(n)+"/"+String(d);
+}
+for(let i=0;i<400;i++){
+  const x=rand(-60,60), a=rand(1,40)*(rand(0,1)?-1:1), b=rand(-60,60);
+  const solved=solveExactMath({operation:"linear",a,b,c:a*x+b});
+  assert.equal(solved.answer,String(x),JSON.stringify({i,solved,a,b,x}));
+  let A,B,D,E;
+  do { A=rand(-12,12);B=rand(-12,12);D=rand(-12,12);E=rand(-12,12) }
+  while(A*E===B*D);
+  const y=rand(-60,60);
+  const system=solveExactMath({operation:"system2",a:A,b:B,c:A*x+B*y,d:D,e:E,f:D*x+E*y});
+  assert.equal(system.answer,"x="+x+", y="+y,JSON.stringify({i,system,x,y}));
+  const start=rand(-100,100), mod=rand(2,97), mul=rand(-12,12), shift=rand(-30,30), steps=rand(0,10);
+  let expected=start;
+  for(let j=0;j<steps;j++)expected=((mul*expected+shift)%mod+mod)%mod;
+  const rec=solveExactMath({operation:"recurrence",s0:start,a:mul,b:shift,modulus:mod,steps});
+  assert.equal(rec.answer,String(expected),JSON.stringify({i,rec,start,steps}));
+  const initial=rand(-20,20), k=rand(0,20), numer=rand(1,4), denom=rand(10,40), n=rand(0,3);
+  let top=BigInt(initial),bottom=1n;
+  for(let j=0;j<n;j++){top*=BigInt(denom-k*numer);bottom*=BigInt(denom)}
+  const euler=solveExactMath({operation:"euler_decay",x0:initial,k,dt:numer+"/"+denom,steps:n});
+  assert.equal(euler.answer,referenceRational(top,bottom),JSON.stringify({i,euler,numer,denom,n}));
+}
+console.log("PASS 1,600 deterministic arithmetic property cases");
+
 console.log("PASS exact math:",testCases.length,"verified cases + 8 rejected cases");
