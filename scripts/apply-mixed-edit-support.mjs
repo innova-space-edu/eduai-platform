@@ -70,6 +70,7 @@ patch("app/api/agents/exam-generate/route.ts", [
   ['Number(mc) + Number(tf) + Number(dev) ||', 'Number(mc) + Number(tf) + Number(dev) + Number(mixed) ||'],
   ['groqFull(enhancedPrompt, totalQ, Number(mc), Number(tf), Number(dev), GROQ_KEY)', 'groqFull(enhancedPrompt, totalQ, Number(mc), Number(tf), Number(dev), Number(mixed), GROQ_KEY)'],
   ['openRouterFull(enhancedPrompt, totalQ, Number(mc), Number(tf), Number(dev), OR_KEY)', 'openRouterFull(enhancedPrompt, totalQ, Number(mc), Number(tf), Number(dev), Number(mixed), OR_KEY)'],
+  ['openRouterFull(enhancedPrompt, totalQ, Number(mc), Number(tf), Number(dev), "", cloudflareBatch)', 'openRouterFull(enhancedPrompt, totalQ, Number(mc), Number(tf), Number(dev), Number(mixed), "", cloudflareBatch)'],
 ]);
 
 patch("app/api/agents/examen-docente/route.ts", [

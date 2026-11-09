@@ -76,9 +76,9 @@ function patchPage() {
 
   source = replaceRequired(
     source,
-    "const AI_TOTAL_LIMIT = 36;\n// EXAM_OMNI_SUBJECT_PATCH_V1",
+    "const AI_TOTAL_LIMIT = EXAM_AI_MAX_QUESTIONS;\n// EXAM_OMNI_SUBJECT_PATCH_V1",
     block([
-      "const AI_TOTAL_LIMIT = 36;",
+      "const AI_TOTAL_LIMIT = EXAM_AI_MAX_QUESTIONS;",
       "",
       "const RESPONSE_MODE_OPTIONS: { value: ResponseMode; label: string; icon: string; desc: string }[] = [",
       '  { value: "short_text", label: "Respuesta corta", icon: "Aa", desc: "Una palabra, concepto, valor o frase breve" },',

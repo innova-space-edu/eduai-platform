@@ -2,6 +2,7 @@
 // VERSIÓN F: Agente IA (OpenRouter/Groq) + Sistema de Seguridad Nuevo
 "use client";
 
+import { EXAM_AI_MAX_QUESTIONS } from "@/lib/exam/creator-limits";
 import { useMemo, useState, useRef, useEffect } from "react";
 import {
   recommendDesign,
@@ -49,7 +50,7 @@ type QuestionType =
   | "mixed_choice_development";
 type AIStatus = "idle" | "generating" | "done" | "error";
 
-const AI_TOTAL_LIMIT = 36;
+const AI_TOTAL_LIMIT = EXAM_AI_MAX_QUESTIONS;
 
 const EXAM_CREATOR_STEPS = [
   { id: "datos", label: "1. Datos", icon: "📝" },
@@ -729,6 +730,7 @@ export default function CrearExamenPage() {
   const [aiImportMode, setAiImportMode] = useState<"replace" | "append">(
     "append",
   );
+  const [aiRegenError, setAiRegenError] = useState("");
   const [aiRegenIdx, setAiRegenIdx] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
@@ -1023,6 +1025,7 @@ REGLAS ESTRICTAS:
     abortRef.current?.abort();
     abortRef.current = new AbortController();
 
+    setAiRegenError("");
     setAiStatus("generating");
     setAiError("");
     setAiProvider("");
@@ -1086,6 +1089,7 @@ Detalle técnico: ${data.details}`
   const regenerateSingleQuestion = async (idx: number) => {
     const q = aiPreview[idx];
     if (!q) return;
+    setAiRegenError("");
     setAiRegenIdx(idx);
     try {
       const singlePrompt = `Regenera UNA pregunta de tipo "${q.type}" sobre: "${aiPrompt.trim() || topic.trim()}". 
@@ -1099,16 +1103,17 @@ Usa el mismo esquema de calidad que antes.`;
       const res = await fetch("/api/agents/exam-generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: singlePrompt, mode: "single" }),
+        body: JSON.stringify({ prompt: singlePrompt, mode: "single", questionType: q.type }),
       });
       const data = await res.json();
-      if (!data?.success) throw new Error(data?.error);
+      if (!data?.success) throw new Error(data?.error || "No se pudo regenerar la pregunta.");
       const fresh = normalizeAIQuestion(
         data.question ?? data.questions?.[0] ?? {},
       );
-      setAiPreview((prev) => prev.map((p, i) => (i === idx ? fresh : p)));
-    } catch (e: any) {
-      // Silencioso en preview — el usuario puede reintentar
+      if (fresh.type !== q.type || !fresh.question.trim()) throw new Error("La respuesta no corresponde al tipo de pregunta solicitado.");
+      setAiPreview((prev) => prev.map((p, i) => (i === idx && p.id === q.id ? fresh : p)));
+    } catch (error) {
+      setAiRegenError(`Pregunta ${idx + 1}: ${error instanceof Error ? error.message : "No se pudo regenerar."}`);
     } finally {
       setAiRegenIdx(null);
     }
@@ -2256,7 +2261,7 @@ Usa el mismo esquema de calidad que antes.`;
                 <p className="font-semibold text-sky-700">
                   💡 Sugerencia de diseño
                 </p>
-                {designRec.reason && (
+                {designRec.reason && designRec.theme === examTheme && (
                   <p className="text-sub">{designRec.reason}</p>
                 )}
                 {designRec.suggestions.map((s, i) => (
@@ -2449,6 +2454,7 @@ Usa el mismo esquema de calidad que antes.`;
                   </button>
 
                   {/* Error IA */}
+                  {aiRegenError && <p role="alert" className="text-sm text-red-700">{aiRegenError}</p>}
                   {aiStatus === "error" && (
                     <div className="rounded-2xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-700">
                       ❌ {aiError}
