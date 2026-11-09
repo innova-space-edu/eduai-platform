@@ -1,4 +1,4 @@
-"""EDUAI R4: verified procedural curriculum. Generates DATA, does not train or deploy.
+"""EDUAI R5: corrected procedural curriculum. Generates DATA, does not train or deploy.
 
 Use: python training/eduai-local/math-r4/generate.py --output /tmp/eduai-r4 --train 3000
 All labels are derived with exact Fraction/integer arithmetic; no remote APIs.
@@ -229,7 +229,7 @@ def save(output,train,val,tests):
         counts[name]={"examples":len(rows),"categories":dict(Counter(row["category"] for row in rows)),
                       "responseModes":dict(Counter(row["mode"] for row in rows)),
                       "sha256":hashlib.sha256(path.read_bytes()).hexdigest()}
-    (root/"manifest.json").write_text(json.dumps({"campaign":"eduai-math-r4","trainSeeds":TRAIN_SEEDS,
+    (root/"manifest.json").write_text(json.dumps({"campaign":"eduai-math-r5","trainSeeds":TRAIN_SEEDS,
         "testSeeds":TEST_SEEDS,"validationSeed":VALIDATION_SEED,"splits":counts,"protectedAgainstExactPromptOverlap":True,
         "familyIndependence":False,"trainTraceRate":TRAIN_TRACE_RATE,
         "outputContractsChecked":True,"productionReady":False,
