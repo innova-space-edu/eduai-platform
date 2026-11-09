@@ -10,6 +10,7 @@ from fractions import Fraction
 from pathlib import Path
 from generate import generate, save, TRAIN_SEEDS, TEST_SEEDS
 from challenge import build_challenges
+from evaluation import summarize, objective, validation_gate
 
 os.environ["TOKENIZERS_PARALLELISM"]="false"
 os.environ["WANDB_DISABLED"]="true"
@@ -70,16 +71,16 @@ def source(profile):
   protected[tag]=[{"category":r["category"],"question":r["question"],"answer":r["answer"]}
       for r in rows]
  return folder,protected
-def args(cls,profile,output,seed,stage,steps):
- opts={"output_dir":str(output/("tmp-"+str(seed)+"-"+str(stage))),"max_steps":steps,
+def args(cls,profile,output,seed,stage,epochs):
+ opts={"output_dir":str(output/("tmp-"+str(seed)+"-"+str(stage))),
+  "max_steps":-1,"num_train_epochs":epochs,
   "per_device_train_batch_size":2,"per_device_eval_batch_size":2,"gradient_accumulation_steps":4,
   "learning_rate":profile["lr"],"lr_scheduler_type":"cosine","fp16":True,"bf16":False,
   "logging_steps":30,"save_strategy":"no","report_to":[],"seed":seed,"data_seed":seed,
   "dataloader_num_workers":0,"remove_unused_columns":False,"optim":"adamw_torch",
   "gradient_checkpointing":False,"max_grad_norm":0.7}
  signature=set(inspect.signature(cls).parameters)
- if "warmup_steps" in signature:opts["warmup_steps"]=max(1,math.ceil(steps*0.06))
- elif "warmup_ratio" in signature:opts["warmup_ratio"]=0.06
+ if "warmup_ratio" in signature:opts["warmup_ratio"]=0.06
  else:raise RuntimeError("UNSUPPORTED_WARMUP")
  if "eval_strategy" in signature:opts["eval_strategy"]="no"
  elif "evaluation_strategy" in signature:opts["evaluation_strategy"]="no"
@@ -90,24 +91,6 @@ def args(cls,profile,output,seed,stage,steps):
  unknown=set(opts)-signature
  if unknown:raise RuntimeError("UNSUPPORTED_TRAINING_ARGUMENTS "+str(unknown))
  return cls(**opts)
-def normalized(s):
- return re.sub(r"^(respuesta|resultado)\s*:\s*","",str(s).strip().lower().replace("í","i").replace("−","-")).strip(' .!"\x27')
-def grade(actual,expected):
- a=normalized(actual);e=normalized(expected)
- if "respuesta final:" in a:a=a.rsplit("respuesta final:",1)[1].strip().splitlines()[0].strip()
- if a==e:return True
- if e in ("si","no"):return False
- try:return Fraction(a)==Fraction(e)
- except (ValueError,ZeroDivisionError):return False
-def summary(rows,answers):
- d=defaultdict(lambda:{"correct":0,"total":0});correct=0;errors=[]
- for row,answer in zip(rows,answers):
-  ok=grade(answer,row["answer"]);correct+=ok
-  item=d[row["category"]];item["correct"]+=int(ok);item["total"]+=1
-  if not ok and len(errors)<30:errors.append({"category":row["category"],"subtype":row.get("subtype"),
-        "question":row["question"],"expected":row["answer"],"got":answer})
- return {"correct":int(correct),"total":len(rows),"accuracyPct":round(correct/len(rows)*100,2),
-         "categories":dict(d),"errorExamples":errors}
 def run(profile,training,validation,tests,challenges):
  import torch
  from peft import PeftModel
@@ -115,8 +98,9 @@ def run(profile,training,validation,tests,challenges):
  name=profile["name"];folder=ROOT/("eduai-"+name+"-math-r4");folder.mkdir(exist_ok=True,parents=True)
  src,protected=source(profile)
  old_questions={r["question"] for data in protected.values() for r in data}
- for rows in [training,validation,*tests]:
-  if any(r["question"] in old_questions for r in rows):raise RuntimeError("PROTECTED_PROMPT_LEAKAGE")
+ for rows in [training,validation,*tests,challenges]:
+  if any(r["question"] in old_questions or r.get("raw_question") in old_questions for r in rows):
+   raise RuntimeError("PROTECTED_PROMPT_LEAKAGE")
  template=AutoTokenizer.from_pretrained(profile["model"],revision=profile["revision"],trust_remote_code=False)
  if template.pad_token_id is None:template.pad_token=template.eos_token
  def prompt(q):
@@ -144,15 +128,27 @@ def run(profile,training,validation,tests,challenges):
   return base,model
  collator=DataCollatorForSeq2Seq(tokenizer=template,label_pad_token_id=-100,pad_to_multiple_of=8)
  def evaluate(model,rows):
-  model.eval();model.config.use_cache=True;answers=[]
+  model.eval()
+  model.config.use_cache=True
+  responses=[]
+  max_tokens=128
   for r in rows:
-   ids=prompt(r["question"]);v=torch.tensor([ids],dtype=torch.long,device="cuda")
+   ids=prompt(r["question"])
+   v=torch.tensor([ids],dtype=torch.long,device="cuda")
    with torch.inference_mode():
     out=model.generate(input_ids=v,attention_mask=torch.ones_like(v),do_sample=False,
-       max_new_tokens=80,pad_token_id=template.pad_token_id,eos_token_id=template.eos_token_id)
-   answers.append(template.decode(out[0,len(ids):],skip_special_tokens=True).strip())
+       max_new_tokens=max_tokens,pad_token_id=template.pad_token_id,eos_token_id=template.eos_token_id)
+   new_ids=out[0,len(ids):]
+   end_token=int(new_ids[-1]) if len(new_ids) else -1
+   eos_ids={int(template.eos_token_id)} if template.eos_token_id is not None else set()
+   cfg_eos=getattr(model.generation_config,"eos_token_id",None)
+   if isinstance(cfg_eos,list):eos_ids.update(int(i) for i in cfg_eos)
+   elif cfg_eos is not None:eos_ids.add(int(cfg_eos))
+   responses.append({"text":template.decode(new_ids,skip_special_tokens=True).strip(),
+       "tokens":len(new_ids),"max_new_tokens":max_tokens,"eos_seen":end_token in eos_ids})
   model.config.use_cache=False
-  return summary(rows,answers)
+  return summarize(rows,responses)
+
  # Note: validation controls candidate selection. Test sets are read only after winner is frozen.
  validated=Samples(validation);best_loss=float("inf");best_seed=None;trials=[]
  for seed in TRAIN_SEEDS:
