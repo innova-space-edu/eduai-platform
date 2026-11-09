@@ -33,12 +33,6 @@ if ! sudo grep -q '^EDUAI_MODEL_LAB_TOKEN=.' "$TOKENFILE"; then
   exit 3
 fi
 
-for name in nano lite; do
-  for suffix in adapter_model.safetensors adapter_config.json; do
-    sudo test -s "$DEST/incoming/${name}_${suffix}" && continue 2
-  done
-done
-
 if [ ! -s "$DEST/incoming/nano_adapter_model.safetensors" ] ||
    [ ! -s "$DEST/incoming/lite_adapter_model.safetensors" ] ||
    [ ! -s "$DEST/incoming/nano_adapter_config.json" ] ||
@@ -78,6 +72,10 @@ for key, base in models.items():
 PY
 
 sudo bash "$DIR/prepare-adapters.sh" "$DEST/incoming"
+# Read-only group access for the non-root container user (gid 10001).
+sudo chown -R root:10001 "$DEST/models"
+sudo chmod 0750 "$DEST/models" "$DEST/models/nano-r2" "$DEST/models/lite-r2"
+sudo chmod 0640 "$DEST/models/nano-r2/"* "$DEST/models/lite-r2/"*
 sudo chown -R 10001:10001 "$DEST/cache"
 sudo chmod 0750 "$DEST/cache"
 echo "[INFO] Construyendo e iniciando contenedor privado (solo localhost:8122)."
