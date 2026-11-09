@@ -22,7 +22,7 @@ export function getRepositoryAdminClient() {
 }
 
 async function resolveOwnerId(token: string) {
-  const decoded = decodeURIComponent(token).trim()
+  const decoded = token.trim()
 
   const legacyOwnerId = parseRepositoryPublicAccessToken(decoded)
   if (legacyOwnerId) return legacyOwnerId

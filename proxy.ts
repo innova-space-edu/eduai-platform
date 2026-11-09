@@ -12,6 +12,7 @@
 import { createServerClient } from "@supabase/ssr"
 import { NextResponse, type NextRequest } from "next/server"
 import { requiredPrivacyPermissionsForRoute } from "@/lib/privacy/consent-guard"
+import { isPublicRepositoryRead } from "@/lib/repository/public-read"
 import { createFamilyAdminClient } from "@/lib/family-consent/server"
 import { hasLegacyConsentGrace, shouldEnforceFamilyConsent } from "@/lib/family-consent/transition"
 
@@ -85,6 +86,7 @@ async function checkRateLimit(
 
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
+  if (isPublicRepositoryRead(pathname, request.method)) return NextResponse.next({ request })
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(
