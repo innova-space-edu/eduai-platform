@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { gunzipSync } from "node:zlib";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createServerClient } from "@/lib/supabase/server";
 
@@ -24,7 +25,7 @@ export async function GET(request: NextRequest) {
   try {
     const indexRaw = await readFile(INDEX_PATH, "utf8");
     const index = JSON.parse(indexRaw) as {
-      shards?: Array<{ index: number; file: string; records: number; bytes: number }>;
+      shards?: Array<{ index: number; file: string; records: number; bytes: number; storedBytes?: number }>;
     };
     const shardParam = request.nextUrl.searchParams.get("shard");
 
@@ -44,11 +45,14 @@ export async function GET(request: NextRequest) {
     }
 
     const shard = index.shards?.find((item) => item.index === shardIndex);
-    if (!shard || !/^shard-\d{4}\.json$/.test(shard.file)) {
+    if (!shard || !/^shard-\d{4}\.json(?:\.gz)?$/.test(shard.file)) {
       return NextResponse.json({ error: "Shard no encontrado" }, { status: 404 });
     }
 
-    const content = await readFile(path.join(KNOWLEDGE_DIR, shard.file), "utf8");
+    const file = await readFile(path.join(KNOWLEDGE_DIR, shard.file));
+    const content = shard.file.endsWith(".gz")
+      ? gunzipSync(file).toString("utf8")
+      : file.toString("utf8");
     return new NextResponse(content, {
       status: 200,
       headers: {

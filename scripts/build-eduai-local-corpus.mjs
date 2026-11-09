@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { mkdir, readFile, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { gzipSync } from "node:zlib";
 import { sanitizeEduAILocalCorpusText } from "./eduai-local-corpus-safety.mjs";
 import { extractEduAILocalSymbols, renderEduAILocalSymbolDocument } from "./eduai-local-symbol-index.mjs";
 
@@ -181,7 +182,7 @@ let currentBytes = 0;
 async function flushShard() {
   if (!current.length) return;
   const index = shards.length;
-  const file = `shard-${String(index).padStart(4, "0")}.json`;
+  const file = `shard-${String(index).padStart(4, "0")}.json.gz`;
   const payload = {
     schemaVersion: 2,
     generatedAt,
@@ -190,12 +191,14 @@ async function flushShard() {
     records: current.map(({ id, source, language, content }) => ({ id, source, language, content })),
   };
   const body = JSON.stringify(payload);
-  await writeFile(path.join(KNOWLEDGE_DIR, file), body, "utf8");
+  const compressed = gzipSync(Buffer.from(body, "utf8"), { level: 9 });
+  await writeFile(path.join(KNOWLEDGE_DIR, file), compressed);
   shards.push({
     index,
     file,
     records: current.length,
     bytes: Buffer.byteLength(body, "utf8"),
+    storedBytes: compressed.byteLength,
   });
   current = [];
   currentBytes = 0;
@@ -212,6 +215,7 @@ for (const record of records) {
 await flushShard();
 
 const knowledgePackBytes = shards.reduce((sum, shard) => sum + shard.bytes, 0);
+const knowledgePackStoredBytes = shards.reduce((sum, shard) => sum + shard.storedBytes, 0);
 const knowledgeIndex = {
   schemaVersion: 2,
   sourceProfile: "development-full",
@@ -219,6 +223,8 @@ const knowledgeIndex = {
   buildCommit,
   totalRecords: records.length,
   totalBytes: knowledgePackBytes,
+  totalStoredBytes: knowledgePackStoredBytes,
+  compression: "gzip",
   shards,
 };
 await writeFile(KNOWLEDGE_INDEX_FILE, JSON.stringify(knowledgeIndex, null, 2) + "\n", "utf8");
@@ -248,6 +254,7 @@ const manifest = {
   corpusBytes: Buffer.byteLength(serialized),
   knowledgePackIndex: path.relative(ROOT, KNOWLEDGE_INDEX_FILE).replaceAll("\\", "/"),
   knowledgePackBytes,
+  knowledgePackStoredBytes,
   knowledgePackShards: shards.length,
   knowledgeShardTargetBytes: KNOWLEDGE_SHARD_TARGET_BYTES,
   byExtension,
