@@ -5,7 +5,7 @@ from hashlib import sha256
 import json
 import random
 CATEGORIES=("algebra","recurrence","euler","logic","arithmetic")
-def build_challenges(seed=55101,per_family=24):
+def build_challenges(seed=66101,per_family=24):
     rng=random.Random(seed)
     out=[];seen=set()
     for category in CATEGORIES:
