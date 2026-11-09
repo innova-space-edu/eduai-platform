@@ -1,0 +1,35 @@
+name: EDUAI Nano Lite Playground
+on:
+  pull_request:
+    paths:
+      - "app/admin/model-lab/**"
+      - "app/api/admin/model-lab-playground/**"
+      - "components/admin/NanoLitePlayground.tsx"
+      - "components/admin/ModelLabWorkspace.tsx"
+      - "lib/admin/model-lab-sections.ts"
+      - "lib/ai/model-lab/**"
+      - "services/eduai-model-lab-inference/**"
+      - "scripts/test-model-lab-playground.mjs"
+      - ".github/workflows/model-lab-playground.yml"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Model catalog and math reference
+        run: node --experimental-strip-types scripts/test-model-lab-playground.mjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate private adapter service without loading models
+        run: |
+          python -m pip install --disable-pip-version-check fastapi==0.115.12
+          python -m py_compile services/eduai-model-lab-inference/server.py
+          cd services/eduai-model-lab-inference
+          python -m unittest -v test_server
