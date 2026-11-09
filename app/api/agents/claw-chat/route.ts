@@ -91,6 +91,7 @@ function buildSuggestions(reply: string, message: string, toolUsed?: string) {
   const suggestions = inferRouteSuggestions(reply, message);
 
   const toolMap: Record<string, string> = {
+    solve_math_exact: "study",
     generate_image: "image_studio",
     generate_image_prompt: "image_studio",
     generate_edu_video: "video_studio",
