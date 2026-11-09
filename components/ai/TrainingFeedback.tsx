@@ -197,6 +197,7 @@ export default function TrainingFeedback({ answer, prompt = "", module = "chat" 
               value={question} maxLength={24000} onChange={e => setQuestion(e.target.value)} />
           </label>
           {rating === "corrected" && (
+            <>
             <label>Respuesta correcta a la pregunta (no una corrección ortográfica de la pregunta)
               <textarea className="mt-1 w-full rounded border border-slate-400/30 bg-transparent p-2"
                 value={correction} maxLength={24000} onChange={e => setCorrection(e.target.value)} />
@@ -207,6 +208,7 @@ export default function TrainingFeedback({ answer, prompt = "", module = "chat" 
               <MathRenderer content={correction} className="text-sm [&_p:last-child]:mb-0" />
             </div>
           )}
+            </>
           )}
         </div>
       )}
