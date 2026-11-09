@@ -86,6 +86,7 @@ for i in $(seq 1 40); do
   fi
   sleep 2
 done
+sudo python3 "$DIR/verify-local.py" --env-file "$TOKENFILE" --base-url http://127.0.0.1:8122
 curl -fsS --max-time 5 http://127.0.0.1:8122/healthz >/dev/null ||
  { echo "Servicio no saludable. Revisa: sudo docker logs eduai-model-lab-inference" >&2; exit 5; }
 
