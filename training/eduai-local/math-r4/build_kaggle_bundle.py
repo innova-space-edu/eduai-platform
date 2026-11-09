@@ -6,13 +6,16 @@ def bundle(where: pathlib.Path):
     root=pathlib.Path(__file__).resolve().parent
     generator=(root/"generate.py").read_text(encoding="utf-8")
     trainer=(root/"train_kaggle.py").read_text(encoding="utf-8")
+    challenge=(root/"challenge.py").read_text(encoding="utf-8")
     generator=generator.split('if __name__=="__main__":')[0]
     generator=generator.replace("from __future__ import annotations","")
     trainer=trainer.replace("from __future__ import annotations","")
+    challenge=challenge.replace("from __future__ import annotations","")
     trainer=trainer.replace("from generate import generate, save, TRAIN_SEEDS, TEST_SEEDS","")
+    trainer=trainer.replace("from challenge import build_challenges","")
     code=("from __future__ import annotations\n"
           "# Single-file EDUAI R4. Data generator and trainer are bundled offline.\n"
-          +generator+"\n"+trainer)
+          +generator+"\n"+challenge+"\n"+trainer)
     compile(code,str(where/"main.py"),"exec")
     where.mkdir(parents=True,exist_ok=True)
     (where/"main.py").write_text(code,encoding="utf-8")
