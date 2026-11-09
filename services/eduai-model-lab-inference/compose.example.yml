@@ -11,6 +11,10 @@ services:
       OMP_NUM_THREADS: "4"
       MKL_NUM_THREADS: "4"
       HF_HUB_DISABLE_TELEMETRY: "1"
+    # Cloudflare tunnel container intranet-tunnel is already on portal_default.
+    # It can reach this service by Docker DNS without exposing port 8000 publicly.
+    networks:
+      - portal-tunnel
     ports:
       - "127.0.0.1:8122:8000"
     volumes:
@@ -31,3 +35,8 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+
+networks:
+  portal-tunnel:
+    external: true
+    name: portal_default
