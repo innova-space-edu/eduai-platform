@@ -33,6 +33,17 @@ function patchPage() {
   let source = load(PAGE)
   if (source.includes(PAGE_MARKER)) return
 
+  // Compatibilidad: la validación TypeScript del repositorio corre antes que build.
+  // Si el creador ya declara las asignaturas para esa validación, el parche
+  // las normaliza y vuelve a insertar su versión definitiva una sola vez.
+  const preflightImport = 'import { getOAs, getAvailableAsignaturas, getCurriculumVerification, getParvulariaNucleoItems, type NivelKey, type OA } from "@/lib/mineduc-oa";'
+  const baseImport = 'import { getOAs, getCurriculumVerification, getParvulariaNucleoItems, type NivelKey, type OA } from "@/lib/mineduc-oa";'
+  const preflightSubjects = '  const availableSubjects = useMemo(() => curriculumCurso ? getAvailableAsignaturas(curriculumNivel, curriculumCurso) : [], [curriculumNivel, curriculumCurso]);'
+  if (source.includes(preflightImport) && source.includes(preflightSubjects)) {
+    source = source.replace(preflightImport, baseImport)
+    source = source.replace(preflightSubjects + "\n\n", "")
+  }
+
   if (!source.includes("const [aiMixed, setAiMixed]")) {
     throw new Error("[exam-omni] Ejecuta apply-mixed-edit-support.mjs antes de este parche")
   }
