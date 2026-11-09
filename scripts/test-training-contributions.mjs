@@ -53,7 +53,7 @@ const comparisonSection = feedbackUI.slice(feedbackUI.indexOf('      {alternativ
 assert.ok(feedbackUI.includes('import MathRenderer from "@/components/ui/MathRenderer"'), 'Use the shared trusted renderer')
 assert.ok(comparisonSection.includes('<MathRenderer'), 'Both A/B responses must be rendered')
 assert.ok(comparisonSection.includes('content={option.text}'), 'Preview both source responses without changing training data')
-assert.ok(!comparisonSection.includes('{option.text}\n'), 'Never display raw A/B content')
+assert.ok(!/>\s*\{option\.text\}\s*</.test(comparisonSection), 'Never display raw A/B content as a text node')
 assert.ok(comparisonSection.includes('role="radiogroup"'), 'Keep the accessible A/B selector')
 assert.ok(comparisonSection.includes('checked={choice === option.key}'), 'Keep controlled A/B selection')
 assert.ok(feedbackUI.includes('content={correction}'), 'Render edited corrections as a live visual preview')
