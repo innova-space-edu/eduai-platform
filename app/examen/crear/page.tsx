@@ -558,6 +558,7 @@ export default function CrearExamenPage() {
   const [activeStep, setActiveStep] = useState(0);
   const [curriculumNivel, setCurriculumNivel] = useState<NivelKey>("media");
   const [curriculumCurso, setCurriculumCurso] = useState("");
+  const [rosterCourse, setRosterCourse] = useState("");
   const [oaQuery, setOaQuery] = useState("");
   const [selectedOAIds, setSelectedOAIds] = useState<string[]>([]);
 
@@ -583,6 +584,7 @@ export default function CrearExamenPage() {
     const [level, course = ""] = value.split("|");
     setCurriculumNivel((level || "media") as NivelKey);
     setCurriculumCurso(course);
+    setRosterCourse("");
     setSubject("");
     setSelectedOAIds([]);
     setOaQuery("");
@@ -724,6 +726,7 @@ export default function CrearExamenPage() {
   // ── Validación ────────────────────────────────────────────────────────────
   const validateExam = (): string => {
     if (!curriculumCurso || !subject) return "Selecciona el curso y la asignatura en el paso 1.";
+    if (!rosterCourse.trim()) return "Indica el curso y sección tal como figuran en la nómina.";
     if (!title.trim()) return "Debes ingresar un título.";
     if (!topic.trim()) return "Debes ingresar un tema.";
     if (questions.length === 0) return "Debes agregar al menos una pregunta.";
@@ -866,6 +869,7 @@ export default function CrearExamenPage() {
               maxPagesPerQuestion: 5,
             },
             securityMode,
+            rosterCourse: rosterCourse.trim(),
             theme: examTheme,
             font: examFont,
             customColorsEnabled,
@@ -1276,6 +1280,15 @@ Usa el mismo esquema de calidad que antes.`;
                       </optgroup>
                     ))}
                   </select>
+                </div>
+                <div>
+                  <label htmlFor="exam-roster-course" className="text-xs text-sub font-semibold block mb-2">
+                    CURSO Y SECCIÓN EN LA NÓMINA
+                  </label>
+                  <input id="exam-roster-course" value={rosterCourse} maxLength={60}
+                    onChange={(event) => setRosterCourse(event.target.value)}
+                    placeholder={curriculumCurso ? `${curriculumCurso} A` : "Ej.: 4° medio A"}
+                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main" />
                 </div>
                 <div>
                   <label htmlFor="exam-subject" className="text-xs text-sub font-semibold block mb-2">

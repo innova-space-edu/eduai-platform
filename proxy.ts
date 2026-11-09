@@ -89,6 +89,32 @@ export async function proxy(request: NextRequest) {
   if (isPublicRepositoryRead(pathname, request.method) || isPublicRepositorySubmission(pathname, request.method)) {
     return NextResponse.next({ request })
   }
+  if (request.method === "GET" && /^\/examen\/p\/[^/]+\/?$/.test(pathname)) {
+    return NextResponse.next({ request })
+  }
+
+  // The public exam flow validates its own roster and attempt credentials.
+  // Teacher actions continue through the ordinary account and permission checks.
+  if (pathname === "/api/agents/examen-docente") {
+    if (request.method === "GET" && searchParams.has("code")) return NextResponse.next({ request })
+    if (request.method === "POST") {
+      const body = await request.clone().json().catch(() => null)
+      if (body?.action === "start_or_resume_attempt") {
+        const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
+        const examId = String(body.examId || "").slice(0, 64)
+        const { allowed } = await checkRateLimit(`exam-entry:${ip}:${examId}`, 100, 60)
+        if (!allowed) return NextResponse.json(
+          { error: "Demasiados intentos de acceso. Espera un minuto e inténtalo nuevamente." },
+          { status: 429, headers: { "Retry-After": "60" } },
+        )
+        return NextResponse.next({ request })
+      }
+      if (["public_exam_by_code", "autosave_attempt", "submit"].includes(body?.action)) {
+        return NextResponse.next({ request })
+      }
+    }
+  }
+
   let response = NextResponse.next({ request })
 
   const supabase = createServerClient(

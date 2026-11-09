@@ -87,6 +87,7 @@ function patchCreatorPage() {
       individualAdaptations,
       curriculumNivel,
       curriculumCurso,
+      rosterCourse,
       selectedOAIds,
       questions,
     },
@@ -149,6 +150,7 @@ function patchCreatorPage() {
           if (typeof draft.individualAdaptations === "string") setIndividualAdaptations(draft.individualAdaptations);
           if (["parvularia", "basica", "media"].includes(draft.curriculumNivel)) setCurriculumNivel(draft.curriculumNivel);
           if (typeof draft.curriculumCurso === "string") setCurriculumCurso(draft.curriculumCurso);
+          if (typeof draft.rosterCourse === "string") setRosterCourse(draft.rosterCourse);
           if (Array.isArray(draft.selectedOAIds)) setSelectedOAIds(draft.selectedOAIds.map(String));
           if (Array.isArray(draft.questions) && draft.questions.length > 0) setQuestions(draft.questions as Question[]);
           setDraftRestored(true);
@@ -180,7 +182,7 @@ function patchCreatorPage() {
     developmentNotebookEnabled, developmentNotebookMode, securityMode, subject,
     examTheme, examFont, customColorsEnabled, examCustomColors, pieMode,
     dyslexiaMode, adhdMode, lowVisionMode, individualAdaptations, curriculumNivel,
-    curriculumCurso, selectedOAIds, questions,
+    curriculumCurso, rosterCourse, selectedOAIds, questions,
   ]);
 
   useEffect(() => {
@@ -204,7 +206,7 @@ function patchCreatorPage() {
     developmentNotebookEnabled, developmentNotebookMode, securityMode, subject,
     examTheme, examFont, customColorsEnabled, examCustomColors, pieMode,
     dyslexiaMode, adhdMode, lowVisionMode, individualAdaptations, curriculumNivel,
-    curriculumCurso, selectedOAIds, questions,
+    curriculumCurso, rosterCourse, selectedOAIds, questions,
   ]);
 
   const applyDocumentImport = (result: ExamDocumentImportResult, mode: "replace" | "append") => {

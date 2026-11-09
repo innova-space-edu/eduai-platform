@@ -4,8 +4,6 @@ import { useEffect } from "react";
 
 const INSTRUCTIONS_TEXTAREA_ATTR = "data-eduai-edit-instructions-textarea";
 const FETCH_PATCH_ATTR = "__eduaiExamFetchPatched";
-const CODE_BOX_ATTR = "data-eduai-access-code-box";
-const DUMMY_VALID_RUT = "111111111";
 
 function text(el: Element | null) {
   return (el?.textContent || "").replace(/\s+/g, " ").trim();
@@ -13,11 +11,6 @@ function text(el: Element | null) {
 
 function path() {
   return typeof window === "undefined" ? "" : window.location.pathname;
-}
-
-function currentPublicExamCode() {
-  const match = path().match(/^\/examen\/p\/([^/?#]+)/);
-  return match ? decodeURIComponent(match[1]) : "";
 }
 
 function currentEditExamId() {
@@ -29,43 +22,7 @@ function findByText(selector: string, value: string) {
   return Array.from(document.querySelectorAll(selector)).find((el) => text(el).includes(value)) || null;
 }
 
-function storageKeyForExam(code: string) {
-  return `eduai_exam_access_code_${code}`;
-}
-
-function setNativeValue(el: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null, value: string) {
-  if (!el) return;
-  const proto = Object.getPrototypeOf(el);
-  const descriptor = Object.getOwnPropertyDescriptor(proto, "value");
-  descriptor?.set?.call(el, value);
-  el.dispatchEvent(new Event("input", { bubbles: true }));
-  el.dispatchEvent(new Event("change", { bubbles: true }));
-}
-
-function inputAfterLabel(labelText: string) {
-  const label = findByText("label", labelText);
-  const parent = label?.parentElement;
-  return parent?.querySelector("input,select,textarea") as HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement | null;
-}
-
-function autofillRegisterForCodeMode() {
-  const code = currentPublicExamCode();
-  if (!code) return;
-  const savedCode = sessionStorage.getItem(storageKeyForExam(code));
-  const codeInput = document.getElementById("eduai-access-code-input") as HTMLInputElement | null;
-  const activeCode = (codeInput?.value || savedCode || "").trim();
-  if (!activeCode) return;
-
-  const nameInput = inputAfterLabel("NOMBRE") as HTMLInputElement | null;
-  const courseSelect = inputAfterLabel("CURSO") as HTMLSelectElement | null;
-  const rutInput = inputAfterLabel("RUT") as HTMLInputElement | null;
-
-  if (nameInput && !nameInput.value.trim()) setNativeValue(nameInput, "Acceso con código docente");
-  if (courseSelect && !courseSelect.value) setNativeValue(courseSelect, "1° Medio A");
-  if (rutInput && rutInput.value !== DUMMY_VALID_RUT) setNativeValue(rutInput, DUMMY_VALID_RUT);
-}
-
-function installExamAccessFetchPatch() {
+function installEditInstructionsFetchPatch() {
   if (typeof window === "undefined") return;
   const w = window as typeof window & Record<string, any>;
   if (w[FETCH_PATCH_ATTR]) return;
@@ -78,7 +35,6 @@ function installExamAccessFetchPatch() {
       const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
       const method = String(init?.method || "GET").toUpperCase();
       const body = init?.body;
-      const examCode = currentPublicExamCode();
 
       if (
         path().startsWith("/examen/editar/") &&
@@ -100,105 +56,12 @@ function installExamAccessFetchPatch() {
         }
       }
 
-      if (
-        examCode &&
-        method === "POST" &&
-        url.includes("/api/agents/examen-docente") &&
-        typeof body === "string"
-      ) {
-        const payload = JSON.parse(typeof init?.body === "string" ? init.body : body);
-        const action = String(payload?.action || "");
-        const savedCode = sessionStorage.getItem(storageKeyForExam(examCode)) || "";
-        const codeInput = document.getElementById("eduai-access-code-input") as HTMLInputElement | null;
-        const accessCode = (codeInput?.value || savedCode || "").trim();
-
-        if (accessCode && action === "start_or_resume_attempt") {
-          const response = await originalFetch("/api/exam-access", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action: "start_with_code",
-              examId: payload.examId,
-              publicExamCode: examCode,
-              accessCode,
-              innerBody: payload,
-            }),
-          });
-          const data = await response.json().catch(() => ({}));
-          if (data?.success) {
-            sessionStorage.setItem(storageKeyForExam(examCode), accessCode);
-          }
-          return new Response(JSON.stringify(data), {
-            status: response.status,
-            headers: { "Content-Type": "application/json" },
-          });
-        }
-
-        if (savedCode && ["autosave_attempt", "submit"].includes(action)) {
-          const response = await originalFetch("/api/exam-access", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              action: "proxy_attempt_with_code",
-              examId: payload.examId,
-              publicExamCode: examCode,
-              accessCode: savedCode,
-              innerBody: payload,
-            }),
-          });
-          const data = await response.json().catch(() => ({}));
-          return new Response(JSON.stringify(data), {
-            status: response.status,
-            headers: { "Content-Type": "application/json" },
-          });
-        }
-      }
     } catch {
       // Si no corresponde a este flujo, se envía sin cambios.
     }
 
     return originalFetch(input, init);
   };
-}
-
-function ensureAccessCodeBox() {
-  const examCode = currentPublicExamCode();
-  if (!examCode) return;
-  if (document.querySelector(`[${CODE_BOX_ATTR}="true"]`)) {
-    autofillRegisterForCodeMode();
-    return;
-  }
-
-  const rutLabel = findByText("label", "RUT");
-  const rutContainer = rutLabel?.parentElement as HTMLElement | null;
-  if (!rutContainer) return;
-
-  const box = document.createElement("div");
-  box.setAttribute(CODE_BOX_ATTR, "true");
-  box.className = "mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-4";
-  box.innerHTML = `
-    <p class="text-sm font-black text-emerald-900">🔐 ¿No sabes tu RUT?</p>
-    <p class="mt-1 text-xs leading-relaxed text-emerald-800">Ingresa el código temporal entregado por el docente. No se mostrará tu RUT en esta pantalla.</p>
-    <input id="eduai-access-code-input" autocomplete="off" placeholder="Ej: ABCD-1234" class="mt-3 w-full rounded-2xl border border-emerald-200 bg-white px-4 py-3 text-sm font-bold tracking-widest text-emerald-950 outline-none" />
-    <p id="eduai-access-code-status" class="mt-2 text-xs font-semibold text-emerald-700"></p>
-  `;
-  rutContainer.insertAdjacentElement("afterend", box);
-
-  const codeInput = box.querySelector("#eduai-access-code-input") as HTMLInputElement | null;
-  const status = box.querySelector("#eduai-access-code-status") as HTMLElement | null;
-  const saved = sessionStorage.getItem(storageKeyForExam(examCode));
-  if (saved && codeInput) {
-    codeInput.value = saved;
-    if (status) status.textContent = "Código activo en este equipo. Puedes continuar el examen.";
-    autofillRegisterForCodeMode();
-  }
-
-  codeInput?.addEventListener("input", () => {
-    const clean = codeInput.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
-    codeInput.value = clean.length > 4 ? `${clean.slice(0, 4)}-${clean.slice(4)}` : clean;
-    if (status) status.textContent = clean ? "Usaremos este código para identificarte de forma segura." : "";
-    autofillRegisterForCodeMode();
-  });
 }
 
 function autoCloseCreateDesign() {
@@ -292,49 +155,6 @@ async function enhanceEditInstructionsTextarea() {
   }
 }
 
-async function showPublicInstructions() {
-  const match = path().match(/^\/examen\/p\/([^/?#]+)/);
-  if (!match) return;
-
-  if (findByText("p,h1,h2,h3,strong,span", "Instrucciones del docente")) return;
-  if (document.querySelector("[data-eduai-student-instructions='true']")) return;
-
-  const warning = findByText("p,strong,span", "Advertencia de monitoreo académico");
-  const card = warning?.closest("div.rounded-2xl") as HTMLElement | null;
-  if (!card?.parentElement) return;
-
-  try {
-    const res = await fetch("/api/agents/examen-docente", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "public_exam_by_code", code: decodeURIComponent(match[1]) }),
-    });
-    const data = await res.json().catch(() => ({}));
-    const instructions = String(data?.exam?.instructions || "").trim();
-    if (!instructions) return;
-
-    if (findByText("p,h1,h2,h3,strong,span", "Instrucciones del docente")) return;
-
-    const box = document.createElement("div");
-    box.dataset.eduaiStudentInstructions = "true";
-    box.className = "mt-5 rounded-2xl border border-blue-200 bg-blue-50 px-4 py-4";
-
-    const head = document.createElement("p");
-    head.className = "text-sm font-bold text-blue-900";
-    head.textContent = "📌 Instrucciones del docente";
-
-    const body = document.createElement("p");
-    body.className = "mt-2 text-sm leading-relaxed text-blue-800";
-    body.style.whiteSpace = "pre-wrap";
-    body.textContent = instructions;
-
-    box.append(head, body);
-    card.parentElement.insertBefore(box, card);
-  } catch {
-    // Reintenta con el observador.
-  }
-}
-
 function addAdminAccessShortcut() {
   if (!path().startsWith("/admin/exam-security")) return;
   if (document.querySelector("[data-eduai-exam-access-admin-shortcut='true']")) return;
@@ -351,14 +171,12 @@ function addAdminAccessShortcut() {
 export default function ExamUiPolish() {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
-    installExamAccessFetchPatch();
+    installEditInstructionsFetchPatch();
 
     const run = () => {
       autoCloseCreateDesign();
       autoCollapseEditColors();
       void enhanceEditInstructionsTextarea();
-      void showPublicInstructions();
-      ensureAccessCodeBox();
       addAdminAccessShortcut();
     };
     const schedule = () => {
