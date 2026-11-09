@@ -7,7 +7,6 @@ import {
   normalizeStorageName,
   parseYouTubeVideoId,
   type MaterialType,
-  type RepositoryItem,
 } from "@/lib/repository/catalog"
 import { validateRepositoryPublicAccess } from "@/lib/repository/public-access"
 
@@ -69,7 +68,7 @@ function cleanText(value: unknown, maxLength: number) {
 }
 
 function validateFileMetadata(fileName: string, fileSize: number, mimeType: string) {
-  if (!fileName || fileSize <= 0 || fileSize > MAX_REPOSITORY_FILE_SIZE) {
+  if (!fileName || !Number.isSafeInteger(fileSize) || fileSize <= 0 || fileSize > MAX_REPOSITORY_FILE_SIZE) {
     return "El archivo debe pesar entre 1 byte y 100 MB."
   }
   if (BLOCKED_FILE_EXTENSION.test(fileName) || BLOCKED_MIME_TYPES.has(mimeType.toLowerCase())) {
@@ -95,7 +94,7 @@ function validateCommonFields(body: Record<string, unknown> | null) {
 }
 
 function isOwnedPublicPath(path: string, ownerId: string) {
-  return path.startsWith(`${ownerId}/public/`) && !path.includes("..") && path.length <= 700
+  return path.startsWith(`_moderation/${ownerId}/`) && !path.includes("..") && path.length <= 700
 }
 
 export async function GET(_request: NextRequest, context: { params: Promise<{ token: string }> }) {
@@ -161,26 +160,13 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
       file_size: null,
       youtube_url: youtubeUrl,
       youtube_video_id: youtubeId,
-      visibility: "public" as const,
-      metadata: {
-        schema_version: 1,
-        visibility: "public",
-        upload_source: "public_access_link",
-        shared_globally: true,
-        source_type: "youtube",
-        youtube: { url: youtubeUrl, video_id: youtubeId },
-      },
-      created_by: access.ownerId,
     }
 
-    const { data, error } = await access.admin
-      .from("repository_items")
-      .insert(payload)
-      .select(PUBLIC_ITEM_SELECT)
-      .single()
-
-    if (error) return NextResponse.json({ error: "No fue posible registrar el video en Nube EduAI." }, { status: 500 })
-    return NextResponse.json({ item: data as Partial<RepositoryItem>, sharedGlobally: true }, { status: 201 })
+    const { error } = await access.admin
+      .from("repository_public_submissions")
+      .insert({ owner_id: access.ownerId, material: payload })
+    if (error) return NextResponse.json({ error: "No fue posible enviar el video a revisión." }, { status: 500 })
+    return NextResponse.json({ status: "pending" }, { status: 202 })
   }
 
   const fileName = cleanText(body?.fileName, 255)
@@ -195,7 +181,7 @@ export async function POST(request: NextRequest, context: { params: Promise<{ to
   }
 
   const safeName = normalizeStorageName(fileName)
-  const storagePath = `${access.ownerId}/public/${schoolYear}/${randomUUID()}-${safeName}`
+  const storagePath = `_moderation/${access.ownerId}/${schoolYear}/${randomUUID()}-${safeName}`
   const { data, error } = await access.admin.storage
     .from(REPOSITORY_BUCKET)
     .createSignedUploadUrl(storagePath, { upsert: false })
@@ -240,15 +226,19 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ tok
     .from(REPOSITORY_BUCKET)
     .list(folder, { search: storedName, limit: 10 })
 
-  if (listError || !storedFiles?.some((item) => item.name === storedName)) {
+  const stored = storedFiles?.find(item => item.name === storedName)
+  if (listError || !stored) {
     return NextResponse.json({ error: "El archivo aún no terminó de subir." }, { status: 400 })
   }
 
-  const backup = {
-    schema_version: 1,
-    visibility: "public",
-    upload_source: "public_access_link",
-    shared_globally: true,
+  const storedSize = Number(stored.metadata?.size)
+  const storedMime = typeof stored.metadata?.mimetype === "string" ? stored.metadata.mimetype : mimeType
+  const storedError = validateFileMetadata(storedName, storedSize, storedMime)
+  if (storedError || storedSize !== fileSize) {
+    return NextResponse.json({ error: storedError || "El tamaño del archivo no coincide." }, { status: 400 })
+  }
+
+  const material = {
     title: common.title,
     subject: common.subject,
     educational_level: common.educationalLevel,
@@ -256,59 +246,15 @@ export async function PUT(request: NextRequest, context: { params: Promise<{ tok
     material_type: common.materialType,
     question_count: common.questionCount,
     source_type: "file",
-    file: {
-      bucket: REPOSITORY_BUCKET,
-      storage_path: storagePath,
-      original_name: fileName,
-      mime_type: mimeType,
-      size: fileSize,
-    },
-  }
-
-  const payload = {
-    title: common.title,
-    subject: common.subject,
-    educational_level: common.educationalLevel,
-    school_year: common.schoolYear,
-    material_type: common.materialType,
-    question_count: common.questionCount,
-    source_type: "file" as const,
-    storage_path: storagePath,
     original_file_name: fileName,
-    mime_type: mimeType,
-    file_size: fileSize,
-    youtube_url: null,
-    youtube_video_id: null,
-    visibility: "public" as const,
-    metadata: backup,
-    created_by: access.ownerId,
+    mime_type: storedMime,
+    file_size: storedSize,
   }
 
-  const { data, error: insertError } = await access.admin
-    .from("repository_items")
-    .insert(payload)
-    .select(PUBLIC_ITEM_SELECT)
-    .single()
-
-  if (insertError) {
-    await access.admin.storage.from(REPOSITORY_BUCKET).remove([storagePath])
-    return NextResponse.json({ error: "El archivo subió, pero no pudo registrarse en Nube EduAI." }, { status: 500 })
-  }
-
-  return NextResponse.json({ item: data as Partial<RepositoryItem>, sharedGlobally: true }, { status: 201 })
-}
-
-export async function DELETE(request: NextRequest, context: { params: Promise<{ token: string }> }) {
-  const { token } = await context.params
-  const access = await validateRepositoryPublicAccess(token)
-  if (!access) return NextResponse.json({ error: "Acceso no válido." }, { status: 404 })
-
-  const body = await request.json().catch(() => null) as Record<string, unknown> | null
-  const storagePath = cleanText(body?.storagePath, 700)
-  if (!isOwnedPublicPath(storagePath, access.ownerId)) {
-    return NextResponse.json({ error: "La ruta del archivo no es válida." }, { status: 400 })
-  }
-
-  await access.admin.storage.from(REPOSITORY_BUCKET).remove([storagePath])
-  return NextResponse.json({ ok: true })
+  const { error } = await access.admin.from("repository_public_submissions")
+    .upsert({ owner_id: access.ownerId, storage_path: storagePath, material }, {
+      onConflict: "storage_path", ignoreDuplicates: true,
+    })
+  if (error) return NextResponse.json({ error: "El archivo subió, pero no pudo enviarse a revisión." }, { status: 500 })
+  return NextResponse.json({ status: "pending" }, { status: 202 })
 }
