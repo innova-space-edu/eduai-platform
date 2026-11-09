@@ -740,3 +740,9 @@ Los componentes y servicios de terceros mantienen sus propias licencias y térmi
 **EDUAI Platform · Innova Space Education SpA · 2026**
 
 </div>
+
+## Motor matemático exacto — revisión R4
+
+EDUAI incorpora un solucionador racional determinista para operaciones, ecuaciones, sistemas 2×2, Euler y recurrencias. El agente matemático usa estas respuestas verificadas cuando reconoce el formato, sin enviar la operación al LLM. Opcionalmente, un servicio Python/SymPy separado resuelve solicitudes estructuradas de ecuaciones cuadráticas, polinomios, sistemas 3×3 y probabilidades binomiales exactas.
+
+Consulta [el procedimiento de despliegue y pruebas](training/eduai-local/math-r4/README.md). ChatClaw habilita la herramienta `solve_math_exact` únicamente con `EDUAI_EXACT_MATH_ENABLED=true`. No se despliegan adaptadores ni se ejecuta entrenamiento GPU de forma automática. R4 parte de los adaptadores privados R2, evalúa tres semillas de entrenamiento y conserva `productionReady: false`.
