@@ -31,9 +31,9 @@ class EvaluationRegressionTests(unittest.TestCase):
         self.assertFalse(classify("no","sí")["passed"])
 
     def test_report_contains_disaggregated_reasons(self):
-        rows=[{"category":"algebra","answer":"9","response_format":"final"},
-              {"category":"algebra","answer":"2","response_format":"final"},
-              {"category":"logic","answer":"no","response_format":"final"}]
+        rows=[{"category":"algebra","question":"Q1","answer":"9","response_format":"final"},
+              {"category":"algebra","question":"Q2","answer":"2","response_format":"final"},
+              {"category":"logic","question":"Q3","answer":"no","response_format":"final"}]
         got=[{"text":"9","tokens":2,"max_new_tokens":128,"eos_seen":True},
              {"text":"Cálculo hecho.\nRespuesta final: 2","tokens":20,"max_new_tokens":128,"eos_seen":True},
              {"text":"sí","tokens":1,"max_new_tokens":128,"eos_seen":True}]
