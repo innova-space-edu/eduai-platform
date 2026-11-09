@@ -95,7 +95,7 @@ def run(profile,training,validation,tests,challenges):
  import torch
  from peft import PeftModel
  from transformers import AutoTokenizer,AutoModelForCausalLM,Trainer,TrainingArguments,DataCollatorForSeq2Seq
- name=profile["name"];folder=ROOT/("eduai-"+name+"-math-r4");folder.mkdir(exist_ok=True,parents=True)
+ name=profile["name"];folder=ROOT/("eduai-"+name+"-math-r5");folder.mkdir(exist_ok=True,parents=True)
  src,protected=source(profile)
  old_questions={r["question"] for data in protected.values() for r in data}
  for rows in [training,validation,*tests,challenges]:
@@ -275,15 +275,15 @@ def main():
  print("R2_ADAPTER_PREFLIGHT_OK",flush=True)
  train,val,tests=generate(train_count=3000,validation_count=500,test_count=600)
  challenges=build_challenges()
- save(ROOT/"eduai-math-r4-data",train,val,tests)
- write(ROOT/"eduai-math-r4-data"/"cross-family-diagnostic.json",challenges)
+ save(ROOT/"eduai-math-r5-data",train,val,tests)
+ write(ROOT/"eduai-math-r5-data"/"cross-family-diagnostic.json",challenges)
  runtime()
  done=[];errors=[]
  for profile in PROFILES:
   try:done.append(run(profile,train,val,tests,challenges))
   except Exception as exc:
    traceback.print_exc();errors.append({"profile":profile["name"],"error":repr(exc)})
-   write(ROOT/("eduai-"+profile["name"]+"-math-r4")/"error.json",errors[-1])
+   write(ROOT/("eduai-"+profile["name"]+"-math-r5")/"error.json",errors[-1])
   finally:
    gc.collect()
    try:
