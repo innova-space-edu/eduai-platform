@@ -54,7 +54,8 @@
     "test:curriculum:media": "node scripts/test-media-curriculum.mjs",
     "curriculum:media:rebuild": "python3 scripts/audit-media-2026.py && node scripts/generate-mineduc-index.mjs",
     "test:planning-library": "node scripts/test-planning-library.mjs && node scripts/test-parvularia-bank.mjs && node scripts/test-parvularia-web-corpus.mjs && node scripts/test-planning-efficiency.mjs",
-    "test:training": "node scripts/test-training-contributions.mjs && python training/eduai-local/campaign/test_campaign.py"
+    "test:training": "node scripts/test-training-contributions.mjs && python training/eduai-local/campaign/test_campaign.py",
+    "test:math-exact": "node --experimental-strip-types scripts/test-math-exact.mjs"
   },
   "dependencies": {
     "@andresaya/edge-tts": "^1.8.0",

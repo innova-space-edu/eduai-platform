@@ -1,4 +1,5 @@
 import { runAIText } from "@/lib/ai/gateway"
+import { solveExactMath, formatExactMath } from "@/lib/math/exact-solver"
 import { createClient } from "@/lib/supabase/server"
 
 type HistoryMessage = {
@@ -21,6 +22,15 @@ export async function POST(req: Request) {
 
     if (!message) {
       return Response.json({ error: "Escribe una consulta matemática antes de enviar." }, { status: 400 })
+    }
+
+    // Deterministic exact answers for recognized mathematics. No LLM call or code execution.
+    const verifiedMath = process.env.EDUAI_EXACT_MATH_ENABLED === "true"
+      ? solveExactMath({ question: message }) : null
+    if (verifiedMath?.verified) {
+      return Response.json({ text: formatExactMath(verifiedMath), provider: "EDUAI Exact Math",
+        model: "Rational Solver", reused: false, generationAvoided: true,
+        verified: true, engine: verifiedMath.engine, exactResult: verifiedMath })
     }
 
     const safeHistory: HistoryMessage[] = history
