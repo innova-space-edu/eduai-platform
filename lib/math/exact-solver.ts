@@ -100,7 +100,7 @@ function structured(input: ExactInput): ExactResult {
     const s0=q(input.s0), a=q(input.a), b=q(input.b);
     const m=integer(input.modulus, 2, 1000000), n=integer(input.steps, 0, 32);
     if (s0.d !== 1n || a.d !== 1n || b.d !== 1n) return fail("INTEGER_ONLY");
-    let s=mod(s0.n,BigInt(m));
+    let s=s0.n; // n=0 returns the initial state; apply modulo after each update.
     const steps=["s0 = " + s0 + "; módulo = " + m];
     for(let i=1;i<=n;i++){s=mod(a.n*s+b.n,BigInt(m));steps.push("s" + i + " = (" + a + "*s" + (i-1) + " + " + b + ") mod " + m + " = " + s);}
     return success(op, String(s), steps);
