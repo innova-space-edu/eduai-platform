@@ -14,7 +14,7 @@ class DataTests(unittest.TestCase):
   self.assertEqual(sum(len(x) for x in ids),len(set.union(*ids)))
  def test_exact_labels(self):
   rng=random.Random(123)
-  for cat in ("algebra","recurrence","euler","arithmetic","logic"):
+  for cat in ("algebra","recurrence","euler","arithmetic","logic","rehearsal"):
    for level in (1,2,3):
     row=example(rng,cat,level,"train")
     self.assertTrue(row[3])
