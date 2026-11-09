@@ -1236,7 +1236,7 @@ export function isMusicListeningRequest(message: string): boolean {
 export function detectToolFromMessage(message: string): ToolName | null {
   const m = message.toLowerCase();
   // Trigger only for explicit, numerically expressed requests; leave conceptual questions to the model.
-  if (/^\s*(?:calcula|resuelve)\b/i.test(m) && /[-+*/%=]|\d+%|s0=/i.test(m)) return "solve_math_exact";
+  if (process.env.EDUAI_EXACT_MATH_ENABLED === "true" && /^\s*(?:calcula|resuelve)\b/i.test(m) && /[-+*/%=]|\d+%|s0=/i.test(m)) return "solve_math_exact";
 
 
   if (
