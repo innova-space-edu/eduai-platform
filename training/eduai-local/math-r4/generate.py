@@ -10,7 +10,8 @@ from fractions import Fraction
 from pathlib import Path
 
 TRAIN_SEEDS=(41011,42011,43011)
-TEST_SEEDS=(44021,44031,44041)
+TEST_SEEDS=(57021,57031,57041)
+VALIDATION_SEED=52011
 WEIGHTS={"algebra":32,"recurrence":21,"euler":21,"arithmetic":10,"logic":6,"rehearsal":10}
 LEVELS=(1,2,3)
 TRAIN_TRACE_RATE=0.35
@@ -31,6 +32,7 @@ _OUTPUT_SUFFIXES=(
 )
 def presentation_prompt(question, mode):
     q=question.strip()
+    q=re.sub(r"\\s*Entrega x\\.$"," Determina solamente x.",q,flags=re.IGNORECASE)
     for pattern in _OUTPUT_SUFFIXES:
         q=re.sub(pattern,"",q,flags=re.IGNORECASE)
     q=q.rstrip()
@@ -213,7 +215,7 @@ def generate(train_count=3000, validation_count=500, test_count=600, exclude=())
         return out
     # Disjoint structural parameter keys; tests are never inputs to checkpoint selection.
     train=build(train_count,41011,"train")
-    val=build(validation_count,42011,"validation")
+    val=build(validation_count,VALIDATION_SEED,"validation")
     tests=[build(test_count//3+(1 if i<test_count%3 else 0),seed,"test") for i,seed in enumerate(TEST_SEEDS)]
     return train,val,tests
 
@@ -227,7 +229,7 @@ def save(output,train,val,tests):
         counts[name]={"examples":len(rows),"categories":dict(Counter(row["category"] for row in rows)),
                       "sha256":hashlib.sha256(path.read_bytes()).hexdigest()}
     (root/"manifest.json").write_text(json.dumps({"campaign":"eduai-math-r4","trainSeeds":TRAIN_SEEDS,
-        "testSeeds":TEST_SEEDS,"splits":counts,"protectedAgainstExactPromptOverlap":True,
+        "testSeeds":TEST_SEEDS,"validationSeed":VALIDATION_SEED,"splits":counts,"protectedAgainstExactPromptOverlap":True,
         "familyIndependence":False,"trainTraceRate":TRAIN_TRACE_RATE,
         "outputContractsChecked":True,"productionReady":False,
         "limitations":"Synthetic procedural templates; external and human tests required."},indent=2),encoding="utf-8")
