@@ -120,27 +120,32 @@ function structured(input: ExactInput): ExactResult {
   }
   return fail("UNSUPPORTED_OPERATION");
 }
+function safeMathQuestionTail(rest: string): boolean {
+  // Reject additional mathematical constraints; only a short output-format instruction is allowed.
+  const tail = rest.trim();
+  return tail === "" || /^[.!?;]?\s*(?:(?:responde\s+)?solo\s+[A-Za-zÁÉÍÓÚÜÑáéíóúüñ\s-]{1,75})?[.!?]?$/.test(tail);
+}
 function recognized(question: string): ExactInput | null {
   const s=question.replace(/\u2212/g,"-").replace(/\s+/g," ").trim();
   let m: RegExpMatchArray | null;
   m=s.match(/^(?:calcula(?: el)?\s+)?([+-]?\d+)% de ([+-]?\d+)(?:\b|[.!?])/i);
-  if(m) return {operation:"percentage",percent:m[1],amount:m[2]};
+  if(m && safeMathQuestionTail(s.slice(m[0].length))) return {operation:"percentage",percent:m[1],amount:m[2]};
   m=s.match(/^(?:resuelve(?: sistema)?\s+)([+-]?\d+)x\+\(([+-]?\d+)\)y=([+-]?\d+);\s*([+-]?\d+)x\+\(([+-]?\d+)\)y=([+-]?\d+)/i);
-  if(m) return {operation:"system2",a:m[1],b:m[2],c:m[3],d:m[4],e:m[5],f:m[6]};
+  if(m && safeMathQuestionTail(s.slice(m[0].length))) return {operation:"system2",a:m[1],b:m[2],c:m[3],d:m[4],e:m[5],f:m[6]};
   m=s.match(/^resuelve\s+([+-]?\d+)\(x\+\(([+-]?\d+)\)\)=([+-]?\d+)/i);
-  if(m) return {operation:"linear",a:m[1],b:q(m[1]).mul(q(m[2])).toString(),c:m[3]};
+  if(m && safeMathQuestionTail(s.slice(m[0].length))) return {operation:"linear",a:m[1],b:q(m[1]).mul(q(m[2])).toString(),c:m[3]};
   m=s.match(/^resuelve\s+([+-]?\d+)x\+\(([+-]?\d+)\)=([+-]?\d+)/i);
-  if(m) return {operation:"linear",a:m[1],b:m[2],c:m[3]};
+  if(m && safeMathQuestionTail(s.slice(m[0].length))) return {operation:"linear",a:m[1],b:m[2],c:m[3]};
   m=s.match(/s0=([+-]?\d+)[;,]?\s*s\(t\+1\)=\(([+-]?\d+)\*s\(t\)\+([+-]?\d+)\) mod (\d+).*?calcula s(\d+)/i);
-  if(m) return {operation:"recurrence",s0:m[1],a:m[2],b:m[3],modulus:m[4],steps:m[5]};
+  if(m && safeMathQuestionTail(s.slice(m[0].length))) return {operation:"recurrence",s0:m[1],a:m[2],b:m[3],modulus:m[4],steps:m[5]};
   m=s.match(/(?:euler|Euler)[^.;\n]*?dx\/dt=-([0-9]+)x[^.;\n]*?x0=([+-]?\d+),?\s*dt=([0-9]+(?:\/\d+)?).*?calcula x(\d+)/i);
-  if(m) return {operation:"euler_decay",k:m[1],x0:m[2],dt:m[3],steps:m[4]};
+  if(m && safeMathQuestionTail(s.slice(m[0].length))) return {operation:"euler_decay",k:m[1],x0:m[2],dt:m[3],steps:m[4]};
   m=s.match(/(?:euler|Euler)[^.;\n]*?dx\/dt=-([0-9]+)x[^.;\n]*?dt=([0-9]+(?:\/\d+)?).*?estable/i);
-  if(m) return {operation:"euler_stability",k:m[1],dt:m[2]};
+  if(m && safeMathQuestionTail(s.slice(m[0].length))) return {operation:"euler_stability",k:m[1],dt:m[2]};
   m=s.match(/^calcula\s+([+-]?\d+(?:\/\d+)?)\s*(?:por|\*|x)\s*\(?([+-]?\d+(?:\/\d+)?)\)?[.!]?$/i);
-  if(m) return {operation:"arithmetic",a:m[1],b:m[2],operator:"*"};
+  if(m && safeMathQuestionTail(s.slice(m[0].length))) return {operation:"arithmetic",a:m[1],b:m[2],operator:"*"};
   m=s.match(/^calcula\s+\(?([+-]?\d+(?:\/\d+)?)\)?\s*([+*/-])\s*\(?([+-]?\d+(?:\/\d+)?)\)?[.!]?$/i);
-  if(m) return {operation:"arithmetic",a:m[1],b:m[3],operator:m[2]};
+  if(m && safeMathQuestionTail(s.slice(m[0].length))) return {operation:"arithmetic",a:m[1],b:m[3],operator:m[2]};
   return null;
 }
 export function solveExactMath(input: ExactInput): ExactResult {
