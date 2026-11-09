@@ -17,6 +17,8 @@ DATASET="esthefano/eduai-nano-lite-adapters-r2"
 TOKENFILE="$DEST/.env"
 mkdir -p "$DIR"
 sudo install -d -m 0750 "$DEST" "$DEST/models" "$DEST/incoming" "$DEST/cache"
+# Allow the non-root Kaggle CLI to traverse only the parent, not list its secrets.
+sudo chmod 0711 "$DEST"
 sudo chown -R "$(id -u):$(id -g)" "$DEST/incoming"
 
 if ! sudo test -f "$TOKENFILE"; then
