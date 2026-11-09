@@ -77,7 +77,6 @@ check(!page.includes("Generar imagen para tus apuntes"), "El generador IA todav√
 check(!page.includes('setShowAi(true)} className="flex w-full'), "El bot√≥n antiguo del modal IA sigue presente")
 
 for (const removedFeature of [
-  "/api/whiteboard/recognize",
   "/api/whiteboard/solve",
   "MathRenderer",
   "segmentStrokes",

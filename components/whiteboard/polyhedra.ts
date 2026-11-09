@@ -38,6 +38,37 @@ const polyhedra: Record<string, Polyhedron> = {
   },
 }
 
+export function extrudePolygon(outline: { x: number; y: number }[]): Polyhedron | undefined {
+  if (outline.length < 3 || outline.length > 32) return
+  const orientation = outline.reduce((sum, point, i) => {
+    const next = outline[(i+1)%outline.length]
+    return sum + point.x * next.y - next.x * point.y
+  }, 0)
+  if (Math.abs(orientation) < .0001) return
+
+  // Every other vertex must be strictly inside each edge's half-plane.
+  // This also rejects crossings, duplicated vertices and collinear sides.
+  const convex = outline.every((a, i) => {
+    const next = (i+1)%outline.length
+    const b = outline[next]
+    return outline.every((c, j) => j === i || j === next ||
+      Math.sign(orientation) * ((b.x-a.x)*(c.y-a.y) - (b.y-a.y)*(c.x-a.x)) > .000001)
+  })
+  if (!convex) return
+
+  const vertices = (orientation < 0 ? outline : [...outline].reverse())
+    .map(point => ({ x: (point.x-.5)*2, y: (.5-point.y)*2, z: .45 }))
+  const n = vertices.length
+  const top = vertices.map((_, i) => i)
+  const bottom = vertices.map((_, i) => n+i).reverse()
+  const sides = vertices.map((_, i) => {
+    const next = (i+1)%n
+    return [next, i, n+i, n+next]
+  })
+  return { vertices: [...vertices, ...vertices.map(point => ({ ...point, z: -.45 }))],
+    faces: [top, ...sides, bottom], parents: [-1, ...sides.map(() => 0), 1] }
+}
+
 export const getPolyhedron = (shape: string) => Object.hasOwn(polyhedra, shape) ? polyhedra[shape] : undefined
 
 export const add = (a: SolidPoint, b: SolidPoint): SolidPoint => ({ x: a.x+b.x, y: a.y+b.y, z: a.z+b.z })

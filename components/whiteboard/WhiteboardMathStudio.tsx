@@ -1,6 +1,8 @@
 "use client"
 
-import { center, edgeCount, getPolyhedron, solidFaces } from "./polyhedra"
+import SketchPanel, { Formula } from "./SketchPanel"
+import { inkBounds, recognizeSketch } from "./sketch"
+import { center, edgeCount, extrudePolygon, getPolyhedron, solidFaces } from "./polyhedra"
 
 import {
   ArrowLeft, BookOpen, Box, Brush, Camera, ChevronDown, ChevronLeft, ChevronRight, ChevronUp,
@@ -22,21 +24,21 @@ const button = "inline-flex h-9 items-center justify-center gap-1.5 rounded-xl p
 type Point = { x: number; y: number }
 type Vec3 = { x: number; y: number; z: number }
 type Stroke = { id: string; points: Point[]; color: string; width: number; opacity: number }
-type Tool = "select" | "pen" | "marker" | "eraser"
+type Tool = "select" | "pen" | "marker" | "eraser" | "sketch"
 type Background = "plain" | "ruled" | "grid" | "dots" | "black" | "blue"
 type Tab = "background" | "2d" | "3d" | "graphs" | "media"
 type AiVisualMode = "image" | "sticker"
-type ShapeName = "rectangle" | "square" | "circle" | "ellipse" | "triangle" | "diamond" | "pentagon" | "hexagon" | "star" | "line" | "arrow" | "vector" | "angle" | "cube" | "prism" | "pyramid" | "tetrahedron" | "triangular-prism" | "cylinder" | "cone" | "sphere"
+type ShapeName = "extrusion" | "polygon" | "rectangle" | "square" | "circle" | "ellipse" | "triangle" | "diamond" | "pentagon" | "hexagon" | "star" | "line" | "arrow" | "vector" | "angle" | "cube" | "prism" | "pyramid" | "tetrahedron" | "triangular-prism" | "cylinder" | "cone" | "sphere"
 type GraphName = "axes2d" | "axes3d" | "polar" | "number-line" | "science"
 type Plot3DKind = "line" | "curve" | "surface" | "vector" | "points" | "solid"
 type Base = { id: string; x: number; y: number; width: number; height: number; opacity: number; createdAt: string; parentId?: string | null }
 type Rotation3D = { rotationX: number; rotationY: number; rotationZ: number }
 type SolidMode = "solid" | "transparent" | "wireframe" | "separated" | "net"
-type ShapeItem = Base & Rotation3D & { kind: "shape"; shape: ShapeName; stroke: string; fill: string; strokeWidth: number; solidMode?: SolidMode; unfolding?: number; showParts?: boolean }
+type ShapeItem = Base & Rotation3D & { kind: "shape"; shape: ShapeName; stroke: string; fill: string; strokeWidth: number; solidMode?: SolidMode; unfolding?: number; showParts?: boolean; sketchPoints?: Point[] }
 type GraphItem = Base & Rotation3D & { kind: "graph"; graph: GraphName; fill: string }
 type Plot3DItem = Base & { kind: "plot3d"; plot: Plot3DKind; color: string; strokeWidth: number; expression: string }
 type ImageItem = Base & { kind: "image"; src: string; alt: string }
-type TextItem = Base & { kind: "text"; text: string; color: string; fontSize: number; fontWeight: number; align: "left" | "center" | "right" }
+type TextItem = Base & { kind: "text"; text: string; formula?: boolean; color: string; fontSize: number; fontWeight: number; align: "left" | "center" | "right" }
 type Settings = { id: string; kind: "page-settings"; background: Background; createdAt: string }
 type Item = ShapeItem | GraphItem | Plot3DItem | ImageItem | TextItem
 type Block = Item | Settings
@@ -66,7 +68,7 @@ const plotTemplates: [Plot3DKind, string, string][] = [
   ["line", "Recta 3D", "0"], ["curve", "Curva helicoidal", "0"], ["surface", "Superficie parabólica", "x^2+y^2"],
   ["vector", "Vector 3D", "0"], ["points", "Nube de puntos", "0"], ["solid", "Figura dentro", "0"],
 ]
-const is3DShape = (shape: ShapeName) => shapes3d.some(([name]) => name === shape)
+const is3DShape = (shape: ShapeName) => shape === "extrusion" || shapes3d.some(([name]) => name === shape)
 const isContainer = (item: Item | null): item is ShapeItem | GraphItem => Boolean(item && ((item.kind === "shape" && is3DShape(item.shape)) || (item.kind === "graph" && item.graph === "axes3d")))
 const isRotatable = (item: Item | null): item is ShapeItem | GraphItem => isContainer(item)
 const now = () => new Date().toISOString()
@@ -91,16 +93,22 @@ function normalizeStroke(value: any, index: number): Stroke | null {
   const points = value.points.filter((p: any) => Number.isFinite(p?.x) && Number.isFinite(p?.y)).map((p: any) => ({ x: p.x, y: p.y }))
   return points.length ? { id: typeof value.id === "string" ? value.id : `s-${index}-${id()}`, points, color: typeof value.color === "string" ? value.color : "#0f172a", width: Math.max(1, number(value.width, 4)), opacity: Math.max(.1, Math.min(1, number(value.opacity, 1))) } : null
 }
+function normalizeSketchPoints(value: unknown): Point[] | undefined {
+  if (!Array.isArray(value) || value.length < 2 || value.length > 32) return
+  if (!value.every(point => Number.isFinite(point?.x) && Number.isFinite(point?.y) &&
+    point.x >= 0 && point.x <= 1 && point.y >= 0 && point.y <= 1)) return
+  return value.map(({ x, y }) => ({ x, y }))
+}
 function normalizeBlock(value: any): Block | null {
   if (!value || typeof value.id !== "string") return null
   if (value.kind === "page-settings") return { id: value.id, kind: "page-settings", background: backgrounds.some((b) => b.id === value.background) ? value.background : "grid", createdAt: value.createdAt || now() }
   const base = { id: value.id, x: number(value.x, 80), y: number(value.y, 80), width: Math.max(40, number(value.width, 260)), height: Math.max(40, number(value.height, 190)), opacity: Math.max(.1, Math.min(1, number(value.opacity, 1))), createdAt: value.createdAt || now(), parentId: typeof value.parentId === "string" ? value.parentId : null }
   if (value.kind === "image" && typeof value.src === "string") return { ...base, kind: "image", src: value.src, alt: String(value.alt || "Imagen") }
-  if (value.kind === "text") return { ...base, kind: "text", text: String(value.text || "Texto"), color: String(value.color || "#0f172a"), fontSize: Math.max(12, Math.min(100, number(value.fontSize, 32))), fontWeight: number(value.fontWeight, 500), align: ["left", "center", "right"].includes(value.align) ? value.align : "left" }
-  if (value.kind === "shape" && [...shapes2d, ...shapes3d].some(([shape]) => shape === value.shape)) return { ...base, kind: "shape", shape: value.shape, stroke: String(value.stroke || "#2563eb"), fill: String(value.fill || "transparent"), strokeWidth: Math.max(1, Math.min(16, number(value.strokeWidth, 4))), rotationX: number(value.rotationX, 18), rotationY: number(value.rotationY, -24), rotationZ: number(value.rotationZ, 0),
+  if (value.kind === "text") return { ...base, kind: "text", text: value.formula === true ? String(value.text || "").slice(0, 2000) : String(value.text || "Texto"), formula: value.formula === true, color: String(value.color || "#0f172a"), fontSize: Math.max(12, Math.min(100, number(value.fontSize, 32))), fontWeight: number(value.fontWeight, 500), align: ["left", "center", "right"].includes(value.align) ? value.align : "left" }
+  if (value.kind === "shape" && (value.shape === "polygon" || value.shape === "extrusion" || [...shapes2d, ...shapes3d].some(([shape]) => shape === value.shape))) return { ...base, kind: "shape", shape: value.shape, stroke: String(value.stroke || "#2563eb"), fill: String(value.fill || "transparent"), strokeWidth: Math.max(1, Math.min(16, number(value.strokeWidth, 4))), rotationX: number(value.rotationX, 18), rotationY: number(value.rotationY, -24), rotationZ: number(value.rotationZ, 0),
     solidMode: ["solid", "transparent", "wireframe", "separated", "net"].includes(value.solidMode) ? value.solidMode : undefined,
     unfolding: Math.max(0, Math.min(1, number(value.unfolding, 0))),
-    showParts: value.showParts === true }
+    showParts: value.showParts === true, sketchPoints: normalizeSketchPoints(value.sketchPoints) }
   if (value.kind === "graph" && graphs.some(([graph]) => graph === value.graph)) return { ...base, kind: "graph", graph: value.graph, fill: String(value.fill || "#ffffff"), rotationX: number(value.rotationX, 28), rotationY: number(value.rotationY, -28), rotationZ: number(value.rotationZ, 0) }
   if (value.kind === "plot3d" && plotTemplates.some(([plot]) => plot === value.plot)) return { ...base, kind: "plot3d", plot: value.plot, color: String(value.color || "#7c3aed"), strokeWidth: Math.max(1, Math.min(12, number(value.strokeWidth, 4))), expression: String(value.expression || "x^2+y^2") }
   return null
@@ -149,7 +157,7 @@ function project3D(point: Vec3, width: number, height: number, rotation: Rotatio
 const segment = (a: Vec3, b: Vec3, w: number, h: number, rotation: Rotation3D) => { const p1 = project3D(a, w, h, rotation), p2 = project3D(b, w, h, rotation); return { p1, p2 } }
 function PolyhedronArt({ item, model }: { item: ShapeItem; model: NonNullable<ReturnType<typeof getPolyhedron>> }) {
   const { width, height, stroke, strokeWidth, fill, solidMode = "solid", showParts } = item
-  const unfold = solidMode === "net" ? item.unfolding ?? 1 : 0
+  const unfold = solidMode === "net" && item.shape !== "extrusion" ? item.unfolding ?? 1 : 0
   const faces = solidFaces(model, unfold, solidMode === "separated" ? .85 : 0)
   const rotation = {
     rotationX: item.rotationX * (1 - unfold),
@@ -181,7 +189,7 @@ function PolyhedronArt({ item, model }: { item: ShapeItem; model: NonNullable<Re
       return <g key={index}>
         <polygon
           points={polygon.map(vertex => `${vertex.x},${vertex.y}`).join(" ")}
-          fill={solidMode === "wireframe" ? "none" : fill === "transparent" ? colors[index] : fill}
+          fill={solidMode === "wireframe" ? "none" : fill === "transparent" ? colors[index % colors.length] : fill}
           fillOpacity={solidMode === "transparent" ? .23 : 1}
           stroke={stroke}
           strokeWidth={strokeWidth}
@@ -204,16 +212,38 @@ function PolyhedronArt({ item, model }: { item: ShapeItem; model: NonNullable<Re
         <circle cx={p.x} cy={p.y} r={3} fill={stroke} stroke="white" />
         <text x={p.x + 5} y={p.y - 5} fontSize={11} fontWeight={700}
           fill="#0f172a" stroke="white" strokeWidth={3} paintOrder="stroke">
-          {String.fromCharCode(65 + id)}
+          {id < 26 ? String.fromCharCode(65 + id) : `V${id + 1}`}
         </text>
       </g>
     }))}
   </g>
 }
 
+function shapeModel(item: ShapeItem) {
+  return item.shape === "extrusion" && item.sketchPoints
+    ? extrudePolygon(item.sketchPoints)
+    : getPolyhedron(item.shape)
+}
+
 function ShapeArt({ item }: { item: ShapeItem }) {
   const { width:w,height:h,stroke,fill,strokeWidth:sw,shape }=item
   const p={fill,stroke,strokeWidth:sw,vectorEffect:"non-scaling-stroke" as const}
+  if (item.sketchPoints && ["polygon", "line", "vector"].includes(shape)) {
+    const points = item.sketchPoints.map(point => ({ x: point.x * w, y: point.y * h }))
+    if (shape === "polygon") return <g>
+      <polygon points={points.map(({x, y}) => `${x},${y}`).join(" ")} {...p} />
+      {item.showParts && points.map(({x, y}, index) => <g key={index}>
+        <circle cx={x} cy={y} r={4} fill={stroke} />
+        <text x={x+6} y={y-6} fontSize={13} fill={stroke}>{index+1}</text>
+      </g>)}
+    </g>
+    const [a, b] = points
+    const angle = Math.atan2(b.y-a.y, b.x-a.x) * 180 / Math.PI
+    return <g fill="none" stroke={stroke} strokeWidth={sw} strokeLinecap="round" strokeLinejoin="round">
+      <line x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
+      {shape === "vector" && <path d="M -13 -7 L 0 0 L -13 7" transform={`translate(${b.x} ${b.y}) rotate(${angle})`} />}
+    </g>
+  }
   if(["rectangle","square"].includes(shape))return <rect x={5} y={5} width={w-10} height={h-10} rx={shape==="square"?2:12}{...p}/>
   if(["circle","ellipse"].includes(shape))return <ellipse cx={w/2} cy={h/2} rx={w/2-5} ry={h/2-5}{...p}/>
   if(shape==="triangle")return <polygon points={`${w/2},5 ${w-5},${h-5} 5,${h-5}`}{...p}/>
@@ -230,8 +260,9 @@ function ShapeArt({ item }: { item: ShapeItem }) {
   const edge=(a:Vec3,b:Vec3,key:string|number,dashed=false)=>{const {p1,p2}=segment(a,b,w,h,item);return <line key={key} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={stroke} strokeWidth={sw} strokeDasharray={dashed?"8 7":undefined} strokeLinecap="round" vectorEffect="non-scaling-stroke"/>}
   const loop=(points:Vec3[],key:string,opacity=1)=> <path key={key} d={path([...points,points[0]])} fill="none" stroke={stroke} strokeWidth={Math.max(1.2,sw*(opacity<1?.55:.78))} strokeOpacity={opacity} vectorEffect="non-scaling-stroke"/>
 
-  const model = getPolyhedron(shape)
+  const model = shapeModel(item)
   if (model) return <PolyhedronArt item={item} model={model} />
+  if (shape === "extrusion" || shape === "polygon") return null
   if(shape==="cylinder"){
     const ring=(y:number)=>Array.from({length:49},(_,i)=>{const angle=i*Math.PI*2/48;return{x:Math.cos(angle)*.88,y,z:Math.sin(angle)*.88}})
     const top=ring(-.82),bottom=ring(.82)
@@ -295,6 +326,21 @@ export default function WhiteboardMathStudio() {
   const childrenOf = useCallback((parentId: string) => items.filter((item) => item.parentId === parentId), [items])
   const topItems = useMemo(() => items.filter((item) => !item.parentId || !itemMap.has(item.parentId)), [items, itemMap])
   const absolutePosition = useCallback((item: Item) => { let x = item.x, y = item.y, parentId = item.parentId, guard = 0; while (parentId && guard++ < 12) { const parent = itemMap.get(parentId); if (!parent) break; x += parent.x; y += parent.y; parentId = parent.parentId } return { x, y } }, [itemMap])
+  const sketchStart = useRef<Point | null>(null)
+  const [sketchBox, setSketchBox] = useState<{ pageId: string; bounds: ReturnType<typeof inkBounds> } | null>(null)
+  const [inkSelection, setInkSelection] = useState<{ pageId: string; ids: Set<string> } | null>(null)
+  const selectedInk = useMemo(() => inkSelection?.pageId === page.id
+    ? page.strokes.filter(stroke => inkSelection.ids.has(stroke.id))
+    : [], [inkSelection, page.id, page.strokes])
+  const sketch = useMemo(() => recognizeSketch(selectedInk.map(stroke => stroke.points)), [selectedInk])
+  const vector = useMemo(() => selectedInk.slice(0, 16)
+    .map(stroke => recognizeSketch([stroke.points]))
+    .filter(candidate => candidate?.kind === "line")
+    .reduce<Point[] | undefined>((longest, candidate) => {
+      const points = candidate?.points
+      const length = (p: Point[]) => Math.hypot(p[1].x-p[0].x, p[1].y-p[0].y)
+      return points && (!longest || length(points) > length(longest)) ? points : longest
+    }, undefined), [selectedInk])
   const updatePage = useCallback((pageId: string, fn: (p: Page) => Page) => setNotebook((n) => ({ ...n, pages: n.pages.map((p) => p.id === pageId ? fn(p) : p), updatedAt: now() })), [])
   const noHistory = useCallback((fn: (p: Page) => Page) => updatePage(notebook.activePageId, (p) => ({ ...fn(p), updatedAt: now() })), [notebook.activePageId, updatePage])
   const commit = useCallback((fn: (p: Page) => Page) => { const previous = clone(page), next = { ...fn(clone(page)), updatedAt: now() }; setUndoStack((s) => [...s.slice(-79), previous]); setRedoStack([]); updatePage(page.id, () => next) }, [page, updatePage])
@@ -356,6 +402,66 @@ export default function WhiteboardMathStudio() {
   const addItem = (item: Item) => { commit((p) => ({ ...p, blocks: [...p.blocks, item], activeBlockId: item.id })); setTool("select") }
   const placement = (parentId: string | null, desiredWidth: number, desiredHeight: number) => { if (!parentId) { const o = origin(); return { x:o.x, y:o.y, width:desiredWidth, height:desiredHeight, parentId:null } } const parent = itemMap.get(parentId); if (!parent) { const o=origin(); return { x:o.x,y:o.y,width:desiredWidth,height:desiredHeight,parentId:null } } const width = Math.min(desiredWidth, Math.max(70,parent.width*.72)), height = Math.min(desiredHeight,Math.max(60,parent.height*.65)); return { x:Math.max(12,(parent.width-width)/2), y:Math.max(12,(parent.height-height)/2), width,height,parentId } }
   const addShape = (shape: ShapeName, parentId: string | null = null) => { const is3d = is3DShape(shape), line = ["line", "arrow", "vector", "angle"].includes(shape), p = placement(parentId, line ? 360 : is3d ? 300 : 250, line ? 150 : is3d ? 260 : 220); addItem({ id:id(),kind:"shape",shape,...p,stroke:background === "black" || background === "blue" ? "#f8fafc" : "#2563eb",fill:is3d || line ? "transparent" : "#dbeafe",strokeWidth:4,opacity:1,createdAt:now(),rotationX:18,rotationY:-24,rotationZ:0 }) }
+  const replaceInk = (item: Item) => {
+    const removed = new Set(selectedInk.map(stroke => stroke.id))
+    commit(current => ({
+      ...current,
+      strokes: current.strokes.filter(stroke => !removed.has(stroke.id)),
+      blocks: [...current.blocks, item],
+      activeBlockId: item.id,
+    }))
+    setTool("select")
+    setInkSelection(null)
+    setSketchBox(null)
+  }
+
+  const convertSketch = (type: "figure" | "axes" | "vector" | "solid" | "extrude", solid?: string) => {
+    if (!selectedInk.length) return
+    const points = type === "vector" ? vector : sketch?.points
+    const raw = inkBounds(points ? [points] : selectedInk.map(stroke => stroke.points))
+    const boxWidth = Math.max(50, raw.width + 16)
+    const boxHeight = Math.max(40, raw.height + 16)
+    const x = Math.max(0, raw.x - (boxWidth - raw.width) / 2)
+    const y = Math.max(0, raw.y - (boxHeight - raw.height) / 2)
+    const base = { id: id(), x, y, width: boxWidth, height: boxHeight, opacity: 1, createdAt: now(), parentId: null }
+    if (type === "axes" || (type === "solid" && solid === "axes3d")) {
+      replaceInk({ ...base, kind: "graph", graph: type === "axes" ? "axes2d" : "axes3d",
+        fill: "#ffffff", rotationX: 28, rotationY: -28, rotationZ: 0 })
+      return
+    }
+    const normalized = (vertices: Point[]) => {
+      const scale = Math.max(boxWidth, boxHeight)
+      return vertices.map(point => ({
+        x: .5 + (point.x-x-boxWidth/2)/scale,
+        y: .5 + (point.y-y-boxHeight/2)/scale,
+      }))
+    }
+    const shape = type === "extrude" ? (sketch?.kind === "polygon" && points && extrudePolygon(normalized(points)) ? "extrusion" : undefined)
+      : type === "solid" ? shapes3d.find(([name]) => name === solid)?.[0]
+      : type === "vector" ? (points ? "vector" : undefined)
+      : sketch?.kind === "axes" ? undefined : sketch?.kind
+    if (!shape) return
+    const plane = shape === "vector" ? [...items].reverse().find(item => item.kind === "graph" &&
+      item.graph === "axes2d" && !item.parentId && points?.every(p =>
+        p.x >= item.x+4 && p.x <= item.x+item.width-4 && p.y >= item.y+4 && p.y <= item.y+item.height-4)) : undefined
+    replaceInk({
+      ...base, kind: "shape", shape,
+      x: x - (plane?.x ?? 0), y: y - (plane?.y ?? 0), parentId: plane?.id ?? null,
+      stroke: selectedInk[0].color, strokeWidth: Math.min(8, selectedInk[0].width), fill: "transparent",
+      rotationX: 18, rotationY: -24, rotationZ: 0,
+      sketchPoints: type === "solid" ? undefined : shape === "extrusion" && points ? normalized(points) : points?.map(point => ({
+        x: (point.x - x) / boxWidth, y: (point.y - y) / boxHeight,
+      })),
+    })
+  }
+
+  const insertSketchText = (source: string, formula: boolean) => {
+    const position = selectedInk.length ? inkBounds(selectedInk.map(stroke => stroke.points)) : origin()
+    replaceInk({ id: id(), kind: "text", text: source, formula, x: position.x, y: position.y,
+      width: Math.max(260, Math.min(600, W - position.x)), height: 120, opacity: 1, createdAt: now(),
+      color: background === "black" || background === "blue" ? "#ffffff" : "#0f172a",
+      fontSize: 28, fontWeight: 500, align: "left" })
+  }
   const addGraph = (graph: GraphName) => { const o = origin(); addItem({ id:id(),kind:"graph",graph,x:o.x,y:o.y,width:graph === "number-line" ? 650 : 520,height:graph === "number-line" ? 150 : 390,fill:"#ffffff",opacity:1,createdAt:now(),parentId:null,rotationX:28,rotationY:-28,rotationZ:0 }) }
   const addText = (parentId: string | null = null) => { const p = placement(parentId, 480, 150); addItem({ id:id(),kind:"text",text:"Escribe aquí tus apuntes",...p,color:background === "black" || background === "blue" ? "#ffffff" : "#0f172a",fontSize:34,fontWeight:500,align:"left",opacity:1,createdAt:now() }) }
   const addImage = async (src: string, alt: string, parentId: string | null = null) => { const p = placement(parentId, 480, 320); addItem({ id:id(),kind:"image",src:await compress(src),alt,...p,opacity:1,createdAt:now() }) }
@@ -410,9 +516,20 @@ export default function WhiteboardMathStudio() {
 
   const hitItem = (item: Item, p: Point) => { const a = absolutePosition(item); return p.x >= a.x - 8 && p.x <= a.x + item.width + 8 && p.y >= a.y - 8 && p.y <= a.y + item.height + 8 }
   const erase = (p: Point) => { const stroke=[...page.strokes].reverse().find((s)=>hitsStroke(s,p)); if (stroke) return commit((current)=>({...current,strokes:current.strokes.filter((s)=>s.id!==stroke.id)})); const item=[...items].reverse().find((i)=>hitItem(i,p)); if (item) { const remove=new Set([item.id]); let changed=true; while(changed){changed=false; for(const candidate of items) if(candidate.parentId && remove.has(candidate.parentId) && !remove.has(candidate.id)){remove.add(candidate.id);changed=true}} commit((current)=>({...current,blocks:current.blocks.filter((b)=>!remove.has(b.id)),activeBlockId:null})) } }
-  const pointerDown = (event: ReactPointerEvent<SVGSVGElement>) => { const p=point(event); if (tool === "select") { if (page.activeBlockId) noHistory((current)=>({...current,activeBlockId:null})); return } if (tool === "eraser") return erase(p); event.currentTarget.setPointerCapture(event.pointerId); setActiveStroke({ id:id(),points:[p],color,width:tool === "marker" ? Math.max(14,width*3) : width,opacity:tool === "marker" ? .28 : 1 }) }
+  const pointerDown = (event: ReactPointerEvent<SVGSVGElement>) => { const p=point(event); if (tool === "sketch") {
+    if (!event.isPrimary || event.button !== 0) return
+    sketchStart.current = p
+    event.currentTarget.setPointerCapture(event.pointerId)
+    setInkSelection(null)
+    setSketchBox({ pageId: page.id, bounds: inkBounds([[p]]) })
+    return
+  } if (tool === "select") { if (page.activeBlockId) noHistory((current)=>({...current,activeBlockId:null})); return } if (tool === "eraser") return erase(p); event.currentTarget.setPointerCapture(event.pointerId); setActiveStroke({ id:id(),points:[p],color,width:tool === "marker" ? Math.max(14,width*3) : width,opacity:tool === "marker" ? .28 : 1 }) }
   const pointerMove = (event: ReactPointerEvent<SVGSVGElement>) => {
     const p=point(event)
+    if (tool === "sketch" && sketchStart.current && event.currentTarget.hasPointerCapture(event.pointerId)) {
+      setSketchBox({ pageId: page.id, bounds: inkBounds([[sketchStart.current, p]]) })
+      return
+    }
     if(interaction){
       const dx=p.x-interaction.start.x,dy=p.y-interaction.start.y
       const original=interaction.item.kind==="shape"||interaction.item.kind==="graph"?interaction.item:null
@@ -430,7 +547,16 @@ export default function WhiteboardMathStudio() {
     }
     if(activeStroke&&event.currentTarget.hasPointerCapture(event.pointerId))setActiveStroke((s)=>s?{...s,points:[...s.points,p]}:s)
   }
-  const pointerUp = (event: ReactPointerEvent<SVGSVGElement>) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); if (interaction) { setUndoStack((s)=>[...s.slice(-79),interaction.page]); setRedoStack([]); setInteraction(null); return } if (activeStroke?.points.length && activeStroke.points.length>1) commit((p)=>({...p,strokes:[...p.strokes,activeStroke]})); setActiveStroke(null) }
+  const pointerUp = (event: ReactPointerEvent<SVGSVGElement>) => { if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId); if (sketchStart.current) {
+    const bounds = inkBounds([[sketchStart.current, point(event)]])
+    sketchStart.current = null
+    if (event.type === "pointercancel") { setSketchBox(null); return }
+    const enclosed = page.strokes.filter(stroke => stroke.points.every(p =>
+      p.x >= bounds.x && p.x <= bounds.x + bounds.width && p.y >= bounds.y && p.y <= bounds.y + bounds.height))
+    setSketchBox({ pageId: page.id, bounds })
+    setInkSelection({ pageId: page.id, ids: new Set(enclosed.map(stroke => stroke.id)) })
+    return
+  } if (interaction) { setUndoStack((s)=>[...s.slice(-79),interaction.page]); setRedoStack([]); setInteraction(null); return } if (activeStroke?.points.length && activeStroke.points.length>1) commit((p)=>({...p,strokes:[...p.strokes,activeStroke]})); setActiveStroke(null) }
   const beginItem = (event: ReactPointerEvent<SVGGElement | SVGRectElement>, item: Item, mode: Interaction["mode"]) => { if(tool!=="select")return;event.stopPropagation();svgRef.current?.setPointerCapture(event.pointerId);noHistory((p)=>({...p,activeBlockId:item.id}));setInteraction({mode,item:clone(item),start:point(event),page:clone(page)}) }
   const undo = () => { const previous=undoStack.at(-1); if(!previous)return; setUndoStack((s)=>s.slice(0,-1)); setRedoStack((s)=>[...s.slice(-79),clone(page)]); updatePage(page.id,()=>clone(previous)) }
   const redo = () => { const next=redoStack.at(-1); if(!next)return; setRedoStack((s)=>s.slice(0,-1)); setUndoStack((s)=>[...s.slice(-79),clone(page)]); updatePage(page.id,()=>clone(next)) }
@@ -439,7 +565,7 @@ export default function WhiteboardMathStudio() {
   const deleteSelected = () => { if(!selected)return; const remove=descendantIds(selected.id); commit((p)=>({...p,blocks:p.blocks.filter((b)=>!remove.has(b.id)),activeBlockId:null})) }
   const duplicate = () => { if(!selected)return; const ids=descendantIds(selected.id), originals=items.filter((item)=>ids.has(item.id)), remap=new Map(originals.map((item)=>[item.id,id()])); const clones=originals.map((item)=>({...clone(item),id:remap.get(item.id)!,parentId:item.parentId && remap.has(item.parentId) ? remap.get(item.parentId)! : item.parentId,x:item.id===selected.id ? item.x+30:item.x,y:item.id===selected.id ? item.y+30:item.y,createdAt:now()})); commit((p)=>({...p,blocks:[...p.blocks,...clones],activeBlockId:remap.get(selected.id)!})) }
   const reorder = (forward:boolean) => { if(!selected)return; commit((p)=>{ const settings=p.blocks.filter((b)=>b.kind==="page-settings"), visual=p.blocks.filter((b):b is Item=>b.kind!=="page-settings"), siblings=visual.filter((b)=>(b.parentId||null)===(selected.parentId||null)), i=siblings.findIndex((b)=>b.id===selected.id),j=forward?i+1:i-1; if(i<0||j<0||j>=siblings.length)return p; const target=siblings[j], ai=visual.findIndex((b)=>b.id===selected.id), bi=visual.findIndex((b)=>b.id===target.id); [visual[ai],visual[bi]]=[visual[bi],visual[ai]]; return {...p,blocks:[...settings,...visual]} }) }
-  const selectedModel = selected?.kind === "shape" ? getPolyhedron(selected.shape) : undefined
+  const selectedModel = selected?.kind === "shape" ? shapeModel(selected) : undefined
 
   const rotatePreset = (rotationX:number,rotationY:number,rotationZ:number) => patchSelected({rotationX,rotationY,rotationZ} as Partial<ShapeItem | GraphItem>)
 
@@ -469,7 +595,7 @@ export default function WhiteboardMathStudio() {
 
   const renderItem = (item:Item, parent:Item|null=null):ReactNode => {
     const children=childrenOf(item.id), clipId=`clip-${item.id}`, interactive=tool==="select"
-    const visual = item.kind==="shape"?<ShapeArt item={item}/>:item.kind==="graph"?<g><rect width={item.width} height={item.height} rx={12} fill={item.fill} stroke="#e2e8f0"/><GraphArt item={item}/></g>:item.kind==="plot3d" && parent?.kind==="graph"?<Plot3DArt item={item} parent={parent}/>:item.kind==="image"?<image href={item.src} width={item.width} height={item.height} preserveAspectRatio="xMidYMid meet"/>:item.kind==="text"?<foreignObject width={item.width} height={item.height}><div style={{width:"100%",height:"100%",overflow:"hidden",whiteSpace:"pre-wrap",overflowWrap:"anywhere",color:item.color,fontSize:item.fontSize,fontWeight:item.fontWeight,lineHeight:1.25,textAlign:item.align,padding:8}}>{item.text}</div></foreignObject>:null
+    const visual = item.kind==="shape"?<ShapeArt item={item}/>:item.kind==="graph"?<g><rect width={item.width} height={item.height} rx={12} fill={item.fill} stroke="#e2e8f0"/><GraphArt item={item}/></g>:item.kind==="plot3d" && parent?.kind==="graph"?<Plot3DArt item={item} parent={parent}/>:item.kind==="image"?<image href={item.src} width={item.width} height={item.height} preserveAspectRatio="xMidYMid meet"/>:item.kind==="text"?<foreignObject width={item.width} height={item.height}><div style={{width:"100%",height:"100%",overflow:"hidden",whiteSpace:"pre-wrap",overflowWrap:"anywhere",color:item.color,fontSize:item.fontSize,fontWeight:item.fontWeight,lineHeight:1.25,textAlign:item.align,padding:8}}>{item.formula ? <Formula source={item.text} /> : item.text}</div></foreignObject>:null
     return <g key={item.id} transform={`translate(${item.x} ${item.y})`} opacity={item.opacity}><defs><clipPath id={clipId}><rect x={4} y={4} width={Math.max(1,item.width-8)} height={Math.max(1,item.height-8)} rx={14}/></clipPath></defs><g pointerEvents={interactive?"all":"none"} onPointerDown={(e)=>beginItem(e,item,"drag")} className={interactive?"cursor-move":""}><rect width={item.width} height={item.height} fill="transparent"/>{visual}{children.length>0&&<g clipPath={`url(#${clipId})`}>{children.map((child)=>renderItem(child,item))}</g>}</g></g>
   }
   const selectionOverlay = selected ? (()=>{const position=absolutePosition(selected),rotatable=isRotatable(selected);return <g data-selection="true" transform={`translate(${position.x} ${position.y})`}><rect x={-6} y={-6} width={selected.width+12} height={selected.height+12} rx={9} fill="none" stroke="#2563eb" strokeWidth={3} strokeDasharray="10 7" pointerEvents="none"/>{rotatable&&<g transform={`translate(${Math.max(8,selected.width/2-52)} -58)`} className="cursor-grab active:cursor-grabbing" onPointerDown={(e)=>beginItem(e,selected,"rotate")}><title>Arrastra para girar la figura o el gráfico</title><path d="M 52 40 L 52 52" stroke="#7c3aed" strokeWidth={3}/><rect width={104} height={40} rx={20} fill="#7c3aed" stroke="#fff" strokeWidth={3}/><path d="M 22 22a10 10 0 1 1 4 7" fill="none" stroke="#fff" strokeWidth={2.6} strokeLinecap="round"/><path d="M 19 28l7 1-1-7" fill="none" stroke="#fff" strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round"/><text x={61} y={25} fill="#fff" fontSize={14} fontWeight={900} textAnchor="middle">Girar</text></g>}<rect x={selected.width-10} y={selected.height-10} width={22} height={22} rx={5} fill="#2563eb" stroke="#fff" strokeWidth={3} className="cursor-nwse-resize" onPointerDown={(e)=>beginItem(e,selected,"resize")}/></g>})():null
@@ -492,6 +618,18 @@ export default function WhiteboardMathStudio() {
               <p className="px-2 pt-1 text-[9px] font-black uppercase tracking-wider text-slate-400">Dibujar</p>
               <button onClick={()=>setTool("select")} className={`${button} w-full justify-start ${tool==="select"?"bg-slate-900 text-white":"text-slate-700 hover:bg-slate-100"}`}><MousePointer2 size={15}/>Seleccionar</button>
               <button onClick={()=>setTool("pen")} className={`${button} w-full justify-start ${tool==="pen"?"bg-blue-600 text-white":"text-slate-700 hover:bg-blue-50"}`}><Brush size={15}/>Lápiz</button>
+              <button onClick={() => { setInkSelection(null); setSketchBox(null); setTool("sketch") }}
+                aria-pressed={tool === "sketch"} className={`${button} w-full justify-start ${tool === "sketch" ? "bg-indigo-600 text-white" : "text-indigo-700 hover:bg-indigo-50"}`}>
+                <Shapes size={15} />Convertir boceto
+              </button>
+              {tool === "sketch" && <SketchPanel
+                key={`${page.id}:${selectedInk.map(stroke => stroke.id).join(",")}`}
+                strokes={selectedInk.map(({ id, points }) => ({ id, points }))}
+                sketch={sketch} canConvertVector={Boolean(vector)}
+                canExtrude={Boolean(sketch?.kind === "polygon" && sketch.points && extrudePolygon(sketch.points))}
+                solids={[...shapes3d.map(([id, label]) => ({ id, label })), { id: "axes3d", label: "Sistema de ejes 3D" }]}
+                convert={convertSketch} insertText={insertSketchText}
+              />}
               <button onClick={()=>setTool("marker")} className={`${button} w-full justify-start ${tool==="marker"?"bg-amber-400 text-slate-900":"text-slate-700 hover:bg-amber-50"}`}><Highlighter size={15}/>Destacador</button>
               <button onClick={()=>setTool("eraser")} className={`${button} w-full justify-start ${tool==="eraser"?"bg-rose-500 text-white":"text-slate-700 hover:bg-rose-50"}`}><Eraser size={15}/>Borrador</button>
               <label className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-[11px] font-bold">Color<input type="color" value={color} onChange={(e)=>setColor(e.target.value)} className="h-7 w-9 rounded"/></label>
@@ -506,7 +644,11 @@ export default function WhiteboardMathStudio() {
           </aside>
           <div className={`flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm ${panelOpen?"xl:col-start-3":"xl:col-start-2"} xl:row-start-1`}>
             <div className="flex flex-wrap items-center gap-2 border-b border-slate-200 bg-white px-3 py-2"><div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">{notebook.pages.map((p,i)=><button key={p.id} onClick={()=>openPage(p.id)} className={`${button} shrink-0 ${p.id===page.id?"bg-sky-600 text-white":"bg-slate-100 text-slate-600"}`}>Página {i+1}</button>)}<button onClick={addPage} className={`${button} shrink-0 bg-emerald-100 text-emerald-700`}><Plus size={14}/>Página</button></div><button onClick={deletePage} disabled={notebook.pages.length<=1} className={`${button} shrink-0 border border-rose-200 bg-rose-50 text-rose-700`} title={notebook.pages.length<=1?"El cuaderno debe conservar al menos una hoja":"Eliminar la hoja actual"}><Trash2 size={14}/>Eliminar hoja</button><button onClick={clearPage} disabled={!page.strokes.length&&!items.length} className={`${button} shrink-0 border border-amber-200 bg-amber-50 text-amber-800`}><Eraser size={14}/>Borrar todo</button><div className="flex items-center gap-1 rounded-xl bg-slate-100 p-1"><button onClick={()=>setZoom((z)=>Math.max(.45,z-.1))} className="h-7 w-8 rounded-lg bg-white font-bold">−</button><span className="w-12 text-center text-[11px] font-bold">{Math.round(zoom*100)}%</span><button onClick={()=>setZoom((z)=>Math.min(1.35,z+.1))} className="h-7 w-8 rounded-lg bg-white font-bold">+</button></div></div>
-          <div ref={scrollRef} className="relative min-h-[520px] flex-1 overflow-auto bg-slate-200/70 p-4" style={{height:expanded?"calc(100vh - 138px)":780}}><div className="mx-auto shadow-2xl" style={{width:W*zoom,minWidth:W*zoom}}><svg ref={svgRef} viewBox={`0 0 ${W} ${page.canvasHeight}`} width={W*zoom} height={page.canvasHeight*zoom} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} className={`block touch-none select-none ${tool==="eraser"?"cursor-cell":tool==="select"?"cursor-default":"cursor-crosshair"}`}><BackgroundLayer background={background} height={page.canvasHeight}/>{topItems.map((item)=>renderItem(item))}{strokes.map((s)=><polyline key={s.id} points={s.points.map((p)=>`${p.x},${p.y}`).join(" ")} fill="none" stroke={s.color} strokeWidth={s.width} strokeOpacity={s.opacity} strokeLinecap="round" strokeLinejoin="round" pointerEvents="none"/>)}{selectionOverlay}</svg></div></div>
+          <div ref={scrollRef} className="relative min-h-[520px] flex-1 overflow-auto bg-slate-200/70 p-4" style={{height:expanded?"calc(100vh - 138px)":780}}><div className="mx-auto shadow-2xl" style={{width:W*zoom,minWidth:W*zoom}}><svg ref={svgRef} viewBox={`0 0 ${W} ${page.canvasHeight}`} width={W*zoom} height={page.canvasHeight*zoom} onPointerDown={pointerDown} onPointerMove={pointerMove} onPointerUp={pointerUp} onPointerCancel={pointerUp} className={`block touch-none select-none ${tool==="eraser"?"cursor-cell":tool==="select"?"cursor-default":"cursor-crosshair"}`}><BackgroundLayer background={background} height={page.canvasHeight}/>{topItems.map((item)=>renderItem(item))}{strokes.map((s)=><polyline key={s.id} points={s.points.map((p)=>`${p.x},${p.y}`).join(" ")} fill="none" stroke={s.color} strokeWidth={s.width} strokeOpacity={s.opacity} strokeLinecap="round" strokeLinejoin="round" pointerEvents="none"/>)}{selectionOverlay}
+            {tool === "sketch" && sketchBox?.pageId === page.id && <rect data-selection="true"
+              {...sketchBox.bounds} fill="#6366f1" fillOpacity={.12} stroke="#4f46e5" strokeWidth={2}
+              strokeDasharray="8 5" pointerEvents="none" />}
+            </svg></div></div>
         </div>
         {panelOpen&&<aside data-whiteboard-tools="left" className="flex min-h-[600px] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm xl:col-start-2 xl:row-start-1"><div className="flex items-center gap-1 overflow-x-auto border-b border-slate-200 bg-slate-50 px-2 py-2">{tabs.map(([key,label,icon])=><button key={key} onClick={()=>setTab(key)} className={`${button} shrink-0 px-2.5 ${tab===key?"bg-white text-blue-700 shadow-sm":"text-slate-500"}`}>{icon}{label}</button>)}<button onClick={()=>setPanelOpen(false)} className="ml-auto rounded-lg p-2 text-slate-500 hover:bg-white"><X size={16}/></button></div><div className="flex-1 overflow-y-auto p-4">
           {tab==="background"&&<div className="space-y-3"><h2 className="text-sm font-bold">Fondos por página</h2><div className="grid grid-cols-2 gap-2">{backgrounds.map((b)=><button key={b.id} onClick={()=>setBackground(b.id)} className={`rounded-2xl border p-3 text-left ${background===b.id?"border-blue-500 bg-blue-50 ring-2 ring-blue-100":"border-slate-200"}`}><div className={`mb-2 h-16 rounded-xl border ${b.id==="black"?"bg-slate-950":b.id==="blue"?"bg-blue-950":b.id==="ruled"?"bg-[repeating-linear-gradient(to_bottom,#fff_0,#fff_14px,#bfdbfe_15px)]":b.id==="grid"?"bg-[linear-gradient(#e2e8f0_1px,transparent_1px),linear-gradient(90deg,#e2e8f0_1px,transparent_1px)] bg-[size:14px_14px]":b.id==="dots"?"bg-[radial-gradient(#94a3b8_1px,transparent_1px)] bg-[size:12px_12px]":"bg-white"}`}/><p className="text-xs font-bold">{b.label}</p></button>)}</div></div>}
@@ -533,7 +675,12 @@ export default function WhiteboardMathStudio() {
     <p className="text-center text-[9px] text-violet-500">El recurso se agrega directamente al cuaderno.</p>
   </div>}
 </div><div className="my-3 h-px bg-slate-200"/><button onClick={()=>importRef.current?.click()} className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 text-left"><FileJson size={18}/><span className="text-xs font-bold">Importar material</span></button><button onClick={exportJson} className="flex w-full items-center gap-3 rounded-xl border border-slate-200 p-3 text-left"><Download size={18}/><span className="text-xs font-bold">Exportar cuaderno editable</span></button><div className="grid grid-cols-2 gap-2"><button onClick={()=>void exportPage("png")} disabled={exporting} className={`${button} border border-slate-200`}><ImageIcon size={14}/>PNG</button><button onClick={()=>void exportPage("pdf")} disabled={exporting} className={`${button} border border-slate-200`}><FileText size={14}/>PDF</button></div></div>}
-          {selected&&<div className="mt-5 space-y-3 rounded-2xl border border-blue-200 bg-blue-50/60 p-3"><div className="flex justify-between"><div><p className="text-[10px] font-black uppercase text-blue-600">Elemento seleccionado</p><p className="text-xs font-bold">{selected.kind} {selectedChildren?`· ${selectedChildren} dentro`:""}</p></div><Layers size={17} className="text-blue-600"/></div>{selected.kind==="text"&&<><textarea value={selected.text} onChange={(e)=>patchSelected({text:e.target.value} as Partial<TextItem>)} rows={4} className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs"/><label className="block text-[10px] font-bold">Tamaño<input type="range" min={12} max={96} value={selected.fontSize} onChange={(e)=>patchSelected({fontSize:Number(e.target.value)} as Partial<TextItem>)} className="w-full"/></label></>}{selected.kind==="shape"&&<div className="grid grid-cols-2 gap-2"><label className="rounded-xl bg-white p-2 text-[10px] font-bold">Borde<input type="color" value={selected.stroke} onChange={(e)=>patchSelected({stroke:e.target.value} as Partial<ShapeItem>)} className="h-8 w-full"/></label><label className="rounded-xl bg-white p-2 text-[10px] font-bold">Relleno<input type="color" value={selected.fill==="transparent"?"#ffffff":selected.fill} onChange={(e)=>patchSelected({fill:e.target.value} as Partial<ShapeItem>)} className="h-8 w-full"/></label></div>}{selected.kind==="plot3d"&&<><label className="block text-[10px] font-bold">Color<input type="color" value={selected.color} onChange={(e)=>patchSelected({color:e.target.value} as Partial<Plot3DItem>)} className="h-8 w-full"/></label>{selected.plot==="surface"&&<textarea value={selected.expression} onChange={(e)=>patchSelected({expression:e.target.value} as Partial<Plot3DItem>)} rows={2} className="w-full rounded-xl border bg-white p-2 text-xs"/>}</>}{selected.kind === "shape" && selectedModel && (
+          {selected&&<div className="mt-5 space-y-3 rounded-2xl border border-blue-200 bg-blue-50/60 p-3"><div className="flex justify-between"><div><p className="text-[10px] font-black uppercase text-blue-600">Elemento seleccionado</p><p className="text-xs font-bold">{selected.kind} {selectedChildren?`· ${selectedChildren} dentro`:""}</p></div><Layers size={17} className="text-blue-600"/></div>{selected.kind==="text"&&<><textarea value={selected.text} onChange={(e)=>patchSelected({text:e.target.value} as Partial<TextItem>)} rows={4} className="w-full rounded-xl border border-slate-200 bg-white p-2 text-xs"/><label className="block text-[10px] font-bold">Tamaño<input type="range" min={12} max={96} value={selected.fontSize} onChange={(e)=>patchSelected({fontSize:Number(e.target.value)} as Partial<TextItem>)} className="w-full"/></label></>}{selected.kind==="shape"&&<div className="grid grid-cols-2 gap-2"><label className="rounded-xl bg-white p-2 text-[10px] font-bold">Borde<input type="color" value={selected.stroke} onChange={(e)=>patchSelected({stroke:e.target.value} as Partial<ShapeItem>)} className="h-8 w-full"/></label><label className="rounded-xl bg-white p-2 text-[10px] font-bold">Relleno<input type="color" value={selected.fill==="transparent"?"#ffffff":selected.fill} onChange={(e)=>patchSelected({fill:e.target.value} as Partial<ShapeItem>)} className="h-8 w-full"/></label></div>}{selected.kind==="plot3d"&&<><label className="block text-[10px] font-bold">Color<input type="color" value={selected.color} onChange={(e)=>patchSelected({color:e.target.value} as Partial<Plot3DItem>)} className="h-8 w-full"/></label>{selected.plot==="surface"&&<textarea value={selected.expression} onChange={(e)=>patchSelected({expression:e.target.value} as Partial<Plot3DItem>)} rows={2} className="w-full rounded-xl border bg-white p-2 text-xs"/>}</>}{selected.kind === "shape" && selected.shape === "polygon" && selected.sketchPoints && (
+            <label className="flex items-center gap-2 text-xs font-semibold">
+              <input type="checkbox" checked={selected.showParts ?? false} onChange={event => patchSelected({ showParts: event.target.checked })} />
+              Mostrar {selected.sketchPoints.length} vértices
+            </label>
+          )}{selected.kind === "shape" && selectedModel && (
             <fieldset className="space-y-2 rounded-2xl border border-indigo-200 bg-white p-3">
               <legend className="px-1 text-xs font-bold text-indigo-700">Explorar sólido</legend>
               <p className="text-xs text-slate-700">
@@ -550,10 +697,10 @@ export default function WhiteboardMathStudio() {
                   <option value="transparent">Transparente</option>
                   <option value="wireframe">Solo aristas</option>
                   <option value="separated">Caras separadas</option>
-                  <option value="net">Desplegar y armar</option>
+                  {selected.shape !== "extrusion" && <option value="net">Desplegar y armar</option>}
                 </select>
               </label>
-              {selected.solidMode === "net" && (
+              {selected.solidMode === "net" && selected.shape !== "extrusion" && (
                 <label className="block text-xs font-bold">
                   Despliegue · {Math.round((selected.unfolding ?? 1) * 100)} %
                   <input className="w-full" type="range" min={0} max={1} step={.05}
