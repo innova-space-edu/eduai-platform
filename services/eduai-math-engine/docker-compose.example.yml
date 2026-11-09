@@ -1,0 +1,14 @@
+services:
+  eduai-math:
+    build: .
+    restart: unless-stopped
+    environment:
+      EDUAI_MATH_ENGINE_TOKEN: ${EDUAI_MATH_ENGINE_TOKEN:?Required}
+    ports:
+      - "127.0.0.1:8116:8000"
+    mem_limit: 512m
+    cpus: 1.0
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop: [ALL]
