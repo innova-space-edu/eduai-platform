@@ -9,6 +9,7 @@ export const MODEL_LAB_SECTIONS = [
   { id: "dataset", label: "Dataset Factory", group: "modelos", description: "Corpus, revisión y particiones de entrenamiento", icon: "database" },
   { id: "training", label: "Model Factory", group: "modelos", description: "LoRA, checkpoints, exportación y perfiles", icon: "graduation-cap" },
   { id: "modelos", label: "Candidatos", group: "modelos", description: "Registros, Quality Gate y promoción manual", icon: "layers" },
+  { id: "nano-lite", label: "Nano y Lite · Chat", group: "modelos", description: "Probar adaptadores R2, comparar respuestas y preparar R5", icon: "messages-square" },
   { id: "benchmark", label: "Benchmarks", group: "supervision", description: "Calidad, latencia y velocidad de inferencia", icon: "gauge" },
   { id: "brain-ai", label: "Brain AI", group: "supervision", description: "Cognitive OS, aprendizaje continuo y voz", icon: "brain-circuit" },
   { id: "observabilidad", label: "Observabilidad", group: "supervision", description: "Telemetría local, modelos y métricas", icon: "activity" },

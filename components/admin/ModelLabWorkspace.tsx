@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import {
   Activity, AudioWaveform, BrainCircuit, Cpu, Database,
   Gauge, GraduationCap, HardDrive, Layers, LayoutDashboard, Menu,
-  PanelLeftClose, PanelLeftOpen, Server, ShieldCheck, Video, X, Zap,
+  PanelLeftClose, PanelLeftOpen, Server, ShieldCheck, Video, X, Zap, MessagesSquare,
 } from "lucide-react";
 import {
   MODEL_LAB_GROUPS, MODEL_LAB_SECTIONS, modelLabSectionHash,
@@ -38,6 +38,7 @@ const EduAILocalBridgePanel = dynamic(() => import("@/components/admin/EduAILoca
 const EduAIEfficiencyAdapterPanel = dynamic(() => import("@/components/admin/EduAIEfficiencyAdapterPanel"), { ssr: false, loading: LoadingPanel });
 const EduAIModelFactoryPanel = dynamic(() => import("@/components/admin/EduAIModelFactoryPanel"), { ssr: false, loading: LoadingPanel });
 const ModelCandidateLabPanel = dynamic(() => import("@/components/admin/ModelCandidateLabPanel"), { ssr: false, loading: LoadingPanel });
+const NanoLitePlayground = dynamic(() => import("@/components/admin/NanoLitePlayground"), { ssr: false, loading: LoadingPanel });
 const VideoProviderStatusPanel = dynamic(() => import("@/components/admin/VideoProviderStatusPanel"), { ssr: false, loading: LoadingPanel });
 
 const ICONS = {
@@ -45,7 +46,7 @@ const ICONS = {
   "audio-waveform": AudioWaveform, zap: Zap, "hard-drive": HardDrive,
   database: Database, "graduation-cap": GraduationCap, layers: Layers,
   gauge: Gauge, "brain-circuit": BrainCircuit, activity: Activity,
-  video: Video, "shield-check": ShieldCheck,
+  video: Video, "shield-check": ShieldCheck, "messages-square": MessagesSquare,
 } as const;
 
 type NavProps = {
@@ -106,6 +107,7 @@ function Overview({ select }: { select: (id: ModelLabSectionId) => void }) {
     { id: "dataset", title: "Dataset Factory", detail: "54 ejemplos sintéticos, revisión pendiente", icon: Database },
     { id: "training", title: "Model Factory", detail: "Entrenamiento, exportación y checkpoints", icon: GraduationCap },
     { id: "modelos", title: "Candidatos", detail: "Calidad, seguridad y promoción manual", icon: Layers },
+    { id: "nano-lite", title: "Nano vs Lite", detail: "Conversación real, comparación R2 y referencia matemática", icon: MessagesSquare },
   ] as const;
   return (
     <div className="space-y-5">
@@ -202,6 +204,7 @@ function SectionContent({ active, select }: SectionProps) {
     case "dataset": return <Dataset />;
     case "training": return <EduAIModelFactoryPanel />;
     case "modelos": return <div className="space-y-4"><LocalLLMReadinessPanel /><AIModelRegistryPanel /><ModelCandidateLabPanel /></div>;
+    case "nano-lite": return <NanoLitePlayground />;
     case "benchmark": return <LiteRTBenchmarkPanelV4 />;
     case "brain-ai": return <div className="space-y-4"><BrainAILabPanel /><BrainAIV6LearningPanel /><VoiceLabPanel /></div>;
     case "observabilidad": return <div className="space-y-4"><LocalAITelemetryPanel /><LocalAIModelMetricsPanel /><AICoreMetricsPanel /></div>;
