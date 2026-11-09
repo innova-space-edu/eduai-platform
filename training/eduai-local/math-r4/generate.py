@@ -13,6 +13,52 @@ TRAIN_SEEDS=(41011,42011,43011)
 TEST_SEEDS=(44021,44031,44041)
 WEIGHTS={"algebra":32,"recurrence":21,"euler":21,"arithmetic":10,"logic":6,"rehearsal":10}
 LEVELS=(1,2,3)
+TRAIN_TRACE_RATE=0.35
+
+# Explicit formatting contracts: no example may demand a single value and
+# simultaneously supervise a paragraph of reasoning.
+_OUTPUT_SUFFIXES=(
+    r"\\s*Solo el valor de x\\.$",
+    r"\\s*Solo entero\\.$",
+    r"\\s*Entrega x\\.$",
+    r"\\s*Responde solo entero\\.$",
+    r"\\s*Responde sí o no\\.$",
+    r"\\s*Solo nombre\\.$",
+    r"\\s*Responde solo su nombre\\.$",
+    r"\\s*Sí o no\\.$",
+    r"\\s*Solo fracción(?: irreducible)?\\.$",
+    r"\\s*Responde entero\\.$",
+)
+def presentation_prompt(question, mode):
+    q=question.strip()
+    for pattern in _OUTPUT_SUFFIXES:
+        q=re.sub(pattern,"",q,flags=re.IGNORECASE)
+    q=q.rstrip()
+    if not q:
+        raise ValueError("EMPTY_QUESTION")
+    if mode=="trace":
+        q += "\\nExplica los pasos y comprueba el cálculo. Termina con una línea «Respuesta final:» seguida del valor."
+    elif mode=="final":
+        q += "\\nResponde únicamente con el resultado final, sin explicación."
+    else:
+        raise ValueError("UNKNOWN_RESPONSE_MODE")
+    return q
+
+def assert_example_contract(row):
+    prompt=row["question"]
+    completion=row["completion"]
+    answer=row["answer"]
+    if row["mode"]=="trace":
+        if "Responde únicamente" in prompt or "Solo entero" in prompt or "Solo el valor" in prompt or "Responde solo" in prompt:
+            raise AssertionError("TRACE_PROMPT_CONFLICT")
+        if "Explica los pasos" not in prompt or not completion.endswith("Respuesta final: "+answer):
+            raise AssertionError("TRACE_CONTRACT_INCONSISTENT")
+    elif row["mode"]=="final":
+        if not prompt.endswith("Responde únicamente con el resultado final, sin explicación.") or completion!=answer:
+            raise AssertionError("FINAL_CONTRACT_INCONSISTENT")
+    else:
+        raise AssertionError("UNKNOWN_RESPONSE_MODE")
+
 def fmt(v):return str(Fraction(v))
 def sign(rng,lo=1,hi=20):return rng.choice([-1,1])*rng.randint(lo,hi)
 def example(rng,cat,level,split):
@@ -155,11 +201,15 @@ def generate(train_count=3000, validation_count=500, test_count=600, exclude=())
             digest=hashlib.sha256(json.dumps(key,sort_keys=True,default=str).encode()).hexdigest()
             if digest in occupied or question in protected:continue
             occupied.add(digest)
-            mode="trace" if (split=="train" and rng.random()<0.65) else "final"
+            mode="trace" if (split=="train" and rng.random()<TRAIN_TRACE_RATE) else "final"
             output=(trace+" Respuesta final: "+answer) if mode=="trace" else answer
-            out.append({"id":digest,"category":category,"subtype":kind,"difficulty":level,
-                        "question":question,"answer":answer,"mode":mode,"completion":output,
-                        "verifiedBy":"deterministic-rule" if cat=="rehearsal" else "python-fraction-or-integer"})
+            row={"id":digest,"category":category,"subtype":kind,"difficulty":level,
+                 "raw_question":question,"question":presentation_prompt(question,mode),
+                 "answer":answer,"mode":mode,"response_format":mode,
+                 "completion":output,
+                 "verifiedBy":"deterministic-rule" if cat=="rehearsal" else "python-fraction-or-integer"}
+            assert_example_contract(row)
+            out.append(row)
         return out
     # Disjoint structural parameter keys; tests are never inputs to checkpoint selection.
     train=build(train_count,41011,"train")
@@ -178,7 +228,8 @@ def save(output,train,val,tests):
                       "sha256":hashlib.sha256(path.read_bytes()).hexdigest()}
     (root/"manifest.json").write_text(json.dumps({"campaign":"eduai-math-r4","trainSeeds":TRAIN_SEEDS,
         "testSeeds":TEST_SEEDS,"splits":counts,"protectedAgainstExactPromptOverlap":True,
-        "familyIndependence":False,"productionReady":False,
+        "familyIndependence":False,"trainTraceRate":TRAIN_TRACE_RATE,
+        "outputContractsChecked":True,"productionReady":False,
         "limitations":"Synthetic procedural templates; external and human tests required."},indent=2),encoding="utf-8")
     return counts
 
