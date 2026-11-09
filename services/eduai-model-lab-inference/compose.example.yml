@@ -8,11 +8,24 @@ services:
       EDUAI_MODEL_LAB_MODELS_DIR: /models
       EDUAI_MODEL_LAB_R5_APPROVED: "false"
       HF_HOME: /cache/huggingface
+      OMP_NUM_THREADS: "4"
+      MKL_NUM_THREADS: "4"
+      HF_HUB_DISABLE_TELEMETRY: "1"
+    # Cloudflare tunnel container intranet-tunnel is already on portal_default.
+    # It can reach this service by Docker DNS without exposing port 8000 publicly.
+    networks:
+      - portal-tunnel
     ports:
       - "127.0.0.1:8122:8000"
     volumes:
       - /srv/eduai-model-lab/models:/models:ro
       - /srv/eduai-model-lab/cache:/cache
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=4)"]
+      interval: 30s
+      timeout: 8s
+      retries: 3
+      start_period: 30s
     cpus: 4.0
     mem_limit: 12g
     read_only: true
@@ -22,3 +35,8 @@ services:
       - no-new-privileges:true
     cap_drop:
       - ALL
+
+networks:
+  portal-tunnel:
+    external: true
+    name: portal_default

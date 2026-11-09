@@ -6,6 +6,8 @@ or loads an unapproved R5 checkpoint. Its only model IDs are an explicit allowli
 from __future__ import annotations
 import asyncio
 import gc
+import re
+from concurrent.futures import ThreadPoolExecutor
 import json
 import os
 import secrets
@@ -25,6 +27,34 @@ BASES = {
 }
 _MODEL_LOCK = threading.RLock()
 _ACTIVE: dict[str, Any] = {}
+_QUEUE = ThreadPoolExecutor(max_workers=1, thread_name_prefix="eduai-model-lab")
+_JOBS: dict[str, dict[str, Any]] = {}
+_JOB_LOCK = threading.RLock()
+_JOB_LIMIT = 6
+_JOB_RETENTION = 900.0
+
+def prune_jobs() -> None:
+    now = time.monotonic()
+    for identifier, job in list(_JOBS.items()):
+        if job["state"] != "running" and now - job["created"] > _JOB_RETENTION:
+            _JOBS.pop(identifier, None)
+
+def execute_job(identifier: str, model: str, messages: list[dict[str,str]],
+                max_tokens: int) -> None:
+    try:
+        result=generate(model,messages,max_tokens)
+        with _JOB_LOCK:
+            job=_JOBS.get(identifier)
+            if job is not None:
+                job.update({"state":"completed","result":result,"updated":time.monotonic()})
+    except Exception as error:
+        print("MODEL_JOB_FAILED",model,type(error).__name__,flush=True)
+        with _JOB_LOCK:
+            job=_JOBS.get(identifier)
+            if job is not None:
+                job.update({"state":"error","error":"MODEL_INFERENCE_FAILURE",
+                            "updated":time.monotonic()})
+
 
 def check_token(request: Request) -> None:
     expected = os.getenv("EDUAI_MODEL_LAB_TOKEN", "").strip()
@@ -92,13 +122,17 @@ def load_adapter(model_id: str):
             torch.cuda.empty_cache()
         model_name, revision = BASES[model_id]
         adapter_path = model_dir(model_id)
+        config_data = json.loads((adapter_path / "adapter_config.json").read_text("utf-8"))
+        trained_base = config_data.get("base_model_name_or_path")
+        if trained_base and trained_base.rstrip("/") != model_name:
+            raise RuntimeError("ADAPTER_BASE_MISMATCH")
         device = "cuda" if torch.cuda.is_available() else "cpu"
         dtype = torch.float16 if device == "cuda" else torch.float32
         tokenizer = AutoTokenizer.from_pretrained(model_name, revision=revision, trust_remote_code=False)
         if tokenizer.pad_token_id is None:
             tokenizer.pad_token = tokenizer.eos_token
         base = AutoModelForCausalLM.from_pretrained(
-            model_name, revision=revision, torch_dtype=dtype, trust_remote_code=False,
+            model_name, revision=revision, dtype=dtype, trust_remote_code=False,
             low_cpu_mem_usage=True,
         )
         model = PeftModel.from_pretrained(base, str(adapter_path), is_trainable=False)
@@ -111,9 +145,26 @@ def generate(model_id: str, messages: list[dict[str, str]], max_tokens: int) -> 
     with _MODEL_LOCK:
         import torch
         model, tokenizer, device = load_adapter(model_id)
-        prompt_tokens = tokenizer.apply_chat_template(
-            messages, tokenize=True, add_generation_prompt=True, return_tensors="pt"
-        )
+        # Nano can be a base tokenizer without a chat template. Match the
+        # same plain-text fallback used in the Kaggle training code.
+        def fallback_tokens():
+            formatted = "\n".join(
+                ("Sistema" if m["role"] == "system" else
+                 "Usuario" if m["role"] == "user" else "Asistente")
+                + ": " + m["content"] for m in messages
+            ) + "\nAsistente:"
+            return torch.tensor([tokenizer.encode(formatted,add_special_tokens=True)],
+                                dtype=torch.long)
+        if getattr(tokenizer, "chat_template", None):
+            try:
+                prompt_tokens = tokenizer.apply_chat_template(
+                    messages, tokenize=True, add_generation_prompt=True,
+                    return_tensors="pt"
+                )
+            except (TypeError, ValueError):
+                prompt_tokens = fallback_tokens()
+        else:
+            prompt_tokens = fallback_tokens()
         if isinstance(prompt_tokens, dict):
             input_ids = prompt_tokens["input_ids"]
             attention_mask = prompt_tokens.get("attention_mask")
@@ -154,6 +205,46 @@ async def models(request: Request):
         {"id": name, "available": available(name), "loaded": _ACTIVE.get("name") == name}
         for name in BASES
     ]}
+
+@app.post("/jobs")
+async def submit_job(request: Request):
+    check_token(request)
+    if int(request.headers.get("content-length") or 0) > 12000:
+        raise HTTPException(status_code=413, detail="BODY_TOO_LARGE")
+    body = await request.body()
+    if len(body) > 12000:
+        raise HTTPException(status_code=413, detail="BODY_TOO_LARGE")
+    try:
+        payload=json.loads(body)
+    except (json.JSONDecodeError, UnicodeError):
+        raise HTTPException(status_code=400, detail="INVALID_JSON")
+    model,messages,max_tokens=parse_payload(payload)
+    with _JOB_LOCK:
+        prune_jobs()
+        running=sum(v["state"] == "running" for v in _JOBS.values())
+        if running >= _JOB_LIMIT:
+            raise HTTPException(status_code=429, detail="QUEUE_FULL")
+        identifier=secrets.token_urlsafe(24)
+        _JOBS[identifier]={"state":"running","model":model,
+                           "created":time.monotonic(),"updated":time.monotonic()}
+        _QUEUE.submit(execute_job,identifier,model,messages,max_tokens)
+    return {"job_id":identifier,"model":model,"state":"running"}
+
+@app.get("/jobs/{job_id}")
+async def inspect_job(job_id: str, request: Request):
+    check_token(request)
+    if not re.fullmatch(r"[A-Za-z0-9_-]{24,64}",job_id):
+        raise HTTPException(status_code=404, detail="JOB_NOT_FOUND")
+    with _JOB_LOCK:
+        prune_jobs()
+        job=_JOBS.get(job_id)
+        if job is None:
+            raise HTTPException(status_code=404, detail="JOB_NOT_FOUND")
+        if job["state"]=="running":
+            return {"state":"running","model":job["model"]}
+        if job["state"]=="error":
+            return {"state":"error","model":job["model"],"error":job["error"]}
+        return {"state":"completed","model":job["model"],"result":job["result"]}
 
 @app.post("/chat")
 async def chat(request: Request):

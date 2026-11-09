@@ -1,7 +1,7 @@
 FROM python:3.12-slim
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 HF_HOME=/cache/huggingface TOKENIZERS_PARALLELISM=false
 WORKDIR /app
-RUN useradd -u 10001 -m -s /usr/sbin/nologin eduai
+RUN groupadd -g 10001 eduai && useradd -u 10001 -g 10001 -m -s /usr/sbin/nologin eduai
 RUN pip install --no-cache-dir torch==2.11.0 --index-url https://download.pytorch.org/whl/cpu
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
