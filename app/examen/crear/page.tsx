@@ -7,7 +7,7 @@ import { useMemo, useState, useRef, useEffect } from "react";
 import ExamMathText from "@/components/ui/ExamMathText";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getOAs, getCurriculumVerification, getParvulariaNucleoItems, type NivelKey, type OA } from "@/lib/mineduc-oa";
+import { getOAs, getAvailableAsignaturas, getCurriculumVerification, getParvulariaNucleoItems, type NivelKey, type OA } from "@/lib/mineduc-oa";
 import {
   THEME_VARS,
   THEME_LABELS,
@@ -605,6 +605,8 @@ export default function CrearExamenPage() {
     );
     setCustomColorsEnabled(true);
   };
+
+  const availableSubjects = useMemo(() => curriculumCurso ? getAvailableAsignaturas(curriculumNivel, curriculumCurso) : [], [curriculumNivel, curriculumCurso]);
 
   const availableOAs = useMemo<OA[]>(() => {
     try {
