@@ -40,17 +40,59 @@ if [ ! -s "$DEST/incoming/nano_adapter_model.safetensors" ] ||
    [ ! -s "$DEST/incoming/nano_adapter_config.json" ] ||
    [ ! -s "$DEST/incoming/lite_adapter_config.json" ]; then
   echo "[INFO] Descargando SOLO dataset privado R2 de Kaggle."
-  wrapper="$HOME/eduai-advanced-v2/kaggle-v225.sh"
-  if [ -x "$wrapper" ] && sudo docker container inspect portal-kaggle-bridge-1 >/dev/null 2>&1; then
-    sudo docker exec portal-kaggle-bridge-1 mkdir -p /data/eduai-model-lab-r2
-    "$wrapper" datasets download -d "$DATASET" -p /data/eduai-model-lab-r2 --unzip
+  # Reutilizar el Kaggle API del puente ya autenticado. El lanzador local
+  # kaggle-v225.sh exige otra versión y puede desaparecer tras reinicios;
+  # no reinstalamos CLI en el servidor ni tocamos notebooks.
+  if sudo docker container inspect portal-kaggle-bridge-1 >/dev/null 2>&1; then
+    echo "[INFO] Descargando mediante portal-kaggle-bridge-1 (Kaggle existente)."
+    sudo docker exec -i portal-kaggle-bridge-1 sh -s <<'BRIDGE'
+set -eu
+target=/data/eduai-model-lab-r2
+mkdir -p "$target"
+dataset=esthefano/eduai-nano-lite-adapters-r2
+downloaded=no
+
+if command -v kaggle >/dev/null 2>&1; then
+  if kaggle datasets download -d "$dataset" -p "$target" --unzip; then
+    downloaded=yes
+  fi
+fi
+
+if [ "$downloaded" != yes ]; then
+  # API del paquete instalado: el mismo acceso que usa el conector del Dell.
+  for python in python3 python /opt/venv/bin/python /data/venv/bin/python /tmp/eduai-kaggle-cli-v225/bin/python; do
+    if command -v "$python" >/dev/null 2>&1 && "$python" -c 'from kaggle.api.kaggle_api_extended import KaggleApi' >/dev/null 2>&1; then
+      if "$python" - "$target" "$dataset" <<'PY'
+import sys
+from kaggle.api.kaggle_api_extended import KaggleApi
+api=KaggleApi()
+api.authenticate()
+api.dataset_download_files(sys.argv[2],path=sys.argv[1],unzip=True,quiet=False)
+PY
+      then
+        downloaded=yes
+        break
+      fi
+    fi
+  done
+fi
+
+if [ "$downloaded" != yes ]; then
+  echo "No se encontró Kaggle API/CLI utilizable dentro del puente." >&2
+  exit 8
+fi
+for file in nano_adapter_model.safetensors nano_adapter_config.json \
+            lite_adapter_model.safetensors lite_adapter_config.json; do
+  test -s "$target/$file" || { echo "Falta $file en el dataset R2." >&2; exit 9; }
+done
+echo "[OK] Cuatro archivos esenciales de R2 descargados."
+BRIDGE
     sudo docker cp portal-kaggle-bridge-1:/data/eduai-model-lab-r2/. "$DEST/incoming/"
-  elif command -v kaggle >/dev/null; then
+  elif command -v kaggle >/dev/null 2>&1; then
     kaggle datasets download -d "$DATASET" -p "$DEST/incoming" --unzip
   else
-    echo "No encuentro Kaggle CLI. Copia los 4 archivos R2 al directorio:" >&2
+    echo "El puente Kaggle no está disponible. Deja los cuatro archivos R2 en:" >&2
     echo "  $DEST/incoming/" >&2
-    echo "y vuelve a ejecutar este instalador. No utilices adaptadores R4/R5." >&2
     exit 4
   fi
 fi
