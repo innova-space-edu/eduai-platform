@@ -119,7 +119,14 @@ sudo bash "$DIR/prepare-adapters.sh" "$DEST/incoming"
 # Read-only group access for the non-root container user (gid 10001).
 sudo chown -R root:10001 "$DEST/models"
 sudo chmod 0750 "$DEST/models" "$DEST/models/nano-r2" "$DEST/models/lite-r2"
-sudo chmod 0640 "$DEST/models/nano-r2/"* "$DEST/models/lite-r2/"*
+# The caller cannot list the now-private model directories: do NOT use a
+# shell glob here, because it expands before sudo and remains a literal '*'.
+# Pass the known R2 adapter filenames explicitly instead.
+for model in nano lite; do
+  sudo chmod 0640 \
+    "$DEST/models/${model}-r2/adapter_model.safetensors" \
+    "$DEST/models/${model}-r2/adapter_config.json"
+done
 sudo chown -R 10001:10001 "$DEST/cache"
 sudo chmod 0750 "$DEST/cache"
 # Existing Cloudflare Tunnel runs on the portal_default bridge on this Dell.
