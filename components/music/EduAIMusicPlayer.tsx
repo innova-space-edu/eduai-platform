@@ -1175,7 +1175,7 @@ function dedupeTracks(tracks: EduMusicTrack[]) {
 
 function CyberHomeDashboard({ onOpenSpotify }: { onOpenSpotify: () => void }) {
   const music = useEduAIMusic();
-  const likedTracks = music.allTracks.filter((track) => music.liked.has(track.id));
+  const likedTracks = music.favoriteTracks;
   const discovery = dedupeTracks([
     ...music.recentTracks,
     ...likedTracks,
@@ -1954,7 +1954,7 @@ function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
 
 function CompactPanel({ onOpenPanel }: { onOpenPanel?: () => void }) {
   const music = useEduAIMusic();
-  const tracks = music.view === "liked" ? music.allTracks.filter((track) => music.liked.has(track.id)) : music.view === "queue" ? music.queue : music.visibleTracks;
+  const tracks = music.view === "liked" ? music.favoriteTracks : music.view === "queue" ? music.queue : music.visibleTracks;
   return (
     <div className="h-full overflow-hidden rounded-2xl border border-white/10 bg-[#0c0e14] text-white shadow-xl">
       <div className="relative z-10 flex h-full flex-col">
@@ -2489,16 +2489,16 @@ function NeonMain({
     () =>
       dedupeTracks([
         ...music.recentTracks,
-        ...music.allTracks.filter((track) => music.liked.has(track.id)),
+        ...music.favoriteTracks,
         ...music.uploadedTracks,
         ...music.onlineTracks,
         ...music.radioTracks,
       ]),
-    [music.allTracks, music.liked, music.onlineTracks, music.radioTracks, music.recentTracks, music.uploadedTracks],
+    [music.favoriteTracks, music.onlineTracks, music.radioTracks, music.recentTracks, music.uploadedTracks],
   );
 
   const tracks = useMemo(() => {
-    if (music.view === "liked") return music.allTracks.filter((track) => music.liked.has(track.id));
+    if (music.view === "liked") return music.favoriteTracks;
     if (music.view === "mix") return music.mixFavoriteTracks;
     if (music.view === "queue") return music.queue;
     if (music.view === "library") return music.uploadedTracks;
@@ -2506,7 +2506,7 @@ function NeonMain({
     if (music.view === "search") return music.onlineTracks.length ? music.onlineTracks : music.visibleTracks;
     if (music.view === "playlists") return music.baseTracks;
     return homeTracks;
-  }, [homeTracks, music.allTracks, music.baseTracks, music.liked, music.mixFavoriteTracks, music.onlineTracks, music.queue, music.radioTracks, music.uploadedTracks, music.view, music.visibleTracks]);
+  }, [homeTracks, music.allTracks, music.baseTracks, music.favoriteTracks, music.liked, music.mixFavoriteTracks, music.onlineTracks, music.queue, music.radioTracks, music.uploadedTracks, music.view, music.visibleTracks]);
 
   const recentTracks = (music.recentTracks.length ? music.recentTracks : tracks).slice(0, 6);
   const catalogTracks =
@@ -2756,11 +2756,21 @@ function NeonMain({
               <p className="truncate text-[11px] font-black text-cyan-100">{viewTitle}</p>
               <p className="truncate text-[9px] text-slate-400">{viewDescription}</p>
             </div>
-            <span className="hidden shrink-0 rounded-full border border-emerald-300/20 bg-emerald-300/8 px-2 py-1 text-[8px] font-black uppercase tracking-[.12em] text-emerald-200 sm:inline-flex">
-              Reproducción continua
-            </span>
+            {music.view === "liked" ? (
+              <div className="flex shrink-0 items-center gap-2">
+                <button type="button" onClick={music.startFavorites} disabled={!music.favoriteTracks.length} className="flex items-center gap-1 rounded-full border border-cyan-300/30 bg-cyan-400/15 px-3 py-1.5 text-[9px] font-black text-cyan-100 disabled:opacity-40">
+                  {music.shuffle ? <Shuffle className="h-3 w-3" /> : <Play className="h-3 w-3" />}
+                  {music.shuffle ? "Reproducir aleatorio" : "Reproducir favoritos"}
+                </button>
+                <button type="button" aria-pressed={music.shuffle} onClick={() => music.setShuffle((value) => !value)} className={cn("neon-filter-chip rounded-full border px-2 py-1 text-[9px] font-black", music.shuffle ? "is-active border-cyan-200/65 text-cyan-100" : "border-cyan-300/20 text-slate-300")}>
+                  {music.shuffle ? "Aleatorio activado" : "Orden de lista"}
+                </button>
+              </div>
+            ) : (
+              <span className="hidden shrink-0 rounded-full border border-emerald-300/20 bg-emerald-300/8 px-2 py-1 text-[8px] font-black uppercase tracking-[.12em] text-emerald-200 sm:inline-flex">Reproducción continua</span>
+            )}
           </div>
-          {(music.view === "radio" && (music.radioLoading || music.radioError)) || (music.view === "search" && music.onlineError) ? (
+          {(music.view === "radio" && (music.radioLoading || music.radioError)) || ((music.view === "search" || music.view === "liked") && music.onlineError) ? (
             <div className={cn(
               "mt-2 flex items-center justify-between gap-3 rounded-xl border px-3 py-2 text-[9px] font-bold",
               music.view === "radio" && music.radioError
@@ -3122,7 +3132,7 @@ function NeonBottomPlayer() {
 
           <div className="min-w-0">
             <div className="flex items-center justify-center gap-2">
-              <button type="button" onClick={() => music.setShuffle((value) => !value)} className={cn("neon-control-button", music.shuffle && "is-active")} title="Aleatorio"><Shuffle className="h-3.5 w-3.5" /></button>
+              <button type="button" onClick={() => music.setShuffle((value) => !value)} className={cn("neon-control-button", music.shuffle && "is-active")} title={music.shuffle ? "Desactivar aleatorio" : "Activar aleatorio"} aria-pressed={music.shuffle}><Shuffle className="h-3.5 w-3.5" /></button>
               <button type="button" onClick={music.prevTrack} className="neon-control-button" title="Anterior"><SkipBack className="h-4 w-4" fill="currentColor" /></button>
               <button type="button" onClick={() => seekRelative(-10)} disabled={idle} className="neon-control-button hidden sm:inline-flex" title="Retroceder 10 segundos"><RotateCcw className="h-3.5 w-3.5" /></button>
               <button
@@ -3340,11 +3350,11 @@ export default function EduAIMusicPlayer({
   // volumen o estado de reproducción no desmonta el iframe; solo una navegación
   // explícita fuera de Spotify lo cierra.
   const tracksForMain = useMemo(() => {
-    if (music.view === "liked") return music.allTracks.filter((track) => music.liked.has(track.id));
+    if (music.view === "liked") return music.favoriteTracks;
     if (music.view === "mix") return music.mixFavoriteTracks;
     if (music.view === "queue") return music.queue;
     return music.visibleTracks;
-  }, [music.allTracks, music.liked, music.queue, music.view, music.visibleTracks]);
+  }, [music.allTracks, music.favoriteTracks, music.liked, music.mixFavoriteTracks, music.queue, music.view, music.visibleTracks]);
 
   if (mode === "mini") {
     const shouldShowMini =
