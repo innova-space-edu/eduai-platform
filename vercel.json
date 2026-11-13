@@ -23,7 +23,8 @@
   "git": {
     "deploymentEnabled": {
       "fix/audio-google-gateway-final": false,
-      "feat/model-lab-dell-exact-verifier": false
+      "feat/model-lab-dell-exact-verifier": false,
+      "fix/model-lab-optional-period": false
     }
   }
 }

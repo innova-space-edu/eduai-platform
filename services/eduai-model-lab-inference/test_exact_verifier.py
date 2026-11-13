@@ -37,6 +37,17 @@ class ExactVerifierTests(unittest.TestCase):
                     self.assertTrue(result["candidateCorrect"])
                     self.assertFalse(verify_subtraction(form(a,b),str(a-b+1))["candidateCorrect"])
 
+    def test_terminal_period_is_optional_but_extra_instructions_are_not(self):
+        forms = ["Resta (35) de (39)", "Quita (35) a (39)",
+                 "A (39) réstale (35)", "Parte de (39) y resta (35)",
+                 "Sustrae (35) del número (39)", "Disminuye (39) en (35)"]
+        for question in forms:
+            self.assertEqual(verify_subtraction(question, "74"),
+                             verify_subtraction(question + ".", "74"))
+            self.assertEqual(verify_subtraction(question)["answer"], "4")
+            self.assertFalse(verify_subtraction(question + " y suma 1")["supported"])
+            self.assertFalse(verify_subtraction(question + ". Luego suma 1.")["supported"])
+
     def test_abstains_instead_of_ignoring_extra_context(self):
         for q in ("Resta (3) de (8). Luego suma 1.","Resta (1/2) de (8).",
                   "Resta (__import__('os')) de (8).","Calcula 3x=12","Resta (3) de (8).\nQuita (2) a (4)."):
