@@ -3,12 +3,12 @@ import re
 
 NUMBER = r"\(([+-]?[0-9]{1,12})\)"
 FORMS = (
-    (rf"Resta {NUMBER} de {NUMBER}\.", True),
-    (rf"Quita {NUMBER} a {NUMBER}\.", True),
-    (rf"A {NUMBER} réstale {NUMBER}\.", False),
-    (rf"Parte de {NUMBER} y resta {NUMBER}\.", False),
-    (rf"Sustrae {NUMBER} del número {NUMBER}\.", True),
-    (rf"Disminuye {NUMBER} en {NUMBER}\.", False),
+    (rf"Resta {NUMBER} de {NUMBER}\.?", True),
+    (rf"Quita {NUMBER} a {NUMBER}\.?", True),
+    (rf"A {NUMBER} réstale {NUMBER}\.?", False),
+    (rf"Parte de {NUMBER} y resta {NUMBER}\.?", False),
+    (rf"Sustrae {NUMBER} del número {NUMBER}\.?", True),
+    (rf"Disminuye {NUMBER} en {NUMBER}\.?", False),
 )
 ENGINE = "python-integer-subtraction-v1"
 
