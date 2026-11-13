@@ -17,6 +17,7 @@ import {
   type EduMusicPlaylist,
   type EduMusicTrack,
 } from "@/lib/music/eduai-music-catalog";
+import { nextPlaybackId } from "@/lib/music/playback-order.mjs";
 import { MIX_FAVORITE_SEED_ARTISTS } from "@/lib/music/mix-favorite-seed";
 import { chooseMixRequests, inferredMixSong, learnedVideoTrack, mixSongKey, normalizeArtist, type MixSong } from "@/lib/music/mix-favorite";
 
@@ -361,16 +362,33 @@ function loadYouTubeApi() {
   if (window.YT?.Player) return Promise.resolve();
   if (youtubeApiPromise) return youtubeApiPromise;
 
-  youtubeApiPromise = new Promise<void>((resolve) => {
-    const existing = document.querySelector<HTMLScriptElement>(
-      'script[src="https://www.youtube.com/iframe_api"]',
-    );
-    window.onYouTubeIframeAPIReady = () => resolve();
-    if (existing) return;
-    const script = document.createElement("script");
-    script.src = "https://www.youtube.com/iframe_api";
-    script.async = true;
-    document.head.appendChild(script);
+  youtubeApiPromise = new Promise<void>((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>('script[src="https://www.youtube.com/iframe_api"]');
+    const script = existing || document.createElement("script");
+    let settled = false;
+    const fail = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      script.removeEventListener("error", fail);
+      script.remove();
+      youtubeApiPromise = null;
+      reject(new Error("No se pudo cargar el reproductor de YouTube"));
+    };
+    const timeout = window.setTimeout(fail, 12000);
+    window.onYouTubeIframeAPIReady = () => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(timeout);
+      script.removeEventListener("error", fail);
+      resolve();
+    };
+    script.addEventListener("error", fail, { once: true });
+    if (!existing) {
+      script.src = "https://www.youtube.com/iframe_api";
+      script.async = true;
+      document.head.appendChild(script);
+    }
   });
 
   return youtubeApiPromise;
@@ -421,7 +439,6 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const youtubeReadyRef = useRef(false);
   const youtubeVideoIdRef = useRef<string>("");
   const currentYouTubeTrackRef = useRef<EduMusicTrack>(EMPTY_MUSIC_TRACK);
-  const youtubeRetryRef = useRef(0);
   const volumeRef = useRef(0.62);
   // YouTube emite ENDED, PAUSED y a veces ERROR durante un mismo cambio de
   // clip. Este candado evita que esos eventos atrasados avancen dos o más
@@ -435,6 +452,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const playbackHistoryRef = useRef<string[]>([]);
   const autoAdvanceRef = useRef<string | undefined>(undefined);
   const radioInitialRequestRef = useRef(false);
+  const radioRequestPendingRef = useRef(false);
   const onlineSearchAbortRef = useRef<AbortController | null>(null);
   const onlineSearchRequestRef = useRef(0);
   const [hydrated, setHydrated] = useState(false);
@@ -1192,17 +1210,22 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           if (!window.Hls?.isSupported?.()) {
             audio.src = currentTrack.src;
             audio.load();
+            if (playingRef.current) void audio.play().catch(() => setPlaying(false));
             return;
           }
           const hls = new window.Hls({ enableWorker: true, lowLatencyMode: true });
           hlsRef.current = hls;
           hls.loadSource(currentTrack.src);
           hls.attachMedia(audio);
+          hls.on(window.Hls.Events.MANIFEST_PARSED, () => {
+            if (!cancelled && playingRef.current) void audio.play().catch(() => setPlaying(false));
+          });
         })
         .catch(() => {
           if (cancelled) return;
           audio.src = currentTrack.src;
           audio.load();
+          if (playingRef.current) void audio.play().catch(() => setPlaying(false));
         });
       return () => { cancelled = true; };
     }
@@ -1219,7 +1242,6 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       if (youtubeReadyRef.current && youtubePlayerRef.current) {
         try {
           if (playing) {
-            youtubeRetryRef.current = 0;
             youtubePlayerRef.current.playVideo();
           } else {
             youtubePlayerRef.current.pauseVideo();
@@ -1253,11 +1275,22 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (playing) {
-      audio.play().catch(() => setPlaying(false));
+      if (isHlsUrl(currentTrack.src) && !audio.canPlayType("application/vnd.apple.mpegurl") && !audio.src) return;
+      audio.play().catch((error) => {
+        if (error?.name === "AbortError" || currentYouTubeTrackRef.current.id !== currentTrack.id) return;
+        if (error?.name === "NotAllowedError") {
+          setOnlineError("El navegador bloqueó el inicio automático. Pulsa Reproducir para continuar.");
+          setPlaying(false);
+        } else if (currentTrack.source !== "radio" && playingRef.current) {
+          failedPlaybackRef.current.add(currentTrack.id);
+          setOnlineError(`No se pudo reproducir ${currentTrack.title}. Se omitió de esta sesión.`);
+          nextTrackRef.current("error");
+        } else setPlaying(false);
+      });
     } else {
       audio.pause();
     }
-  }, [playing, currentTrack?.src, currentTrack?.source]);
+  }, [playing, currentTrack?.id, currentTrack?.src, currentTrack?.source]);
 
 
   useEffect(() => {
@@ -1293,6 +1326,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           playbackHistoryRef.current = [];
         }
       }
+      autoAdvanceRef.current = undefined;
       failedPlaybackRef.current.delete(track.id);
       if (track.youtubeVideoId) {
         failedPlaybackRef.current.delete(track.youtubeVideoId);
@@ -1526,14 +1560,16 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     const auto = reason !== "manual";
     if (auto && (!playingRef.current || autoAdvanceRef.current === currentId)) return;
     if (reason === "ended" && isYouTubeQueueTrack(currentTrack) && Date.now() < youtubeTransitionUntilRef.current) return;
-    if (auto) autoAdvanceRef.current = currentId;
+    autoAdvanceRef.current = currentId;
     if (isYouTubeQueueTrack(currentTrack)) youtubeTransitionUntilRef.current = Date.now() + 1400;
     setHasActiveSession(true);
     const restart = () => {
       if (currentTrack.source === "youtube") {
         const player = youtubePlayerRef.current;
-        player?.seekTo?.(Math.max(0, Number(asExtendedTrack(currentTrack)?.previewStartSeconds || 0)), true);
-        player?.playVideo?.();
+        try {
+          player?.seekTo?.(Math.max(0, Number(asExtendedTrack(currentTrack)?.previewStartSeconds || 0)), true);
+          player?.playVideo?.();
+        } catch { setPlaying(false); return; }
       } else if (audioRef.current) {
         audioRef.current.currentTime = 0;
         void audioRef.current.play().catch(() => setPlaying(false));
@@ -1577,22 +1613,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     const playable = list.filter((track) => canAutoPlay(track, failedPlaybackRef.current) &&
       (reason !== "error" || track.id !== currentId));
     if (!playable.length) { setPlaying(false); return; }
-    let next: EduMusicTrack | undefined;
-    if (shuffle) {
-      if (currentId) shuffledPlayedRef.current.add(currentId);
-      let candidates = playable.filter((track) => !shuffledPlayedRef.current.has(track.id));
-      if (!candidates.length && repeat === "all") {
-        shuffledPlayedRef.current.clear();
-        if (currentId && playable.length > 1) shuffledPlayedRef.current.add(currentId);
-        candidates = playable.filter((track) => !shuffledPlayedRef.current.has(track.id));
-      }
-      next = candidates[Math.floor(Math.random() * candidates.length)];
-    } else {
-      const index = list.findIndex((track) => track.id === currentId);
-      const ids = new Set(playable.map((track) => track.id));
-      next = list.slice(index + 1).find((track) => ids.has(track.id)) ??
-        (repeat === "all" ? playable[0] : undefined);
-    }
+    const nextId = nextPlaybackId(list.map((track) => track.id), new Set(playable.map((track) => track.id)),
+      currentId, shuffle, repeat === "all", shuffledPlayedRef.current);
+    const next = playable.find((track) => track.id === nextId);
     if (next) switchTo(next);
     else setPlaying(false);
   }, [baseTracks, currentId, currentTrack, favoriteSession, favoriteTracks, onlineTracks, queue, repeat, shuffle, refillMixFavorite]);
@@ -1663,9 +1686,19 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     if (!videoId) return;
     let cancelled = false;
     let mountRetry: number | null = null;
+    let loadFailures = 0;
 
     const mountPlayer = async () => {
-      await loadYouTubeApi();
+      try { await loadYouTubeApi(); }
+      catch {
+        if (cancelled) return;
+        if (loadFailures++ < 1) mountRetry = window.setTimeout(mountPlayer, 1000);
+        else {
+          setOnlineError("No se pudo conectar con YouTube. Intenta seleccionar la canción nuevamente.");
+          setPlaying(false);
+        }
+        return;
+      }
       if (cancelled || !window.YT?.Player) return;
 
       const target = document.getElementById(YOUTUBE_PLAYER_ID);
@@ -1722,8 +1755,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
           playerVars,
           events: {
             onReady: (event: any) => {
+              if (event.target !== youtubePlayerRef.current) return;
               youtubeReadyRef.current = true;
-              youtubeRetryRef.current = 0;
               startVideo(event.target, true);
             },
             onStateChange: (event: any) => {
@@ -1731,7 +1764,6 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
               if (event.target !== youtubePlayerRef.current) return;
               if (state === window.YT?.PlayerState?.PLAYING) {
                 if (!playingRef.current) { event.target?.pauseVideo?.(); return; }
-                youtubeRetryRef.current = 0;
                 // Solo aprender como "reproducido" cuando YouTube confirma
                 // que el video se está escuchando, no por un clic o búsqueda.
                 const reportedId = event.target?.getVideoData?.()?.video_id || youtubeVideoIdRef.current;
@@ -1746,7 +1778,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
               // YouTube al cargar el siguiente video de la cola.
               if (state === window.YT?.PlayerState?.ENDED) {
                 const reportedId = event.target?.getVideoData?.()?.video_id;
-                if (reportedId && reportedId !== youtubeVideoIdRef.current) return;
+                if (reportedId && reportedId !== currentYouTubeTrackRef.current.youtubeVideoId) return;
                 nextTrackRef.current("ended");
               }
             },
@@ -1799,6 +1831,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       try {
+        const reportedId = player.getVideoData?.()?.video_id;
+        if (reportedId && reportedId !== currentTrack.youtubeVideoId) return;
         const time = Number(player.getCurrentTime?.() || 0);
         const duration = Number(player.getDuration?.() || 0);
         const state = Number(player.getPlayerState?.());
@@ -2066,6 +2100,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
   const searchRadio = useCallback(
     async (term?: string, countryCode = "CL") => {
+      if (radioRequestPendingRef.current) return;
+      radioInitialRequestRef.current = true;
+      radioRequestPendingRef.current = true;
       const clean = term !== undefined ? term.trim() : (radioQuery || "").trim();
       setRadioLoading(true);
       setRadioError("");
@@ -2093,10 +2130,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         setRadioError(error instanceof Error ? error.message : "Error buscando radios online.");
       } finally {
+        radioRequestPendingRef.current = false;
         setRadioLoading(false);
       }
     },
-    [playTrack, radioQuery],
+    [playTrack, radioQuery, setView],
   );
 
   useEffect(() => {
