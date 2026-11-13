@@ -1405,6 +1405,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     shuffledPlayedRef.current.clear();
     playbackHistoryRef.current = [];
     const first = shuffle ? tracks[Math.floor(Math.random() * tracks.length)] : tracks[0];
+    autoAdvanceRef.current = undefined;
     setHasActiveSession(true);
     setCurrentId(first.id);
     setRecentIds((prev) => [first.id, ...prev.filter((id) => id !== first.id)].slice(0, 18));

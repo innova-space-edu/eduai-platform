@@ -12,7 +12,14 @@ test("shuffle plays every favorite before repeating", () => {
     result.push(current);
   }
   assert.equal(new Set(result).size, 4);
-  assert.notEqual(nextPlaybackId(order, all, current, true, true, visited, () => 0), current);
+  const boundary = current;
+  const second = [];
+  for (let i = 0; i < 4; i++) {
+    current = nextPlaybackId(order, all, current, true, true, visited, () => 0);
+    second.push(current);
+  }
+  assert.notEqual(second[0], boundary);
+  assert.equal(new Set(second).size, 4);
 });
 test("sequential mode respects original order and skips failures", () => {
   assert.equal(nextPlaybackId(order, new Set(["a","d"]), "b", false, false, new Set()), "d");
