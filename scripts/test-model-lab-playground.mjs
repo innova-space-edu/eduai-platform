@@ -21,3 +21,15 @@ for(const choice of ["nano","lite","compare"]){
 }
 assert.throws(()=>selectLabModels("invalid","r2"),/INVALID_MODEL_SELECTION/);
 console.log("PASS: admin Model Lab catalog, exact math references and R5 quality gate");
+
+const {parseExactVerification}=await import("../lib/ai/model-lab/exact-verification.ts");
+const exact={supported:true,verified:true,engine:"python-integer-subtraction-v1",answer:"4",
+  steps:["Comprobación: (74) + (35) = 109."],candidate:"74",candidateCorrect:false};
+assert.equal(parseExactVerification(exact).candidateCorrect,false);
+assert.equal(parseExactVerification({...exact,candidate:null,candidateCorrect:null}).answer,"4");
+assert.equal(parseExactVerification({supported:false,verified:false,engine:exact.engine,reason:"Fuera de alcance"}).verified,false);
+assert.throws(()=>parseExactVerification({...exact,candidateCorrect:null}));
+assert.throws(()=>parseExactVerification({...exact,answer:4}));
+assert.throws(()=>parseExactVerification({...exact,verified:false}));
+assert.throws(()=>parseExactVerification({...exact,engine:"llm"}));
+console.log("PASS: independent Python exact verifier response contract");

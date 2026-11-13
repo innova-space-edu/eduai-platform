@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
+import LabExactVerifier from "./LabExactVerifier";
 import {
   Activity, AlertCircle, ArrowUpRight, BrainCircuit, Calculator, Check, CheckCircle2,
   Clock3, Copy, Download, FlaskConical, LoaderCircle, Play, RefreshCw, RotateCcw,
@@ -221,6 +222,8 @@ export default function NanoLitePlayground() {
           {status?.reason||"Comprobando conexión…"} · La interfaz está preparada, pero necesita el servicio privado de inferencia en el Dell.
         </p>}
       </section>
+
+      <LabExactVerifier prompt={prompt} onPromptChange={setPrompt}/>
 
       <div className="grid gap-4 xl:grid-cols-[300px_minmax(0,1fr)]">
         <aside className="space-y-4">

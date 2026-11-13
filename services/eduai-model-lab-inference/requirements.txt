@@ -3,4 +3,4 @@ uvicorn==0.34.2
 transformers==5.20.2
 peft==0.21.2
 accelerate==1.11.0
-safetensors==0.6.2
+safetensors==0.8.0

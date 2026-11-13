@@ -129,3 +129,13 @@ export async function inspectLabInferenceJob(model:string,jobId:string):Promise<
     promptTokens:number(reply.prompt_tokens),completionTokens:number(reply.completion_tokens),
   }};
 }
+
+/** Uses the same private host/token as inference, without probing or loading models. */
+export async function verifyLabSubtraction(prompt:string,candidate?:string){
+  const {parseExactVerification}=await import("./exact-verification");
+  const payload=await callRemote("/verify-math",{
+    method:"POST",body:JSON.stringify({prompt,candidate:candidate??null}),
+  },8000);
+  try{return parseExactVerification(payload)}
+  catch{throw new LabInferenceError("El Dell devolvió una comprobación inválida.",502)}
+}

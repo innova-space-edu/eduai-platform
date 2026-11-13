@@ -126,3 +126,45 @@ Los tokens no se transmiten al navegador. El servidor no acepta URLs de inferenc
 - La CI general ejecuta TypeScript, pruebas y build de Next.js.
 
 El servicio debe instalarse y sus variables configurarse antes de que la página web pueda responder mediante los modelos. Una vista previa de Vercel sin la conexión mostrará correctamente Sin conexión, no respuestas simuladas.
+
+### Verificador exacto conectado al laboratorio
+
+El panel **Verificador exacto de restas** en `/admin/model-lab/playground`
+usa `POST /api/admin/model-lab-playground/verify`. La ruta requiere sesión de
+administrador y reenvía al `POST /verify-math` del Dell mediante la misma URL,
+Bearer token y credenciales Cloudflare Access de la inferencia. No requiere
+variables nuevas, adaptadores ni carga de pesos.
+
+El panel admite seis redacciones explícitas de restas de enteros entre
+paréntesis, por ejemplo `Resta (35) de (39).`. El candidato es opcional:
+con `74` responde resultado `4` y candidato incorrecto; sin candidato muestra
+la solución. Otras redacciones, ecuaciones, fracciones o instrucciones
+adicionales quedan sin verificar. Los pasos son una plantilla exacta de
+Python, no texto del modelo ni una certificación de su explicación libre.
+La referencia matemática previa en Vercel se mantiene separada.
+
+Para actualizar un Dell ya instalado, después de traer este cambio al checkout:
+
+```bash
+cd ~/eduai-model-lab-setup/services/eduai-model-lab-inference
+sudo docker compose --env-file /srv/eduai-model-lab/.env \
+  -f compose.example.yml up -d --build --wait --wait-timeout 120
+sudo docker exec -i eduai-model-lab-inference python - <<'PY'
+import json, os, urllib.request
+body=json.dumps({"prompt":"Resta (35) de (39).","candidate":"74"}).encode()
+request=urllib.request.Request("http://127.0.0.1:8000/verify-math", data=body,
+    headers={"Content-Type":"application/json",
+             "Authorization":"Bearer "+os.environ["EDUAI_MODEL_LAB_TOKEN"]})
+with urllib.request.urlopen(request,timeout=8) as response:
+    result=json.load(response)
+assert result["answer"]=="4" and result["candidateCorrect"] is False
+print("[OK] Verificador Python activo; candidato 74 rechazado; resultado 4.")
+PY
+```
+
+El token se obtiene dentro del contenedor y no se imprime. Este paso reconstruye
+el servicio existente sin modificar los adaptadores montados en solo lectura.
+El Dockerfile normaliza permisos de lectura del código, usa safetensors 0.8.0
+compatible con Transformers 5.20.2 y no bloquea verificaciones/healthchecks con
+un límite global de dos conexiones. La cola de inferencia conserva su límite
+propio. El código también admite el `BatchEncoding` de tokenización como Mapping.
