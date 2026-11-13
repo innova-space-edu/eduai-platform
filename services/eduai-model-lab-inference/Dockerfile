@@ -5,8 +5,9 @@ RUN groupadd -g 10001 eduai && useradd -u 10001 -g 10001 -m -s /usr/sbin/nologin
 RUN pip install --no-cache-dir torch==2.11.0 --index-url https://download.pytorch.org/whl/cpu
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
-COPY server.py ./server.py
+COPY --chmod=0444 server.py exact_verifier.py ./
+RUN chmod 0755 /app
 RUN mkdir -p /cache /models && chown -R eduai:eduai /cache
 USER eduai
 EXPOSE 8000
-CMD ["uvicorn","server:app","--host","0.0.0.0","--port","8000","--workers","1","--limit-concurrency","2"]
+CMD ["uvicorn","server:app","--host","0.0.0.0","--port","8000","--workers","1"]

@@ -5,6 +5,7 @@ or loads an unapproved R5 checkpoint. Its only model IDs are an explicit allowli
 """
 from __future__ import annotations
 import asyncio
+from collections.abc import Mapping
 import gc
 import re
 from concurrent.futures import ThreadPoolExecutor
@@ -16,6 +17,7 @@ import time
 from pathlib import Path
 from typing import Any
 from fastapi import FastAPI, HTTPException, Request
+from exact_verifier import verify_subtraction
 
 app = FastAPI(title="EDUAI Nano/Lite Inference", docs_url=None, redoc_url=None, openapi_url=None)
 ROOT = Path(os.getenv("EDUAI_MODEL_LAB_MODELS_DIR", "/models"))
@@ -165,7 +167,7 @@ def generate(model_id: str, messages: list[dict[str, str]], max_tokens: int) -> 
                 prompt_tokens = fallback_tokens()
         else:
             prompt_tokens = fallback_tokens()
-        if isinstance(prompt_tokens, dict):
+        if isinstance(prompt_tokens, Mapping):
             input_ids = prompt_tokens["input_ids"]
             attention_mask = prompt_tokens.get("attention_mask")
         else:
@@ -268,3 +270,22 @@ async def chat(request: Request):
         # Do not expose prompts, tokens or filesystem paths to clients.
         print("INFERENCE_FAILURE", type(error).__name__, flush=True)
         raise HTTPException(status_code=503, detail="MODEL_INFERENCE_FAILURE") from None
+
+
+@app.post("/verify-math")
+async def verify_math(request: Request):
+    """Exact CPU arithmetic, independent of adapters, queue and model loading."""
+    check_token(request)
+    # Enforce the bound while reading: no unbounded body allocation.
+    body = bytearray()
+    async for chunk in request.stream():
+        body.extend(chunk)
+        if len(body) > 6000:
+            raise HTTPException(status_code=413, detail="BODY_TOO_LARGE")
+    try:
+        payload = json.loads(body)
+    except (ValueError, UnicodeError):
+        raise HTTPException(status_code=400, detail="INVALID_JSON")
+    if not isinstance(payload, dict) or not isinstance(payload.get("prompt"), str):
+        raise HTTPException(status_code=422, detail="INVALID_PAYLOAD")
+    return verify_subtraction(payload["prompt"], payload.get("candidate"))
