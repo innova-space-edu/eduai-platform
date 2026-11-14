@@ -378,3 +378,7 @@ patchExamApi()
 console.log("[exam-document-import] PDF/DOCX, imágenes por alternativa y autoguardado conectados")
 
 await import("./apply-exam-manual-unified.mjs")
+
+await import("./apply-exam-creator-wizard.mjs")
+
+await import("./apply-exam-creator-draft.mjs")
