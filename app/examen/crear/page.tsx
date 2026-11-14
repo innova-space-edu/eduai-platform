@@ -377,13 +377,13 @@ function getQuestionPoints(q: Question): number {
   if (q.type === "true_false") {
     return (
       Math.max(0, Number(q.selectionPoints || 1)) +
-      Math.max(0, Number(q.justificationMaxPoints || 2))
+      Math.max(0, Number(q.justificationMaxPoints ?? 2))
     );
   }
   if (q.type === "mixed_choice_development") {
     return (
       Math.max(0, Number(q.selectionPoints || 3)) +
-      Math.max(0, Number(q.developmentMaxPoints || 2))
+      Math.max(0, Number(q.developmentMaxPoints ?? 2))
     );
   }
   if (Array.isArray(q.rubric) && q.rubric.length > 0)
@@ -395,7 +395,7 @@ function getQuestionPoints(q: Question): number {
 function normalizeAIQuestion(raw: any): Question {
   const base = {
     id: uid(),
-    question: (raw.question ?? raw.enunciado ?? "").trim(),
+    question: String(raw.question ?? raw.enunciado ?? "").trim(),
     imageUrl: String(raw.imageUrl ?? raw.image_url ?? raw.image ?? "").trim(),
   };
 
@@ -455,6 +455,14 @@ function normalizeAIQuestion(raw: any): Question {
       rubric,
       maxPoints,
     }) as DevelopmentQuestion;
+  }
+
+  if (raw.type === "mixed_choice_development") {
+    const choice = normalizeAIQuestion({ ...raw, type: "multiple_choice" }) as MultipleChoiceQuestion;
+    const development = normalizeAIQuestion({ ...raw, type: "development" }) as DevelopmentQuestion;
+    const selectionPoints = Number(raw.selectionPoints ?? 3);
+    const developmentMaxPoints = Number(raw.developmentMaxPoints ?? 2);
+    return enrichQuestionAnswerKey({ ...choice, type: "mixed_choice_development", modelAnswer: development.modelAnswer, expectedLatex: development.expectedLatex, rubric: development.rubric, selectionPoints, developmentMaxPoints, showRubricToStudent: raw.showRubricToStudent === true, maxPoints: selectionPoints + developmentMaxPoints }) as MixedChoiceDevelopmentQuestion;
   }
 
   // multiple_choice (default)
@@ -806,7 +814,7 @@ export default function CrearExamenPage() {
             solutionSteps: q.solutionSteps || [],
             distractorRationales: q.distractorRationales || [],
             selectionPoints: Number(q.selectionPoints || 3),
-            developmentMaxPoints: Number(q.developmentMaxPoints || 2),
+            developmentMaxPoints: Number(q.developmentMaxPoints ?? 2),
             modelAnswer: q.modelAnswer || "",
             expectedLatex: q.expectedLatex || "",
             rubric: q.rubric.map((r) => ({
@@ -826,7 +834,7 @@ export default function CrearExamenPage() {
             explanation: q.explanation || "",
             solutionSteps: q.solutionSteps || [],
             selectionPoints: Number(q.selectionPoints || 1),
-            justificationMaxPoints: Number(q.justificationMaxPoints || 2),
+            justificationMaxPoints: Number(q.justificationMaxPoints ?? 2),
             maxPoints: getQuestionPoints(q),
           };
         return {
@@ -1106,10 +1114,10 @@ Usa el mismo esquema de calidad que antes.`;
         body: JSON.stringify({ prompt: singlePrompt, mode: "single", questionType: q.type }),
       });
       const data = await res.json();
-      if (!data?.success) throw new Error(data?.error || "No se pudo regenerar la pregunta.");
-      const fresh = normalizeAIQuestion(
-        data.question ?? data.questions?.[0] ?? {},
-      );
+      if (!res.ok || !data?.success) throw new Error(data?.error || "No se pudo regenerar la pregunta.");
+      const raw = data.question ?? data.questions?.[0];
+      if (!raw || raw.type !== q.type || (raw.type !== "development" && (!Number.isInteger(raw.correctAnswer) || raw.correctAnswer < 0 || raw.correctAnswer >= (raw.type === "true_false" ? 2 : (raw.options?.length ?? 0))))) throw new Error("La IA devolvió una respuesta inválida.");
+      const fresh = normalizeAIQuestion(raw);
       if (fresh.type !== q.type || !fresh.question.trim()) throw new Error("La respuesta no corresponde al tipo de pregunta solicitado.");
       setAiPreview((prev) => prev.map((p, i) => (i === idx && p.id === q.id ? fresh : p)));
     } catch (error) {
@@ -1237,7 +1245,7 @@ Usa el mismo esquema de calidad que antes.`;
         </div>
 
         <div className="sticky top-3 z-40 mb-6 rounded-[30px] border border-slate-200 bg-white/95 p-2 text-xs font-bold text-slate-600 shadow-xl shadow-slate-200/70 backdrop-blur-xl">
-          <div className="grid gap-2 md:grid-cols-6">
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 lg:grid-cols-7">
             {EXAM_CREATOR_STEPS.map((step, index) => (
               <button
                 key={step.id}

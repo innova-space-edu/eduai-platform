@@ -92,9 +92,8 @@ function parseAnswerIndex(raw: unknown, options: string[], type: ImportedExamQue
   if (raw === null || raw === undefined || raw === "") return null
   if (typeof raw === "boolean" && type === "true_false") return raw ? 0 : 1
   if (typeof raw === "number" && Number.isFinite(raw)) {
-    const n = Math.round(raw)
-    if (n >= 0 && n < Math.max(1, options.length)) return n
-    if (n >= 1 && n <= options.length) return n - 1
+    const n = raw
+    if (Number.isInteger(n) && n >= 0 && n < options.length) return n
     return null
   }
 
@@ -112,7 +111,6 @@ function parseAnswerIndex(raw: unknown, options: string[], type: ImportedExamQue
   const numeric = Number(value)
   if (Number.isInteger(numeric)) {
     if (numeric >= 0 && numeric < options.length) return numeric
-    if (numeric >= 1 && numeric <= options.length) return numeric - 1
   }
   const exact = options.findIndex((opt) => opt.trim().toLowerCase() === value)
   return exact >= 0 ? exact : null

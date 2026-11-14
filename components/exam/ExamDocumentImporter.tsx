@@ -50,7 +50,7 @@ export default function ExamDocumentImporter({ onApply }: Props) {
   const canApply = useMemo(() => {
     if (!result || status !== "ready") return false
     if (result.preview.missingAnswers > 0) return false
-    return result.questions.length > 0
+    return result.questions.length > 0 && result.questions.every((q: any) => q && ["file", "ai_inferred"].includes(q.answerSource) && String(q.question || "").trim() && (q.type === "development" || (Number.isInteger(q.correctAnswer) && q.correctAnswer >= 0 && q.correctAnswer < (q.type === "true_false" ? 2 : (q.options?.length ?? 0)))) && ((q.type !== "development" && q.type !== "mixed_choice_development") || String(q.modelAnswer || q.expectedLatex || "").trim()))
   }, [result, status])
 
   function chooseFile(next: File | null) {
