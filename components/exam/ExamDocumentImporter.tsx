@@ -25,6 +25,10 @@ export type ExamDocumentImportResult = {
 
 type Props = {
   onApply: (result: ExamDocumentImportResult, mode: "replace" | "append") => boolean | void
+  result?: ExamDocumentImportResult | null
+  onResultChange?: (value: ExamDocumentImportResult | null) => void
+  inferAnswers?: boolean
+  onInferAnswersChange?: (value: boolean) => void
 }
 
 const MAX_BYTES = EXAM_IMPORT_MAX_BYTES
@@ -34,18 +38,23 @@ function formatBytes(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
-export default function ExamDocumentImporter({ onApply }: Props) {
+export default function ExamDocumentImporter({ onApply, result: controlledResult, onResultChange, inferAnswers: controlledInferAnswers, onInferAnswersChange }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const requestRef = useRef<AbortController | null>(null)
   const applyingRef = useRef(false)
   useEffect(() => () => requestRef.current?.abort(), [])
   const [file, setFile] = useState<File | null>(null)
   const [dragging, setDragging] = useState(false)
-  const [inferAnswers, setInferAnswers] = useState(false)
+  const [localInferAnswers, setLocalInferAnswers] = useState(false)
+  const inferAnswers = controlledInferAnswers ?? localInferAnswers
+  const setInferAnswers = onInferAnswersChange ?? setLocalInferAnswers
   const mode = "append" as const
   const [status, setStatus] = useState<"idle" | "analyzing" | "ready" | "error" | "applied">("idle")
   const [error, setError] = useState("")
-  const [result, setResult] = useState<ExamDocumentImportResult | null>(null)
+  const [localResult, setLocalResult] = useState<ExamDocumentImportResult | null>(null)
+  const result = controlledResult === undefined ? localResult : controlledResult
+  const setResult = onResultChange ?? setLocalResult
+  useEffect(() => { if (result && status === "idle") setStatus("ready") }, [result, status])
 
   const canApply = useMemo(() => {
     if (!result || status !== "ready") return false
