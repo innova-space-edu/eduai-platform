@@ -441,10 +441,14 @@ function friendlyProviderError(message: string): string {
     return "El proveedor de IA está temporalmente sobrecargado. No necesariamente es problema de tu API key. Intenta nuevamente o usa otro proveedor/fallback."
   }
 
+  if (lower.includes("timeout") || lower.includes("timed out") || lower.includes("aborted")) return "Un proveedor superó el tiempo de respuesta. Reintenta para continuar desde el avance guardado.";
+
   if (lower.includes("tanda incompleta")) return "La IA no completó la cantidad y los tipos solicitados. Prueba con una tanda más pequeña."
 
-  if (lower.includes("json") || lower.includes("unexpected token")) {
-    return "La IA respondió con un formato inválido. Se recomienda generar menos preguntas por tanda o usar un tema más específico."
+  if (lower.includes("rúbrica") || lower.includes("enunciado") || lower.includes("respuesta modelo")) return "La IA devolvió una pregunta o pauta incompleta. No se incorporó contenido sin validar. Reintenta la pregunta pendiente.";
+
+  if (lower.includes("json") || lower.includes("unexpected token") || lower.includes("formato de evaluación inválido")) {
+    return "La IA respondió con datos incompletos o JSON inválido. Reintenta para continuar desde las preguntas verificadas."
   }
 
   if (lower.includes("api key") || lower.includes("unauthorized") || msg.includes("401") || msg.includes("403")) {
@@ -456,7 +460,7 @@ function friendlyProviderError(message: string): string {
 
 function compactPromptForProvider(basePrompt: string): string {
   // Preserve the complete OA, source and accessibility directives. Request size is bounded at the endpoint.
-  return String(basePrompt || "").trim()
+  return String(basePrompt || "").replace(/(ESTRUCTURA EXACTA DE LA TANDA\n)(?:Total: \d+ preguntas\.\n|\- \d+ (?:multiple_choice|mixed_choice_development|true_false|development):[^\n]*\n)+/u, "$1Las cantidades exactas se indican al final de esta solicitud.\n").trim()
 }
 
 function promptForBatch(basePrompt: string, batch: BatchPlan, index: number, totalBatches: number): string {
@@ -471,7 +475,7 @@ Genera EXACTAMENTE ${batch.total} preguntas:
 Cada objeto debe incluir su respuesta esperada y explicación en el MISMO contexto de generación.
 Para alternativas, answerText debe coincidir exactamente con options[correctAnswer] y los cuatro distractorRationales deben explicar la calidad de cada opción.
 Salida obligatoria: {"title":"...","questions":[...]}
-No agregues texto fuera del JSON. El enunciado SIEMPRE es question (cadena, no objeto); cada pregunta es un objeto independiente. Usa exclusivamente estas claves exactas. Para development: {"type":"development","question":"enunciado completo","responseMode":"long_text","modelAnswer":"solución completa","expectedLatex":"","explanation":"fundamento","solutionSteps":["paso"],"rubric":[{"criteria":"criterio específico","points":2}],"maxPoints":2,"oaCodes":[],"pedagogicalMode":"id"}; el ejemplo indica estructura, no valores a copiar. Si responseMode es short_text, añade acceptedAnswers. Para mixed_choice_development añade options, correctAnswer, answerText, selectionPoints y developmentMaxPoints. No omitas el enunciado ni la pauta; usa criterios específicos con puntos positivos. No repitas ni envuelvas cada objeto bajo otra clave. Escapa las barras de LaTeX según JSON.`
+No agregues texto fuera del JSON. El enunciado SIEMPRE es question (cadena, no objeto); cada pregunta es un objeto independiente. Usa exclusivamente estas claves exactas. Para development: {"type":"development","question":"enunciado completo","responseMode":"forma seleccionada","modelAnswer":"solución completa","expectedLatex":"","explanation":"fundamento","solutionSteps":["paso"],"rubric":[{"criteria":"criterio específico","points":2}],"maxPoints":2,"oaCodes":[],"pedagogicalMode":"id"}; el ejemplo indica estructura, no valores a copiar. Si responseMode es short_text, añade acceptedAnswers. Para mixed_choice_development añade options, correctAnswer, answerText, selectionPoints y developmentMaxPoints. No omitas el enunciado ni la pauta; usa criterios específicos con puntos positivos. No repitas ni envuelvas cada objeto bajo otra clave. Escapa las barras de LaTeX según JSON.`
 }
 
 function tokenBudgetForBatch(questionCount: number): number {

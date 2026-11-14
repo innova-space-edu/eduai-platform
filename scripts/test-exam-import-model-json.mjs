@@ -6,3 +6,6 @@ test("JSON import regression 2", () => assert.equal(parseExamModelJson("{\"quest
 test("JSON import regression 3", () => assert.equal(parseExamModelJson("```json\n{\"questions\":[{\"question\":\"$\\sqrt{9}$\"}]}\n```").questions[0].question, "$\\sqrt{9}$"));
 test("JSON import regression 4", () => assert.equal(parseExamModelJson("{\"questions\":[{\"question\":\"$\\unknown{3}$\"}]}").questions[0].question, "$\\unknown{3}$"));
 test("truncated response is rejected without inventing questions", () => assert.throws(() => parseExamModelJson('{"questions":['), /formato de evaluación inválido/));
+
+test("raw TeX with a legal JSON escape stays intact",()=>assert.equal(parseExamModelJson(String.raw`{"question":"$\frac{2}{3}$"}`).question,"$\\frac{2}{3}$"));
+test("top-level arrays preserve all questions",()=>assert.deepEqual(parseExamModelJson('[{"question":"A"},{"question":"B"}]'),[{question:"A"},{question:"B"}]));

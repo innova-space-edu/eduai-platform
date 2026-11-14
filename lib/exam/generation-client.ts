@@ -55,7 +55,7 @@ export async function requestExamGeneration(
     if(next)phase=next
     const elapsed=(Date.now()-start)/1000, finished=state.questions.length-initial
     const remaining=total-state.questions.length
-    const estimate=finished>0?Math.max(0,Math.ceil((elapsedVerified/finished)*remaining-(elapsed-elapsedVerified))):null
+    const estimate=remaining===0?0:finished>0?Math.max(1,Math.ceil((elapsedVerified/finished)*remaining-(elapsed-elapsedVerified))):null
     setProgress(phase+" · "+state.questions.length+"/"+total+" preguntas verificadas")
     onProgress?.({phase,completed:state.questions.length,total,elapsedSeconds:Math.floor(elapsed),remainingSeconds:estimate})
   }
