@@ -3,6 +3,7 @@
 "use client";
 
 import { EXAM_AI_MAX_QUESTIONS } from "@/lib/exam/creator-limits";
+import { requestExamGeneration, type ExamGenerationCache } from "@/lib/exam/generation-client";
 import { useMemo, useState, useRef, useEffect } from "react";
 import ExamMathText from "@/components/ui/ExamMathText";
 import { useRouter } from "next/navigation";
@@ -712,6 +713,9 @@ export default function CrearExamenPage() {
   const [aiPreview, setAiPreview] = useState<Question[]>([]);
   const [aiProgressLabel, setAiProgressLabel] = useState("");
   const aiApplyLockRef = useRef(false);
+  const generationCacheRef = useRef<ExamGenerationCache | null>(null);
+  const aiPreviewScopeRef = useRef("");
+  const getGenerationScope = () => JSON.stringify([curriculumNivel, curriculumCurso, subject, [...selectedOAIds].sort()]);
   const [aiRegenError, setAiRegenError] = useState("");
   const [aiRegenIdx, setAiRegenIdx] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -1017,6 +1021,7 @@ REGLAS ESTRICTAS:
     abortRef.current?.abort();
     aiApplyLockRef.current = false;
     setAiProgressLabel("Preparando contexto, generando y verificando preguntas…");
+    const requestScope = getGenerationScope();
     const controller = new AbortController();
     abortRef.current = controller;
 
@@ -1027,7 +1032,7 @@ REGLAS ESTRICTAS:
     setAiPreview([]);
 
     try {
-      const res = await fetch("/api/agents/exam-generate", {
+      const res = await requestExamGeneration("/api/agents/exam-generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         signal: controller.signal,
@@ -1039,7 +1044,7 @@ REGLAS ESTRICTAS:
           tf: aiTF,
           dev: aiDev,
         }),
-      });
+      }, setAiProgressLabel, generationCacheRef);
       const data = await res.json().catch(() => null);
       if (controller.signal.aborted || abortRef.current !== controller) return;
       if (!res.ok || !data?.success) {
@@ -1070,6 +1075,7 @@ Detalle técnico: ${data.details}`
       // Auto-rellenar título si está vacío
       if (!title.trim() && data.title) setTitle(data.title);
 
+      aiPreviewScopeRef.current = requestScope;
       setAiPreview(normalized);
       setAiProvider(Array.isArray(data.providers) && data.providers.length > 1 ? "multiple" : ["groq", "openrouter", "cloudflare"].includes(data.provider) ? data.provider : "");
       setAiStatus("done");
@@ -1084,6 +1090,7 @@ Detalle técnico: ${data.details}`
 
   const importAIQuestions = () => {
     if (aiPreview.length === 0 || aiRegenIdx !== null || aiStatus !== "done" || aiApplyLockRef.current) return;
+    if (aiPreviewScopeRef.current !== getGenerationScope()) { setAiError("El curso, la asignatura o la selección de OA cambiaron. Genera otra tanda para este contexto."); return; }
     aiApplyLockRef.current = true;
     setQuestions((prev) => appendExamQuestions(prev, aiPreview));
     if (aiPreview.some((q) => q.type === "development" || q.type === "mixed_choice_development")) {
@@ -1100,6 +1107,7 @@ Detalle técnico: ${data.details}`
   const regenerateSingleQuestion = async (idx: number) => {
     const q = aiPreview[idx];
     if (!q || aiRegenIdx !== null || aiStatus !== "done") return;
+    if (aiPreviewScopeRef.current !== getGenerationScope()) { setAiRegenError("El contexto curricular cambió. Genera nuevamente."); return; }
     setAiRegenError("");
     setAiRegenIdx(idx);
     try {
@@ -2399,7 +2407,7 @@ Usa el mismo esquema de calidad que antes.`;
                         {aiProgressLabel || "Generando con IA..."}
                       </span>
                     ) : (
-                      "✨ Generar preguntas con IA"
+                      generationCacheRef.current ? "Reintentar generación" : "✨ Generar preguntas con IA"
                     )}
                   </button>
 

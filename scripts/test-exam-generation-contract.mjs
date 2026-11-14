@@ -16,3 +16,8 @@ test("OA and answer contract rejects invalid and duplicate questions", () => {
  assert.ok(examContractIssues(q,curriculum,new Set([normalizeStem(q.question)])).length);
  assert.deepEqual(examContractIssues({...q,oaCodes:[]},{...curriculum,requireOA:false},new Set()),[]);
 });
+
+test("math operations are not false duplicate matches", () => {
+ assert.notEqual(normalizeStem("Calcula 2+3"), normalizeStem("Calcula 2-3"));
+ assert.equal(normalizeStem("¿Cuál es la probabilidad?"), normalizeStem("Cual es la probabilidad"));
+});

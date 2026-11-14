@@ -307,6 +307,7 @@ function patchPage() {
     "placeholder disciplinar",
   )
 
+  source = source.replace('JSON.stringify([curriculumNivel, curriculumCurso, subject, [...selectedOAIds].sort()])', 'JSON.stringify([curriculumNivel, curriculumCurso, subject, [...selectedOAIds].sort(), aiRequireOA, [...aiModeIds].sort()])')
   source = replaceRequired(
     source,
     '          existingQuestions: questions.map((q) => q.question).filter((q) => q.trim()),',

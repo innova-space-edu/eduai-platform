@@ -517,7 +517,11 @@ async function validateAndRepairWithProvider(
         if (quality) issues.push(...quality.issues.filter(issue => issue.severity === "error").map(issue => issue.message))
         if (question?.type !== checked.type) issues.push("El tipo no se conservó")
       } else issues.push("Pregunta inválida")
-      if (!issues.length) seen.add(normalizeStem(question.question))
+      if (!issues.length && checked) {
+        const normalized = normalizeStem(checked.question);
+        if (seen.has(normalized)) issues.push("Enunciado repetido");
+        else { seen.add(normalized); seen.add(normalizeStem(question.question)); }
+      }
       return issues.length ? [{ index, issues, question }] : []
     })
     if (!invalid.length) return prepared
@@ -675,7 +679,7 @@ export async function POST(req: NextRequest) {
     if (curriculum.requireOA && !curriculum.oaCodes.length) return NextResponse.json({ error: "Selecciona al menos un OA antes de generar preguntas." }, { status: 400 });
     if (!curriculum.modeIds.length) return NextResponse.json({ error: "Selecciona al menos un modo pedagógico." }, { status: 400 });
   }
-  const existing = Array.isArray(body.existingQuestions) ? body.existingQuestions.filter((q: unknown) => typeof q === "string").slice(0, 200) : [];
+  const existing = Array.isArray(body.existingQuestions) ? body.existingQuestions.filter((q: unknown) => typeof q === "string").slice(-200) : [];
   const priorStems = new Set<string>(existing.map(normalizeStem));
   const curricularPrompt = curriculum ? `\nCONTRATO CURRICULAR: ${JSON.stringify(curriculum)}. Usa pedagogicalMode como identificador exacto de modeIds y oaCodes únicamente de esta lista. Si requireOA es true, incluye al menos uno.` : "";
   const requestPrompt = enhancedPrompt + curricularPrompt + (existing.length ? `\nNo repitas preguntas existentes: ${JSON.stringify(existing.map((q: string) => q.slice(0, 500)))}` : "");
@@ -774,7 +778,7 @@ export async function POST(req: NextRequest) {
   const providersUsed = new Set<string>();
   const errors: string[] = [];
   let title = "";
-  let preferred = 0;
+  let preferred = Math.max(0, providers.findIndex(provider => provider.id === body.preferredProvider));
   for (let i = 0; i < batches.length; i++) {
     if (req.signal.aborted) return NextResponse.json({ error: "Generación cancelada." }, { status: 499 });
     const batch = batches[i];
