@@ -384,3 +384,5 @@ await import("./apply-exam-creator-wizard.mjs")
 await import("./apply-exam-creator-draft.mjs")
 
 await import("./apply-exam-visual-review.mjs")
+
+await import("./apply-exam-correction-review.mjs")

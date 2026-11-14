@@ -985,7 +985,6 @@ REGLAS ESTRICTAS:
    f) answerText = texto IDÉNTICO a options[correctAnswer]
    g) explanation explica por qué esa respuesta es correcta
    h) solutionSteps contiene el procedimiento o fundamento
-   i) distractorRationales contiene 4 textos, uno por opción
 5. true_false: correctAnswer:0(Verdadero) o 1(Falso), answerText, explanation, solutionSteps, selectionPoints:1, justificationMaxPoints:2
 6. development: modelAnswer, expectedLatex si corresponde, explanation, solutionSteps, rubric:[{criteria,points}], maxPoints:suma
 7. LaTeX inline con $...$ y bloque con $$...$$. Usa backslash real (\).
@@ -1112,7 +1111,7 @@ REGLAS ESTRICTAS:
 Dificultad: ${aiDiff}. 
 Responde ÚNICAMENTE con JSON: { "question": {...} }
 Genera la pregunta y su pauta juntas. Incluye answerText, explanation y solutionSteps.
-Si es multiple_choice: 4 options coherentes, correctAnswer, answerText idéntico a options[correctAnswer] y distractorRationales con 4 elementos.
+Si es multiple_choice: 4 options coherentes, correctAnswer, answerText idéntico a options[correctAnswer].
 Si es development: modelAnswer, expectedLatex si corresponde, explanation, solutionSteps y rubric.
 Usa el mismo esquema de calidad que antes.`;
 

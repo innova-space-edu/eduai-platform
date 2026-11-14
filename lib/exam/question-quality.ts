@@ -100,9 +100,6 @@ export function assessQuestionQuality(question: any): QuestionQualityIssue[] {
     if (!Array.isArray(question?.solutionSteps) || question.solutionSteps.length === 0) {
       issues.push({ code: "missing_solution_steps", message: "Faltan pasos o fundamento de la solución.", severity: "warning" })
     }
-    if (!Array.isArray(question?.distractorRationales) || question.distractorRationales.length !== options.length) {
-      issues.push({ code: "missing_distractor_rationales", message: "Falta justificar los distractores para revisar su coherencia.", severity: "warning" })
-    }
   }
 
   if (type === "true_false") {

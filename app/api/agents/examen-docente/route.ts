@@ -5,6 +5,8 @@ import { randomUUID } from "crypto"
 import { createClient } from "@supabase/supabase-js"
 import { getDesignTemplateSummary } from "@/lib/design-templates/registry"
 import { enrichQuestionAnswerKey } from "@/lib/exam/question-quality"
+import { examAnswerConsistencyIssues } from "@/lib/exam/answer-consistency.mjs"
+import { correctionPublicationIssue } from "@/lib/exam/correction-review.mjs"
 import {
   calculateGradeFromPercentage,
   calculateScoreSummary,
@@ -878,6 +880,8 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      const correctionIssue = correctionPublicationIssue(questions, examAnswerConsistencyIssues)
+      if(correctionIssue) return NextResponse.json({error:correctionIssue},{status:422})
       const sanitizedQuestions = sanitizeQuestions(questions)
 
       let code = generateCode()
@@ -1134,6 +1138,8 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      const correctionIssue = correctionPublicationIssue(questions, examAnswerConsistencyIssues)
+      if(correctionIssue) return NextResponse.json({error:correctionIssue},{status:422})
       const sanitized = Array.isArray(questions)
         ? questions.map(sanitizeQuestion)
         : undefined

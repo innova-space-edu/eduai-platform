@@ -76,10 +76,9 @@ export function ManualQuestionTools({q,patch,oaOptions,modes,requireOA,onReuse,o
       </div>
     </details>
     <details className="rounded-xl border border-slate-200 bg-white p-3">
-      <summary className="cursor-pointer text-xs font-bold text-slate-800">Pauta ampliada · pasos y distractores</summary>
+      <summary className="cursor-pointer text-xs font-bold text-slate-800">Pauta ampliada · procedimiento esperado</summary>
       <div className="mt-3 space-y-2">
         <label className="block text-xs font-semibold">Pasos o fundamentos esperados (uno por línea)<ExamVisualEditor className={field+" min-h-24"} value={(q.solutionSteps||[]).join("\n")} onChange={e=>patch({solutionSteps:e.target.value.split("\n")})}/></label>
-        {(q.type==="multiple_choice"||q.type==="mixed_choice_development")&&(q.options||[]).map((_,i)=><label key={i} className="block text-xs font-semibold">Justificación alternativa {String.fromCharCode(65+i)}<ExamVisualEditor className={field} value={q.distractorRationales?.[i]||""} onChange={e=>{const next=(q.options||[]).map((_,j)=>q.distractorRationales?.[j]||"");next[i]=e.target.value;patch({distractorRationales:next})}}/></label>)}
       </div>
     </details>
     {hasStimulus&&<details className="rounded-xl border border-sky-200 bg-sky-50 p-3">
