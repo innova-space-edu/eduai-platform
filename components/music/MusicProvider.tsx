@@ -18,6 +18,7 @@ import {
   type EduMusicTrack,
 } from "@/lib/music/eduai-music-catalog";
 import { nextPlaybackId } from "@/lib/music/playback-order.mjs";
+import { isRadioTrack, nextRadioAttempt } from "@/lib/music/radio-session.mjs";
 import { MIX_FAVORITE_SEED_ARTISTS } from "@/lib/music/mix-favorite-seed";
 import { chooseMixRequests, inferredMixSong, learnedVideoTrack, mixSongKey, normalizeArtist, type MixSong } from "@/lib/music/mix-favorite";
 
@@ -334,9 +335,6 @@ function isFmdosTrack(track?: EduMusicTrack | null) {
   return text.includes("fmdos") || text.includes("fm dos") || text.includes("fm2");
 }
 
-function isRadioTrack(track: EduMusicTrack) {
-  return track.source === "radio" || track.id.startsWith("radio-");
-}
 function radioSources(track: EduMusicTrack, catalog: EduMusicTrack[]) {
   if (!isRadioTrack(track)) return [];
   const related = isFmdosTrack(track) ? catalog.filter((item) => isRadioTrack(item) && isFmdosTrack(item)) : [];
@@ -463,7 +461,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const hlsRef = useRef<any>(null);
   const radioReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const radioRecoveryRef = useRef<() => void>(() => {});
-  const [radioAttempt, setRadioAttempt] = useState({ trackId: "", step: 0 });
+  const [radioAttempt, setRadioAttempt] = useState({ trackId: "", step: 0, generation: 0 });
+  const radioExhaustedRef = useRef<string | null>(null);
   const [radioResults, setRadioResults] = useState<EduMusicTrack[] | null>(null);
   const nextTrackRef = useRef<(reason?: "ended" | "error") => void>(() => {});
   const failedPlaybackRef = useRef(new Set<string>());
@@ -738,7 +737,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     }
     if (stored.userPlaylists) setUserPlaylists(stored.userPlaylists);
     if (stored.onlineTracks?.length) {
-      setOnlineTracks(stored.onlineTracks.map(sanitizeStoredTrack).slice(0, 60));
+      setOnlineTracks(stored.onlineTracks.map(sanitizeStoredTrack).slice(0, 120));
     }
     if (stored.onlineQuery) setOnlineQuery(stored.onlineQuery);
     if (stored.recentSearches?.length) {
@@ -1018,6 +1017,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
   const streamSourceKey = JSON.stringify(radioSources(currentTrack, allTracks));
   const streamSources = useMemo(() => JSON.parse(streamSourceKey) as string[], [streamSourceKey]);
   const streamStep = radioAttempt.trackId === currentTrack.id ? radioAttempt.step : 0;
+  const streamGeneration = radioAttempt.trackId === currentTrack.id ? radioAttempt.generation : 0;
   const effectiveSrc = currentTrack.source === "radio" ? streamSources[Math.floor(streamStep / 2)] || currentTrack.src : currentTrack.src;
   useEffect(() => {
     currentYouTubeTrackRef.current = currentTrack;
@@ -1074,7 +1074,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       likedTrackIds,
       likedTracks: likedTrackSnapshots.slice(0, 2000),
       userPlaylists,
-      onlineTracks: onlineTracks.slice(0, 60),
+      onlineTracks: [...onlineTracks.filter((track) => !isRadioTrack(track)).slice(0, 60), ...onlineTracks.filter(isRadioTrack).slice(-60)],
       onlineQuery,
       recentSearches,
       onlineProviderMode: onlineProviderMode === "youtube" ? "full" : onlineProviderMode,
@@ -1156,8 +1156,9 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     let lastProgress = Date.now();
     const recover = () => {
       if (disposed || currentTrack.source !== "radio" || !playingRef.current || radioReconnectTimerRef.current) return;
-      const nextStep = streamStep + 1;
-      if (Math.floor(nextStep / 2) >= streamSources.length) {
+      const nextStep = nextRadioAttempt(streamStep, streamSources.length);
+      if (nextStep === null) {
+        radioExhaustedRef.current = currentTrack.id;
         setPlaying(false);
         setRadioError("No se pudo estabilizar la señal. Selecciona la emisora para volver a intentar o abre su sitio oficial.");
         return;
@@ -1166,7 +1167,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       radioReconnectTimerRef.current = setTimeout(() => {
         radioReconnectTimerRef.current = null;
         if (disposed || !playingRef.current || currentYouTubeTrackRef.current.id !== currentTrack.id) return;
-        setRadioAttempt({ trackId: currentTrack.id, step: nextStep });
+        setRadioAttempt((prev) => ({ trackId: currentTrack.id, step: nextStep, generation: prev.generation + 1 }));
       }, 1800);
     };
     radioRecoveryRef.current = recover;
@@ -1179,7 +1180,11 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       }
     };
     const handlePlaying = () => {
-      if (currentTrack.source === "radio") { lastProgress = Date.now(); setRadioError(""); }
+      if (currentTrack.source === "radio") {
+        lastProgress = Date.now();
+        if (radioReconnectTimerRef.current) { clearTimeout(radioReconnectTimerRef.current); radioReconnectTimerRef.current = null; }
+        setRadioError("");
+      }
     };
     const handleEnded = () => { if (currentTrack.source === "radio") recover(); };
     audio.addEventListener("error", handleMediaError);
@@ -1202,7 +1207,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
       audio.removeEventListener("playing", handlePlaying);
       audio.removeEventListener("ended", handleEnded);
     };
-  }, [currentTrack.id, currentTrack.source, currentTrack.title, effectiveSrc, streamStep, streamSources]);
+  }, [currentTrack.id, currentTrack.source, currentTrack.title, effectiveSrc, streamStep, streamGeneration, streamSources]);
 
   useEffect(() => {
     setCurrentTime(0);
@@ -1272,7 +1277,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
 
     audio.src = effectiveSrc;
     audio.load();
-  }, [currentTrack?.id, currentTrack?.source, effectiveSrc, streamStep]);
+  }, [currentTrack?.id, currentTrack?.source, effectiveSrc, streamStep, streamGeneration]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -1315,6 +1320,12 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     }
 
     if (playing) {
+      if (currentTrack.source === "radio" && radioExhaustedRef.current === currentTrack.id) {
+        radioExhaustedRef.current = null;
+        setRadioAttempt((prev) => ({ trackId: currentTrack.id, step: 0, generation: prev.generation + 1 }));
+        setRadioError("");
+        return;
+      }
       if (isHlsUrl(effectiveSrc) && !audio.canPlayType("application/vnd.apple.mpegurl") && !audio.src) return;
       audio.play().catch((error) => {
         if (error?.name === "AbortError" || currentYouTubeTrackRef.current.id !== currentTrack.id) return;
@@ -1332,7 +1343,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     } else {
       audio.pause();
     }
-  }, [playing, currentTrack?.id, effectiveSrc, currentTrack?.source, streamStep]);
+  }, [playing, currentTrack?.id, effectiveSrc, currentTrack?.source, streamStep, streamGeneration]);
 
 
   useEffect(() => {
@@ -1380,7 +1391,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         setMixFavoriteActive(false);
       }
       if (track.id !== EMPTY_MUSIC_TRACK.id) {
-        learnMixTracks([track], { origin: "search" });
+        if (!isRadioTrack(track)) learnMixTracks([track], { origin: "search" });
         setRecentIds((prev) => [track.id, ...prev.filter((id) => id !== track.id)].slice(0, 18));
       }
 
@@ -1424,7 +1435,8 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       if (isRadioTrack(track) && (track.id !== currentId || !playingRef.current)) {
-        setRadioAttempt({ trackId: track.id, step: 0 });
+        radioExhaustedRef.current = null;
+        setRadioAttempt((prev) => ({ trackId: track.id, step: 0, generation: prev.generation + 1 }));
         setRadioError("");
       }
       if (track.id === currentId) {
