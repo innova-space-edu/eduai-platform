@@ -23,7 +23,7 @@ export async function requestExamGeneration(
   if (!cache.current || cache.current.key !== key) {
     cache.current = { key, completed: 0, questions: [], providers: [], title: "" }
   }
-  const state = cache.current
+  const state = cache.current!
   const total = batches.reduce((sum, batch) => sum + batch.total, 0)
   for (let i = state.completed; i < batches.length; i++) {
     if (init.signal?.aborted) throw new DOMException("Generación cancelada", "AbortError")

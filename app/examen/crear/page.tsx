@@ -2407,7 +2407,7 @@ Usa el mismo esquema de calidad que antes.`;
                         {aiProgressLabel || "Generando con IA..."}
                       </span>
                     ) : (
-                      generationCacheRef.current ? "Reintentar generación" : "✨ Generar preguntas con IA"
+                      generationCacheRef.current?.completed ? "Continuar generación / reintentar" : "✨ Generar preguntas con IA"
                     )}
                   </button>
 
