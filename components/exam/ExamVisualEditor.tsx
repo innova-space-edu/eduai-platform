@@ -12,10 +12,13 @@ function expression(s:string){return Array.from(s).map(ch=>symbols[ch]??(/[\\{}$
 function build(k:Kind,a:string,b:string){const x=expression(a.trim()),y=expression(b.trim());return k==="fraction"?"\\frac{"+x+"}{"+y+"}":k==="root"?"\\sqrt{"+x+"}":k==="power"?"{"+x+"}^{"+y+"}":k==="subscript"?"{"+x+"}_{"+y+"}":x}
 function atom(source:string){
  const el=document.createElement("span");el.contentEditable="false";el.dataset.examFormula=source;el.tabIndex=0;el.setAttribute("role","button");el.setAttribute("aria-label","Editar fórmula");
- el.className="inline-block cursor-pointer rounded px-1 hover:bg-blue-100 focus:outline focus:outline-blue-400";
+ el.className="cursor-pointer rounded px-1 hover:bg-blue-100 focus:outline focus:outline-blue-400";
  const block=source.startsWith("$$");
  try{el.innerHTML=katex.renderToString(source.slice(block?2:1,block?-2:-1),{displayMode:block,throwOnError:true,trust:false,strict:false})}catch{el.textContent=latexToReadableText(source)||"Fórmula pendiente";el.classList.add("bg-amber-50")}
- if(block)el.classList.add("w-full","overflow-x-auto","text-center");return el;
+ // A display equation must end the preceding text line, not occupy a full-width inline box.
+ if(block){el.classList.add("block","w-full","max-w-full","overflow-x-auto","text-center","my-2");el.style.textAlign="center";el.style.textAlignLast="center";}
+ else{el.classList.add("inline-block","max-w-full","align-baseline");}
+ return el;
 }
 function populate(el:HTMLElement,value:string){el.replaceChildren();for(const part of normalizeMathTextForDisplay(value).split(/(\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/g)){if(part)el.append(part.startsWith("$")&&part.endsWith("$")?atom(part):document.createTextNode(part))}}
 function serialize(el:Node):string{
@@ -29,7 +32,7 @@ export default function ExamVisualEditor({value,onChange,className="",placeholde
  useEffect(()=>{if(ref.current&&last.current!==value){populate(ref.current,value||"");last.current=value}},[value]);
  const change=()=>{if(!ref.current)return;const next=serialize(ref.current);last.current=next;onChange({target:{value:next}})};
  const remember=()=>{const s=window.getSelection();if(s?.rangeCount&&ref.current?.contains(s.anchorNode))selection.current=s.getRangeAt(0).cloneRange()};
- const open=(el?:HTMLElement)=>{if(disabled)return;remember();target.current=el||null;const source=el?.dataset.examFormula||"";setOriginal(source);setKind("expression");setA("");setB("");setBlock(source.startsWith("$"));
+ const open=(el?:HTMLElement)=>{if(disabled)return;remember();target.current=el||null;const source=el?.dataset.examFormula||"";setOriginal(source);setKind("expression");setA("");setB("");setBlock(source.startsWith("$$"));
  const raw=source.replace(/^\$\$?|\$\$?$/g,"");
  const frac=raw.match(/^\\frac\{([^{}\\]+)\}\{([^{}\\]+)\}$/),root=raw.match(/^\\sqrt\{([^{}\\]+)\}$/),power=raw.match(/^\{?([A-Za-z0-9]+)\}?\^\{([^{}\\]+)\}$/),sub=raw.match(/^\{?([A-Za-z0-9]+)\}?_\{([^{}\\]+)\}$/);
  if(frac){setKind("fraction");setA(frac[1]);setB(frac[2])}else if(root){setKind("root");setA(root[1])}else if(power){setKind("power");setA(power[1]);setB(power[2])}else if(sub){setKind("subscript");setA(sub[1]);setB(sub[2])}else if(raw&&!/[\\{}]/.test(raw)){setA(raw)}
@@ -39,11 +42,11 @@ export default function ExamVisualEditor({value,onChange,className="",placeholde
   if(!ref.current)return;const math=build(kind,a,b),source=(block?"$$":"$")+math+(block?"$$":"$");
   try{katex.renderToString(math,{throwOnError:true,trust:false})}catch{setError("Revisa la expresión matemática.");return}
   const el=atom(source);if(target.current&&ref.current.contains(target.current))target.current.replaceWith(el);else if(selection.current&&ref.current.contains(selection.current.commonAncestorContainer)){selection.current.deleteContents();selection.current.insertNode(el)}else ref.current.append(el);
-  const space=document.createTextNode(" ");el.after(space);const r=document.createRange();r.setStartAfter(space);r.collapse(true);const sel=window.getSelection();sel?.removeAllRanges();sel?.addRange(r);selection.current=r;setEditing(false);change();ref.current.focus();
+  const space=document.createTextNode(block?"\n":" ");el.after(space);const r=document.createRange();r.setStartAfter(space);r.collapse(true);const sel=window.getSelection();sel?.removeAllRanges();sel?.addRange(r);selection.current=r;setEditing(false);change();ref.current.focus();
  };
  return <div className="min-w-0 space-y-2">
   <div className="flex flex-wrap items-center gap-2"><button type="button" disabled={disabled} onMouseDown={e=>e.preventDefault()} onClick={()=>open()} className="rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-800">＋ Fórmula</button><span className="text-[10px] text-slate-500">Escribe directamente · selecciona una fórmula para sustituirla</span></div>
-  <div id={id} ref={ref} role="textbox" aria-label={placeholder} aria-multiline="true" contentEditable={!disabled} suppressContentEditableWarning data-placeholder={placeholder} style={style} className={className+" exam-visual-content min-h-12 whitespace-pre-wrap break-words text-justify leading-relaxed outline-none focus:ring-2 focus:ring-blue-200 empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400"}
+  <div id={id} ref={ref} role="textbox" aria-label={placeholder} aria-multiline="true" contentEditable={!disabled} suppressContentEditableWarning data-placeholder={placeholder} style={{...style,textAlign:"justify",textAlignLast:"start",wordSpacing:"normal",overflowWrap:"anywhere"}} className={className+" exam-visual-content min-h-12 whitespace-pre-wrap break-words leading-[1.75] outline-none focus:ring-2 focus:ring-blue-200 empty:before:content-[attr(data-placeholder)] empty:before:text-slate-400"}
    onInput={change} onBlur={remember} onKeyUp={remember} onMouseUp={remember}
    onClick={e=>{const el=(e.target as HTMLElement).closest<HTMLElement>("[data-exam-formula]");if(el)open(el)}}
    onKeyDown={e=>{const el=(e.target as HTMLElement).closest<HTMLElement>("[data-exam-formula]");if(el&&(e.key==="Enter"||e.key===" ")){e.preventDefault();open(el)}}}
