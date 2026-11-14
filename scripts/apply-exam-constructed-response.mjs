@@ -361,6 +361,7 @@ function patchPage() {
     "activar cuaderno para respuestas matemáticas IA",
   )
 
+  source = replaceRequired(source, '          mode: "full",', '          mode: "full",\n          responseModes: aiResponseModes,', "formas de respuesta en contrato API");
   source = replaceRequired(
     source,
     '      "- " + aiDev + " development: respuesta breve, ensayo, caso, diseño, análisis o producción según el perfil disciplinar.",',

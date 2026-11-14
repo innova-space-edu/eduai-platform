@@ -1,8 +1,8 @@
 import { EXAM_AI_MAX_QUESTIONS } from "@/lib/exam/creator-limits"
-import { planExamBatches, normalizeStem, examContractIssues } from "@/lib/exam/generation-contract.mjs"
+import { planExamBatches, normalizeStem, examContractIssues, extractExamQuestions, canonicalExamQuestion, constructedContractIssues } from "@/lib/exam/generation-contract.mjs"
 import { PEDAGOGICAL_MODES } from "@/lib/exam/subject-pedagogy"
 import { parseExamModelJson } from "@/lib/exam/import-model-json.mjs"
-import { compatibleFallbackModel, generateCompatibleText, hasCompatibleProvider, parseStructuredJson } from "@/lib/ai/providers/openai-compatible"
+import { compatibleFallbackModel, generateCompatibleText, hasCompatibleProvider } from "@/lib/ai/providers/openai-compatible"
 import { openRouterTextProviderOptions, resolveOpenRouterTextModel } from "@/lib/ai/free-routing"
 import { resolveGroqTextModel, GROQ_FAST_MODEL, GROQ_REASONING_MODEL } from "@/lib/ai/groq-models"
 // app/api/agents/exam-generate/route.ts
@@ -379,7 +379,7 @@ Antes de responder, revisa internamente que cada respuesta sea coherente con su 
 `
 const PROVIDER_BATCH = Number(process.env.EXAM_GENERATE_BATCH_SIZE || 3)
 const MAX_AI_QUESTIONS_PER_CALL = EXAM_AI_MAX_QUESTIONS
-const GROQ_TOKEN_BUDGET_PER_BATCH = Number(process.env.EXAM_GENERATE_GROQ_MAX_TOKENS || 3200)
+const GROQ_TOKEN_BUDGET_PER_BATCH = Math.max(3200, Math.min(6000, Number(process.env.EXAM_GENERATE_GROQ_MAX_TOKENS) || 4500))
 
 type BatchPlan = { total: number; mc: number; tf: number; dev: number }
 
@@ -400,15 +400,17 @@ function requireSingleShape(question: any, expectedType?: string) {
   }
 }
 
-async function cloudflareBatch(prompt: string): Promise<any> {
+async function cloudflareBatch(prompt: string, signal?: AbortSignal): Promise<any> {
+  signal?.throwIfAborted()
   const result = await generateCompatibleText({
     provider: "cloudflare",
     model: compatibleFallbackModel("cloudflare", "structured"),
     messages: [{ role: "system", content: SYSTEM }, { role: "user", content: prompt }],
     maxOutputTokens: GROQ_TOKEN_BUDGET_PER_BATCH,
     module: "examenes",
+    signal,
   })
-  return parseStructuredJson(result.text)
+  return parseResponse(result.text)
 }
 
 function sleep(ms: number) {
@@ -441,10 +443,14 @@ function friendlyProviderError(message: string): string {
     return "El proveedor de IA está temporalmente sobrecargado. No necesariamente es problema de tu API key. Intenta nuevamente o usa otro proveedor/fallback."
   }
 
+  if (lower.includes("timeout") || lower.includes("timed out") || lower.includes("aborted")) return "Un proveedor superó el tiempo de respuesta. Reintenta para continuar desde el avance guardado.";
+
   if (lower.includes("tanda incompleta")) return "La IA no completó la cantidad y los tipos solicitados. Prueba con una tanda más pequeña."
 
-  if (lower.includes("json") || lower.includes("unexpected token")) {
-    return "La IA respondió con un formato inválido. Se recomienda generar menos preguntas por tanda o usar un tema más específico."
+  if (lower.includes("rúbrica") || lower.includes("enunciado") || lower.includes("respuesta modelo")) return "La IA devolvió una pregunta o pauta incompleta. No se incorporó contenido sin validar. Reintenta la pregunta pendiente.";
+
+  if (lower.includes("json") || lower.includes("unexpected token") || lower.includes("formato de evaluación inválido")) {
+    return "La IA respondió con datos incompletos o JSON inválido. Reintenta para continuar desde las preguntas verificadas."
   }
 
   if (lower.includes("api key") || lower.includes("unauthorized") || msg.includes("401") || msg.includes("403")) {
@@ -456,7 +462,7 @@ function friendlyProviderError(message: string): string {
 
 function compactPromptForProvider(basePrompt: string): string {
   // Preserve the complete OA, source and accessibility directives. Request size is bounded at the endpoint.
-  return String(basePrompt || "").trim()
+  return String(basePrompt || "").replace(/(ESTRUCTURA EXACTA DE LA TANDA\n)(?:Total: \d+ preguntas\.\n|- \d+ (?:multiple_choice|mixed_choice_development|true_false|development):[^\n]*\n)+/u, "$1Las cantidades exactas se indican al final de esta solicitud.\n").trim()
 }
 
 function promptForBatch(basePrompt: string, batch: BatchPlan, index: number, totalBatches: number): string {
@@ -471,7 +477,7 @@ Genera EXACTAMENTE ${batch.total} preguntas:
 Cada objeto debe incluir su respuesta esperada y explicación en el MISMO contexto de generación.
 Para alternativas, answerText debe coincidir exactamente con options[correctAnswer] y los cuatro distractorRationales deben explicar la calidad de cada opción.
 Salida obligatoria: {"title":"...","questions":[...]}
-No agregues texto fuera del JSON.`
+No agregues texto fuera del JSON. El enunciado SIEMPRE es question (cadena, no objeto); cada pregunta es un objeto independiente. Usa exclusivamente estas claves exactas. Para development: {"type":"development","question":"enunciado completo","responseMode":"forma seleccionada","modelAnswer":"solución completa","expectedLatex":"","explanation":"fundamento","solutionSteps":["paso"],"rubric":[{"criteria":"criterio específico","points":2}],"maxPoints":2,"oaCodes":[],"pedagogicalMode":"id"}; el ejemplo indica estructura, no valores a copiar. Si responseMode es short_text, añade acceptedAnswers. Para mixed_choice_development añade options, correctAnswer, answerText, selectionPoints y developmentMaxPoints. No omitas el enunciado ni la pauta; usa criterios específicos con puntos positivos. No repitas ni envuelvas cada objeto bajo otra clave. Escapa las barras de LaTeX según JSON.`
 }
 
 function tokenBudgetForBatch(questionCount: number): number {
@@ -503,14 +509,17 @@ async function validateAndRepairWithProvider(
   askProvider: (prompt: string) => Promise<any>,
   curriculum: CurriculumContract | null = null,
   priorStems: ReadonlySet<string> = new Set(),
+  allowedModes: string[] = [],
+  emit: (phase: string) => void = () => {},
 ): Promise<any[]> {
   if (!Array.isArray(questions) || !questions.length) throw new Error("La IA devolvió una tanda incompleta.")
-  let raw = [...questions]
+  let raw = questions.map(canonicalExamQuestion)
   for (let attempt = 0; attempt <= 1; attempt++) {
+    emit(attempt ? "Verificando las correcciones" : "Validando enunciados, OA, respuestas y rúbricas");
     const seen = new Set(priorStems)
     const prepared = raw.map(question => question && typeof question === "object" ? sanitizeQuestionsArray([question])[0] : null)
     const invalid = raw.flatMap((question, index) => {
-      const issues = examContractIssues(question, curriculum, seen)
+      const issues = [...examContractIssues(question, curriculum, seen), ...constructedContractIssues(question, allowedModes)]
       const checked = prepared[index]
       if (checked) {
         const quality = findBlockingQualityIssues([checked])[0]
@@ -526,21 +535,23 @@ async function validateAndRepairWithProvider(
     })
     if (!invalid.length) return prepared
     if (attempt === 1) throw new Error("La tanda contiene preguntas que no superaron la validación: " + invalid.map(item => item.issues.join(", ")).join(" | "))
-    const repaired = await askProvider(`Corrige SOLO las preguntas marcadas, en el mismo orden y con el mismo tipo. No repitas enunciados. Devuelve {"questions":[...]}. Mantén los OA exactos, modo pedagógico, respuestas verificadas y pauta.\nContexto completo:\n${context}\nPreguntas válidas que no debes repetir:\n${JSON.stringify([...seen])}\nPreguntas pendientes:\n${JSON.stringify(invalid)}`)
-    const fixes = repaired?.questions
+    emit("Corrigiendo preguntas incompletas y su pauta");
+    const repaired = await askProvider(`IMPORTANTE: las instrucciones de cantidad anteriores son solo contexto. Devuelve exactamente ${invalid.length} objetos completos. No devuelvas un parche ni un objeto de errores. Cada objeto debe tener question como texto, type, modelAnswer y rubric:[{criteria,points}] si corresponde. Corrige SOLO las preguntas marcadas, en el mismo orden y con el mismo tipo. No repitas enunciados. Devuelve {"questions":[...]}. Mantén los OA exactos, modo pedagógico, respuestas verificadas y pauta.\nContexto completo:\n${context}\nPreguntas válidas que no debes repetir:\n${JSON.stringify([...seen])}\nPreguntas pendientes:\n${JSON.stringify(invalid)}`)
+    const fixes = extractExamQuestions(repaired)
     if (!Array.isArray(fixes) || fixes.length !== invalid.length || fixes.some((q: any, i: number) => q?.type !== invalid[i].question?.type)) throw new Error("La reparación devolvió una tanda incompleta.")
     for (let i = 0; i < invalid.length; i++) raw[invalid[i].index] = fixes[i]
   }
   throw new Error("La tanda no superó la validación.")
 }
 
-async function groqBatch(prompt: string, key: string): Promise<any> {
+async function groqBatch(prompt: string, key: string, signal?: AbortSignal): Promise<any> {
   const Groq = (await import("groq-sdk")).default
   const client = new Groq({ apiKey: key, timeout: 20000, maxRetries: 0 })
 
   let lastError = ""
 
   for (const model of GROQ_MODELS) {
+    signal?.throwIfAborted();
     try {
       const res = await client.chat.completions.create({
         model,
@@ -551,8 +562,9 @@ async function groqBatch(prompt: string, key: string): Promise<any> {
           { role: "system", content: SYSTEM },
           { role: "user", content: prompt },
         ],
-      })
+      }, { signal })
 
+      if (res.choices[0]?.finish_reason === "length") throw new Error("JSON truncado por límite de salida");
       const raw = res.choices[0]?.message?.content?.trim() ?? ""
       if (!raw) {
         lastError = `${model}: respuesta vacía`
@@ -570,7 +582,7 @@ async function groqBatch(prompt: string, key: string): Promise<any> {
   throw new Error(`Groq: todos los modelos fallaron. Último error: ${lastError}`)
 }
 
-async function openRouterBatch(prompt: string, key: string): Promise<any> {
+async function openRouterBatch(prompt: string, key: string, signal?: AbortSignal): Promise<any> {
   const models = Array.from(new Set([
     resolveOpenRouterTextModel(process.env.OPENROUTER_STRUCTURED_MODEL || process.env.OPENROUTER_TEXT_MODEL),
     "openrouter/free",
@@ -579,6 +591,7 @@ async function openRouterBatch(prompt: string, key: string): Promise<any> {
   let lastError = ""
 
   for (const model of models) {
+    signal?.throwIfAborted();
     try {
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
@@ -591,7 +604,7 @@ async function openRouterBatch(prompt: string, key: string): Promise<any> {
         body: JSON.stringify({
           model,
           provider: openRouterTextProviderOptions(),
-          max_tokens: 3200,
+          max_tokens: GROQ_TOKEN_BUDGET_PER_BATCH,
           temperature: 0.35,
           response_format: { type: "json_object" },
           messages: [
@@ -599,7 +612,7 @@ async function openRouterBatch(prompt: string, key: string): Promise<any> {
             { role: "user", content: prompt },
           ],
         }),
-        signal: AbortSignal.timeout(20000),
+        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000),
       })
 
       if (!res.ok) {
@@ -610,6 +623,7 @@ async function openRouterBatch(prompt: string, key: string): Promise<any> {
       }
 
       const data = await res.json()
+      if (data?.choices?.[0]?.finish_reason === "length") throw new Error("JSON truncado por límite de salida");
       const raw = data?.choices?.[0]?.message?.content?.trim() ?? ""
 
       if (!raw) {
@@ -628,7 +642,8 @@ async function openRouterBatch(prompt: string, key: string): Promise<any> {
   throw new Error(`OpenRouter: todos los modelos fallaron. Último: ${lastError}`)
 }
 
-export async function POST(req: NextRequest) {
+async function generateExam(req: NextRequest, emit: (phase: string) => void = () => {}) {
+  const generationSignal = AbortSignal.any([req.signal, AbortSignal.timeout(95000)])
   const supabase = await createClient()
   const {
     data: { user },
@@ -682,7 +697,9 @@ export async function POST(req: NextRequest) {
   const existing = Array.isArray(body.existingQuestions) ? body.existingQuestions.filter((q: unknown) => typeof q === "string").slice(-200) : [];
   const priorStems = new Set<string>(existing.map(normalizeStem));
   const curricularPrompt = curriculum ? `\nCONTRATO CURRICULAR: ${JSON.stringify(curriculum)}. Usa pedagogicalMode como identificador exacto de modeIds y oaCodes únicamente de esta lista. Si requireOA es true, incluye al menos uno.` : "";
-  const requestPrompt = enhancedPrompt + curricularPrompt + (existing.length ? `\nNo repitas preguntas existentes: ${JSON.stringify(existing.map((q: string) => q.slice(0, 500)))}` : "");
+  const allowedModes: string[] = Array.isArray(body.responseModes) ? body.responseModes.filter((mode: unknown) => typeof mode === "string" && ["short_text","long_text","math","text_math","math_steps"].includes(mode)) : [];
+  const modeDirective = allowedModes.length ? `\nFORMAS DE RESPUESTA CONSTRUIDA: usa responseMode exactamente de ${JSON.stringify(allowedModes)}. Si es short_text incluye acceptedAnswers; en los demás casos incluye rubric con criterios concretos y puntos positivos. Mantén modelAnswer en todas.` : "";
+  const requestPrompt = enhancedPrompt + curricularPrompt + modeDirective + (existing.length ? `\nNo repitas preguntas existentes: ${JSON.stringify(existing.map((q: string) => q.slice(0, 500)))}` : "");
 
   if (mode === "single") {
     const expectedType = body.questionType
@@ -694,11 +711,11 @@ export async function POST(req: NextRequest) {
     // Prioridad Groq: OpenRouter puede devolver 402 si no tiene créditos.
     if (GROQ_KEY) {
       try {
-        const parsed = await groqBatch(requestPrompt, GROQ_KEY)
+        const parsed = await groqBatch(requestPrompt, GROQ_KEY, generationSignal)
         const [q] = await validateAndRepairWithProvider(
-          [parsed?.question ?? parsed?.questions?.[0] ?? parsed],
+          extractExamQuestions(parsed),
           requestPrompt,
-          (repairPrompt) => groqBatch(repairPrompt, GROQ_KEY), curriculum, priorStems
+          (repairPrompt) => groqBatch(repairPrompt, GROQ_KEY, generationSignal), curriculum, priorStems, allowedModes
         )
 
         requireSingleShape(q, expectedType)
@@ -711,11 +728,11 @@ export async function POST(req: NextRequest) {
 
     if (OR_KEY) {
       try {
-        const parsed = await openRouterBatch(requestPrompt, OR_KEY)
+        const parsed = await openRouterBatch(requestPrompt, OR_KEY, generationSignal)
         const [q] = await validateAndRepairWithProvider(
-          [parsed?.question ?? parsed?.questions?.[0] ?? parsed],
+          extractExamQuestions(parsed),
           requestPrompt,
-          (repairPrompt) => openRouterBatch(repairPrompt, OR_KEY), curriculum, priorStems
+          (repairPrompt) => openRouterBatch(repairPrompt, OR_KEY, generationSignal), curriculum, priorStems, allowedModes
         )
 
         requireSingleShape(q, expectedType)
@@ -728,9 +745,9 @@ export async function POST(req: NextRequest) {
 
     if (cloudflareEnabled) {
       try {
-        const parsed = await cloudflareBatch(requestPrompt)
+        const parsed = await cloudflareBatch(requestPrompt, generationSignal)
         const [q] = await validateAndRepairWithProvider(
-          [parsed?.question ?? parsed?.questions?.[0] ?? parsed], requestPrompt, cloudflareBatch, curriculum, priorStems,
+          extractExamQuestions(parsed), requestPrompt, (prompt) => cloudflareBatch(prompt, generationSignal), curriculum, priorStems, allowedModes,
         )
         requireSingleShape(q, expectedType)
         return NextResponse.json({ success: true, question: q, answerKeyEntry: buildAnswerKey([q])[0], provider: "cloudflare", _design: designSummary })
@@ -770,9 +787,9 @@ export async function POST(req: NextRequest) {
   }
 
   const providers: { id: string; ask: (prompt: string) => Promise<any> }[] = [];
-  if (GROQ_KEY) providers.push({ id: "groq", ask: (prompt) => groqBatch(prompt, GROQ_KEY) });
-  if (OR_KEY) providers.push({ id: "openrouter", ask: (prompt) => openRouterBatch(prompt, OR_KEY) });
-  if (cloudflareEnabled) providers.push({ id: "cloudflare", ask: cloudflareBatch });
+  if (GROQ_KEY) providers.push({ id: "groq", ask: (prompt) => groqBatch(prompt, GROQ_KEY, generationSignal) });
+  if (OR_KEY) providers.push({ id: "openrouter", ask: (prompt) => openRouterBatch(prompt, OR_KEY, generationSignal) });
+  if (cloudflareEnabled) providers.push({ id: "cloudflare", ask: (prompt) => cloudflareBatch(prompt, generationSignal) });
   const batches = planExamBatches(counts, PROVIDER_BATCH);
   const allQuestions: any[] = [];
   const providersUsed = new Set<string>();
@@ -788,11 +805,13 @@ export async function POST(req: NextRequest) {
       const index = (preferred + offset) % providers.length;
       const provider = providers[index];
       if (req.signal.aborted) return NextResponse.json({ error: "Generación cancelada." }, { status: 499 });
+      if (generationSignal.aborted) return NextResponse.json({ error:"Se alcanzó el límite de tiempo de esta solicitud. Reintenta para continuar desde las preguntas verificadas." },{status:504});
       try {
+        emit(`Generando en ${provider.id === "groq" ? "Groq" : provider.id === "openrouter" ? "OpenRouter" : "Cloudflare"}`);
         const parsed = await provider.ask(prompt);
-        const raw = parsed?.questions ?? parsed?.items ?? [];
+        const raw = extractExamQuestions(parsed);
         if (!Array.isArray(raw) || raw.length !== batch.total) throw new Error("La IA devolvió una tanda incompleta.");
-        const questions = await validateAndRepairWithProvider(raw, prompt, provider.ask, curriculum, priorStems);
+        const questions = await validateAndRepairWithProvider(raw, prompt, provider.ask, curriculum, priorStems, allowedModes, emit);
         requireBatchShape(questions, batch);
         allQuestions.push(...questions);
         questions.forEach(q => priorStems.add(normalizeStem(q.question)));
@@ -802,6 +821,7 @@ export async function POST(req: NextRequest) {
         complete = true;
         break;
       } catch (error) {
+        emit(`Respuesta de ${provider.id} no válida; intentando respaldo`);
         errors.push(`Lote ${i + 1}, ${provider.id}: ${error instanceof Error ? error.message : String(error)}`);
       }
     }
@@ -810,8 +830,35 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `No se pudo completar el lote ${i + 1} de ${batches.length}. No se incorporaron preguntas automáticamente. ${friendlyProviderError(details)}`, details }, { status: 502 });
     }
   }
+  emit("Consolidando preguntas y pauta");
   const orderedTypes = ["multiple_choice", "mixed_choice_development", "true_false", "development"];
   allQuestions.sort((left, right) => orderedTypes.indexOf(left.type) - orderedTypes.indexOf(right.type));
   return NextResponse.json({ success: true, title, questions: allQuestions, summary: null, answerKey: buildAnswerKey(allQuestions), qualityReviewRequired: [], provider: Array.from(providersUsed)[0], providers: [...providersUsed], _design: designSummary });
 
+}
+
+/** Optional NDJSON progress channel; legacy consumers retain the ordinary JSON contract. */
+export async function POST(req: NextRequest) {
+  if (req.headers.get("x-exam-progress") !== "1") return generateExam(req)
+  // Authenticate before opening the stream (the JSON path also verifies the session).
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return NextResponse.json({error:"No autenticado"},{status:401})
+  const encoder = new TextEncoder()
+  const stream = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (data: unknown) => {
+        if (!req.signal.aborted) { try { controller.enqueue(encoder.encode(JSON.stringify(data)+"\n")) } catch {} }
+      }
+      try {
+        send({event:"progress",phase:"Preparando el contexto curricular"})
+        const result = await generateExam(req, phase => send({event:"progress",phase}))
+        const data = await result.json()
+        send({event:"result",status:result.status,data})
+      } catch {
+        send({event:"result",status:500,data:{error:"No se pudo completar la generación. Reintenta para continuar desde las preguntas verificadas."}})
+      } finally { try {controller.close()} catch {} }
+    },
+  })
+  return new Response(stream,{headers:{"Content-Type":"application/x-ndjson; charset=utf-8","Cache-Control":"no-store, no-transform","X-Accel-Buffering":"no"}})
 }

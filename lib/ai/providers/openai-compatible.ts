@@ -228,6 +228,7 @@ async function compatibleFetch(input: {
   structuredSchema?: Record<string, unknown>
   stream?: boolean
   module?: string | null
+  signal?: AbortSignal
 }) {
   const key = apiKey(input.provider, input.module)
   if (!key) throw new Error(`No hay API key configurada para ${input.provider}`)
@@ -239,7 +240,7 @@ async function compatibleFetch(input: {
     method: "POST",
     headers: headers(input.provider, key),
     body: JSON.stringify(requestBody(input)),
-    signal: timeoutSignal(),
+    signal: input.signal ? AbortSignal.any([input.signal, timeoutSignal()]) : timeoutSignal(),
   })
 
   if (!response.ok) {
@@ -259,6 +260,7 @@ export async function generateCompatibleText(input: {
   maxOutputTokens?: number
   structuredSchema?: Record<string, unknown>
   module?: string | null
+  signal?: AbortSignal
 }): Promise<CompatibleTextResult> {
   const response = await compatibleFetch(input)
   const data = (await response.json()) as {

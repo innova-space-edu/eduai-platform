@@ -3,7 +3,7 @@
 "use client";
 
 import { EXAM_AI_MAX_QUESTIONS } from "@/lib/exam/creator-limits";
-import { requestExamGeneration, type ExamGenerationCache } from "@/lib/exam/generation-client";
+import { requestExamGeneration, type ExamGenerationCache, type ExamGenerationProgress } from "@/lib/exam/generation-client";
 import { useMemo, useState, useRef, useEffect } from "react";
 import ExamMathText from "@/components/ui/ExamMathText";
 import { useRouter } from "next/navigation";
@@ -712,6 +712,8 @@ export default function CrearExamenPage() {
   const [aiProvider, setAiProvider] = useState<"groq" | "openrouter" | "cloudflare" | "multiple" | "">("");
   const [aiPreview, setAiPreview] = useState<Question[]>([]);
   const [aiProgressLabel, setAiProgressLabel] = useState("");
+  const [aiProgress,setAiProgress]=useState<ExamGenerationProgress|null>(null);
+  const [aiTechnicalDetail,setAiTechnicalDetail]=useState("");
   const aiApplyLockRef = useRef(false);
   const generationCacheRef = useRef<ExamGenerationCache | null>(null);
   const aiPreviewScopeRef = useRef("");
@@ -1020,6 +1022,7 @@ REGLAS ESTRICTAS:
     if (aiPreview.length && !window.confirm("Hay preguntas generadas sin incorporar. ¿Generar una nueva vista previa?")) return;
     abortRef.current?.abort();
     aiApplyLockRef.current = false;
+    setAiProgress(null);setAiTechnicalDetail("");
     setAiProgressLabel("Preparando contexto, generando y verificando preguntas…");
     const requestScope = getGenerationScope();
     const controller = new AbortController();
@@ -1044,18 +1047,12 @@ REGLAS ESTRICTAS:
           tf: aiTF,
           dev: aiDev,
         }),
-      }, setAiProgressLabel, generationCacheRef);
+      }, setAiProgressLabel, generationCacheRef, setAiProgress);
       const data = await res.json().catch(() => null);
       if (controller.signal.aborted || abortRef.current !== controller) return;
       if (!res.ok || !data?.success) {
-        const detail = data?.details
-          ? `
-
-Detalle técnico: ${data.details}`
-          : "";
-        throw new Error(
-          `${data?.error || "Error generando preguntas."}${detail}`,
-        );
+        setAiTechnicalDetail(typeof data?.details==="string"?data.details:"");
+        throw new Error(data?.error || "Error generando preguntas.");
       }
 
       const rawQuestions = Array.isArray(data.questions) ? data.questions : [];
@@ -2405,7 +2402,7 @@ Usa el mismo esquema de calidad que antes.`;
                     {aiStatus === "generating" ? (
                       <span className="flex items-center justify-center gap-2">
                         <span className="w-4 h-4 border-2 border-soft border-t-white rounded-full animate-spin inline-block" />
-                        {aiProgressLabel || "Generando con IA..."}
+                        Generando preguntas…
                       </span>
                     ) : (
                       generationCacheRef.current?.completed ? "Continuar generación / reintentar" : "✨ Generar preguntas con IA"
@@ -2413,11 +2410,13 @@ Usa el mismo esquema de calidad que antes.`;
                   </button>
 
                   {aiStatus === "generating" && <button type="button" onClick={() => { abortRef.current?.abort(); setAiStatus("idle"); setAiProgressLabel(""); }} className="w-full rounded-xl border border-violet-200 px-3 py-2 text-xs font-bold text-violet-700">Cancelar generación</button>}
+                  {aiStatus==="generating"&&<div className="rounded-2xl border border-violet-200 bg-white p-4 space-y-2" role="status" aria-live="polite"><div className="flex flex-wrap justify-between gap-2"><strong className="text-sm text-violet-900">{aiProgress?.phase||aiProgressLabel}</strong><span className="text-xs text-slate-600">{aiProgress?.completed??0}/{aiProgress?.total??(aiMC+aiTF+aiDev)} preguntas verificadas</span></div><progress className="h-3 w-full accent-violet-600" max={Math.max(1,aiProgress?.total??(aiMC+aiTF+aiDev))} value={aiProgress?.completed??0}/><div className="flex flex-wrap justify-between gap-2 text-xs text-slate-600"><span>Transcurrido: {Math.floor((aiProgress?.elapsedSeconds??0)/60)} min {(aiProgress?.elapsedSeconds??0)%60} s</span><span>{aiProgress?.remainingSeconds==null?"Tiempo restante: calculando tras el primer resultado":`Tiempo restante estimado: ${Math.floor(aiProgress.remainingSeconds/60)} min ${aiProgress.remainingSeconds%60} s`}</span></div><p className="text-[11px] text-slate-500">Estimación basada en preguntas verificadas; puede variar si cambia el proveedor o se necesita una corrección.</p></div>}
                   {/* Error IA */}
                   {aiRegenError && <p role="alert" className="text-sm text-red-700">{aiRegenError}</p>}
                   {aiError && (
                     <div className="rounded-2xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-700">
                       ❌ {aiError}
+                      {aiTechnicalDetail&&<details className="mt-2 text-xs"><summary className="cursor-pointer font-semibold">Detalle técnico</summary><p className="mt-1 break-words">{aiTechnicalDetail}</p></details>}
                     </div>
                   )}
 
