@@ -344,7 +344,6 @@ ESQUEMA OBLIGATORIO PARA multiple_choice:
   "answerText":"texto idéntico a options[correctAnswer]",
   "explanation":"explicación clara de por qué esa opción es correcta",
   "solutionSteps":["paso o fundamento 1","paso o fundamento 2"],
-  "distractorRationales":["motivo opción A","motivo opción B","motivo opción C","motivo opción D"],
   "maxPoints":1
 }
 REGLAS multiple_choice: calcula primero la respuesta; crea una opción correcta exacta; crea tres distractores plausibles basados en errores comunes; mezcla las cuatro opciones; correctAnswer debe indicar la posición final; answerText DEBE ser exactamente options[correctAnswer]; las cuatro alternativas deben ser distintas, pertinentes y del mismo tipo de respuesta.
@@ -475,7 +474,7 @@ Genera EXACTAMENTE ${batch.total} preguntas:
 - ${batch.tf} true_false
 - ${batch.dev} development
 Cada objeto debe incluir su respuesta esperada y explicación en el MISMO contexto de generación.
-Para alternativas, answerText debe coincidir exactamente con options[correctAnswer] y los cuatro distractorRationales deben explicar la calidad de cada opción.
+Para alternativas, answerText debe coincidir exactamente con options[correctAnswer].
 Salida obligatoria: {"title":"...","questions":[...]}
 No agregues texto fuera del JSON. El enunciado SIEMPRE es question (cadena, no objeto); cada pregunta es un objeto independiente. Usa exclusivamente estas claves exactas. Para development: {"type":"development","question":"enunciado completo","responseMode":"forma seleccionada","modelAnswer":"solución completa","expectedLatex":"","explanation":"fundamento","solutionSteps":["paso"],"rubric":[{"criteria":"criterio específico","points":2}],"maxPoints":2,"oaCodes":[],"pedagogicalMode":"id"}; el ejemplo indica estructura, no valores a copiar. Si responseMode es short_text, añade acceptedAnswers. Para mixed_choice_development añade options, correctAnswer, answerText, selectionPoints y developmentMaxPoints. Verifica que la respuesta final coincida con todos los pasos y el resultado matemático. Nunca incluyas borradores, dudas, autocorrecciones o razonamiento descartado. Varía el planteamiento y la habilidad entre preguntas, no solo los números. No omitas el enunciado ni la pauta; usa criterios específicos con puntos positivos. No repitas ni envuelvas cada objeto bajo otra clave. Escapa las barras de LaTeX según JSON.`
 }
@@ -498,7 +497,7 @@ ${JSON.stringify(questions)}
 
 Devuelve SOLO este JSON: {"questions":[...]}
 Mantén cada pregunta junto a su respuesta, explanation, solutionSteps y pauta.
-En multiple_choice: 4 alternativas distintas y pertinentes; answerText idéntico a options[correctAnswer]; distractorRationales con 4 elementos.`
+En multiple_choice: 4 alternativas distintas y pertinentes; answerText idéntico a options[correctAnswer].`
 }
 
 type CurriculumContract = { requireOA: boolean; oaCodes: string[]; modeIds: string[] }

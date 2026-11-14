@@ -58,7 +58,7 @@ def tales_reference(q):
     ab,ad,bc = (get(k) for k in ("AB","AD","BC"))
     if not ab or not ad or not bc or len({ab[1],ad[1],bc[1]})!=1 or not 0<ad[0]<ab[0] or bc[0]<=0:
         return None
-    return ((ab[0]-ad[0])*bc[0]/ab[0],bc[1])
+    return (ab[0],ad[0],bc[0],bc[1])
 
 def inspect_field(text, label):
     checks=[]
@@ -74,20 +74,30 @@ def inspect_field(text, label):
         if len(parts)<2: continue
         try: vals=[number(part) for part in parts]
         except (ValueError,SyntaxError,ZeroDivisionError,OverflowError): continue
-        checks.append({"label":label,"valid":all(v==vals[0] for v in vals),"message":"Igualdad numérica exacta" if all(v==vals[0] for v in vals) else "La igualdad numérica no se cumple"})
+        valid=all(v==vals[0] for v in vals)
+        if valid:
+            message="Igualdad numérica exacta"
+        else:
+            def show(v):
+                return str(v.numerator) if v.denominator==1 else r"\frac{"+str(v.numerator)+"}{"+str(v.denominator)+"}"
+            message="La igualdad no se cumple. El primer miembro vale $"+show(vals[0])+"$; los miembros siguientes valen "+", ".join("$"+show(v)+"$" for v in vals[1:])+". Revisa cuál corresponde al enunciado y sustituye el cálculo incorrecto."
+        checks.append({"label":label,"valid":valid,"message":message})
     return checks
 
 def verify_question(q):
     checks=[]
     for label,field in (("Respuesta",q.get("modelAnswer")),("Resultado final",q.get("expectedLatex")),("Explicación",q.get("explanation"))):
         checks+=inspect_field(field,label)
+    for i,criterion in enumerate((q.get("rubric") or [])[:30]):
+        if isinstance(criterion,dict): checks+=inspect_field(criterion.get("criteria"),"Criterio "+str(i+1))
     for i,step in enumerate((q.get("solutionSteps") or [])[:30]):
         checks+=inspect_field(step,"Paso "+str(i+1))
     ref=tales_reference(q.get("question"))
     if ref:
-        expected,unit=ref
+        ab,ad,bc,unit=ref
+        expected=(ab-ad)*bc/ab
         matches=[]
-        for field in (q.get("modelAnswer"),q.get("expectedLatex")):
+        for field in (q.get("modelAnswer"),q.get("expectedLatex"),q.get("explanation"),*(q.get("solutionSteps") or [])[:30],*(r.get("criteria") for r in (q.get("rubric") or [])[:30] if isinstance(r,dict))):
             # Parse explicit values, including simple fractions converted by clean().
             for m in re.finditer(r"\bBE\s*(?:=|:|mide)\s*([0-9.]+|\(\([0-9.]+\)/\([0-9.]+\)\))\s*(cm|mm|m)\b",clean(field),re.I):
                 if m[2].lower()==unit:
@@ -99,4 +109,32 @@ def verify_question(q):
         else:
             checks.append({"label":"Resultado independiente de Tales","valid":None,"message":"BE = "+str(expected)+" "+unit+"; no se identificó una respuesta explícita comparable."})
     failed=any(c["valid"] is False for c in checks)
-    return {"id":str(q.get("id","")),"status":"incorrect" if failed else "partial" if checks else "unsupported","checks":checks[:60]}
+    # Only generate an exact proposal for a supported construction. Preserve the rubric
+    # and its points; flag any criterion for manual review rather than rewriting it.
+    proposal=None
+    draft_text=" ".join(str(q.get(k,"")) for k in ("modelAnswer","expectedLatex","explanation","solutionSteps"))
+    draft_error=bool(re.search(r"borrador mental|paso \d+ corregido|CORRECCI[ÓO]N:|espera, el enunciado|revisi[oó]n del c[aá]lculo anterior",draft_text,re.I))
+    wrong_triangle=bool(re.search(r"(?:tri[aá]ngulo\s+|\\+triangle\s*)ADE\b",draft_text,re.I))
+    if draft_error:
+        checks.append({"label":"Pauta","valid":False,"message":"Contiene autocorrecciones o texto de borrador."})
+    if ref and wrong_triangle:
+        checks.append({"label":"Semejanza","valid":False,"message":"La configuración garantiza semejanza entre DBE y ABC, no ADE."})
+    if ref and (failed or draft_error or wrong_triangle) and q.get("type")=="development" and q.get("responseMode")!="short_text":
+        def tex(v):
+            return str(v.numerator) if v.denominator==1 else r"\frac{"+str(v.numerator)+"}{"+str(v.denominator)+"}"
+        def f(s): return "$"+s+"$"
+        def length(v): return tex(v)+r"\,\text{"+unit+"}"
+        bd=ab-ad
+        k=bd/ab
+        be=bd*bc/ab
+        steps=[
+            "Calcular "+f("BD=AB-AD="+tex(ab)+"-"+tex(ad)+"="+length(bd))+".",
+            "Como "+f(r"DE\parallel AC")+", los triángulos "+f(r"\triangle DBE")+". y "+f(r"\triangle ABC")+" son semejantes por AA.",
+            "La homotecia con centro en "+f("B")+" tiene razón "+f("k="+r"\frac{BD}{BA}="+tex(k))+"; transforma A en D y C en E.",
+            "Aplicar "+f(r"\frac{BE}{BC}=\frac{BD}{BA}")+" y sustituir: "+f("BE="+tex(bc)+r"\times "+tex(k)+"="+length(be))+".",
+            "Comprobar la proporción: "+f(r"\frac{BE}{BC}="+tex(k)+r"=\frac{BD}{BA}")+"."
+        ]
+        steps[1]=steps[1].replace("$. y","$ y")
+        proposal={"source":"python-tales-exact","fields":{"modelAnswer":"\n".join(str(i+1)+". "+step for i,step in enumerate(steps)),"expectedLatex":f("BE="+length(be)),"explanation":steps[1]+" "+steps[2]+" "+steps[4],"solutionSteps":steps},"notes":["Sustituye respuesta esperada, resultado final, explicación y procedimiento.","Comprueba que la rúbrica y el puntaje respondan a todos los apartados del enunciado. No se modifican automáticamente."]}
+    failed=any(c["valid"] is False for c in checks)
+    return {"id":str(q.get("id","")),"status":"incorrect" if failed else "partial" if checks else "unsupported","checks":checks[:60],"proposal":proposal}

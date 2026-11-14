@@ -15,4 +15,10 @@ try:
     module.number("__import__('os')")
     raise AssertionError("unsafe")
 except ValueError: pass
-print("8 comprobaciones Python superadas")
+full={**q,"type":"development","responseMode":"math_steps","expectedLatex":"$BE=10\\text{cm}$"}
+result=module.verify_question(full)
+assert result["proposal"]["fields"]["expectedLatex"]==r"$BE=15\,\text{cm}$"
+assert module.verify_question({**full,**result["proposal"]["fields"]})["status"]=="partial"
+assert module.verify_question({"type":"development","question":"Otro","solutionSteps":["$2+3=7$"]})["proposal"] is None
+assert module.verify_question({**full,**result["proposal"]["fields"],"rubric":[{"criteria":"BE = 10 cm","points":2}]})["status"]=="incorrect"
+print("12 comprobaciones Python superadas")
