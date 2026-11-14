@@ -41,6 +41,7 @@ type NormalizedRadioTrack = {
   embedOnly?: boolean;
   embedUrl?: string;
   loaderUrl?: string;
+  radioStreams?: string[];
 };
 
 type ManualRadioPreset = NormalizedRadioTrack & {
@@ -64,6 +65,11 @@ const fmdosHlsUrl = RADIO_PROXY_BASE
   ? `${RADIO_PROXY_BASE}/fmdos.m3u8`
   : "https://playerservices.streamtheworld.com/api/livestream-redirect/FMDOSAAC_SC.m3u8";
 
+const fmdosStreams = [...new Set([fmdosUrl, fmdosHlsUrl,
+  "https://playerservices.streamtheworld.com/api/livestream-redirect/FMDOSAAC_SC.aac",
+  "https://playerservices.streamtheworld.com/api/livestream-redirect/FMDOSAAC_SC.m3u8",
+])];
+
 const canal95EmbedUrl = "https://player.conectaapp.cl/canal-95";
 const canal95LoaderUrl = "https://player.conectaapp.cl/embed/loader.js?id=canal-95";
 
@@ -79,6 +85,7 @@ const MANUAL_RADIOS: ManualRadioPreset[] = [
     mood: "calm",
     duration: "En vivo",
     src: fmdosUrl,
+    radioStreams: fmdosStreams,
     cover: "linear-gradient(135deg,#f9a8d4,#f43f5e)",
     externalUrl: "https://envivo.fmdos.cl/",
     source: "radio",
@@ -96,6 +103,7 @@ const MANUAL_RADIOS: ManualRadioPreset[] = [
     mood: "calm",
     duration: "En vivo",
     src: fmdosHlsUrl,
+    radioStreams: fmdosStreams,
     cover: "linear-gradient(135deg,#f0abfc,#ec4899)",
     externalUrl: "https://envivo.fmdos.cl/",
     source: "radio",

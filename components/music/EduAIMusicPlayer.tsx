@@ -1852,7 +1852,7 @@ function AddToPlaylistBar() {
       </div>
       <div className="mt-2 flex flex-wrap gap-2">
         <button type="button" onClick={() => music.addToPlaylist("pl-liked", music.pendingTrackId!)} className="rounded-full bg-cyan-400 px-3 py-1.5 text-xs font-black text-slate-950">
-          ♥ Me gusta
+          {track?.source === "radio" ? "♥ Radio favorita" : "♥ Me gusta"}
         </button>
         {music.userPlaylists.map((playlist) => (
           <button key={playlist.id} type="button" onClick={() => music.addToPlaylist(playlist.id, music.pendingTrackId!)} className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold hover:bg-white/15">
@@ -2299,23 +2299,23 @@ function NeonRecentCard({
       {track.externalUrl && (
         <a href={track.externalUrl} target="_blank" rel="noopener noreferrer"
           className="mt-1 inline-flex items-center gap-1 text-[9px] font-bold text-cyan-300 hover:text-cyan-100"
-          title={externalOnly ? "Video no integrable: abrir en YouTube" : "Abrir este video en YouTube"}>
+          title={track.source === "radio" ? "Abrir emisora oficial" : externalOnly ? "Video no integrable: abrir en YouTube" : "Abrir este video en YouTube"}>
           <ExternalLink className="h-3 w-3" />
-          {externalOnly ? "Solo YouTube" : "Ver en YouTube"}
+          {track.source === "radio" ? "Abrir emisora" : externalOnly ? "Solo YouTube" : "Ver en YouTube"}
         </a>
       )}
     </div>
   );
 }
 
-function NeonTrackTable({ tracks }: { tracks: EduMusicTrack[] }) {
+function NeonTrackTable({ tracks, radio = false }: { tracks: EduMusicTrack[]; radio?: boolean }) {
   const music = useEduAIMusic();
 
   return (
     <div
-      className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-color:#25f4ff55_transparent] [scrollbar-width:thin]"
+      className={cn("flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-color:#25f4ff55_transparent] [scrollbar-width:thin]", radio ? "min-h-[150px] max-h-[42vh]" : "min-h-0")}
       role="region"
-      aria-label="Lista desplazable de canciones"
+      aria-label={radio ? "Lista desplazable de emisoras" : "Lista desplazable de canciones"}
       tabIndex={0}
     >
       <div className="neon-track-header sticky top-0 z-10 grid grid-cols-[34px_minmax(0,1.4fr)_minmax(90px,.8fr)_minmax(90px,.8fr)_58px_70px] items-center gap-2 bg-[#03101c]/95 px-2 pb-1 text-[8px] font-black uppercase tracking-[.16em] text-slate-500 backdrop-blur-sm">
@@ -2353,7 +2353,7 @@ function NeonTrackTable({ tracks }: { tracks: EduMusicTrack[] }) {
                 <Cover track={track} size="xs" />
                 <span className="min-w-0">
                   <span className={cn("block truncate text-[10px] font-black", active ? "text-cyan-200" : "text-white")}>{track.title}</span>
-                  {externalOnly && <span className="block truncate text-[8px] text-amber-300">Solo en YouTube</span>}
+                  {externalOnly && <span className="block truncate text-[8px] text-amber-300">{track.source === "radio" ? "Solo sitio oficial" : "Solo en YouTube"}</span>}
                   <span className="block truncate text-[8px] text-slate-500 sm:hidden">{track.artist}</span>
                 </span>
               </button>
@@ -2365,8 +2365,8 @@ function NeonTrackTable({ tracks }: { tracks: EduMusicTrack[] }) {
                 {track.externalUrl && (
                   <a href={track.externalUrl} target="_blank" rel="noopener noreferrer"
                     className={cn("text-cyan-400 hover:text-cyan-100", externalOnly && "text-amber-300")}
-                    title={externalOnly ? "No permite inserción: abrir directamente en YouTube" : "Abrir en YouTube"}
-                    aria-label={"Abrir " + track.title + " en YouTube"}>
+                    title={track.source === "radio" ? "Abrir emisora oficial" : externalOnly ? "No permite inserción: abrir directamente en YouTube" : "Abrir en YouTube"}
+                    aria-label={"Abrir " + track.title + (track.source === "radio" ? " en su sitio oficial" : " en YouTube")}>
                     <ExternalLink className="h-3.5 w-3.5" />
                   </a>
                 )}
@@ -2485,6 +2485,7 @@ function NeonMain({
   onCloseSpotify: () => void;
 }) {
   const music = useEduAIMusic();
+  const [radioFavoritesOnly, setRadioFavoritesOnly] = useState(false);
   const homeTracks = useMemo(
     () =>
       dedupeTracks([
@@ -2502,11 +2503,11 @@ function NeonMain({
     if (music.view === "mix") return music.mixFavoriteTracks;
     if (music.view === "queue") return music.queue;
     if (music.view === "library") return music.uploadedTracks;
-    if (music.view === "radio") return music.radioTracks;
-    if (music.view === "search") return music.onlineTracks.length ? music.onlineTracks : music.visibleTracks;
+    if (music.view === "radio") return radioFavoritesOnly ? music.radioFavoriteTracks : music.radioTracks;
+    if (music.view === "search") return (music.onlineTracks.length ? music.onlineTracks : music.visibleTracks).filter((track) => track.source !== "radio");
     if (music.view === "playlists") return music.baseTracks;
     return homeTracks;
-  }, [homeTracks, music.allTracks, music.baseTracks, music.favoriteTracks, music.liked, music.mixFavoriteTracks, music.onlineTracks, music.queue, music.radioTracks, music.uploadedTracks, music.view, music.visibleTracks]);
+  }, [homeTracks, music.allTracks, music.baseTracks, music.favoriteTracks, music.liked, music.mixFavoriteTracks, music.onlineTracks, music.queue, music.radioTracks, music.radioFavoriteTracks, music.uploadedTracks, music.view, music.visibleTracks, radioFavoritesOnly]);
 
   const recentTracks = (music.recentTracks.length ? music.recentTracks : tracks).slice(0, 6);
   const catalogTracks =
@@ -2518,7 +2519,7 @@ function NeonMain({
         : music.view === "liked"
           ? tracks
           : tracks.slice(0, 10);
-  const tableTracks = music.view === "liked" || music.view === "mix" ? tracks : tracks.slice(0, 10);
+  const tableTracks = music.view === "liked" || music.view === "mix" || music.view === "radio" ? tracks : tracks.slice(0, 10);
   const catalogScrollerRef = useRef<HTMLDivElement>(null);
   const catalogPausedRef = useRef(false);
   const catalogKey = catalogTracks.map((track) => track.id).join("|");
@@ -2566,6 +2567,7 @@ function NeonMain({
     const term = music.onlineQuery.trim();
     if (!term) return;
     if (music.view === "radio") {
+      setRadioFavoritesOnly(false);
       await music.searchRadio(term);
       return;
     }
@@ -2575,7 +2577,7 @@ function NeonMain({
   };
 
   const viewTitle =
-    music.view === "radio" ? "Radio en vivo" :
+    music.view === "radio" ? (radioFavoritesOnly ? "Radios favoritas" : "Radio en vivo") :
     music.view === "library" ? "Mis audios" :
     music.view === "liked" ? "Favoritos" :
     music.view === "mix" ? "Mix Favorite" :
@@ -2585,7 +2587,7 @@ function NeonMain({
     "Inicio";
 
   const viewDescription =
-    music.view === "radio" ? "Explora emisoras sin interrumpir la pista que ya está sonando." :
+    music.view === "radio" ? (radioFavoritesOnly ? "Emisoras guardadas en tu cuenta, separadas de las canciones." : "Explora emisoras sin interrumpir la pista que ya está sonando.") :
     music.view === "library" ? "Tus archivos de audio permanecen separados de la reproducción actual." :
     music.view === "liked" ? "Tus canciones favoritas, listas para reproducir cuando quieras." :
     music.view === "mix" ? "Explora videos, lyrics, remixes, covers y mixes: reproducción continua y enlaces directos a YouTube." :
@@ -2756,7 +2758,12 @@ function NeonMain({
               <p className="truncate text-[11px] font-black text-cyan-100">{viewTitle}</p>
               <p className="truncate text-[9px] text-slate-400">{viewDescription}</p>
             </div>
-            {music.view === "liked" ? (
+            {music.view === "radio" ? (
+              <div className="flex flex-wrap items-center justify-end gap-2" aria-label="Biblioteca de radio">
+                <button type="button" aria-pressed={!radioFavoritesOnly} onClick={() => setRadioFavoritesOnly(false)} className={cn("neon-filter-chip rounded-full border px-2.5 py-1.5 text-[9px] font-black", !radioFavoritesOnly ? "is-active border-cyan-300/60 text-cyan-100" : "border-cyan-300/20 text-slate-300")}>Todas las radios</button>
+                <button type="button" aria-pressed={radioFavoritesOnly} onClick={() => setRadioFavoritesOnly(true)} className={cn("neon-filter-chip inline-flex items-center gap-1 rounded-full border px-2.5 py-1.5 text-[9px] font-black", radioFavoritesOnly ? "is-active border-fuchsia-300/60 text-fuchsia-100" : "border-fuchsia-300/25 text-slate-300")}>♥ Favoritas ({music.radioFavoriteTracks.length})</button>
+              </div>
+            ) : music.view === "liked" ? (
               <div className="flex shrink-0 items-center gap-2">
                 <button type="button" onClick={music.startFavorites} disabled={!music.favoriteTracks.length} className="flex items-center gap-1 rounded-full border border-cyan-300/30 bg-cyan-400/15 px-3 py-1.5 text-[9px] font-black text-cyan-100 disabled:opacity-40">
                   {music.shuffle ? <Shuffle className="h-3 w-3" /> : <Play className="h-3 w-3" />}
@@ -2814,8 +2821,8 @@ function NeonMain({
           ) : null}
         </div>
 
-        <div className="mt-3 min-h-0 flex-1 px-2">
-          <div className="flex h-full min-h-0 flex-col gap-3">
+        <div className={cn("mt-3 min-h-0 flex-1 px-2", music.view === "radio" && "overflow-y-auto overscroll-contain pb-3 [scrollbar-color:#25f4ff55_transparent] [scrollbar-width:thin]")}>
+          <div className={cn("flex min-h-0 flex-col gap-3", music.view === "radio" ? "min-h-full" : "h-full")}>
             <div className="shrink-0">
               <div className="mb-2 flex items-center justify-between">
                 <div>
@@ -2825,6 +2832,7 @@ function NeonMain({
                   <p className="text-[9px] text-slate-500">
                     {music.view === "liked"
                       ? `${tracks.length} canciones guardadas · desliza hacia abajo para ver todas`
+                      : music.view === "radio" ? `${tracks.length} emisoras · lista completa abajo`
                       : catalogTracks.length
                         ? music.view === "search"
                           ? `${tracks.length} resultados · desliza para explorar`
@@ -2887,16 +2895,16 @@ function NeonMain({
               )}
             </div>
 
-            <div className="flex min-h-0 flex-1 flex-col">
+            <div className={cn("flex flex-1 flex-col", music.view === "radio" ? "min-h-[190px]" : "min-h-0")}>
               <div className="mb-1.5 flex shrink-0 items-center justify-between">
-                <h2 className="text-[13px] font-black text-white">{music.view === "mix" ? "Lista completa · Mix Favorite" : music.view === "home" ? "Canciones para ti" : "Canciones"}</h2>
+                <h2 className="text-[13px] font-black text-white">{music.view === "mix" ? "Lista completa · Mix Favorite" : music.view === "home" ? "Canciones para ti" : music.view === "radio" ? "Lista completa de emisoras" : "Canciones"}</h2>
                 <span className="text-[9px] font-bold text-cyan-300/85">{tableTracks.length} resultados</span>
               </div>
               {tableTracks.length ? (
-                <NeonTrackTable tracks={tableTracks} />
+                <NeonTrackTable tracks={tableTracks} radio={music.view === "radio"} />
               ) : (
                 <div className="flex h-24 items-center justify-center text-[10px] text-slate-500">
-                  No hay canciones en esta vista.
+                  {music.view === "radio" ? (radioFavoritesOnly ? "Todavía no tienes radios favoritas. Pulsa el corazón de una emisora." : "No hay emisoras en esta vista.") : "No hay canciones en esta vista."}
                 </div>
               )}
             </div>
@@ -2966,9 +2974,7 @@ function NeonRightPanel() {
 
           {!idle && (
             <div className="mt-1 flex items-center gap-2 text-[8px] font-bold tabular-nums text-slate-500">
-              <span className="w-7 text-right">{formatSeconds(music.currentTime)}</span>
-              <ProgressRange currentTime={music.currentTime} duration={duration} onSeek={music.seekTo} compact />
-              <span className="w-7">{formatSeconds(duration)}</span>
+              {track.source === "radio" ? <span className="flex flex-1 items-center gap-2 text-cyan-200"><span className="h-2 w-2 rounded-full bg-cyan-300" /> EN VIVO <span className="ml-auto">{music.playing ? "Reproduciendo" : "En pausa"}</span></span> : <><span className="w-7 text-right">{formatSeconds(music.currentTime)}</span><ProgressRange currentTime={music.currentTime} duration={duration} onSeek={music.seekTo} compact /><span className="w-7">{formatSeconds(duration)}</span></>}
             </div>
           )}
         </div>
@@ -3173,9 +3179,7 @@ function NeonBottomPlayer() {
               </button>
             </div>
             <div className="mt-1 flex items-center gap-2 text-[8px] tabular-nums text-slate-500">
-              <span className="w-7 text-right">{formatSeconds(music.currentTime)}</span>
-              <ProgressRange currentTime={music.currentTime} duration={duration} onSeek={music.seekTo} compact />
-              <span className="w-7">{formatSeconds(duration)}</span>
+              {track.source === "radio" ? <span className="flex flex-1 items-center gap-2 text-cyan-200"><span className="h-2 w-2 rounded-full bg-cyan-300" /> EN VIVO <span className="ml-auto">{music.playing ? "Reproduciendo" : "En pausa"}</span></span> : <><span className="w-7 text-right">{formatSeconds(music.currentTime)}</span><ProgressRange currentTime={music.currentTime} duration={duration} onSeek={music.seekTo} compact /><span className="w-7">{formatSeconds(duration)}</span></>}
             </div>
           </div>
 
