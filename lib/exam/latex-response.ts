@@ -56,6 +56,7 @@ export function normalizeLatexSource(value: unknown): string {
     .replace(/\r\n/g, "\n")
     .trim()
 
+  text = text.replace(/\\{2,}(?=(?:triangle|text|frac|sqrt|parallel|times|cdot|approx|leq|geq|neq|angle|pi|sum|int|alpha|beta|theta|mathrm)\b)/g, "\\")
   text = repairCommonOcrLatex(text)
   text = repairAnswerBlanks(text)
 
@@ -190,6 +191,9 @@ export function latexToReadableText(value: unknown): string {
     .replace(/\\leftrightarrow/g, "↔")
     .replace(/\\Rightarrow/g, "⇒")
     .replace(/\\rightleftharpoons/g, "⇌")
+    .replace(/\\triangle\b/g, "△")
+    .replace(/\\parallel\b/g, "∥")
+    .replace(/\\text\s*\{([^{}]+)\}/g, "$1")
     .replace(/\\/g, "")
     .replace(/\s*&\s*/g, " ")
     .replace(/\{([^{}]+)\}/g, "$1")

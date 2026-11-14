@@ -1,3 +1,4 @@
+import { examAnswerConsistencyIssues } from "./answer-consistency.mjs"
 export type QuestionQualitySeverity = "warning" | "error"
 
 export type QuestionQualityIssue = {
@@ -138,6 +139,7 @@ export function assessQuestionQuality(question: any): QuestionQualityIssue[] {
     }
   }
 
+  for (const message of examAnswerConsistencyIssues(question)) issues.push({code:"answer_consistency",message,severity:"error"})
   return issues
 }
 
