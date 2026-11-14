@@ -332,12 +332,10 @@ function patchPage() {
   source = replaceRequired(
     source,
     block([
-      "      const normalized: Question[] = (data.questions ?? []).map((raw: any) =>",
-      "        normalizeAIQuestion(raw),",
-      "      );",
+      "      const normalized: Question[] = rawQuestions.map((raw: any) => normalizeAIQuestion(raw));",
     ]),
     block([
-      "      const normalized: Question[] = (data.questions ?? []).map((raw: any, index: number) => {",
+      "      const normalized: Question[] = rawQuestions.map((raw: any, index: number) => {",
       "        const normalizedQuestion = normalizeAIQuestion(raw);",
       '        if (normalizedQuestion.type === "development" || normalizedQuestion.type === "mixed_choice_development") {',
       "          normalizedQuestion.responseMode = raw?.responseMode || raw?.response_mode",
@@ -358,28 +356,8 @@ function patchPage() {
 
   source = replaceRequired(
     source,
-    block([
-      "  const importAIQuestions = () => {",
-      "    if (aiPreview.length === 0) return;",
-      '    if (aiImportMode === "replace") setQuestions(aiPreview);',
-      "    else setQuestions((prev) => [...prev, ...aiPreview]);",
-      "    setAiPreview([]);",
-      '    setAiStatus("idle");',
-      "  };",
-    ]),
-    block([
-      "  const importAIQuestions = () => {",
-      "    if (aiPreview.length === 0) return;",
-      "    if (aiPreview.some((q) => isMathResponseMode(q.responseMode))) {",
-      "      setDevelopmentNotebookEnabled(true);",
-      '      setDevelopmentNotebookMode("development_only");',
-      "    }",
-      '    if (aiImportMode === "replace") setQuestions(aiPreview);',
-      "    else setQuestions((prev) => [...prev, ...aiPreview]);",
-      "    setAiPreview([]);",
-      '    setAiStatus("idle");',
-      "  };",
-    ]),
+    '    if (aiPreview.some((q) => q.type === "development" || q.type === "mixed_choice_development")) {',
+    '    if (aiPreview.some((q) => (q.type === "development" || q.type === "mixed_choice_development") && isMathResponseMode(q.responseMode))) {',
     "activar cuaderno para respuestas matemáticas IA",
   )
 

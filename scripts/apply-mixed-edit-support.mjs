@@ -24,6 +24,7 @@ patch("app/examen/crear/page.tsx", [
   ['  const [aiDev, setAiDev] = useState(2);', '  const [aiDev, setAiDev] = useState(2);\n  const [aiMixed, setAiMixed] = useState(0);'],
   ['const totalQ = aiMC + aiTF + aiDev;', 'const totalQ = aiMC + aiTF + aiDev + aiMixed;'],
   ['const totalAIQuestions = aiMC + aiTF + aiDev;', 'const totalAIQuestions = aiMC + aiTF + aiDev + aiMixed;'],
+  ['const expectedCounts = { multiple_choice: aiMC, true_false: aiTF, development: aiDev };', 'const expectedCounts = { multiple_choice: aiMC, true_false: aiTF, development: aiDev, mixed_choice_development: aiMixed };'],
   ['{aiMC + aiTF + aiDev}', '{aiMC + aiTF + aiDev + aiMixed}'],
   ['- ${aiDev} preguntas de DESARROLLO (tipo development, con rúbrica de criterios, maxPoints ~5)', '- ${aiDev} preguntas de DESARROLLO (tipo development, con rúbrica de criterios, maxPoints ~5)\n- ${aiMixed} preguntas de ALTERNATIVA + DESARROLLO (tipo mixed_choice_development, 4 opciones, alternativa automática y desarrollo con rúbrica)'],
   ['6. development: modelAnswer, expectedLatex si corresponde, explanation, solutionSteps, rubric:[{criteria,points}], maxPoints:suma', '6. development: modelAnswer, expectedLatex si corresponde, explanation, solutionSteps, rubric:[{criteria,points}], maxPoints:suma\n6b. mixed_choice_development: options[4], correctAnswer índice 0-3, answerText igual a options[correctAnswer], explanation, solutionSteps, distractorRationales[4], selectionPoints, developmentMaxPoints, modelAnswer, expectedLatex y rubric'],

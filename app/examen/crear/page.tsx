@@ -395,7 +395,7 @@ function getQuestionPoints(q: Question): number {
 function normalizeAIQuestion(raw: any): Question {
   const base = {
     id: uid(),
-    question: String(raw.question ?? raw.enunciado ?? "").trim(),
+    question: (raw.question ?? raw.enunciado ?? "").trim(),
     imageUrl: String(raw.imageUrl ?? raw.image_url ?? raw.image ?? "").trim(),
   };
 
@@ -455,14 +455,6 @@ function normalizeAIQuestion(raw: any): Question {
       rubric,
       maxPoints,
     }) as DevelopmentQuestion;
-  }
-
-  if (raw.type === "mixed_choice_development") {
-    const choice = normalizeAIQuestion({ ...raw, type: "multiple_choice" }) as MultipleChoiceQuestion;
-    const development = normalizeAIQuestion({ ...raw, type: "development" }) as DevelopmentQuestion;
-    const selectionPoints = Number(raw.selectionPoints ?? 3);
-    const developmentMaxPoints = Number(raw.developmentMaxPoints ?? 2);
-    return enrichQuestionAnswerKey({ ...choice, type: "mixed_choice_development", modelAnswer: development.modelAnswer, expectedLatex: development.expectedLatex, rubric: development.rubric, selectionPoints, developmentMaxPoints, showRubricToStudent: raw.showRubricToStudent === true, maxPoints: selectionPoints + developmentMaxPoints }) as MixedChoiceDevelopmentQuestion;
   }
 
   // multiple_choice (default)
