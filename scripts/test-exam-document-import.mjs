@@ -47,7 +47,7 @@ check("11/21 imágenes de alternativas llegan al estudiante", questionCard.inclu
 check("12/21 matemática Unicode se normaliza", core.includes("SUPER_MAP") && core.includes("SUB_MAP") && core.includes("normalizeDocumentMath"))
 check("13/21 autoguardado y recuperación activos", page.includes("eduai:exam-creator:draft:v1") && page.includes("Borrador anterior recuperado automáticamente"))
 check("14/21 borrador se elimina al crear examen", page.includes("clearExamCreatorDraft();") && page.includes("setCreatedExam({"))
-check("15/21 append reemplaza la pregunta inicial vacía", page.includes("EXAM_IMPORT_EMPTY_STARTER_GUARD_V1") && page.includes("onlyEmptyStarter ? imported"))
+check("15/21 append reemplaza la pregunta inicial vacía", page.includes("EXAM_IMPORT_EMPTY_STARTER_GUARD_V1") && page.includes("appendExamQuestions(current, imported)"))
 check("16/21 fórmulas rasterizadas se transcriben y no se conservan como imágenes", route.includes("EXAM_IMPORT_REAL_FIXTURE_PROMPT_V1") && route.includes("contiene SOLO una fórmula") && route.includes("NO uses imageRef/optionImageRefs"))
 check("17/21 pauta final se vincula a preguntas sin duplicarla", route.includes("pauta/solucionario al final") && route.includes("NO conviertas la pauta en preguntas nuevas"))
 check("18/21 DOCX prioriza HTML semántico para tablas y signos", route.includes("prioriza la estructura del HTML SEMÁNTICO") && route.includes("superíndices"))
@@ -57,7 +57,7 @@ check("21/21 prompt JSON de segunda verificación conserva sintaxis válida", ro
 
 check("22/25 módulos PDF y generación son secciones hermanas", page.indexOf('id="exam-section-archivo"') >= 0 && page.indexOf('<ExamDocumentImporter onApply={applyDocumentImport}') < page.indexOf('id="exam-section-ia"') && page.includes('id: "archivo"'))
 check("23/25 cancelación y protección contra respuestas obsoletas", component.includes("requestRef.current !== controller") && component.includes("signal: controller.signal") && page.includes("abortRef.current !== controller"))
-check("24/25 aplicar requiere confirmación de reemplazo y evita duplicados", component.includes("applyingRef.current") && page.includes("¿Reemplazar todas las preguntas actuales"))
+check("24/25 aplicar solo agrega y evita duplicados", component.includes("applyingRef.current") && page.includes("appendExamQuestions"))
 check("25/25 referencias de imágenes ausentes permanecen nulas", core.includes("function optionalReference") && core.includes("optionalReference(raw?.imageRef)"))
 console.log(`\n[exam-document-import] ${checks.length}/25 verificaciones superadas`)
 await import("./test-exam-result-feedback-v2.mjs")

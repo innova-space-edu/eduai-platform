@@ -402,6 +402,7 @@ export function buildSubjectGenerationDirective(input: {
   teacherPrompt?: string
   selectedOAs?: SelectedOAContext[]
   modeIds?: string[]
+  requireOA?: boolean
   sourceContext?: string
   skillFocus?: string
   authenticContext?: boolean
@@ -416,7 +417,7 @@ export function buildSubjectGenerationDirective(input: {
   const modeLines = modeIds
     .map((id) => PEDAGOGICAL_MODES.find((mode) => mode.id === id))
     .filter(Boolean)
-    .map((mode) => `- ${mode!.label}: ${mode!.description}`)
+    .map((mode) => `- ${mode!.id} (${mode!.label}): ${mode!.description}`)
     .join("\n")
   const oaLines = selectedOAs.length
     ? selectedOAs
@@ -430,7 +431,7 @@ export function buildSubjectGenerationDirective(input: {
           return `${index + 1}. ${code}: ${oa.texto || ""}${extras.length ? `\n   ${extras.join(" · ")}` : ""}`
         })
         .join("\n")
-    : "No se seleccionaron OA. Usa el tema y las indicaciones docentes, sin inventar códigos curriculares."
+    : input.requireOA !== false ? "No se seleccionaron OA; no generar hasta que el docente seleccione al menos uno." : "OA opcionales. Usa el tema y las indicaciones docentes, sin inventar códigos curriculares."
 
   return `PERFIL PEDAGÓGICO OBLIGATORIO
 Asignatura: ${input.subject || "No especificada"}
@@ -462,5 +463,5 @@ ${input.skillFocus ? `Habilidades o énfasis adicionales: ${input.skillFocus}` :
 ${input.sourceContext ? `FUENTE, TEXTO, DATOS O CONTEXTO ENTREGADO POR EL DOCENTE:\n${input.sourceContext}` : ""}
 ${input.accessibility ? `ADAPTACIONES Y ACCESIBILIDAD:\n${input.accessibility}` : ""}
 
-REGLA CENTRAL: cada pregunta debe vincularse explícitamente con al menos un OA o con el tema docente cuando no existan OA disponibles. La respuesta, explicación, pauta y rúbrica deben generarse en el mismo objeto y ser verificadas antes de responder.`
+REGLA CENTRAL: ${input.requireOA !== false ? "Cada pregunta debe incluir oaCodes con uno o más códigos exactos de los OA seleccionados. No inventes códigos." : "Los OA son opcionales: usa el tema docente y los OA seleccionados cuando sean pertinentes; no inventes códigos."} Usa pedagogicalMode como uno de los identificadores solicitados. La respuesta, explicación, pauta y rúbrica deben generarse en el mismo objeto y ser verificadas antes de responder.`
 }

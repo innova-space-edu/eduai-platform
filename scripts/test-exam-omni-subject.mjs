@@ -14,6 +14,12 @@ const checks = [
       "aiSourceContext",
       "Perfil pedagógico activo",
       "MODOS PEDAGÓGICOS",
+      "Configurar modos pedagógicos",
+      "setAiRequireOA] = useState(true)",
+      "mixed: aiMixed",
+      "requestExamGeneration",
+      "curriculum: { requireOA: aiRequireOA",
+      "appendExamQuestions(prev, aiPreview)",
     ],
   },
   {

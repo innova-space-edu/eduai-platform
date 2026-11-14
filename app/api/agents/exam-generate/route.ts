@@ -1,4 +1,7 @@
 import { EXAM_AI_MAX_QUESTIONS } from "@/lib/exam/creator-limits"
+import { planExamBatches, normalizeStem, examContractIssues } from "@/lib/exam/generation-contract.mjs"
+import { PEDAGOGICAL_MODES } from "@/lib/exam/subject-pedagogy"
+import { parseExamModelJson } from "@/lib/exam/import-model-json.mjs"
 import { compatibleFallbackModel, generateCompatibleText, hasCompatibleProvider, parseStructuredJson } from "@/lib/ai/providers/openai-compatible"
 import { openRouterTextProviderOptions, resolveOpenRouterTextModel } from "@/lib/ai/free-routing"
 import { resolveGroqTextModel, GROQ_FAST_MODEL, GROQ_REASONING_MODEL } from "@/lib/ai/groq-models"
@@ -11,11 +14,7 @@ import { buildAnswerKey, enrichQuestionAnswerKey, findBlockingQualityIssues } fr
 export const runtime = "nodejs"
 export const maxDuration = 120
 
-const GROQ_MODELS = [
-  resolveGroqTextModel(),
-  GROQ_FAST_MODEL,
-  GROQ_REASONING_MODEL,
-]
+const GROQ_MODELS = Array.from(new Set([resolveGroqTextModel(), GROQ_FAST_MODEL, GROQ_REASONING_MODEL]))
 
 const GROQ_MAX_TOKENS = 3200
 
@@ -325,7 +324,7 @@ function parseResponse(raw: string): any {
     .replace(/```\s*$/i, "")
     .trim()
 
-  return JSON.parse(clean)
+  return parseExamModelJson(clean)
 }
 
 const SYSTEM = `Eres un especialista en diseño y corrección de evaluaciones escolares en español.
@@ -455,85 +454,16 @@ function friendlyProviderError(message: string): string {
   return "No se pudieron generar las preguntas con los proveedores configurados. Revisa las variables de entorno, cuota disponible y logs del servidor."
 }
 
-function makeBatchPlans(totalQ: number, mc: number, tf: number, dev: number): BatchPlan[] {
-  const explicit = mc > 0 || tf > 0 || dev > 0
-  const initial = explicit
-    ? { mc: Math.max(0, mc), tf: Math.max(0, tf), dev: Math.max(0, dev) }
-    : { mc: Math.max(1, totalQ), tf: 0, dev: 0 }
-
-  let remaining = {
-    ...initial,
-    total: initial.mc + initial.tf + initial.dev,
-  }
-
-  const plans: BatchPlan[] = []
-
-  while (remaining.total > 0) {
-    const take = Math.min(PROVIDER_BATCH, remaining.total)
-
-    let bMc = 0
-    let bTf = 0
-    let bDev = 0
-
-    if (!explicit) {
-      bMc = take
-    } else {
-      bMc = Math.min(remaining.mc, Math.floor((take * remaining.mc) / remaining.total))
-      bTf = Math.min(remaining.tf, Math.floor((take * remaining.tf) / remaining.total))
-      bDev = Math.min(remaining.dev, Math.floor((take * remaining.dev) / remaining.total))
-
-      let left = take - bMc - bTf - bDev
-      const order: ("mc" | "tf" | "dev")[] = ["mc", "tf", "dev"]
-
-      while (left > 0) {
-        let assigned = false
-        for (const key of order) {
-          if (left <= 0) break
-          const current = key === "mc" ? bMc : key === "tf" ? bTf : bDev
-          const capacity = remaining[key] - current
-          if (capacity > 0) {
-            if (key === "mc") bMc++
-            if (key === "tf") bTf++
-            if (key === "dev") bDev++
-            left--
-            assigned = true
-          }
-        }
-        if (!assigned) break
-      }
-    }
-
-    const total = bMc + bTf + bDev
-    if (total <= 0) break
-
-    plans.push({ total, mc: bMc, tf: bTf, dev: bDev })
-
-    remaining.mc -= bMc
-    remaining.tf -= bTf
-    remaining.dev -= bDev
-    remaining.total -= total
-  }
-
-  return plans
-}
-
 function compactPromptForProvider(basePrompt: string): string {
-  const raw = String(basePrompt || "")
-  const keepLines = raw
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean)
-    .filter((line) => !/REGLAS|OBLIGATORI|JSON|ESTRUCTURA|LaTeX|correctAnswer/i.test(line))
-
-  const compact = keepLines.join("\n").slice(0, 1800)
-  return compact || raw.slice(0, 1800)
+  // Preserve the complete OA, source and accessibility directives. Request size is bounded at the endpoint.
+  return String(basePrompt || "").trim()
 }
 
 function promptForBatch(basePrompt: string, batch: BatchPlan, index: number, totalBatches: number): string {
   const compactBase = compactPromptForProvider(basePrompt)
   return `${compactBase}
 
-LOTE ${index + 1}/${totalBatches}.
+LOTE ${index + 1}/${totalBatches}. Las cantidades del lote que siguen reemplazan las cantidades globales del contexto; genera solo este lote.
 Genera EXACTAMENTE ${batch.total} preguntas:
 - ${batch.mc} multiple_choice
 - ${batch.tf} true_false
@@ -565,33 +495,48 @@ Mantén cada pregunta junto a su respuesta, explanation, solutionSteps y pauta.
 En multiple_choice: 4 alternativas distintas y pertinentes; answerText idéntico a options[correctAnswer]; distractorRationales con 4 elementos.`
 }
 
+type CurriculumContract = { requireOA: boolean; oaCodes: string[]; modeIds: string[] }
+
 async function validateAndRepairWithProvider(
   questions: any[],
   context: string,
-  askProvider: (prompt: string) => Promise<any>
+  askProvider: (prompt: string) => Promise<any>,
+  curriculum: CurriculumContract | null = null,
+  priorStems: ReadonlySet<string> = new Set(),
 ): Promise<any[]> {
-  let prepared = sanitizeQuestionsArray(questions)
-
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const blocking = findBlockingQualityIssues(prepared)
-    if (blocking.length === 0) return prepared
-
-    try {
-      const parsed = await askProvider(buildRepairPrompt(prepared, context))
-      const repaired = sanitizeQuestionsArray(parsed?.questions ?? parsed?.items ?? [])
-      if (repaired.length === prepared.length) prepared = repaired
-    } catch (error: any) {
-      console.warn(`[exam-generate/quality] intento ${attempt + 1} falló:`, error?.message || error)
-      break
-    }
+  if (!Array.isArray(questions) || !questions.length) throw new Error("La IA devolvió una tanda incompleta.")
+  let raw = [...questions]
+  for (let attempt = 0; attempt <= 1; attempt++) {
+    const seen = new Set(priorStems)
+    const prepared = raw.map(question => question && typeof question === "object" ? sanitizeQuestionsArray([question])[0] : null)
+    const invalid = raw.flatMap((question, index) => {
+      const issues = examContractIssues(question, curriculum, seen)
+      const checked = prepared[index]
+      if (checked) {
+        const quality = findBlockingQualityIssues([checked])[0]
+        if (quality) issues.push(...quality.issues.filter(issue => issue.severity === "error").map(issue => issue.message))
+        if (question?.type !== checked.type) issues.push("El tipo no se conservó")
+      } else issues.push("Pregunta inválida")
+      if (!issues.length && checked) {
+        const normalized = normalizeStem(checked.question);
+        if (seen.has(normalized)) issues.push("Enunciado repetido");
+        else { seen.add(normalized); seen.add(normalizeStem(question.question)); }
+      }
+      return issues.length ? [{ index, issues, question }] : []
+    })
+    if (!invalid.length) return prepared
+    if (attempt === 1) throw new Error("La tanda contiene preguntas que no superaron la validación: " + invalid.map(item => item.issues.join(", ")).join(" | "))
+    const repaired = await askProvider(`Corrige SOLO las preguntas marcadas, en el mismo orden y con el mismo tipo. No repitas enunciados. Devuelve {"questions":[...]}. Mantén los OA exactos, modo pedagógico, respuestas verificadas y pauta.\nContexto completo:\n${context}\nPreguntas válidas que no debes repetir:\n${JSON.stringify([...seen])}\nPreguntas pendientes:\n${JSON.stringify(invalid)}`)
+    const fixes = repaired?.questions
+    if (!Array.isArray(fixes) || fixes.length !== invalid.length || fixes.some((q: any, i: number) => q?.type !== invalid[i].question?.type)) throw new Error("La reparación devolvió una tanda incompleta.")
+    for (let i = 0; i < invalid.length; i++) raw[invalid[i].index] = fixes[i]
   }
-
-  return prepared
+  throw new Error("La tanda no superó la validación.")
 }
 
 async function groqBatch(prompt: string, key: string): Promise<any> {
   const Groq = (await import("groq-sdk")).default
-  const client = new Groq({ apiKey: key })
+  const client = new Groq({ apiKey: key, timeout: 20000, maxRetries: 0 })
 
   let lastError = ""
 
@@ -625,36 +570,6 @@ async function groqBatch(prompt: string, key: string): Promise<any> {
   throw new Error(`Groq: todos los modelos fallaron. Último error: ${lastError}`)
 }
 
-async function groqFull(
-  basePrompt: string,
-  totalQ: number,
-  mc: number,
-  tf: number,
-  dev: number,
-  key: string
-): Promise<{ title: string; questions: any[] }> {
-  const batches = makeBatchPlans(totalQ, mc, tf, dev)
-  const allQ: any[] = []
-  let title = ""
-
-  for (let i = 0; i < batches.length; i++) {
-    const prompt = promptForBatch(basePrompt, batches[i], i, batches.length)
-    const parsed = await groqBatch(prompt, key)
-    const qs = await validateAndRepairWithProvider(
-      parsed?.questions ?? parsed?.items ?? [],
-      prompt,
-      (repairPrompt) => groqBatch(repairPrompt, key)
-    )
-
-    requireBatchShape(qs, batches[i])
-    allQ.push(...qs)
-    if (!title && parsed?.title) title = sanitizeLatexText(parsed.title)
-    if (i < batches.length - 1) await sleep(900)
-  }
-
-  return { title, questions: allQ.slice(0, totalQ) }
-}
-
 async function openRouterBatch(prompt: string, key: string): Promise<any> {
   const models = Array.from(new Set([
     resolveOpenRouterTextModel(process.env.OPENROUTER_STRUCTURED_MODEL || process.env.OPENROUTER_TEXT_MODEL),
@@ -684,7 +599,7 @@ async function openRouterBatch(prompt: string, key: string): Promise<any> {
             { role: "user", content: prompt },
           ],
         }),
-        signal: AbortSignal.timeout(75000),
+        signal: AbortSignal.timeout(20000),
       })
 
       if (!res.ok) {
@@ -711,37 +626,6 @@ async function openRouterBatch(prompt: string, key: string): Promise<any> {
   }
 
   throw new Error(`OpenRouter: todos los modelos fallaron. Último: ${lastError}`)
-}
-
-async function openRouterFull(
-  basePrompt: string,
-  totalQ: number,
-  mc: number,
-  tf: number,
-  dev: number,
-  key: string,
-  askBatch = (prompt: string) => openRouterBatch(prompt, key)
-): Promise<{ title: string; questions: any[] }> {
-  const batches = makeBatchPlans(totalQ, mc, tf, dev)
-  const allQ: any[] = []
-  let title = ""
-
-  for (let i = 0; i < batches.length; i++) {
-    const prompt = promptForBatch(basePrompt, batches[i], i, batches.length)
-    const parsed = await askBatch(prompt)
-    const qs = await validateAndRepairWithProvider(
-      parsed?.questions ?? parsed?.items ?? [],
-      prompt,
-      askBatch
-    )
-
-    requireBatchShape(qs, batches[i])
-    allQ.push(...qs)
-    if (!title && parsed?.title) title = sanitizeLatexText(parsed.title)
-    if (i < batches.length - 1) await sleep(900)
-  }
-
-  return { title, questions: allQ.slice(0, totalQ) }
 }
 
 export async function POST(req: NextRequest) {
@@ -786,6 +670,20 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "prompt requerido" }, { status: 400 })
   }
 
+  if (prompt.length > 100000) return NextResponse.json({ error: "El contexto supera el límite de 100.000 caracteres. Reduce el texto o divide la evaluación." }, { status: 413 })
+  const curricular = body.curriculum;
+  let curriculum: CurriculumContract | null = null;
+  if (curricular !== undefined) {
+    if (!curricular || typeof curricular.requireOA !== "boolean" || !Array.isArray(curricular.oaCodes) || !Array.isArray(curricular.modeIds) || curricular.oaCodes.some((code: unknown) => typeof code !== "string" || !code.trim()) || curricular.modeIds.some((id: unknown) => !PEDAGOGICAL_MODES.some(mode => mode.id === id))) return NextResponse.json({ error: "Configuración curricular inválida." }, { status: 400 });
+    curriculum = { requireOA: curricular.requireOA, oaCodes: Array.from(new Set<string>(curricular.oaCodes)), modeIds: Array.from(new Set<string>(curricular.modeIds)) };
+    if (curriculum.requireOA && !curriculum.oaCodes.length) return NextResponse.json({ error: "Selecciona al menos un OA antes de generar preguntas." }, { status: 400 });
+    if (!curriculum.modeIds.length) return NextResponse.json({ error: "Selecciona al menos un modo pedagógico." }, { status: 400 });
+  }
+  const existing = Array.isArray(body.existingQuestions) ? body.existingQuestions.filter((q: unknown) => typeof q === "string").slice(-200) : [];
+  const priorStems = new Set<string>(existing.map(normalizeStem));
+  const curricularPrompt = curriculum ? `\nCONTRATO CURRICULAR: ${JSON.stringify(curriculum)}. Usa pedagogicalMode como identificador exacto de modeIds y oaCodes únicamente de esta lista. Si requireOA es true, incluye al menos uno.` : "";
+  const requestPrompt = enhancedPrompt + curricularPrompt + (existing.length ? `\nNo repitas preguntas existentes: ${JSON.stringify(existing.map((q: string) => q.slice(0, 500)))}` : "");
+
   if (mode === "single") {
     const expectedType = body.questionType
     if (expectedType !== undefined && !questionTypes.includes(expectedType)) {
@@ -796,11 +694,11 @@ export async function POST(req: NextRequest) {
     // Prioridad Groq: OpenRouter puede devolver 402 si no tiene créditos.
     if (GROQ_KEY) {
       try {
-        const parsed = await groqBatch(enhancedPrompt, GROQ_KEY)
+        const parsed = await groqBatch(requestPrompt, GROQ_KEY)
         const [q] = await validateAndRepairWithProvider(
           [parsed?.question ?? parsed?.questions?.[0] ?? parsed],
-          enhancedPrompt,
-          (repairPrompt) => groqBatch(repairPrompt, GROQ_KEY)
+          requestPrompt,
+          (repairPrompt) => groqBatch(repairPrompt, GROQ_KEY), curriculum, priorStems
         )
 
         requireSingleShape(q, expectedType)
@@ -813,11 +711,11 @@ export async function POST(req: NextRequest) {
 
     if (OR_KEY) {
       try {
-        const parsed = await openRouterBatch(enhancedPrompt, OR_KEY)
+        const parsed = await openRouterBatch(requestPrompt, OR_KEY)
         const [q] = await validateAndRepairWithProvider(
           [parsed?.question ?? parsed?.questions?.[0] ?? parsed],
-          enhancedPrompt,
-          (repairPrompt) => openRouterBatch(repairPrompt, OR_KEY)
+          requestPrompt,
+          (repairPrompt) => openRouterBatch(repairPrompt, OR_KEY), curriculum, priorStems
         )
 
         requireSingleShape(q, expectedType)
@@ -830,9 +728,9 @@ export async function POST(req: NextRequest) {
 
     if (cloudflareEnabled) {
       try {
-        const parsed = await cloudflareBatch(enhancedPrompt)
+        const parsed = await cloudflareBatch(requestPrompt)
         const [q] = await validateAndRepairWithProvider(
-          [parsed?.question ?? parsed?.questions?.[0] ?? parsed], enhancedPrompt, cloudflareBatch,
+          [parsed?.question ?? parsed?.questions?.[0] ?? parsed], requestPrompt, cloudflareBatch, curriculum, priorStems,
         )
         requireSingleShape(q, expectedType)
         return NextResponse.json({ success: true, question: q, answerKeyEntry: buildAnswerKey([q])[0], provider: "cloudflare", _design: designSummary })
@@ -854,12 +752,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Solicita al menos una pregunta." }, { status: 400 })
   }
 
-  const totalQ =
-    Number(mc) + Number(tf) + Number(dev) ||
-    (() => {
-      const m = String(prompt).match(/Total de preguntas:\s*(\d+)/i)
-      return m ? parseInt(m[1], 10) : 15
-    })()
+  const counts = { mc: Number(mc), tf: Number(tf), dev: Number(dev), mixed: Number(body.mixed ?? 0) };
+  if (!requestedCounts.length) counts.mc = Number(String(prompt).match(/Total de preguntas:\s*(\d+)/i)?.[1] || 15);
+  const totalQ = counts.mc + counts.tf + counts.dev + counts.mixed;
 
   if (!Number.isFinite(totalQ) || totalQ <= 0) {
     return NextResponse.json({ error: "La cantidad de preguntas debe ser mayor que 0." }, { status: 400 })
@@ -874,50 +769,49 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const providerErrors: string[] = []
-
-  // Prioridad Groq: OpenRouter puede devolver 402 si la cuenta no tiene créditos.
-  if (GROQ_KEY) {
-    try {
-      const { title, questions } = await groqFull(enhancedPrompt, totalQ, Number(mc), Number(tf), Number(dev), GROQ_KEY)
-      if (questions.length > 0) {
-        return NextResponse.json({ success: true, title, summary: null, questions, answerKey: buildAnswerKey(questions), qualityReviewRequired: findBlockingQualityIssues(questions), provider: "groq", _design: designSummary })
+  const providers: { id: string; ask: (prompt: string) => Promise<any> }[] = [];
+  if (GROQ_KEY) providers.push({ id: "groq", ask: (prompt) => groqBatch(prompt, GROQ_KEY) });
+  if (OR_KEY) providers.push({ id: "openrouter", ask: (prompt) => openRouterBatch(prompt, OR_KEY) });
+  if (cloudflareEnabled) providers.push({ id: "cloudflare", ask: cloudflareBatch });
+  const batches = planExamBatches(counts, PROVIDER_BATCH);
+  const allQuestions: any[] = [];
+  const providersUsed = new Set<string>();
+  const errors: string[] = [];
+  let title = "";
+  let preferred = Math.max(0, providers.findIndex(provider => provider.id === body.preferredProvider));
+  for (let i = 0; i < batches.length; i++) {
+    if (req.signal.aborted) return NextResponse.json({ error: "Generación cancelada." }, { status: 499 });
+    const batch = batches[i];
+    const prompt = promptForBatch(requestPrompt, batch, i, batches.length) + "\nNo repitas los enunciados ya generados: " + JSON.stringify(allQuestions.map(q => q.question));
+    let complete = false;
+    for (let offset = 0; offset < providers.length; offset++) {
+      const index = (preferred + offset) % providers.length;
+      const provider = providers[index];
+      if (req.signal.aborted) return NextResponse.json({ error: "Generación cancelada." }, { status: 499 });
+      try {
+        const parsed = await provider.ask(prompt);
+        const raw = parsed?.questions ?? parsed?.items ?? [];
+        if (!Array.isArray(raw) || raw.length !== batch.total) throw new Error("La IA devolvió una tanda incompleta.");
+        const questions = await validateAndRepairWithProvider(raw, prompt, provider.ask, curriculum, priorStems);
+        requireBatchShape(questions, batch);
+        allQuestions.push(...questions);
+        questions.forEach(q => priorStems.add(normalizeStem(q.question)));
+        if (!title && parsed?.title) title = sanitizeLatexText(parsed.title);
+        providersUsed.add(provider.id);
+        preferred = index;
+        complete = true;
+        break;
+      } catch (error) {
+        errors.push(`Lote ${i + 1}, ${provider.id}: ${error instanceof Error ? error.message : String(error)}`);
       }
-      providerErrors.push("Groq: no devolvió preguntas")
-    } catch (e: any) {
-      providerErrors.push(`Groq: ${e.message}`)
-      console.warn("[exam-generate] Groq falló:", e.message)
+    }
+    if (!complete) {
+      const details = errors.join(" | ");
+      return NextResponse.json({ error: `No se pudo completar el lote ${i + 1} de ${batches.length}. No se incorporaron preguntas automáticamente. ${friendlyProviderError(details)}`, details }, { status: 502 });
     }
   }
+  const orderedTypes = ["multiple_choice", "mixed_choice_development", "true_false", "development"];
+  allQuestions.sort((left, right) => orderedTypes.indexOf(left.type) - orderedTypes.indexOf(right.type));
+  return NextResponse.json({ success: true, title, questions: allQuestions, summary: null, answerKey: buildAnswerKey(allQuestions), qualityReviewRequired: [], provider: Array.from(providersUsed)[0], providers: [...providersUsed], _design: designSummary });
 
-  if (OR_KEY) {
-    try {
-      const { title, questions } = await openRouterFull(enhancedPrompt, totalQ, Number(mc), Number(tf), Number(dev), OR_KEY)
-      if (questions.length > 0) {
-        return NextResponse.json({ success: true, title, summary: null, questions, answerKey: buildAnswerKey(questions), qualityReviewRequired: findBlockingQualityIssues(questions), provider: "openrouter", _design: designSummary })
-      }
-      providerErrors.push("OpenRouter: no devolvió preguntas")
-    } catch (e: any) {
-      providerErrors.push(`OpenRouter: ${e.message}`)
-      console.warn("[exam-generate] OpenRouter falló:", e.message)
-    }
-  }
-
-  if (cloudflareEnabled) {
-    try {
-      const { title, questions } = await openRouterFull(enhancedPrompt, totalQ, Number(mc), Number(tf), Number(dev), "", cloudflareBatch)
-      return NextResponse.json({ success: true, title, summary: null, questions, answerKey: buildAnswerKey(questions), qualityReviewRequired: findBlockingQualityIssues(questions), provider: "cloudflare", _design: designSummary })
-    } catch (error) {
-      providerErrors.push(`Cloudflare: ${error instanceof Error ? error.message : String(error)}`)
-    }
-  }
-
-  const details = providerErrors.join(" | ")
-  return NextResponse.json(
-    {
-      error: friendlyProviderError(details),
-      details,
-    },
-    { status: 500 }
-  )
 }

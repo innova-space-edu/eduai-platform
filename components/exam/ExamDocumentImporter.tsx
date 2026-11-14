@@ -42,7 +42,7 @@ export default function ExamDocumentImporter({ onApply }: Props) {
   const [file, setFile] = useState<File | null>(null)
   const [dragging, setDragging] = useState(false)
   const [inferAnswers, setInferAnswers] = useState(false)
-  const [mode, setMode] = useState<"replace" | "append">("append")
+  const mode = "append" as const
   const [status, setStatus] = useState<"idle" | "analyzing" | "ready" | "error" | "applied">("idle")
   const [error, setError] = useState("")
   const [result, setResult] = useState<ExamDocumentImportResult | null>(null)
@@ -208,22 +208,7 @@ export default function ExamDocumentImporter({ onApply }: Props) {
 
         <div className="rounded-2xl border border-slate-200 bg-white p-3">
           <p className="text-xs font-black text-slate-900">Al aplicar</p>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setMode("append")}
-              className={`rounded-xl border px-3 py-2 text-xs font-bold ${mode === "append" ? "border-sky-500 bg-sky-50 text-sky-700" : "border-slate-200 text-slate-600"}`}
-            >
-              Agregar al final
-            </button>
-            <button
-              type="button"
-              onClick={() => setMode("replace")}
-              className={`rounded-xl border px-3 py-2 text-xs font-bold ${mode === "replace" ? "border-sky-500 bg-sky-50 text-sky-700" : "border-slate-200 text-slate-600"}`}
-            >
-              Reemplazar actuales
-            </button>
-          </div>
+          <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-semibold text-emerald-900">Agregar al final<br/><span className="font-normal">Se conservan las preguntas existentes.</span></div>
         </div>
       </div>
 
@@ -321,7 +306,7 @@ export default function ExamDocumentImporter({ onApply }: Props) {
             disabled={!canApply}
             className="w-full rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {status === "applied" ? "✓ Importación aplicada" : mode === "replace" ? "Aplicar y reemplazar preguntas" : "Aplicar y agregar al final"}
+            {status === "applied" ? "✓ Importación aplicada" : "Aplicar y agregar al final"}
           </button>
         </div>
       )}
