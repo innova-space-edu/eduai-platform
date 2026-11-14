@@ -218,7 +218,8 @@ function patchCreatorPage() {
         answerSource: raw.answerSource,
       } as Question;
     });
-    if (!imported.length) return;
+    if (!imported.length || result.preview.missingAnswers > 0) return false;
+    if (mode === "replace" && questions.some((q) => q.question.trim()) && !window.confirm("¿Reemplazar todas las preguntas actuales por las del archivo?")) return false;
 
     if (mode === "replace") setQuestions(imported);
     else setQuestions((current) => [...current, ...imported]);
@@ -234,6 +235,7 @@ function patchCreatorPage() {
 
     setErrorMsg("");
     setSuccessMsg(\`Evaluación importada: \${imported.length} pregunta\${imported.length !== 1 ? "s" : ""}. Puedes editarlas antes de publicar.\`);
+    return true;
   };`,
     "estado del importador/autoguardado",
   )
@@ -252,9 +254,11 @@ function patchCreatorPage() {
   source = replaceRequired(
     source,
     aiSection,
-    `${aiSection}
+    `            <section id="exam-section-archivo" className="scroll-mt-32">
               <ExamDocumentImporter onApply={applyDocumentImport} />
-              <div className="my-5 h-px bg-violet-200/70" />`,
+            </section>
+
+${aiSection}`,
     "sección IA/Archivo",
   )
 

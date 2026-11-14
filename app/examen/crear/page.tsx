@@ -52,9 +52,10 @@ const EXAM_CREATOR_STEPS = [
   { id: "datos", label: "1. Datos", icon: "📝" },
   { id: "objetivos", label: "2. OA", icon: "🎯" },
   { id: "diseno", label: "3. Diseño", icon: "🎨" },
-  { id: "ia", label: "4. IA", icon: "✨" },
-  { id: "preguntas", label: "5. Preguntas", icon: "📋" },
-  { id: "publicar", label: "6. Publicar", icon: "🚀" },
+  { id: "archivo", label: "4. PDF / Word", icon: "📄" },
+  { id: "ia", label: "5. Generar con IA", icon: "✨" },
+  { id: "preguntas", label: "6. Preguntas", icon: "📋" },
+  { id: "publicar", label: "7. Publicar", icon: "🚀" },
 ] as const;
 
 const COURSE_OPTIONS: Record<NivelKey, string[]> = {
@@ -698,7 +699,7 @@ export default function CrearExamenPage() {
   const [aiDiff, setAiDiff] = useState<Difficulty>("mixto");
   const [aiStatus, setAiStatus] = useState<AIStatus>("idle");
   const [aiError, setAiError] = useState("");
-  const [aiProvider, setAiProvider] = useState<"groq" | "openrouter" | "">("");
+  const [aiProvider, setAiProvider] = useState<"groq" | "openrouter" | "cloudflare" | "">("");
   const [aiPreview, setAiPreview] = useState<Question[]>([]);
   const [aiImportMode, setAiImportMode] = useState<"replace" | "append">(
     "append",
@@ -1004,7 +1005,8 @@ REGLAS ESTRICTAS:
     }
 
     abortRef.current?.abort();
-    abortRef.current = new AbortController();
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     setAiRegenError("");
     setAiStatus("generating");
@@ -1016,7 +1018,7 @@ REGLAS ESTRICTAS:
       const res = await fetch("/api/agents/exam-generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        signal: abortRef.current.signal,
+        signal: controller.signal,
         body: JSON.stringify({
           prompt: buildAIPrompt(),
           mode: "full",
@@ -1025,8 +1027,9 @@ REGLAS ESTRICTAS:
           dev: aiDev,
         }),
       });
-      const data = await res.json();
-      if (!data?.success) {
+      const data = await res.json().catch(() => null);
+      if (controller.signal.aborted || abortRef.current !== controller) return;
+      if (!res.ok || !data?.success) {
         const detail = data?.details
           ? `
 
@@ -1037,9 +1040,15 @@ Detalle técnico: ${data.details}`
         );
       }
 
-      const normalized: Question[] = (data.questions ?? []).map((raw: any) =>
-        normalizeAIQuestion(raw),
-      );
+      const rawQuestions = Array.isArray(data.questions) ? data.questions : [];
+      const expectedCounts = { multiple_choice: aiMC, true_false: aiTF, development: aiDev };
+      if (rawQuestions.length !== totalAIQuestions || Object.entries(expectedCounts).some(([type, count]) => rawQuestions.filter((q: any) => q?.type === type).length !== count)) {
+        throw new Error("La IA devolvió una cantidad o tipos de preguntas distintos de los solicitados. Intenta generar nuevamente.");
+      }
+      if (rawQuestions.some((q: any) => !q || typeof q.question !== "string" || !q.question.trim() || (q.type !== "development" && (!Number.isInteger(q.correctAnswer) || q.correctAnswer < 0 || q.correctAnswer >= (q.type === "true_false" ? 2 : (q.options?.length ?? 0)))))) {
+        throw new Error("La IA devolvió preguntas con respuestas inválidas o incompletas. Intenta generar nuevamente.");
+      }
+      const normalized: Question[] = rawQuestions.map((raw: any) => normalizeAIQuestion(raw));
       if (normalized.length === 0)
         throw new Error(
           "La IA no generó preguntas. Intenta con un tema más específico.",
@@ -1049,19 +1058,29 @@ Detalle técnico: ${data.details}`
       if (!title.trim() && data.title) setTitle(data.title);
 
       setAiPreview(normalized);
-      setAiProvider(data.provider ?? "openrouter");
+      setAiProvider(["groq", "openrouter", "cloudflare"].includes(data.provider) ? data.provider : "");
       setAiStatus("done");
     } catch (e: any) {
-      if (e.name === "AbortError") return;
+      if (controller.signal.aborted || abortRef.current !== controller || e.name === "AbortError") return;
       setAiError(e.message);
       setAiStatus("error");
     }
   };
 
   const importAIQuestions = () => {
-    if (aiPreview.length === 0) return;
+    if (aiPreview.length === 0 || aiRegenIdx !== null || aiStatus !== "done") return;
+    if (aiImportMode === "replace" && questions.some((q) => q.question.trim()) && !window.confirm("¿Reemplazar todas las preguntas actuales por las generadas?")) return;
     if (aiImportMode === "replace") setQuestions(aiPreview);
-    else setQuestions((prev) => [...prev, ...aiPreview]);
+    else setQuestions((prev) => {
+      const onlyEmptyStarter = prev.length === 1 && prev[0].type === "multiple_choice" && !prev[0].question.trim() && prev[0].options.every((option) => !option.trim()) && !prev[0].imageUrl;
+      return onlyEmptyStarter ? aiPreview : [...prev, ...aiPreview];
+    });
+    if (aiPreview.some((q) => q.type === "development" || q.type === "mixed_choice_development")) {
+      setDevelopmentNotebookEnabled(true);
+      setDevelopmentNotebookMode("development_only");
+    }
+    setSuccessMsg(`Se incorporaron ${aiPreview.length} preguntas generadas. Revísalas antes de publicar.`);
+    setErrorMsg("");
     setAiPreview([]);
     setAiStatus("idle");
   };
@@ -1069,7 +1088,7 @@ Detalle técnico: ${data.details}`
   // Regenerar una sola pregunta de la preview
   const regenerateSingleQuestion = async (idx: number) => {
     const q = aiPreview[idx];
-    if (!q) return;
+    if (!q || aiRegenIdx !== null || aiStatus !== "done") return;
     setAiRegenError("");
     setAiRegenIdx(idx);
     try {
@@ -2211,6 +2230,9 @@ Usa el mismo esquema de calidad que antes.`;
             >
               {/* Toggle header */}
               <button
+                type="button"
+                aria-expanded={aiOpen}
+                aria-controls="exam-ai-generator-content"
                 onClick={() => setAiOpen((o) => !o)}
                 className="w-full flex items-center justify-between gap-3"
               >
@@ -2223,7 +2245,7 @@ Usa el mismo esquema de calidad que antes.`;
                       Generador de preguntas con IA
                     </p>
                     <p className="text-xs text-violet-400">
-                      OpenRouter → Groq fallback automático
+                      Crea preguntas nuevas desde el curso, OA y tema · sin subir archivos
                     </p>
                   </div>
                 </div>
@@ -2235,7 +2257,7 @@ Usa el mismo esquema de calidad que antes.`;
               </button>
 
               {aiOpen && (
-                <div className="mt-5 space-y-4">
+                <div id="exam-ai-generator-content" className="mt-5 space-y-4">
                   {/* Descripción / tema para la IA */}
                   <div>
                     <label className="text-xs text-sub font-semibold block mb-2">
@@ -2341,7 +2363,7 @@ Usa el mismo esquema de calidad que antes.`;
                     </div>
                     <div>
                       <label className="text-xs text-sub font-semibold block mb-2">
-                        AL IMPORTAR
+                        AL INCORPORAR LAS PREGUNTAS GENERADAS
                       </label>
                       <select
                         value={aiImportMode}
@@ -2361,7 +2383,7 @@ Usa el mismo esquema de calidad que antes.`;
                   {/* Botón generar */}
                   <button
                     onClick={generateAI}
-                    disabled={aiStatus === "generating"}
+                    disabled={aiStatus === "generating" || aiRegenIdx !== null || !curriculumCurso || !subject}
                     className="w-full py-3.5 rounded-2xl font-bold text-sm transition-all disabled:opacity-50"
                     style={{
                       background: "linear-gradient(135deg,#7c3aed,#6d28d9)",
@@ -2378,9 +2400,10 @@ Usa el mismo esquema de calidad que antes.`;
                     )}
                   </button>
 
+                  {aiStatus === "generating" && <button type="button" onClick={() => { abortRef.current?.abort(); setAiStatus("idle"); }} className="w-full rounded-xl border border-violet-200 px-3 py-2 text-xs font-bold text-violet-700">Cancelar generación</button>}
                   {/* Error IA */}
                   {aiRegenError && <p role="alert" className="text-sm text-red-700">{aiRegenError}</p>}
-                  {aiStatus === "error" && (
+                  {aiError && (
                     <div className="rounded-2xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-700">
                       ❌ {aiError}
                     </div>
@@ -2403,17 +2426,18 @@ Usa el mismo esquema de calidad que antes.`;
                             >
                               {aiProvider === "openrouter"
                                 ? "OpenRouter"
-                                : "Groq"}
+                                : aiProvider === "cloudflare" ? "Cloudflare" : "Groq"}
                             </span>
                           )}
                         </p>
                         <button
                           onClick={importAIQuestions}
+                          disabled={aiRegenIdx !== null}
                           className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-main text-xs font-bold"
                         >
                           {aiImportMode === "replace"
                             ? "↩ Reemplazar"
-                            : "＋ Importar al examen"}
+                            : "＋ Agregar al examen"}
                         </button>
                       </div>
 
@@ -2454,7 +2478,7 @@ Usa el mismo esquema de calidad que antes.`;
                             </div>
                             <ExamMathText
                               text={q.question}
-                              className="text-main text-xs leading-relaxed line-clamp-3"
+                              className="text-main text-xs leading-relaxed whitespace-pre-wrap"
                             />
                             {q.type === "multiple_choice" && (
                               <div className="mt-2 grid grid-cols-2 gap-1">
@@ -2525,6 +2549,7 @@ Usa el mismo esquema de calidad que antes.`;
 
                       <button
                         onClick={importAIQuestions}
+                          disabled={aiRegenIdx !== null}
                         className="w-full py-3 rounded-2xl font-bold text-sm bg-violet-600 hover:bg-violet-500 text-main"
                       >
                         {aiImportMode === "replace"
