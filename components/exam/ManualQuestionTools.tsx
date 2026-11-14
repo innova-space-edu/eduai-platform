@@ -13,6 +13,8 @@ type QuestionMeta = {
 };
 type Option = { id: string; label: string };
 type Patch = Partial<QuestionMeta>;
+type ManualType = "multiple_choice" | "mixed_choice_development" | "true_false" | "development";
+type ResponseMode = "short_text" | "long_text" | "math" | "text_math" | "math_steps";
 
 export function ExamImageEditor({ value, onChange, label = "Imagen de la pregunta" }: {value?: string; onChange: (url: string) => void; label?: string}) {
   const [busy,setBusy]=useState(false);
@@ -49,11 +51,13 @@ export function ExamImageEditor({ value, onChange, label = "Imagen de la pregunt
   </div>
 }
 
-export function ManualQuestionTools({q,patch,oaOptions,modes,requireOA,onReuse,onCopyTo,targets}:{
+export function ManualQuestionTools({q,patch,oaOptions,modes,requireOA,onReuse,onCopyTo,targets,recommendedModes}:{
   q:QuestionMeta;patch:(value:Patch)=>void;oaOptions:Option[];modes:Option[];requireOA:boolean;
-  onReuse:()=>void;onCopyTo:(ids:string[])=>void;targets:Option[];
+  onReuse:(type:ManualType,mode:ResponseMode)=>void;onCopyTo:(ids:string[])=>void;targets:Option[];recommendedModes:string[];
 }){
   const [chosen,setChosen]=useState<string[]>([]);
+  const [reuseType,setReuseType]=useState<ManualType>("development");
+  const [reuseMode,setReuseMode]=useState<ResponseMode>("long_text");
   const hasStimulus=Boolean(q.stimulusText?.trim());
   const selected=q.oaCodes||[];
   return <div className="mb-4 space-y-3">
@@ -66,7 +70,7 @@ export function ManualQuestionTools({q,patch,oaOptions,modes,requireOA,onReuse,o
           {!oaOptions.length&&<p className="text-xs text-slate-500">Selecciona los OA en el paso 2.</p>}
         </div>
         {selected.some(id=>!oaOptions.some(oa=>oa.id===id))&&<button type="button" className="text-xs text-red-700 underline" onClick={()=>patch({oaCodes:selected.filter(id=>oaOptions.some(oa=>oa.id===id))})}>Quitar OA que ya no están seleccionados</button>}
-        <label className="block text-xs font-semibold">Modo pedagógico<select className={field} value={q.pedagogicalMode||""} onChange={e=>patch({pedagogicalMode:e.target.value})}><option value="">Sin especificar</option>{modes.map(m=><option key={m.id} value={m.id}>{m.label}</option>)}</select></label>
+        <label className="block text-xs font-semibold">Modo pedagógico<select className={field} value={q.pedagogicalMode||""} onChange={e=>patch({pedagogicalMode:e.target.value})}><option value="">Sin especificar</option>{modes.map(m=><option key={m.id} value={m.id}>{m.label}{recommendedModes.includes(m.id)?" (recomendado)":""}</option>)}</select></label>
         <label className="block text-xs font-semibold">Habilidad<input className={field} value={q.skill||""} onChange={e=>patch({skill:e.target.value})}/></label>
         <label className="block text-xs font-semibold">Evidencia de aprendizaje<textarea className={field} value={q.evidence||""} onChange={e=>patch({evidence:e.target.value})}/></label>
       </div>
@@ -81,7 +85,7 @@ export function ManualQuestionTools({q,patch,oaOptions,modes,requireOA,onReuse,o
     {hasStimulus&&<details className="rounded-xl border border-sky-200 bg-sky-50 p-3">
       <summary className="cursor-pointer text-xs font-bold text-sky-900">Reutilizar esta lectura, fuente o contexto</summary>
       <p className="my-2 text-xs text-sky-800">Crea otra pregunta con el mismo material, o copia el texto completo a preguntas existentes. Las copias son editables de forma independiente.</p>
-      <button type="button" onClick={onReuse} className="rounded-lg bg-sky-700 px-3 py-2 text-xs font-bold text-white">+ Pregunta con este material</button>
+      <div className="flex flex-wrap gap-2"><select aria-label="Tipo de nueva pregunta" className={field+" flex-1"} value={reuseType} onChange={e=>setReuseType(e.target.value as ManualType)}><option value="development">Respuesta construida</option><option value="multiple_choice">Alternativas</option><option value="true_false">Verdadero/Falso</option><option value="mixed_choice_development">Alternativa + respuesta construida</option></select>{(reuseType==="development"||reuseType==="mixed_choice_development")&&<select aria-label="Forma de respuesta" className={field+" flex-1"} value={reuseMode} onChange={e=>setReuseMode(e.target.value as ResponseMode)}><option value="long_text">Respuesta abierta</option><option value="short_text">Respuesta corta</option><option value="math">Matemática</option><option value="text_math">Texto + matemática</option><option value="math_steps">Procedimiento</option></select>}<button type="button" onClick={()=>onReuse(reuseType,reuseMode)} className="rounded-lg bg-sky-700 px-3 py-2 text-xs font-bold text-white">+ Pregunta con este material</button></div>
       {targets.length>0&&<div className="mt-3 space-y-1">{targets.map(target=><label key={target.id} className="flex gap-2 text-xs"><input type="checkbox" checked={chosen.includes(target.id)} onChange={e=>setChosen(old=>e.target.checked?[...old,target.id]:old.filter(id=>id!==target.id))}/>{target.label}</label>)}<button type="button" disabled={!chosen.length} onClick={()=>{onCopyTo(chosen);setChosen([])}} className="mt-2 rounded-lg border border-sky-300 bg-white px-3 py-2 text-xs font-semibold disabled:opacity-40">Aplicar material a seleccionadas</button></div>}
     </details>}
     <details className="rounded-xl border border-emerald-200 bg-white p-3">
