@@ -74,7 +74,7 @@ export function useExamCreatorDraft(userId:string|null,data:Data,restore:(data:D
     void(async()=>{
       let chosen=local;
       try{
-        const {data:row,error}=await client.current.from("exam_creator_drafts").select("revision,payload,updated_at").eq("user_id",userId).maybeSingle().abortSignal(AbortSignal.timeout(8000));
+        const {data:row,error}=await client.current.from("exam_creator_drafts").select("revision,payload,updated_at").eq("user_id",userId).abortSignal(AbortSignal.timeout(8000)).maybeSingle();
         if(cancelled)return;
         if(error)throw error;
         const remote:Envelope={version:1,savedAt:row?Date.parse(row.updated_at):0,revision:Number(row?.revision||0),dirty:false,data:row?.payload??null};
