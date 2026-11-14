@@ -97,7 +97,7 @@ def verify_question(q):
         ab,ad,bc,unit=ref
         expected=(ab-ad)*bc/ab
         matches=[]
-        for field in (q.get("modelAnswer"),q.get("expectedLatex")):
+        for field in (q.get("modelAnswer"),q.get("expectedLatex"),q.get("explanation"),*(q.get("solutionSteps") or [])[:30],*(r.get("criteria") for r in (q.get("rubric") or [])[:30] if isinstance(r,dict))):
             # Parse explicit values, including simple fractions converted by clean().
             for m in re.finditer(r"\bBE\s*(?:=|:|mide)\s*([0-9.]+|\(\([0-9.]+\)/\([0-9.]+\)\))\s*(cm|mm|m)\b",clean(field),re.I):
                 if m[2].lower()==unit:

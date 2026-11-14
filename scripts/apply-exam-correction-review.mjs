@@ -13,7 +13,7 @@ function patch(s){
     if(q.id!==id)return q;
     const next=updater(q);
     if(q.correctionReview?.required||examAnswerConsistencyIssues(q).length||examAnswerConsistencyIssues(next).length){
-      return {...next,correctionReview:{required:true,confirmedSignature:q.correctionReview?.confirmedSignature}};
+      return {...next,correctionReview:{required:true as const,confirmedSignature:correctionSignature(next)===correctionSignature(q)?q.correctionReview?.confirmedSignature:undefined}};
     }
     return next;
   }));
@@ -25,7 +25,7 @@ function patch(s){
       if(results.some((data,i)=>data.id!==items[i].id))throw Error("Python devolvió resultados que no corresponden a las preguntas.");
       const records=Object.fromEntries(results.map((data,i)=>[items[i].id,{signature:correctionSignature(items[i]),data}]));
       setPythonResults(old=>({...old,...records}));
-      setQuestions(old=>old.map(q=>records[q.id]?.signature===correctionSignature(q)&&records[q.id].data.status==="incorrect"?{...q,correctionReview:{required:true}}:q));
+      setQuestions(old=>old.map(q=>records[q.id]?.signature===correctionSignature(q)&&records[q.id].data.status==="incorrect"?{...q,correctionReview:{required:true as const}}:q));
       return results;
     }catch(e){setPythonError(e instanceof Error?e.message:"No se pudo verificar con Python.");return null;}
   };
@@ -43,12 +43,12 @@ function patch(s){
       if(q.id!==id||examAnswerConsistencyIssues(q).length||enrichQuestionAnswerKey(q).qualityStatus==="review")return q;
       const record=pythonResults[id],signature=correctionSignature(q);
       if(!record||record.signature!==signature||record.data.status==="incorrect")return q;
-      return {...q,correctionReview:{required:true,confirmedSignature:signature}};
+      return {...q,correctionReview:{required:true as const,confirmedSignature:signature}};
     }));
   };`);
  R('      const quality = enrichQuestionAnswerKey(q);','      if(needsCorrectionConfirmation(q,examAnswerConsistencyIssues(q)))return "La pregunta "+(i+1)+" tiene una corrección pendiente. Revísala y presiona Corregido.";\n      const quality = enrichQuestionAnswerKey(q);');
- R('    const ve = validateExam();','    if(pythonBusy)return;\n    const ve = validateExam();');
- R('    setSaving(true);\n    try {\n      const payloadQuestions','    setSaving(true);\n    try {\n      if(mathReviewSubject){\n        const snapshot=questions;\n        const checked=await verifyQuestions(snapshot);\n        if(!checked){setErrorMsg("No se pudo ejecutar la verificación Python. Vuelve a Revisión e inténtalo nuevamente.");setActiveStep(3);return;}\n        if(checked.some(r=>r.status==="incorrect")){setErrorMsg("Python detectó errores. Revisa las preguntas marcadas y presiona Corregido antes de publicar.");setActiveStep(3);return;}\n        if(JSON.stringify(snapshot.map(correctionSignature))!==JSON.stringify(reviewQuestionsRef.current.map(correctionSignature))){setErrorMsg("Las preguntas cambiaron durante la verificación. Vuelve a publicar.");return;}\n      }\n      const payloadQuestions');
+ R('    const ve = validateExam();','    if(pythonBusy)return;\n    const pending=questions.find(q=>needsCorrectionConfirmation(q,examAnswerConsistencyIssues(q)));\n    if(pending){setActiveStep(3);setExpandAllQuestions(false);setOpenQuestionId(pending.id);setQuestionFilter("all");setQuestionSearch("");setErrorMsg("Hay una corrección pendiente. Revisa la pregunta y presiona Corregido.");requestAnimationFrame(()=>document.getElementById("exam-question-"+pending.id)?.scrollIntoView({block:"start"}));return;}\n    const ve = validateExam();');
+ R('    setSaving(true);\n    try {\n      const payloadQuestions','    setSaving(true);\n    try {\n      if(mathReviewSubject){\n        const snapshot=questions;\n        const checked=await verifyQuestions(snapshot);\n        if(!checked){setErrorMsg("No se pudo ejecutar la verificación Python. Vuelve a Revisión e inténtalo nuevamente.");setActiveStep(3);return;}\n        if(checked.some(r=>r.status==="incorrect")){const first=checked.find(r=>r.status==="incorrect")!;setErrorMsg("Python detectó errores. Revisa las preguntas marcadas y presiona Corregido antes de publicar.");setActiveStep(3);setExpandAllQuestions(false);setOpenQuestionId(first.id);setQuestionSearch("");setQuestionFilter("all");requestAnimationFrame(()=>document.getElementById("exam-question-"+first.id)?.scrollIntoView({block:"start"}));return;}\n        if(JSON.stringify(snapshot.map(correctionSignature))!==JSON.stringify(reviewQuestionsRef.current.map(correctionSignature))){setErrorMsg("Las preguntas cambiaron durante la verificación. Vuelve a publicar.");return;}\n      }\n      const payloadQuestions');
  R('          questions: payloadQuestions,','          questions: payloadQuestions.map((payload,index)=>{const q=questions[index];return q.correctionReview?.required?{...payload,correctionReview:{required:true,confirmedSignature:q.correctionReview.confirmedSignature===correctionSignature(q)?correctionSignature(payload):undefined}}:payload;}),');
  R('{(/matem[aá]tica|f[ií]sica|qu[ií]mica|ciencias/i.test(subject))&&<ExamPythonReview questions={questions}/>}','{mathReviewSubject&&<div className="mb-4 rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-xs"><button type="button" disabled={pythonBusy||saving} onClick={()=>void verifyQuestions(questions)} className="rounded-lg bg-indigo-700 px-3 py-2 font-bold text-white disabled:opacity-50">{pythonBusy?"Verificando…":"Verificar todas con Python"}</button> <span>Se comprueban los resultados admitidos antes de publicar.</span></div>}{pythonError&&<p role="alert" className="mb-3 text-xs text-red-700">{pythonError}</p>}');
  const start=s.indexOf('{enrichQuestionAnswerKey(q).qualityStatus==="review"&&<div role="alert"');
@@ -58,7 +58,7 @@ function patch(s){
                     {enrichQuestionAnswerKey(q).qualityStatus==="review"&&<p className="mb-3 text-xs text-amber-900">{enrichQuestionAnswerKey(q).qualityWarnings.join(" · ")}</p>}`+s.slice(end);
  s=s.replace('questionFilter==="pending" && (!q.question.trim()','questionFilter==="pending" && (needsCorrectionConfirmation(q,examAnswerConsistencyIssues(q)) || !q.question.trim()');
  s=s.replaceAll('distractorRationales: q.distractorRationales || [],','');
- s=s.replace("{...copy,id:uid()}","{...copy,id:uid(),correctionReview:copy.correctionReview?.required?{required:true}:undefined}");
+ s=s.replace("{...copy,id:uid()}","{...copy,id:uid(),correctionReview:copy.correctionReview?.required?{required:true as const}:undefined}");
  return s;
 }
 const p="app/examen/crear/page.tsx";writeFileSync(p,patch(readFileSync(p,"utf8")));

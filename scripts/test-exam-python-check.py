@@ -20,4 +20,5 @@ result=module.verify_question(full)
 assert result["proposal"]["fields"]["expectedLatex"]==r"$BE=15\,\text{cm}$"
 assert module.verify_question({**full,**result["proposal"]["fields"]})["status"]=="partial"
 assert module.verify_question({"type":"development","question":"Otro","solutionSteps":["$2+3=7$"]})["proposal"] is None
-print("11 comprobaciones Python superadas")
+assert module.verify_question({**full,**result["proposal"]["fields"],"rubric":[{"criteria":"BE = 10 cm","points":2}]})["status"]=="incorrect"
+print("12 comprobaciones Python superadas")
