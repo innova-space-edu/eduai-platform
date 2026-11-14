@@ -92,9 +92,8 @@ function parseAnswerIndex(raw: unknown, options: string[], type: ImportedExamQue
   if (raw === null || raw === undefined || raw === "") return null
   if (typeof raw === "boolean" && type === "true_false") return raw ? 0 : 1
   if (typeof raw === "number" && Number.isFinite(raw)) {
-    const n = Math.round(raw)
-    if (n >= 0 && n < Math.max(1, options.length)) return n
-    if (n >= 1 && n <= options.length) return n - 1
+    const n = raw
+    if (Number.isInteger(n) && n >= 0 && n < options.length) return n
     return null
   }
 
@@ -112,10 +111,15 @@ function parseAnswerIndex(raw: unknown, options: string[], type: ImportedExamQue
   const numeric = Number(value)
   if (Number.isInteger(numeric)) {
     if (numeric >= 0 && numeric < options.length) return numeric
-    if (numeric >= 1 && numeric <= options.length) return numeric - 1
   }
   const exact = options.findIndex((opt) => opt.trim().toLowerCase() === value)
   return exact >= 0 ? exact : null
+}
+
+function optionalReference(value: unknown): number | null {
+  if (value === null || value === undefined || value === "") return null
+  const number = Number(value)
+  return Number.isInteger(number) && number >= 0 ? number : null
 }
 
 function normalizeRubric(value: unknown) {
@@ -187,16 +191,16 @@ export function normalizeImportedQuestion(raw: any): ImportedExamQuestion {
     justificationMaxPoints: type === "true_false" ? justificationMaxPoints : undefined,
     developmentMaxPoints: type === "mixed_choice_development" ? developmentMaxPoints : undefined,
     showRubricToStudent: raw?.showRubricToStudent === true,
-    imageRef: Number.isInteger(Number(raw?.imageRef)) ? Number(raw.imageRef) : null,
-    imagePage: Number.isInteger(Number(raw?.imagePage)) ? Number(raw.imagePage) : null,
+    imageRef: optionalReference(raw?.imageRef),
+    imagePage: optionalReference(raw?.imagePage),
     optionImageRefs: Array.isArray(raw?.optionImageRefs)
-      ? raw.optionImageRefs.map((item: unknown) => Number.isInteger(Number(item)) ? Number(item) : null)
+      ? raw.optionImageRefs.map((item: unknown) => optionalReference(item))
       : [],
     optionImagePages: Array.isArray(raw?.optionImagePages)
-      ? raw.optionImagePages.map((item: unknown) => Number.isInteger(Number(item)) ? Number(item) : null)
+      ? raw.optionImagePages.map((item: unknown) => optionalReference(item))
       : [],
     answerSource,
-    sourcePage: Number.isInteger(Number(raw?.sourcePage ?? raw?.page)) ? Number(raw?.sourcePage ?? raw?.page) : null,
+    sourcePage: optionalReference(raw?.sourcePage ?? raw?.page),
     importWarnings: Array.isArray(raw?.warnings) ? raw.warnings.map(String).filter(Boolean) : [],
   }
 }

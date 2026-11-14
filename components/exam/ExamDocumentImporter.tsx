@@ -1,7 +1,7 @@
 "use client"
 
 import { EXAM_IMPORT_MAX_BYTES, EXAM_IMPORT_MAX_LABEL } from "@/lib/exam/creator-limits"
-import { useMemo, useRef, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import ExamMathText from "@/components/ui/ExamMathText"
 
 export type ExamDocumentImportResult = {
@@ -24,7 +24,7 @@ export type ExamDocumentImportResult = {
 }
 
 type Props = {
-  onApply: (result: ExamDocumentImportResult, mode: "replace" | "append") => void
+  onApply: (result: ExamDocumentImportResult, mode: "replace" | "append") => boolean | void
 }
 
 const MAX_BYTES = EXAM_IMPORT_MAX_BYTES
@@ -36,6 +36,9 @@ function formatBytes(bytes: number) {
 
 export default function ExamDocumentImporter({ onApply }: Props) {
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const requestRef = useRef<AbortController | null>(null)
+  const applyingRef = useRef(false)
+  useEffect(() => () => requestRef.current?.abort(), [])
   const [file, setFile] = useState<File | null>(null)
   const [dragging, setDragging] = useState(false)
   const [inferAnswers, setInferAnswers] = useState(false)
@@ -47,10 +50,13 @@ export default function ExamDocumentImporter({ onApply }: Props) {
   const canApply = useMemo(() => {
     if (!result || status !== "ready") return false
     if (result.preview.missingAnswers > 0) return false
-    return result.questions.length > 0
+    return result.questions.length > 0 && result.questions.every((q: any) => q && ["file", "ai_inferred"].includes(q.answerSource) && String(q.question || "").trim() && (q.type === "development" || (Number.isInteger(q.correctAnswer) && q.correctAnswer >= 0 && q.correctAnswer < (q.type === "true_false" ? 2 : (q.options?.length ?? 0)))) && ((q.type !== "development" && q.type !== "mixed_choice_development") || String(q.modelAnswer || q.expectedLatex || "").trim()))
   }, [result, status])
 
   function chooseFile(next: File | null) {
+    requestRef.current?.abort()
+    requestRef.current = null
+    applyingRef.current = false
     setError("")
     setResult(null)
     setStatus("idle")
@@ -76,7 +82,10 @@ export default function ExamDocumentImporter({ onApply }: Props) {
   }
 
   async function analyze() {
-    if (!file) return
+    if (!file || requestRef.current) return
+    const controller = new AbortController()
+    requestRef.current = controller
+    applyingRef.current = false
     setStatus("analyzing")
     setError("")
     setResult(null)
@@ -89,6 +98,7 @@ export default function ExamDocumentImporter({ onApply }: Props) {
       const response = await fetch("/api/agents/exam-import", {
         method: "POST",
         body: form,
+        signal: controller.signal,
       })
       if (response.status === 413) throw new Error(`El archivo debe pesar como máximo ${EXAM_IMPORT_MAX_LABEL}.`)
       const data = await response.json().catch(() => null)
@@ -96,25 +106,36 @@ export default function ExamDocumentImporter({ onApply }: Props) {
         throw new Error(data?.error || "No se pudo analizar la evaluación.")
       }
 
+      if (controller.signal.aborted || requestRef.current !== controller) return
+      if (!Array.isArray(data.questions) || !data.questions.length || !data.preview || typeof data.preview.missingAnswers !== "number") throw new Error("El análisis devolvió un resultado incompleto. Vuelve a intentarlo.")
       setResult(data as ExamDocumentImportResult)
       setStatus("ready")
     } catch (e) {
+      if (controller.signal.aborted || requestRef.current !== controller) return
       setError(e instanceof Error ? e.message : "No se pudo analizar la evaluación.")
       setStatus("error")
+    } finally {
+      if (requestRef.current === controller) requestRef.current = null
     }
   }
 
   function apply() {
-    if (!result || !canApply) return
-    onApply(result, mode)
-    setStatus("applied")
+    if (!result || !canApply || applyingRef.current) return
+    applyingRef.current = true
+    try {
+      if (onApply(result, mode) === false) { applyingRef.current = false; return }
+      setStatus("applied")
+    } catch (e) {
+      applyingRef.current = false
+      setError(e instanceof Error ? e.message : "No se pudo aplicar la importación.")
+    }
   }
 
   return (
     <div className="rounded-[26px] border border-sky-200 bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-4 md:p-5 shadow-sm">
       <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
-          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-sky-600">IA / Archivo</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-sky-600">Importación de archivo</p>
           <h3 className="mt-1 text-base font-black text-slate-950">Importar evaluación existente — PDF / Word</h3>
           <p className="mt-1 max-w-2xl text-xs leading-relaxed text-slate-600">
             EduAI transcribe preguntas, alternativas, imágenes, puntajes y notación matemática al mismo creador. Antes de aplicar podrás revisar qué se detectó.
@@ -124,6 +145,10 @@ export default function ExamDocumentImporter({ onApply }: Props) {
       </div>
 
       <div
+        role="button"
+        tabIndex={0}
+        aria-label="Seleccionar evaluación PDF o Word"
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); inputRef.current?.click() } }}
         onDragEnter={(e) => { e.preventDefault(); setDragging(true) }}
         onDragOver={(e) => { e.preventDefault(); setDragging(true) }}
         onDragLeave={(e) => { e.preventDefault(); setDragging(false) }}
@@ -140,7 +165,8 @@ export default function ExamDocumentImporter({ onApply }: Props) {
           type="file"
           accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
           className="hidden"
-          onChange={(e) => chooseFile(e.target.files?.[0] || null)}
+          onClick={(e) => e.stopPropagation()}
+          onChange={(e) => { const selected = e.target.files?.[0]; e.target.value = ""; if (selected) chooseFile(selected) }}
         />
         <div className="text-3xl">📄</div>
         {file ? (
@@ -162,11 +188,13 @@ export default function ExamDocumentImporter({ onApply }: Props) {
             type="checkbox"
             checked={inferAnswers}
             onChange={(e) => {
+              requestRef.current?.abort()
+              requestRef.current = null
+              applyingRef.current = false
               setInferAnswers(e.target.checked)
-              if (result) {
-                setResult(null)
-                setStatus("idle")
-              }
+              setResult(null)
+              setError("")
+              setStatus("idle")
             }}
             className="mt-1 h-4 w-4"
           />
@@ -208,6 +236,7 @@ export default function ExamDocumentImporter({ onApply }: Props) {
         {status === "analyzing" ? "Analizando estructura, fórmulas e imágenes..." : "Analizar evaluación"}
       </button>
 
+      {status === "analyzing" && <button type="button" onClick={() => { requestRef.current?.abort(); requestRef.current = null; setStatus("idle") }} className="mt-2 w-full rounded-xl border border-sky-200 px-3 py-2 text-xs font-bold text-sky-700">Cancelar análisis</button>}
       {error && (
         <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-xs text-red-700">❌ {error}</div>
       )}
@@ -264,6 +293,8 @@ export default function ExamDocumentImporter({ onApply }: Props) {
                     <img src={q.imageUrl} alt={`Apoyo visual pregunta ${index + 1}`} className="max-h-44 w-full object-contain" />
                   </div>
                 )}
+                <p className="mt-1 text-[11px] text-slate-500">Puntaje: {q.maxPoints ?? "Revisar"} pts{q.sourcePage ? ` · Página ${q.sourcePage}` : ""}</p>
+                {q.answerSource !== "missing" && (q.modelAnswer || q.expectedLatex || q.explanation) && <div className="mt-2 rounded-lg bg-emerald-50 p-2 text-[11px] text-emerald-900"><p className="font-bold">Pauta detectada</p><ExamMathText text={String(q.modelAnswer || q.expectedLatex || q.explanation)} /></div>}
                 {Array.isArray(q.options) && q.options.length > 0 && (
                   <div className="mt-2 grid gap-1 sm:grid-cols-2">
                     {q.options.map((option: string, optionIndex: number) => (

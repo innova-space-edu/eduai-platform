@@ -32,7 +32,7 @@ function patchRoute() {
     for (const question of questions) {
       const hasAnswer = question.type === "development"
         ? Boolean(String(question.modelAnswer || question.expectedLatex || "").trim())
-        : question.correctAnswer !== null && question.correctAnswer !== undefined
+        : question.correctAnswer !== null && question.correctAnswer !== undefined && (question.type !== "mixed_choice_development" || Boolean(String(question.modelAnswer || question.expectedLatex || "").trim()))
 
       if (!hasAnswer) question.answerSource = "missing"
     }
@@ -77,6 +77,7 @@ async function resolveMissingImportedAnswers(model: any, questions: ImportedExam
     "Para multiple_choice y true_false devuelve correctAnswer como índice 0-based de una alternativa EXISTENTE.",
     "Para true_false: 0=Verdadero y 1=Falso.",
     "Para development devuelve modelAnswer no vacío y, si ayuda, explanation y solutionSteps.",
+    "Para mixed_choice_development devuelve tanto correctAnswer válido como modelAnswer no vacío.",
     "Si ninguna alternativa coincide matemáticamente con la respuesta correcta, usa resolved=false y NO inventes un índice.",
     "Devuelve JSON estricto: {\"answers\":[{\"index\":0,\"resolved\":true,\"correctAnswer\":0,\"modelAnswer\":\"\",\"explanation\":\"\",\"solutionSteps\":[]}]}",
     "PREGUNTAS PENDIENTES:",
@@ -114,7 +115,7 @@ async function resolveMissingImportedAnswers(model: any, questions: ImportedExam
 
       const hasAnswer = candidate.type === "development"
         ? Boolean(String(candidate.modelAnswer || candidate.expectedLatex || "").trim())
-        : candidate.correctAnswer !== null && candidate.correctAnswer !== undefined
+        : candidate.correctAnswer !== null && candidate.correctAnswer !== undefined && (candidate.type !== "mixed_choice_development" || Boolean(String(candidate.modelAnswer || candidate.expectedLatex || "").trim()))
 
       if (!hasAnswer) {
         warnings.push("No se pudo determinar con suficiente confianza la respuesta de la pregunta " + (item.index + 1) + ".")

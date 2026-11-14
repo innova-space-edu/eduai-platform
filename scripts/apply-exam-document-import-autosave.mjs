@@ -210,15 +210,18 @@ function patchCreatorPage() {
   ]);
 
   const applyDocumentImport = (result: ExamDocumentImportResult, mode: "replace" | "append") => {
+    if (!result.questions?.length || result.preview.missingAnswers > 0 || result.questions.some((raw: any) => !raw || !String(raw.question || "").trim() || !["file", "ai_inferred"].includes(raw.answerSource) || (raw.type !== "development" && (!Number.isInteger(raw.correctAnswer) || raw.correctAnswer < 0 || raw.correctAnswer >= (raw.type === "true_false" ? 2 : (raw.options?.length ?? 0)))) || ((raw.type === "development" || raw.type === "mixed_choice_development") && !String(raw.modelAnswer || raw.expectedLatex || "").trim()))) return false;
     const imported = (result.questions || []).map((raw: any) => {
       const normalized = normalizeAIQuestion(raw) as Question;
       return {
         ...normalized,
         optionImageUrls: Array.isArray(raw.optionImageUrls) ? raw.optionImageUrls.map(String) : [],
         answerSource: raw.answerSource,
+        ...(raw.type === "development" && Array.isArray(raw.rubric) && raw.rubric.length ? { maxPoints: raw.rubric.reduce((sum: number, item: any) => sum + Number(item.points || 0), 0) } : {}),
       } as Question;
     });
-    if (!imported.length) return;
+    if (!imported.length || result.preview.missingAnswers > 0) return false;
+    if (mode === "replace" && questions.some((q) => q.question.trim()) && !window.confirm("¿Reemplazar todas las preguntas actuales por las del archivo?")) return false;
 
     if (mode === "replace") setQuestions(imported);
     else setQuestions((current) => [...current, ...imported]);
@@ -234,6 +237,7 @@ function patchCreatorPage() {
 
     setErrorMsg("");
     setSuccessMsg(\`Evaluación importada: \${imported.length} pregunta\${imported.length !== 1 ? "s" : ""}. Puedes editarlas antes de publicar.\`);
+    return true;
   };`,
     "estado del importador/autoguardado",
   )
@@ -252,9 +256,11 @@ function patchCreatorPage() {
   source = replaceRequired(
     source,
     aiSection,
-    `${aiSection}
+    `            <section id="exam-section-archivo" className="scroll-mt-32">
               <ExamDocumentImporter onApply={applyDocumentImport} />
-              <div className="my-5 h-px bg-violet-200/70" />`,
+            </section>
+
+${aiSection}`,
     "sección IA/Archivo",
   )
 

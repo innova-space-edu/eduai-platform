@@ -55,5 +55,9 @@ check("19/21 respuestas faltantes reciben segunda verificación IA", route.inclu
 check("20/21 UI no pide activar IA cuando ya se intentó resolver", component.includes("EXAM_IMPORT_MISSING_ANSWER_UI_V1") && component.includes("segunda verificación") && component.includes("No asignará una alternativa por defecto"))
 check("21/21 prompt JSON de segunda verificación conserva sintaxis válida", route.includes("'Devuelve JSON estricto: {\"answers\"") && !route.includes('"Devuelve JSON estricto: {"answers"'))
 
-console.log(`\n[exam-document-import] ${checks.length}/21 verificaciones superadas`)
+check("22/25 módulos PDF y generación son secciones hermanas", page.indexOf('id="exam-section-archivo"') >= 0 && page.indexOf('<ExamDocumentImporter onApply={applyDocumentImport}') < page.indexOf('id="exam-section-ia"') && page.includes('id: "archivo"'))
+check("23/25 cancelación y protección contra respuestas obsoletas", component.includes("requestRef.current !== controller") && component.includes("signal: controller.signal") && page.includes("abortRef.current !== controller"))
+check("24/25 aplicar requiere confirmación de reemplazo y evita duplicados", component.includes("applyingRef.current") && page.includes("¿Reemplazar todas las preguntas actuales"))
+check("25/25 referencias de imágenes ausentes permanecen nulas", core.includes("function optionalReference") && core.includes("optionalReference(raw?.imageRef)"))
+console.log(`\n[exam-document-import] ${checks.length}/25 verificaciones superadas`)
 await import("./test-exam-result-feedback-v2.mjs")
