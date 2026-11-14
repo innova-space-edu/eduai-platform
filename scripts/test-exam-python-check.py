@@ -9,9 +9,10 @@ q={"id":"1","question":"En el triángulo ABC, AB = 20 cm, BC = 25 cm. En AB se m
 assert module.verify_question(q)["status"]=="incorrect"
 assert module.verify_question({**q,"modelAnswer":"BE = 15 cm"})["status"]=="partial"
 assert module.verify_question({"question":"Otro","solutionSteps":["$2+3=7$"]})["status"]=="incorrect"
+assert module.verify_question({"question":"Otro","solutionSteps":["2+3=7"]})["status"]=="incorrect"
 assert module.verify_question({"question":"Lee el texto"})["status"]=="unsupported"
 try:
     module.number("__import__('os')")
     raise AssertionError("unsafe")
 except ValueError: pass
-print("7 comprobaciones Python superadas")
+print("8 comprobaciones Python superadas")

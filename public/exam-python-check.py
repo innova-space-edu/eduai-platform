@@ -63,8 +63,11 @@ def tales_reference(q):
 def inspect_field(text, label):
     checks=[]
     # Only explicit delimited formula chains, not numbers inferred from prose.
-    for match in list(re.finditer(r"\$\$([\s\S]*?)\$\$|\$([^$\n]+)\$",str(text or "")[:12000]))[:30]:
-        formula=clean(match[1] if match[1] is not None else match[2])
+    source=str(text or "")[:12000]
+    formulas=[m[1] if m[1] is not None else m[2] for m in list(re.finditer(r"\$\$([\s\S]*?)\$\$|\$([^$\n]+)\$",source))[:30]]
+    if not formulas and re.fullmatch(r"[0-9.\s()+*/=^−×÷-]+",source.strip()): formulas=[source]
+    for raw in formulas:
+        formula=clean(raw)
         if "=" not in formula or "approx" in formula or "≈" in formula: continue
         parts=formula.split("=")
         if re.fullmatch(r"\s*[A-Za-z]{1,3}\s*",parts[0]): parts=parts[1:]

@@ -30,6 +30,16 @@ function patchVisual(s){
  region=region.slice(0,keyEnd)+region.slice(keyEnd).replace('              </div>\n            </section>','              </details>\n            </section>');
  region=region.replace('Array.isArray(q.qualityWarnings) &&\n                            q.qualityWarnings.length > 0','Array.isArray(enrichQuestionAnswerKey(q).qualityWarnings) &&\n                            enrichQuestionAnswerKey(q).qualityWarnings.length > 0').replace('q.qualityWarnings.join(" · ")','enrichQuestionAnswerKey(q).qualityWarnings.join(" · ")');
  s=s.slice(0,start)+region+s.slice(finish);
+ const indexStart=s.indexOf('<div className="sticky top-[176px] sm:top-[116px] z-20');
+ const indexEnd=s.indexOf('</div>',indexStart)+6;
+ if(indexStart<0||indexEnd<=indexStart)throw Error("question index");
+ const index=s.slice(indexStart,indexEnd).replace('sticky top-[176px] sm:top-[116px] z-20 mb-5 flex max-h-28 flex-wrap gap-2 overflow-auto rounded-xl border border-blue-100 bg-white p-3 shadow-sm','mt-2 flex max-h-16 flex-wrap gap-2 overflow-auto rounded-xl border border-blue-100 bg-white px-3 py-2');
+ s=s.slice(0,indexStart)+s.slice(indexEnd);
+ const headerStart=s.indexOf('className="sticky top-3 z-40'),headerEnd=s.indexOf('\n        </div>',headerStart);
+ if(headerStart<0||headerEnd<0)throw Error("sticky header");
+ s=s.slice(0,headerEnd)+'\n          {activeStep===3&&'+index+'}'+s.slice(headerEnd);
+ s=s.replaceAll('scroll-mt-56 rounded-2xl','scroll-mt-72 sm:scroll-mt-56 rounded-2xl');
+ s=s.replace('className="line-clamp-2 min-w-0 flex-1"','className="line-clamp-2 min-w-0 flex-1 leading-relaxed"');
  return s;
 }
 const p="app/examen/crear/page.tsx";writeFileSync(p,patchVisual(readFileSync(p,"utf8")));
