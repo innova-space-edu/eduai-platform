@@ -400,13 +400,15 @@ function requireSingleShape(question: any, expectedType?: string) {
   }
 }
 
-async function cloudflareBatch(prompt: string): Promise<any> {
+async function cloudflareBatch(prompt: string, signal?: AbortSignal): Promise<any> {
+  signal?.throwIfAborted()
   const result = await generateCompatibleText({
     provider: "cloudflare",
     model: compatibleFallbackModel("cloudflare", "structured"),
     messages: [{ role: "system", content: SYSTEM }, { role: "user", content: prompt }],
     maxOutputTokens: GROQ_TOKEN_BUDGET_PER_BATCH,
     module: "examenes",
+    signal,
   })
   return parseResponse(result.text)
 }
@@ -542,13 +544,14 @@ async function validateAndRepairWithProvider(
   throw new Error("La tanda no superó la validación.")
 }
 
-async function groqBatch(prompt: string, key: string): Promise<any> {
+async function groqBatch(prompt: string, key: string, signal?: AbortSignal): Promise<any> {
   const Groq = (await import("groq-sdk")).default
   const client = new Groq({ apiKey: key, timeout: 20000, maxRetries: 0 })
 
   let lastError = ""
 
   for (const model of GROQ_MODELS) {
+    signal?.throwIfAborted();
     try {
       const res = await client.chat.completions.create({
         model,
@@ -559,7 +562,7 @@ async function groqBatch(prompt: string, key: string): Promise<any> {
           { role: "system", content: SYSTEM },
           { role: "user", content: prompt },
         ],
-      })
+      }, { signal })
 
       if (res.choices[0]?.finish_reason === "length") throw new Error("JSON truncado por límite de salida");
       const raw = res.choices[0]?.message?.content?.trim() ?? ""
@@ -579,7 +582,7 @@ async function groqBatch(prompt: string, key: string): Promise<any> {
   throw new Error(`Groq: todos los modelos fallaron. Último error: ${lastError}`)
 }
 
-async function openRouterBatch(prompt: string, key: string): Promise<any> {
+async function openRouterBatch(prompt: string, key: string, signal?: AbortSignal): Promise<any> {
   const models = Array.from(new Set([
     resolveOpenRouterTextModel(process.env.OPENROUTER_STRUCTURED_MODEL || process.env.OPENROUTER_TEXT_MODEL),
     "openrouter/free",
@@ -588,6 +591,7 @@ async function openRouterBatch(prompt: string, key: string): Promise<any> {
   let lastError = ""
 
   for (const model of models) {
+    signal?.throwIfAborted();
     try {
       const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
@@ -608,7 +612,7 @@ async function openRouterBatch(prompt: string, key: string): Promise<any> {
             { role: "user", content: prompt },
           ],
         }),
-        signal: AbortSignal.timeout(20000),
+        signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(20000)]) : AbortSignal.timeout(20000),
       })
 
       if (!res.ok) {
@@ -639,6 +643,7 @@ async function openRouterBatch(prompt: string, key: string): Promise<any> {
 }
 
 async function generateExam(req: NextRequest, emit: (phase: string) => void = () => {}) {
+  const generationSignal = AbortSignal.any([req.signal, AbortSignal.timeout(95000)])
   const supabase = await createClient()
   const {
     data: { user },
@@ -706,11 +711,11 @@ async function generateExam(req: NextRequest, emit: (phase: string) => void = ()
     // Prioridad Groq: OpenRouter puede devolver 402 si no tiene créditos.
     if (GROQ_KEY) {
       try {
-        const parsed = await groqBatch(requestPrompt, GROQ_KEY)
+        const parsed = await groqBatch(requestPrompt, GROQ_KEY, generationSignal)
         const [q] = await validateAndRepairWithProvider(
           extractExamQuestions(parsed),
           requestPrompt,
-          (repairPrompt) => groqBatch(repairPrompt, GROQ_KEY), curriculum, priorStems, allowedModes
+          (repairPrompt) => groqBatch(repairPrompt, GROQ_KEY, generationSignal), curriculum, priorStems, allowedModes
         )
 
         requireSingleShape(q, expectedType)
@@ -723,11 +728,11 @@ async function generateExam(req: NextRequest, emit: (phase: string) => void = ()
 
     if (OR_KEY) {
       try {
-        const parsed = await openRouterBatch(requestPrompt, OR_KEY)
+        const parsed = await openRouterBatch(requestPrompt, OR_KEY, generationSignal)
         const [q] = await validateAndRepairWithProvider(
           extractExamQuestions(parsed),
           requestPrompt,
-          (repairPrompt) => openRouterBatch(repairPrompt, OR_KEY), curriculum, priorStems, allowedModes
+          (repairPrompt) => openRouterBatch(repairPrompt, OR_KEY, generationSignal), curriculum, priorStems, allowedModes
         )
 
         requireSingleShape(q, expectedType)
@@ -740,9 +745,9 @@ async function generateExam(req: NextRequest, emit: (phase: string) => void = ()
 
     if (cloudflareEnabled) {
       try {
-        const parsed = await cloudflareBatch(requestPrompt)
+        const parsed = await cloudflareBatch(requestPrompt, generationSignal)
         const [q] = await validateAndRepairWithProvider(
-          extractExamQuestions(parsed), requestPrompt, cloudflareBatch, curriculum, priorStems, allowedModes,
+          extractExamQuestions(parsed), requestPrompt, (prompt) => cloudflareBatch(prompt, generationSignal), curriculum, priorStems, allowedModes,
         )
         requireSingleShape(q, expectedType)
         return NextResponse.json({ success: true, question: q, answerKeyEntry: buildAnswerKey([q])[0], provider: "cloudflare", _design: designSummary })
@@ -782,9 +787,9 @@ async function generateExam(req: NextRequest, emit: (phase: string) => void = ()
   }
 
   const providers: { id: string; ask: (prompt: string) => Promise<any> }[] = [];
-  if (GROQ_KEY) providers.push({ id: "groq", ask: (prompt) => groqBatch(prompt, GROQ_KEY) });
-  if (OR_KEY) providers.push({ id: "openrouter", ask: (prompt) => openRouterBatch(prompt, OR_KEY) });
-  if (cloudflareEnabled) providers.push({ id: "cloudflare", ask: cloudflareBatch });
+  if (GROQ_KEY) providers.push({ id: "groq", ask: (prompt) => groqBatch(prompt, GROQ_KEY, generationSignal) });
+  if (OR_KEY) providers.push({ id: "openrouter", ask: (prompt) => openRouterBatch(prompt, OR_KEY, generationSignal) });
+  if (cloudflareEnabled) providers.push({ id: "cloudflare", ask: (prompt) => cloudflareBatch(prompt, generationSignal) });
   const batches = planExamBatches(counts, PROVIDER_BATCH);
   const allQuestions: any[] = [];
   const providersUsed = new Set<string>();
@@ -800,6 +805,7 @@ async function generateExam(req: NextRequest, emit: (phase: string) => void = ()
       const index = (preferred + offset) % providers.length;
       const provider = providers[index];
       if (req.signal.aborted) return NextResponse.json({ error: "Generación cancelada." }, { status: 499 });
+      if (generationSignal.aborted) return NextResponse.json({ error:"Se alcanzó el límite de tiempo de esta solicitud. Reintenta para continuar desde las preguntas verificadas." },{status:504});
       try {
         emit(`Generando en ${provider.id === "groq" ? "Groq" : provider.id === "openrouter" ? "OpenRouter" : "Cloudflare"}`);
         const parsed = await provider.ask(prompt);
