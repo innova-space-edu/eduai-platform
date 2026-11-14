@@ -56,6 +56,7 @@ export function normalizeLatexSource(value: unknown): string {
     .replace(/\r\n/g, "\n")
     .trim()
 
+  text = text.replace(/\\{2,}(?=(?:triangle|text|frac|sqrt|parallel|times|cdot|approx|leq|geq|neq|angle|pi|sum|int|alpha|beta|theta|mathrm)\b)/g, "\\")
   text = repairCommonOcrLatex(text)
   text = repairAnswerBlanks(text)
 
@@ -126,7 +127,7 @@ function wrapLatexFragmentsInProse(value: string): string {
     .replace(/(\\frac\s*\{[^{}]+\}\s*\{[^{}]+\})/g, "$$$1$")
     .replace(/(\\sqrt\s*\{[^{}]+\})/g, "$$$1$")
     .replace(/(\\underline\s*\{\s*\\hspace\s*\{[^{}]+\}\s*\})/g, "$$$1$")
-    .replace(/(\\(?:pi|times|cdot|div|leq|geq|neq|approx|rightarrow|leftarrow|leftrightarrow|Rightarrow|rightleftharpoons)\b)/g, "$$$1$")
+    .replace(/(\\(?:triangle|parallel|angle|pi|times|cdot|div|leq|geq|neq|approx|rightarrow|leftarrow|leftrightarrow|Rightarrow|rightleftharpoons)\b)/g, "$$1$")
     // Fórmulas o variables con índices/superíndices fuera de delimitadores.
     .replace(/([A-Za-z0-9]+(?:[_^]\{[^{}]+\})[A-Za-z0-9]*(?:(?:[_^]\{[^{}]+\})[A-Za-z0-9]*)*)/g, "$$$1$")
 }
@@ -190,6 +191,9 @@ export function latexToReadableText(value: unknown): string {
     .replace(/\\leftrightarrow/g, "↔")
     .replace(/\\Rightarrow/g, "⇒")
     .replace(/\\rightleftharpoons/g, "⇌")
+    .replace(/\\triangle\b/g, "△")
+    .replace(/\\parallel\b/g, "∥")
+    .replace(/\\text\s*\{([^{}]+)\}/g, "$1")
     .replace(/\\/g, "")
     .replace(/\s*&\s*/g, " ")
     .replace(/\{([^{}]+)\}/g, "$1")

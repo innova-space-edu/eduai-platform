@@ -382,3 +382,5 @@ await import("./apply-exam-manual-unified.mjs")
 await import("./apply-exam-creator-wizard.mjs")
 
 await import("./apply-exam-creator-draft.mjs")
+
+await import("./apply-exam-visual-review.mjs")

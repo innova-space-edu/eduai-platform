@@ -68,5 +68,7 @@ check("31/33 borrador conserva vista previa y lote", page.includes("generationCa
 check("32/33 editor plegable", page.includes("openQuestionId!==q.id") && page.includes("Plegar todas"))
 check("33/33 importador conserva análisis", component.includes("controlledResult") && page.includes("onResultChange={setDocumentPreview}"))
 check("34/34 volver a Agentes conserva el borrador", page.includes("Volver a Agentes") && page.includes('await saveNow();router.push("/agentes")') && page.includes("leaveForAgents"))
-console.log(`\n[exam-document-import] ${checks.length}/34 verificaciones superadas`)
+check("35/36 editor visual y revisión compacta", page.includes("EXAM_VISUAL_REVIEW_V1") && page.includes("Abrir todas") && page.includes("ExamVisualEditor") && page.includes("{activeStep===3&&<div className=\"mt-2 flex max-h-16"))
+check("36/36 verificador Python en revisión", page.includes("<ExamPythonReview questions={questions}/>"))
+console.log(`\n[exam-document-import] ${checks.length}/36 verificaciones superadas`)
 await import("./test-exam-result-feedback-v2.mjs")

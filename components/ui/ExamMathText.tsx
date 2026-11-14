@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react"
 import katex from "katex"
 import "katex/dist/katex.min.css"
-import { normalizeMathTextForDisplay } from "@/lib/exam/latex-response"
+import { latexToReadableText, normalizeMathTextForDisplay } from "@/lib/exam/latex-response"
 
 // Split text into math and non-math segments
 function parseSegments(text: string): { type: "text" | "block" | "inline"; content: string }[] {
@@ -98,13 +98,13 @@ function normalizeLatex(raw: string): string {
 function renderMath(latex: string, display: boolean): string {
   try {
     return katex.renderToString(latex.trim(), {
-      throwOnError: false,
+      throwOnError: true,
       displayMode: display,
       strict: false,
       trust: false,
     })
   } catch {
-    return escapeHtml(latex)
+    return escapeHtml(latexToReadableText(latex) || "Fórmula pendiente de revisión")
   }
 }
 

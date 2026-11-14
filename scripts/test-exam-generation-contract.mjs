@@ -36,3 +36,12 @@ test("model aliases preserve actual stem and rubric without fabricating data",()
  assert.ok(constructedContractIssues(q,["long_text"]).length);
  assert.ok(examContractIssues({...q,question:""},null,new Set()).length);
 });
+
+import { examAnswerConsistencyIssues } from "../lib/exam/answer-consistency.mjs";
+test("Tales: incorrect answer conflicts with deterministic calculation",()=>{
+const q={question:"En el triángulo ABC, AB = 20 cm, BC = 25 cm. En AB se marca D tal que AD = 8 cm. La recta paralela a AC corta BC en E. Determina BE mediante Tales.",modelAnswer:"BE = 10 cm",solutionSteps:["BE = 15 cm"]};
+assert.ok(examAnswerConsistencyIssues(q).some(s=>s.includes("15 cm")));
+assert.deepEqual(examAnswerConsistencyIssues({...q,modelAnswer:"BE = 15 cm"}),[]);
+assert.ok(examAnswerConsistencyIssues({...q,modelAnswer:"BE = 15 cm",explanation:"El triángulo ADE es similar a ABC."}).some(s=>s.includes("ADE")));
+assert.ok(examAnswerConsistencyIssues({...q,modelAnswer:"BE = 15 cm",solutionSteps:["Revisión del cálculo anterior en el borrador mental"]}).length);
+});

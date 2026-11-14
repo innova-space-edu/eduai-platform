@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import ExamMathText from "@/components/ui/ExamMathText";
+import ExamVisualEditor from "@/components/exam/ExamVisualEditor";
 
 const field = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900";
 type QuestionMeta = {
@@ -72,14 +72,14 @@ export function ManualQuestionTools({q,patch,oaOptions,modes,requireOA,onReuse,o
         {selected.some(id=>!oaOptions.some(oa=>oa.id===id))&&<button type="button" className="text-xs text-red-700 underline" onClick={()=>patch({oaCodes:selected.filter(id=>oaOptions.some(oa=>oa.id===id))})}>Quitar OA que ya no están seleccionados</button>}
         <label className="block text-xs font-semibold">Modo pedagógico<select className={field} value={q.pedagogicalMode||""} onChange={e=>patch({pedagogicalMode:e.target.value})}><option value="">Sin especificar</option>{modes.map(m=><option key={m.id} value={m.id}>{m.label}{recommendedModes.includes(m.id)?" (recomendado)":""}</option>)}</select></label>
         <label className="block text-xs font-semibold">Habilidad<input className={field} value={q.skill||""} onChange={e=>patch({skill:e.target.value})}/></label>
-        <label className="block text-xs font-semibold">Evidencia de aprendizaje<textarea className={field} value={q.evidence||""} onChange={e=>patch({evidence:e.target.value})}/></label>
+        <label className="block text-xs font-semibold">Evidencia de aprendizaje<ExamVisualEditor className={field} value={q.evidence||""} onChange={e=>patch({evidence:e.target.value})}/></label>
       </div>
     </details>
     <details className="rounded-xl border border-slate-200 bg-white p-3">
       <summary className="cursor-pointer text-xs font-bold text-slate-800">Pauta ampliada · pasos y distractores</summary>
       <div className="mt-3 space-y-2">
-        <label className="block text-xs font-semibold">Pasos o fundamentos esperados (uno por línea)<textarea className={field+" min-h-24"} value={(q.solutionSteps||[]).join("\n")} onChange={e=>patch({solutionSteps:e.target.value.split("\n")})}/></label>
-        {(q.type==="multiple_choice"||q.type==="mixed_choice_development")&&(q.options||[]).map((_,i)=><label key={i} className="block text-xs font-semibold">Justificación alternativa {String.fromCharCode(65+i)}<textarea className={field} value={q.distractorRationales?.[i]||""} onChange={e=>{const next=(q.options||[]).map((_,j)=>q.distractorRationales?.[j]||"");next[i]=e.target.value;patch({distractorRationales:next})}}/></label>)}
+        <label className="block text-xs font-semibold">Pasos o fundamentos esperados (uno por línea)<ExamVisualEditor className={field+" min-h-24"} value={(q.solutionSteps||[]).join("\n")} onChange={e=>patch({solutionSteps:e.target.value.split("\n")})}/></label>
+        {(q.type==="multiple_choice"||q.type==="mixed_choice_development")&&(q.options||[]).map((_,i)=><label key={i} className="block text-xs font-semibold">Justificación alternativa {String.fromCharCode(65+i)}<ExamVisualEditor className={field} value={q.distractorRationales?.[i]||""} onChange={e=>{const next=(q.options||[]).map((_,j)=>q.distractorRationales?.[j]||"");next[i]=e.target.value;patch({distractorRationales:next})}}/></label>)}
       </div>
     </details>
     {hasStimulus&&<details className="rounded-xl border border-sky-200 bg-sky-50 p-3">
@@ -88,15 +88,5 @@ export function ManualQuestionTools({q,patch,oaOptions,modes,requireOA,onReuse,o
       <div className="flex flex-wrap gap-2"><select aria-label="Tipo de nueva pregunta" className={field+" flex-1"} value={reuseType} onChange={e=>setReuseType(e.target.value as ManualType)}><option value="development">Respuesta construida</option><option value="multiple_choice">Alternativas</option><option value="true_false">Verdadero/Falso</option><option value="mixed_choice_development">Alternativa + respuesta construida</option></select>{(reuseType==="development"||reuseType==="mixed_choice_development")&&<select aria-label="Forma de respuesta" className={field+" flex-1"} value={reuseMode} onChange={e=>setReuseMode(e.target.value as ResponseMode)}><option value="long_text">Respuesta abierta</option><option value="short_text">Respuesta corta</option><option value="math">Matemática</option><option value="text_math">Texto + matemática</option><option value="math_steps">Procedimiento</option></select>}<button type="button" onClick={()=>onReuse(reuseType,reuseMode)} className="rounded-lg bg-sky-700 px-3 py-2 text-xs font-bold text-white">+ Pregunta con este material</button></div>
       {targets.length>0&&<div className="mt-3 space-y-1">{targets.map(target=><label key={target.id} className="flex gap-2 text-xs"><input type="checkbox" checked={chosen.includes(target.id)} onChange={e=>setChosen(old=>e.target.checked?[...old,target.id]:old.filter(id=>id!==target.id))}/>{target.label}</label>)}<button type="button" disabled={!chosen.length} onClick={()=>{onCopyTo(chosen);setChosen([])}} className="mt-2 rounded-lg border border-sky-300 bg-white px-3 py-2 text-xs font-semibold disabled:opacity-40">Aplicar material a seleccionadas</button></div>}
     </details>}
-    <details className="rounded-xl border border-emerald-200 bg-white p-3">
-      <summary className="cursor-pointer text-xs font-bold text-emerald-900">Vista previa del estudiante (sin respuestas)</summary>
-      <div className="mt-3 space-y-3 text-sm text-slate-900">
-        {q.showStimulusToStudent&&hasStimulus&&<div className="rounded-lg border bg-slate-50 p-3 whitespace-pre-wrap">{q.stimulusTitle&&<p className="font-bold">{q.stimulusTitle}</p>}<ExamMathText text={q.stimulusText||""}/></div>}
-        <div className="whitespace-pre-wrap"><ExamMathText text={q.question||"Enunciado pendiente"}/></div>
-        {q.imageUrl&&<img className="max-h-60 w-full object-contain" src={q.imageUrl} alt="Imagen de pregunta"/>}
-        {(q.options|| (q.type==="true_false"?["Verdadero","Falso"]:[])).map((option,i)=><div key={i} className="rounded-lg border p-2"><ExamMathText text={String.fromCharCode(65+i)+". "+option}/>{q.optionImageUrls?.[i]&&<img src={q.optionImageUrls[i]} alt={"Alternativa "+(i+1)} className="max-h-40 w-full object-contain"/>}</div>)}
-        {(q.type==="development"||q.type==="mixed_choice_development")&&<div className="rounded-lg border border-dashed p-4 text-slate-500">Espacio de respuesta del estudiante</div>}
-      </div>
-    </details>
   </div>;
 }
