@@ -44,6 +44,13 @@ ${restore}
     if(["multiple_choice","mixed_choice_development","true_false","development"].includes(draft.questionAddType))setQuestionAddType(draft.questionAddType);
     if(["short_text","long_text","math","text_math","math_steps"].includes(draft.questionAddResponseMode))setQuestionAddResponseMode(draft.questionAddResponseMode);
   });
+  const [leavingForAgents,setLeavingForAgents]=useState(false);
+  const leaveForAgents=async()=>{
+    if(saving||leavingForAgents)return;
+    if((documentAnalyzing||aiStatus==="generating"||aiRegenIdx!==null)&&!window.confirm("Hay un proceso activo. Se guardará el avance disponible, pero el proceso se interrumpirá al salir. ¿Volver a Agentes?"))return;
+    setLeavingForAgents(true);
+    try{await saveNow();router.push("/agentes");}catch{setLeavingForAgents(false);setErrorMsg("No se pudo guardar el borrador. Intenta nuevamente antes de salir.");}
+  };
   const draftStatusText=cloudState==="synced"?"✓ Guardado en tu cuenta":cloudState==="syncing"?"Sincronizando…":cloudState==="conflict"?"Conflicto de borradores · copia local conservada":cloudState==="error"?"Sin conexión a la nube · guardado local":"Guardado local";
   // Borrador anterior recuperado automáticamente · eduai:exam-creator:draft:v1
 
@@ -61,6 +68,7 @@ ${restore}
  R('onClick={clearExamCreatorDraft}','disabled={saving||documentAnalyzing||aiStatus==="generating"||aiRegenIdx!==null} onClick={async()=>{if(window.confirm("¿Descartar el borrador completo?")){await clearExamCreatorDraft();window.location.reload()}}}');
  R('onClick={()=>{persistExamCreatorDraft();router.push("/examen/docente")}}','onClick={async()=>{await saveNow();router.push("/examen/docente")}}');
  R('onClick={() => router.push("/examen/docente")}\n                  className="w-full py-3 rounded-2xl','onClick={async()=>{await saveNow();router.push("/examen/docente")}}\n                  className="w-full py-3 rounded-2xl');
+ R('          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">','          <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-2 pt-1"><button type="button" onClick={()=>void leaveForAgents()} disabled={saving||leavingForAgents} className="inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-3 py-2 text-xs font-bold text-blue-800 hover:bg-blue-100 disabled:opacity-50">{leavingForAgents?"Guardando…":"← Volver a Agentes"}</button><span className="text-[11px] text-slate-500">Tu borrador se conserva al salir</span></div>\n          <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">');
  // All users must have access to OA opt-out in step 2.
  const pos=s.indexOf('id="exam-section-objetivos"'),inner=s.indexOf('              <div className="flex flex-col gap-3',pos);
  if(pos<0||inner<0)throw Error("OA section");
