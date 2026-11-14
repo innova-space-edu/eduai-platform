@@ -29,7 +29,11 @@ export default function ExamVisualEditor({value,onChange,className="",placeholde
  useEffect(()=>{if(ref.current&&last.current!==value){populate(ref.current,value||"");last.current=value}},[value]);
  const change=()=>{if(!ref.current)return;const next=serialize(ref.current);last.current=next;onChange({target:{value:next}})};
  const remember=()=>{const s=window.getSelection();if(s?.rangeCount&&ref.current?.contains(s.anchorNode))selection.current=s.getRangeAt(0).cloneRange()};
- const open=(el?:HTMLElement)=>{if(disabled)return;remember();target.current=el||null;const source=el?.dataset.examFormula||"";setOriginal(source);setKind("expression");setA("");setB("");setBlock(source.startsWith("$$"));setError("");setEditing(true)};
+ const open=(el?:HTMLElement)=>{if(disabled)return;remember();target.current=el||null;const source=el?.dataset.examFormula||"";setOriginal(source);setKind("expression");setA("");setB("");setBlock(source.startsWith("$"));
+ const raw=source.replace(/^\$\$?|\$\$?$/g,"");
+ const frac=raw.match(/^\\frac\{([^{}\\]+)\}\{([^{}\\]+)\}$/),root=raw.match(/^\\sqrt\{([^{}\\]+)\}$/),power=raw.match(/^\{?([A-Za-z0-9]+)\}?\^\{([^{}\\]+)\}$/),sub=raw.match(/^\{?([A-Za-z0-9]+)\}?_\{([^{}\\]+)\}$/);
+ if(frac){setKind("fraction");setA(frac[1]);setB(frac[2])}else if(root){setKind("root");setA(root[1])}else if(power){setKind("power");setA(power[1]);setB(power[2])}else if(sub){setKind("subscript");setA(sub[1]);setB(sub[2])}else if(raw&&!/[\\{}]/.test(raw)){setA(raw)}
+ setError("");setEditing(true)};
  const insert=()=>{
   if(!a.trim()||(["fraction","power","subscript"].includes(kind)&&!b.trim())){setError("Completa los campos.");return}
   if(!ref.current)return;const math=build(kind,a,b),source=(block?"$$":"$")+math+(block?"$$":"$");
@@ -43,7 +47,7 @@ export default function ExamVisualEditor({value,onChange,className="",placeholde
    onInput={change} onBlur={remember} onKeyUp={remember} onMouseUp={remember}
    onClick={e=>{const el=(e.target as HTMLElement).closest<HTMLElement>("[data-exam-formula]");if(el)open(el)}}
    onKeyDown={e=>{const el=(e.target as HTMLElement).closest<HTMLElement>("[data-exam-formula]");if(el&&(e.key==="Enter"||e.key===" ")){e.preventDefault();open(el)}}}
-   onPaste={e=>{e.preventDefault();const sel=window.getSelection();if(!sel?.rangeCount)return;const r=sel.getRangeAt(0);if(!ref.current?.contains(r.commonAncestorContainer))return;r.deleteContents();const node=document.createTextNode(e.clipboardData.getData("text/plain"));r.insertNode(node);r.setStartAfter(node);r.collapse(true);sel.removeAllRanges();sel.addRange(r);change()}}/>
+   onPaste={e=>{e.preventDefault();const sel=window.getSelection();if(!sel?.rangeCount)return;const r=sel.getRangeAt(0);if(!ref.current?.contains(r.commonAncestorContainer))return;r.deleteContents();const fragment=document.createDocumentFragment();const text=e.clipboardData.getData("text/plain");for(const part of normalizeMathTextForDisplay(text).split(/(\$\$[\s\S]*?\$\$|\$[^$\n]+?\$)/g)){if(part)fragment.append(part.startsWith("$")&&part.endsWith("$")?atom(part):document.createTextNode(part))}const node=fragment.lastChild;if(!node)return;r.insertNode(fragment);r.setStartAfter(node);r.collapse(true);sel.removeAllRanges();sel.addRange(r);change()}}/>
   {editing&&<div role="dialog" aria-label="Editor visual de fórmulas" className="rounded-xl border border-blue-200 bg-white p-4 space-y-3">
    <div className="flex justify-between"><strong className="text-sm text-blue-900">{original?"Modificar fórmula":"Insertar fórmula"}</strong><button type="button" onClick={()=>setEditing(false)} className="text-xs underline">Cancelar</button></div>
    {original&&<div className="rounded-lg bg-slate-50 p-2"><span className="text-xs text-slate-500">Fórmula actual</span><span ref={el=>{if(el)el.replaceChildren(atom(original))}}/></div>}
