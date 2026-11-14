@@ -462,7 +462,7 @@ function friendlyProviderError(message: string): string {
 
 function compactPromptForProvider(basePrompt: string): string {
   // Preserve the complete OA, source and accessibility directives. Request size is bounded at the endpoint.
-  return String(basePrompt || "").replace(/(ESTRUCTURA EXACTA DE LA TANDA\n)(?:Total: \d+ preguntas\.\n|\- \d+ (?:multiple_choice|mixed_choice_development|true_false|development):[^\n]*\n)+/u, "$1Las cantidades exactas se indican al final de esta solicitud.\n").trim()
+  return String(basePrompt || "").replace(/(ESTRUCTURA EXACTA DE LA TANDA\n)(?:Total: \d+ preguntas\.\n|- \d+ (?:multiple_choice|mixed_choice_development|true_false|development):[^\n]*\n)+/u, "$1Las cantidades exactas se indican al final de esta solicitud.\n").trim()
 }
 
 function promptForBatch(basePrompt: string, batch: BatchPlan, index: number, totalBatches: number): string {
