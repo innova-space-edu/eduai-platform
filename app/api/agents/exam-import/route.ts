@@ -1,3 +1,4 @@
+import { parseExamModelJson } from "@/lib/exam/import-model-json.mjs"
 import { EXAM_IMPORT_MAX_BYTES, EXAM_IMPORT_MAX_LABEL } from "@/lib/exam/creator-limits"
 import { NextRequest, NextResponse } from "next/server"
 import { randomUUID } from "crypto"
@@ -38,21 +39,7 @@ type ParsedDocument = {
 }
 
 function safeJson(text: string) {
-  const cleaned = String(text || "")
-    .trim()
-    .replace(/^```json\s*/i, "")
-    .replace(/^```\s*/i, "")
-    .replace(/\s*```$/i, "")
-    .trim()
-
-  try {
-    return JSON.parse(cleaned)
-  } catch {
-    const first = cleaned.indexOf("{")
-    const last = cleaned.lastIndexOf("}")
-    if (first >= 0 && last > first) return JSON.parse(cleaned.slice(first, last + 1))
-    throw new Error("Gemini no devolvió JSON válido")
-  }
+  return parseExamModelJson(text)
 }
 
 function bytesFromUnknown(value: unknown): Uint8Array | null {
@@ -272,6 +259,7 @@ REGLAS
 - Si hay una pregunta de selección + desarrollo, usa mixed_choice_development.
 - No conviertas una respuesta desconocida en 0.
 - No devuelvas markdown alrededor del JSON.
+- IMPORTANTE: usa JSON válido; dentro de cada cadena duplica cada barra invertida de comandos LaTeX y verifica que el resultado sea parseable. No uses escapes de JSON desconocidos.
 
 TEXTO EXTRAÍDO AUXILIAR (${parsed.kind.toUpperCase()}):
 ${parsed.text || "(sin texto extraíble; usa la vista visual del documento)"}
@@ -435,7 +423,12 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await model.generateContent(parts)
-    const output = safeJson(result.response.text())
+    let output: any
+    try {
+      output = safeJson(result.response.text())
+    } catch {
+      return NextResponse.json({ error: "La IA devolvió una evaluación con formato inválido. Vuelve a analizar el archivo." }, { status: 422 })
+    }
     const rawQuestions = Array.isArray(output?.questions) ? output.questions : []
     if (!rawQuestions.length) return NextResponse.json({ error: "No se detectaron preguntas en el documento" }, { status: 422 })
 
