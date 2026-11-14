@@ -59,7 +59,7 @@ export function useExamCreatorDraft(userId:string|null,data:Data,restore:(data:D
     lastFingerprint.current=signature;
     // Snapshot, not a live ref to a generation cache that is still mutating.
     store(userId,{version:1,savedAt:Date.now(),revision:current.current?.revision||0,dirty:true,data:JSON.parse(signature)});
-    if(enabled.current)schedule(userId);
+    if(enabled.current){setCloudState("local");schedule(userId);}
   }
   useEffect(()=>{
     if(!userId)return;

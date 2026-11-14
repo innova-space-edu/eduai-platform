@@ -12,6 +12,7 @@ function patchDraft(s){
  const restore=old.slice(restoreStart,restoreEnd).replace('if (typeof draft.subject === "string") setSubject(draft.subject);','if (typeof draft.subject === "string") { if(draft.subject!==subject) restoredSubjectRef.current=draft.subject; setSubject(draft.subject); }');
  s=s.slice(0,start)+`  const [documentPreview,setDocumentPreview]=useState<ExamDocumentImportResult|null>(null);
   const [documentInferAnswers,setDocumentInferAnswers]=useState(false);
+  const [documentAnalyzing,setDocumentAnalyzing]=useState(false);
   const draftData = {${dataFields}
     activeStep,creationMethod,openQuestionId,aiPrompt,aiModeIds,aiSkillFocus,aiSourceContext,aiAuthenticContext,
     aiMC,aiTF,aiDev,aiMixed,aiResponseModes,aiShowSourceToStudent,aiDiff,aiPreview,aiProvider,
@@ -52,12 +53,12 @@ ${restore}
  R('      clearExamCreatorDraft();\n      setCreatedExam({','      await clearExamCreatorDraft();\n      setCreatedExam({');
  R('  return (\n    <div className="min-h-screen bg-[radial-gradient','  if(!draftReady)return <div className="p-8 text-center text-sm text-slate-600" role="status">Recuperando tu último borrador…</div>;\n\n  return (\n    <div className="min-h-screen bg-[radial-gradient');
  R('<span role="status">{autosaveState==="saved"?"✓ Borrador guardado":autosaveState==="error"?"No se pudo guardar":"Autoguardado activo"}</span>',`<div className="flex flex-wrap items-center gap-2"><span role="status">{autosaveState==="error"&&cloudState!=="synced"?"No se pudo guardar localmente":draftStatusText}{autosaveAt?" · "+new Date(autosaveAt).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"}):""}</span>
-          <button type="button" onClick={()=>void saveNow()} className="rounded-lg border px-2 py-1 font-semibold">Guardar ahora</button>
-          {(cloudState==="conflict"||cloudState==="error")&&<button type="button" onClick={()=>{persistExamCreatorDraft();window.location.reload()}} className="underline">Recuperar / sincronizar</button>}
-          <button type="button" disabled={saving||aiStatus==="generating"||aiRegenIdx!==null} onClick={async()=>{if(window.confirm("¿Descartar el borrador e iniciar una evaluación nueva?")){await clearExamCreatorDraft();window.location.reload()}}} className="rounded-lg border px-2 py-1 text-red-700">Nueva evaluación</button></div>`);
- R('<ExamDocumentImporter onApply={applyDocumentImport} />','<ExamDocumentImporter onApply={applyDocumentImport} result={documentPreview} onResultChange={setDocumentPreview} inferAnswers={documentInferAnswers} onInferAnswersChange={setDocumentInferAnswers} />');
- R('      {aiPreview.length>0&&<p className="mt-3 text-xs text-amber-700">Hay preguntas IA pendientes de incorporar.</p>}','      {(aiPreview.length>0||documentPreview)&&<p className="mt-3 text-xs text-amber-700">Hay preguntas analizadas o generadas pendientes de incorporar.</p>}');
- R('onClick={clearExamCreatorDraft}','onClick={async()=>{if(window.confirm("¿Descartar el borrador completo?")){await clearExamCreatorDraft();window.location.reload()}}}');
+          <button type="button" disabled={saving} onClick={()=>void saveNow()} className="rounded-lg border px-2 py-1 font-semibold">Guardar ahora</button>
+          {(cloudState==="conflict"||cloudState==="error")&&<button type="button" disabled={saving||documentAnalyzing||aiStatus==="generating"||aiRegenIdx!==null} onClick={()=>{persistExamCreatorDraft();window.location.reload()}} className="underline">Recuperar / sincronizar</button>}
+          <button type="button" disabled={saving||documentAnalyzing||aiStatus==="generating"||aiRegenIdx!==null} onClick={async()=>{if(window.confirm("¿Descartar el borrador e iniciar una evaluación nueva?")){await clearExamCreatorDraft();window.location.reload()}}} className="rounded-lg border px-2 py-1 text-red-700">Nueva evaluación</button></div>`);
+ R('<ExamDocumentImporter onApply={applyDocumentImport} />','<ExamDocumentImporter onApply={applyDocumentImport} result={documentPreview} onResultChange={setDocumentPreview} inferAnswers={documentInferAnswers} onInferAnswersChange={setDocumentInferAnswers} onBusyChange={setDocumentAnalyzing} />');
+ R('      {aiPreview.length>0&&<p className="mt-3 text-xs text-amber-700">Hay preguntas IA pendientes de incorporar.</p>}','      {documentAnalyzing&&<p className="mt-3 text-xs text-sky-700">Análisis de archivo en curso.</p>}{(aiPreview.length>0||documentPreview)&&<div className="mt-3 flex flex-wrap gap-2 text-xs text-amber-700"><span>Hay preguntas pendientes de incorporar.</span>{aiPreview.length>0&&<button type="button" disabled={aiRegenIdx!==null} className="font-bold underline" onClick={()=>{if(window.confirm("¿Descartar únicamente las preguntas IA pendientes?")){setAiPreview([]);setAiStatus("idle");generationCacheRef.current=null;}}}>Descartar vista IA</button>}{documentPreview&&<button type="button" className="font-bold underline" onClick={()=>{if(window.confirm("¿Descartar únicamente el análisis del archivo?"))setDocumentPreview(null)}}>Descartar análisis PDF/Word</button>}</div>}');
+ R('onClick={clearExamCreatorDraft}','disabled={saving||documentAnalyzing||aiStatus==="generating"||aiRegenIdx!==null} onClick={async()=>{if(window.confirm("¿Descartar el borrador completo?")){await clearExamCreatorDraft();window.location.reload()}}}');
  R('onClick={()=>{persistExamCreatorDraft();router.push("/examen/docente")}}','onClick={async()=>{await saveNow();router.push("/examen/docente")}}');
  R('onClick={() => router.push("/examen/docente")}\n                  className="w-full py-3 rounded-2xl','onClick={async()=>{await saveNow();router.push("/examen/docente")}}\n                  className="w-full py-3 rounded-2xl');
  // All users must have access to OA opt-out in step 2.
@@ -66,7 +67,7 @@ ${restore}
  s=s.slice(0,inner)+`              <label className="mb-3 flex items-center gap-2 rounded-xl border border-emerald-200 bg-white p-3 text-xs font-semibold text-emerald-900"><input type="checkbox" checked={aiRequireOA} onChange={e=>setAiRequireOA(e.target.checked)}/> Vincular OA obligatoriamente · manual e IA</label>
 `+s.slice(inner);
  // Do not let pending previews be lost by publishing.
- R('    const ve = validateExam();','    if(aiStatus==="generating"||aiRegenIdx!==null||aiPreview.length||documentPreview){setErrorMsg("Hay preguntas pendientes de incorporar o una generación activa. Regresa a Creación antes de publicar.");return;}\n    const ve = validateExam();');
+ R('    const ve = validateExam();','    if(documentAnalyzing||aiStatus==="generating"||aiRegenIdx!==null||aiPreview.length||documentPreview){setErrorMsg("Hay preguntas pendientes de incorporar o una generación activa. Regresa a Creación antes de publicar.");return;}\n    const ve = validateExam();');
  return s;
 }
 const p="app/examen/crear/page.tsx";writeFileSync(p,patchDraft(readFileSync(p,"utf8")));
