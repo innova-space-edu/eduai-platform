@@ -42,7 +42,6 @@ if(!s.includes("EXAM_MANUAL_UNIFIED_V1")){
                         onClick={() => removeQuestion(q.id)}`);
   replace('                        disabled={questions.length === 1}\n','');
   replace('                        Eliminar\n                      </button>\n                    </div>', '                        Eliminar\n                      </button>\n                      </div>\n                    </div>');
-  replace('                  {questions.map((q, index) => (','                  {questions.map((q, index) => ('); // optional anchor verification below
   // Keep context compact and show populated content by default, with visible-by-default text on manual entry.
   replace('                    <div className="mb-4 rounded-2xl border border-sky-200 bg-sky-50/60 p-4">','                    <details open={Boolean(q.stimulusText?.trim()) || undefined} className="mb-4 rounded-2xl border border-sky-200 bg-sky-50/60 p-4">\n                      <summary className="cursor-pointer mb-3 text-xs font-bold text-sky-900">Material de apoyo · lectura, fuente, datos, caso o experimento</summary>');
   replace('onChange={(e) => updateQuestion(q.id, (prev) => ({ ...prev, stimulusText: e.target.value }))}','onChange={(e) => updateQuestion(q.id, (prev) => ({ ...prev, stimulusText: e.target.value, showStimulusToStudent: prev.stimulusText?.trim() ? prev.showStimulusToStudent : Boolean(e.target.value.trim()) }))}');
@@ -73,7 +72,22 @@ if(!s.includes("EXAM_MANUAL_UNIFIED_V1")){
                               </details>
 `+s.slice(end);count++;
   }
-  if(count<2)throw new Error("[exam-manual] option editor expected both choice types");
+  // The mixed-choice card has a different indentation from the original alternatives card.
+  const mixedRadio=s.indexOf('name={`mixed-correct-${q.id}`}');
+  if(mixedRadio<0)throw new Error("[exam-manual] mixed radio missing");
+  const mixedInput=s.lastIndexOf('<input',s.lastIndexOf('placeholder={`Alternativa ${optIndex + 1}`}',mixedRadio));
+  const mixedEnd=s.indexOf('/>',s.lastIndexOf('placeholder={`Alternativa ${optIndex + 1}`}',mixedRadio))+2;
+  if(mixedInput<0||mixedEnd<=mixedInput)throw new Error("[exam-manual] mixed input missing");
+  s=s.slice(0,mixedInput)+`<div className="min-w-0">`+s.slice(mixedInput,mixedEnd)+`
+    <details open={Boolean(q.optionImageUrls?.[optIndex]) || undefined} className="mt-2">
+      <summary className="cursor-pointer text-xs font-semibold text-blue-700">Imagen de alternativa {optIndex+1}</summary>
+      <ExamImageEditor label={"Imagen alternativa "+(optIndex+1)} value={q.optionImageUrls?.[optIndex]} onChange={url=>updateQuestion(q.id,prev=>{
+        if(prev.type!=="mixed_choice_development")return prev;
+        const urls=prev.options.map((_,i)=>prev.optionImageUrls?.[i]||"");urls[optIndex]=url;
+        return {...prev,optionImageUrls:urls};
+      })}/>
+    </details></div>`+s.slice(mixedEnd);
+  if(count!==1)throw new Error("[exam-manual] expected one original choice image editor");
   // Single empty starter must not hide manually entered stimuli, metadata or images.
   replace('!starter.explanation?.trim() && !starter.answerText?.trim()', '!starter.stimulusText?.trim() && !starter.stimulusTitle?.trim() && !starter.oaCodes?.length && !starter.pedagogicalMode && !starter.skill?.trim() && !starter.evidence?.trim() && !starter.optionImageUrls?.some(Boolean) && !starter.explanation?.trim() && !starter.answerText?.trim()');
   replace('    setQuestions((p) => [...p, nextQuestion]);','    setQuestions((p) => appendExamQuestions(p, [nextQuestion]));');
@@ -81,6 +95,7 @@ if(!s.includes("EXAM_MANUAL_UNIFIED_V1")){
   replace('      if (!q.question.trim()) return `La pregunta ${i + 1} no tiene enunciado.`;','      if (!q.question.trim()) return `La pregunta ${i + 1} no tiene enunciado.`;\n      if (aiRequireOA && (!selectedOAs.length || !q.oaCodes?.length || q.oaCodes.some(code=>!selectedOAs.some(oa=>getOASelectionKey(oa)===code)))) return `La pregunta ${i+1} necesita un OA seleccionado en el paso 2. Asócialo en su perfil o desactiva el requisito de OA.`;\n      if (q.stimulusText?.trim() && !q.showStimulusToStudent && !window.confirm(`La pregunta ${i+1} tiene material oculto al estudiante. ¿Publicar de todos modos?`)) return `Revisa la visibilidad del material de la pregunta ${i+1}.`;');
   replace('                <h2 className="text-lg font-bold">Preguntas del examen</h2>','                <div><h2 className="text-lg font-bold">Preguntas del examen</h2><p className="mt-1 text-xs text-slate-600">Editor único: crea manualmente, revisa las preguntas de IA o PDF, duplica, ordena y elimina.</p></div>');
   replace('              <div className="space-y-5">\n                {questions.map','              {questions.length===0&&<p className="mb-4 rounded-xl border border-dashed p-4 text-sm text-slate-600">No hay preguntas. Agrega una manualmente, importa un archivo o genera con IA.</p>}\n              <div className="space-y-5">\n                {questions.map');
+  replace('              {questions.length===0&&', '              <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-violet-200 bg-violet-50 p-3 text-xs text-violet-900"><label className="flex gap-2 items-center font-semibold"><input type="checkbox" checked={aiRequireOA} onChange={e=>setAiRequireOA(e.target.checked)}/> Vincular OA obligatoriamente (manual e IA)</label><span>{selectedOAs.length} OA seleccionados en el paso 2</span></div>\n              {questions.length===0&&');
   writeFileSync(path,s);
 }
 console.log("[exam-manual] editor manual integrado");
