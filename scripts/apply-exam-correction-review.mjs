@@ -22,6 +22,7 @@ function patch(s){
     try{
       const results:PythonResult[]=[];
       for(let i=0;i<items.length;i+=100)results.push(...await verifyPython(items.slice(i,i+100)));
+      if(results.some((data,i)=>data.id!==items[i].id))throw Error("Python devolvió resultados que no corresponden a las preguntas.");
       const records=Object.fromEntries(results.map((data,i)=>[items[i].id,{signature:correctionSignature(items[i]),data}]));
       setPythonResults(old=>({...old,...records}));
       setQuestions(old=>old.map(q=>records[q.id]?.signature===correctionSignature(q)&&records[q.id].data.status==="incorrect"?{...q,correctionReview:{required:true}}:q));
@@ -53,10 +54,11 @@ function patch(s){
  const start=s.indexOf('{enrichQuestionAnswerKey(q).qualityStatus==="review"&&<div role="alert"');
  const end=s.indexOf('<div hidden={!expandAllQuestions',start);
  if(start<0||end<0)throw Error("panel");
- s=s.slice(0,start)+`{(mathReviewSubject||examAnswerConsistencyIssues(q).length>0||q.correctionReview?.required)&&<ExamCorrectionPanel q={q} issues={examAnswerConsistencyIssues(q)} result={pythonResults[q.id]} required={needsCorrectionConfirmation(q,examAnswerConsistencyIssues(q))} busy={pythonBusy||saving} onVerify={()=>void verifyQuestions([q])} onApply={fields=>applyPythonProposal(q.id,fields)} onConfirm={()=>confirmCorrection(q.id)}/>}
+ s=s.slice(0,start)+`{(mathReviewSubject||examAnswerConsistencyIssues(q).length>0||q.correctionReview?.required)&&<ExamCorrectionPanel q={q} issues={examAnswerConsistencyIssues(q)} result={pythonResults[q.id]} required={needsCorrectionConfirmation(q,examAnswerConsistencyIssues(q))} busy={pythonBusy||saving} onVerify={()=>void verifyQuestions([q])} onApply={fields=>applyPythonProposal(q.id,fields)} qualityReady={enrichQuestionAnswerKey(q).qualityStatus!=="review"} onConfirm={()=>confirmCorrection(q.id)}/>}
                     {enrichQuestionAnswerKey(q).qualityStatus==="review"&&<p className="mb-3 text-xs text-amber-900">{enrichQuestionAnswerKey(q).qualityWarnings.join(" · ")}</p>}`+s.slice(end);
  s=s.replace('questionFilter==="pending" && (!q.question.trim()','questionFilter==="pending" && (needsCorrectionConfirmation(q,examAnswerConsistencyIssues(q)) || !q.question.trim()');
  s=s.replaceAll('distractorRationales: q.distractorRationales || [],','');
+ s=s.replace("{...copy,id:uid()}","{...copy,id:uid(),correctionReview:copy.correctionReview?.required?{required:true}:undefined}");
  return s;
 }
 const p="app/examen/crear/page.tsx";writeFileSync(p,patch(readFileSync(p,"utf8")));

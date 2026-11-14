@@ -8,7 +8,7 @@ self.onmessage=async({data})=>{
    const base="https://cdn.jsdelivr.net/pyodide/v0.27.7/full/";
    importScripts(base+"pyodide.js");
    engine=await loadPyodide({indexURL:base});
-   const response=await fetch("/exam-python-check.py",{cache:"force-cache"});
+   const response=await fetch("/exam-python-check.py?v=2",{cache:"no-cache"});
    if(!response.ok)throw new Error("No se pudo cargar el verificador");
    await engine.runPythonAsync(await response.text());
   }

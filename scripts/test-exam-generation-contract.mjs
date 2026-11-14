@@ -45,3 +45,15 @@ assert.deepEqual(examAnswerConsistencyIssues({...q,modelAnswer:"BE = 15 cm"}),[]
 assert.ok(examAnswerConsistencyIssues({...q,modelAnswer:"BE = 15 cm",explanation:"El triángulo ADE es similar a ABC."}).some(s=>s.includes("ADE")));
 assert.ok(examAnswerConsistencyIssues({...q,modelAnswer:"BE = 15 cm",solutionSteps:["Revisión del cálculo anterior en el borrador mental"]}).length);
 });
+
+import { correctionSignature, needsCorrectionConfirmation, correctionPublicationIssue } from "../lib/exam/correction-review.mjs";
+test("correction confirmation is required and invalidated by any edited answer",()=>{
+ const q={type:"development",question:"Calcula",modelAnswer:"15",correctionReview:{required:true}};
+ assert.ok(needsCorrectionConfirmation(q));
+ const confirmed={...q,correctionReview:{required:true,confirmedSignature:correctionSignature(q)}};
+ assert.equal(needsCorrectionConfirmation(confirmed),false);
+ assert.ok(needsCorrectionConfirmation({...confirmed,modelAnswer:"10"}));
+ assert.ok(correctionPublicationIssue([q],()=>[]));
+ assert.ok(correctionPublicationIssue([confirmed],()=>["error"]));
+ assert.equal(correctionPublicationIssue([confirmed],()=>[]),"");
+});

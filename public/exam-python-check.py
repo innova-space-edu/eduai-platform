@@ -74,13 +74,22 @@ def inspect_field(text, label):
         if len(parts)<2: continue
         try: vals=[number(part) for part in parts]
         except (ValueError,SyntaxError,ZeroDivisionError,OverflowError): continue
-        checks.append({"label":label,"valid":all(v==vals[0] for v in vals),"message":"Igualdad numérica exacta" if all(v==vals[0] for v in vals) else "La igualdad numérica no se cumple"})
+        valid=all(v==vals[0] for v in vals)
+        if valid:
+            message="Igualdad numérica exacta"
+        else:
+            def show(v):
+                return str(v.numerator) if v.denominator==1 else r"\frac{"+str(v.numerator)+"}{"+str(v.denominator)+"}"
+            message="La igualdad no se cumple. El primer miembro vale $"+show(vals[0])+"$; los miembros siguientes valen "+", ".join("$"+show(v)+"$" for v in vals[1:])+". Revisa cuál corresponde al enunciado y sustituye el cálculo incorrecto."
+        checks.append({"label":label,"valid":valid,"message":message})
     return checks
 
 def verify_question(q):
     checks=[]
     for label,field in (("Respuesta",q.get("modelAnswer")),("Resultado final",q.get("expectedLatex")),("Explicación",q.get("explanation"))):
         checks+=inspect_field(field,label)
+    for i,criterion in enumerate((q.get("rubric") or [])[:30]):
+        if isinstance(criterion,dict): checks+=inspect_field(criterion.get("criteria"),"Criterio "+str(i+1))
     for i,step in enumerate((q.get("solutionSteps") or [])[:30]):
         checks+=inspect_field(step,"Paso "+str(i+1))
     ref=tales_reference(q.get("question"))
