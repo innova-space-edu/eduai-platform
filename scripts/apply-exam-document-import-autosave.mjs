@@ -89,6 +89,7 @@ function patchCreatorPage() {
       curriculumCurso,
       rosterCourse,
       selectedOAIds,
+      aiRequireOA,
       questions,
     },
   });
@@ -152,7 +153,8 @@ function patchCreatorPage() {
           if (typeof draft.curriculumCurso === "string") setCurriculumCurso(draft.curriculumCurso);
           if (typeof draft.rosterCourse === "string") setRosterCourse(draft.rosterCourse);
           if (Array.isArray(draft.selectedOAIds)) setSelectedOAIds(draft.selectedOAIds.map(String));
-          if (Array.isArray(draft.questions) && draft.questions.length > 0) setQuestions(draft.questions as Question[]);
+          if (typeof draft.aiRequireOA === "boolean") setAiRequireOA(draft.aiRequireOA);
+          if (Array.isArray(draft.questions)) setQuestions(draft.questions as Question[]);
           setDraftRestored(true);
           setAutosaveAt(Number(parsed.savedAt) || Date.now());
           setAutosaveState("saved");
@@ -182,7 +184,7 @@ function patchCreatorPage() {
     developmentNotebookEnabled, developmentNotebookMode, securityMode, subject,
     examTheme, examFont, customColorsEnabled, examCustomColors, pieMode,
     dyslexiaMode, adhdMode, lowVisionMode, individualAdaptations, curriculumNivel,
-    curriculumCurso, rosterCourse, selectedOAIds, questions,
+    curriculumCurso, rosterCourse, selectedOAIds, aiRequireOA, questions,
   ]);
 
   useEffect(() => {
@@ -206,7 +208,7 @@ function patchCreatorPage() {
     developmentNotebookEnabled, developmentNotebookMode, securityMode, subject,
     examTheme, examFont, customColorsEnabled, examCustomColors, pieMode,
     dyslexiaMode, adhdMode, lowVisionMode, individualAdaptations, curriculumNivel,
-    curriculumCurso, rosterCourse, selectedOAIds, questions,
+    curriculumCurso, rosterCourse, selectedOAIds, aiRequireOA, questions,
   ]);
 
   const applyDocumentImport = (result: ExamDocumentImportResult, _mode: "replace" | "append") => {
@@ -374,3 +376,5 @@ patchCreatorPage()
 patchQuestionCard()
 patchExamApi()
 console.log("[exam-document-import] PDF/DOCX, imágenes por alternativa y autoguardado conectados")
+
+await import("./apply-exam-manual-unified.mjs")

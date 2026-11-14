@@ -87,7 +87,7 @@ export function assessQuestionQuality(question: any): QuestionQualityIssue[] {
       issues.push({ code: "mc_duplicate_option", message: "Hay alternativas repetidas o equivalentes en texto.", severity: "error" })
     }
     const idx = normalizeAnswerIndex(question?.correctAnswer, options)
-    if (!options[idx]) {
+    if (!Number.isInteger(question?.correctAnswer) || question.correctAnswer < 0 || question.correctAnswer >= options.length || !options[idx]) {
       issues.push({ code: "mc_invalid_answer_index", message: "El índice de la alternativa correcta no apunta a una opción válida.", severity: "error" })
     }
     if (options[idx] && cleanForCompare(question?.answerText) !== cleanForCompare(options[idx])) {
@@ -127,13 +127,13 @@ export function assessQuestionQuality(question: any): QuestionQualityIssue[] {
   }
 
   if (type === "development") {
-    if (!asText(question?.modelAnswer)) {
+    if (!asText(question?.modelAnswer) && !(question?.responseMode === "short_text" && Array.isArray(question?.acceptedAnswers) && question.acceptedAnswers.some((value: unknown) => asText(value)))) {
       issues.push({ code: "missing_model_answer", message: "Falta la respuesta modelo para corregir el desarrollo.", severity: "error" })
     }
     if (!Array.isArray(question?.solutionSteps) || question.solutionSteps.length === 0) {
       issues.push({ code: "missing_solution_steps", message: "Faltan pasos esperados de la solución.", severity: "warning" })
     }
-    if (!Array.isArray(question?.rubric) || question.rubric.length === 0) {
+    if (question?.responseMode !== "short_text" && (!Array.isArray(question?.rubric) || question.rubric.length === 0)) {
       issues.push({ code: "missing_rubric", message: "Falta la rúbrica de la pregunta de desarrollo.", severity: "error" })
     }
   }
