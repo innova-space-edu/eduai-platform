@@ -196,7 +196,7 @@ function patchPage() {
     "      teacherPrompt: aiPrompt.trim(),",
     "      selectedOAs,",
     "      modeIds: aiModeIds,",
-    "      requireOA: aiRequireOA,"
+    "      requireOA: aiRequireOA,",
     "      sourceContext: aiSourceContext.trim(),",
     "      skillFocus: aiSkillFocus.trim(),",
     "      authenticContext: aiAuthenticContext,",

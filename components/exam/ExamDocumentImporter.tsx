@@ -306,7 +306,7 @@ export default function ExamDocumentImporter({ onApply }: Props) {
             disabled={!canApply}
             className="w-full rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-black text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {status === "applied" ? "✓ Importación aplicada" : false ? "Aplicar y reemplazar preguntas" : "Aplicar y agregar al final"}
+            {status === "applied" ? "✓ Importación aplicada" : "Aplicar y agregar al final"}
           </button>
         </div>
       )}

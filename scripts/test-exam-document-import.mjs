@@ -57,7 +57,7 @@ check("21/21 prompt JSON de segunda verificación conserva sintaxis válida", ro
 
 check("22/25 módulos PDF y generación son secciones hermanas", page.indexOf('id="exam-section-archivo"') >= 0 && page.indexOf('<ExamDocumentImporter onApply={applyDocumentImport}') < page.indexOf('id="exam-section-ia"') && page.includes('id: "archivo"'))
 check("23/25 cancelación y protección contra respuestas obsoletas", component.includes("requestRef.current !== controller") && component.includes("signal: controller.signal") && page.includes("abortRef.current !== controller"))
-check("24/25 aplicar requiere confirmación de reemplazo y evita duplicados", component.includes("applyingRef.current") && page.includes("appendExamQuestions"))
+check("24/25 aplicar solo agrega y evita duplicados", component.includes("applyingRef.current") && page.includes("appendExamQuestions"))
 check("25/25 referencias de imágenes ausentes permanecen nulas", core.includes("function optionalReference") && core.includes("optionalReference(raw?.imageRef)"))
 console.log(`\n[exam-document-import] ${checks.length}/25 verificaciones superadas`)
 await import("./test-exam-result-feedback-v2.mjs")

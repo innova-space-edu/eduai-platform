@@ -708,7 +708,7 @@ export default function CrearExamenPage() {
   const [aiDiff, setAiDiff] = useState<Difficulty>("mixto");
   const [aiStatus, setAiStatus] = useState<AIStatus>("idle");
   const [aiError, setAiError] = useState("");
-  const [aiProvider, setAiProvider] = useState<"groq" | "openrouter" | "cloudflare" | "">("");
+  const [aiProvider, setAiProvider] = useState<"groq" | "openrouter" | "cloudflare" | "multiple" | "">("");
   const [aiPreview, setAiPreview] = useState<Question[]>([]);
   const [aiProgressLabel, setAiProgressLabel] = useState("");
   const aiApplyLockRef = useRef(false);
@@ -1071,7 +1071,7 @@ Detalle técnico: ${data.details}`
       if (!title.trim() && data.title) setTitle(data.title);
 
       setAiPreview(normalized);
-      setAiProvider(["groq", "openrouter", "cloudflare"].includes(data.provider) ? data.provider : "");
+      setAiProvider(Array.isArray(data.providers) && data.providers.length > 1 ? "multiple" : ["groq", "openrouter", "cloudflare"].includes(data.provider) ? data.provider : "");
       setAiStatus("done");
       setAiProgressLabel("");
     } catch (e: any) {
@@ -2429,7 +2429,7 @@ Usa el mismo esquema de calidad que antes.`;
                             >
                               {aiProvider === "openrouter"
                                 ? "OpenRouter"
-                                : aiProvider === "cloudflare" ? "Cloudflare" : "Groq"}
+                                : aiProvider === "multiple" ? "Varios proveedores" : aiProvider === "cloudflare" ? "Cloudflare" : "Groq"}
                             </span>
                           )}
                         </p>
