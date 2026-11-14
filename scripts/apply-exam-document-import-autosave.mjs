@@ -374,3 +374,5 @@ patchCreatorPage()
 patchQuestionCard()
 patchExamApi()
 console.log("[exam-document-import] PDF/DOCX, imágenes por alternativa y autoguardado conectados")
+
+await import("./apply-exam-manual-unified.mjs")
