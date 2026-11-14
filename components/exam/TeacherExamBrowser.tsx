@@ -141,7 +141,7 @@ export default function TeacherExamBrowser() {
     <header className="sticky top-0 z-20 border-b border-soft bg-app backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3">
         <div className="flex items-center gap-3">
-          <Link href="/dashboard" className="flex h-8 w-8 items-center justify-center rounded-xl bg-card-soft-theme text-sub"><ArrowLeft size={15}/></Link>
+          <Link href="/agentes" aria-label="Volver a Agentes" title="Volver a Agentes" className="flex shrink-0 items-center gap-1 rounded-xl bg-card-soft-theme px-2 py-2 text-xs font-semibold text-sub"><ArrowLeft size={15}/><span className="hidden sm:inline">Agentes</span></Link>
           <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-gradient-to-br from-red-600 to-red-500"><ClipboardList size={17} className="text-white"/></div>
           <div><h1 className="text-sm font-bold text-main">Exámenes para Docentes</h1><p className="hidden text-[11px] text-muted2 sm:block">Evaluaciones organizadas por curso, asignatura y fecha</p></div>
         </div>

@@ -1232,6 +1232,7 @@ Usa el mismo esquema de calidad que antes.`;
             >
               Ver mis exámenes →
             </button>
+            <button type="button" onClick={() => router.push("/agentes")} className="w-full py-2.5 rounded-2xl border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-800 font-semibold text-sm">← Volver a Agentes</button>
           </div>
         </div>
       </div>
