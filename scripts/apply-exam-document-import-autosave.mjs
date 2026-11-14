@@ -209,7 +209,7 @@ function patchCreatorPage() {
     curriculumCurso, rosterCourse, selectedOAIds, questions,
   ]);
 
-  const applyDocumentImport = (result: ExamDocumentImportResult, mode: "replace" | "append") => {
+  const applyDocumentImport = (result: ExamDocumentImportResult, _mode: "replace" | "append") => {
     if (!result.questions?.length || result.preview.missingAnswers > 0 || result.questions.some((raw: any) => !raw || !String(raw.question || "").trim() || !["file", "ai_inferred"].includes(raw.answerSource) || (raw.type !== "development" && (!Number.isInteger(raw.correctAnswer) || raw.correctAnswer < 0 || raw.correctAnswer >= (raw.type === "true_false" ? 2 : (raw.options?.length ?? 0)))) || ((raw.type === "development" || raw.type === "mixed_choice_development") && !String(raw.modelAnswer || raw.expectedLatex || "").trim()))) return false;
     const imported = (result.questions || []).map((raw: any) => {
       const normalized = normalizeAIQuestion(raw) as Question;
@@ -221,10 +221,9 @@ function patchCreatorPage() {
       } as Question;
     });
     if (!imported.length || result.preview.missingAnswers > 0) return false;
-    if (mode === "replace" && questions.some((q) => q.question.trim()) && !window.confirm("¿Reemplazar todas las preguntas actuales por las del archivo?")) return false;
-
-    if (mode === "replace") setQuestions(imported);
-    else setQuestions((current) => [...current, ...imported]);
+    // EXAM_IMPORT_EMPTY_STARTER_GUARD_V1
+    // Both PDF and AI use the same append-only rule; an old replace request cannot erase questions.
+    setQuestions((current) => appendExamQuestions(current, imported));
 
     if (!title.trim() && result.exam?.title) setTitle(result.exam.title);
     if (!topic.trim() && result.exam?.topic) setTopic(result.exam.topic);

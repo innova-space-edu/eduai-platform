@@ -371,6 +371,15 @@ function defaultQuestion(type: QuestionType): Question {
   };
 }
 
+function appendExamQuestions(current: Question[], incoming: Question[]): Question[] {
+  const starter = current[0];
+  const onlyEmptyStarter = current.length === 1 && starter.type === "multiple_choice" &&
+    !starter.question.trim() && !starter.imageUrl && starter.options.every((option) => !option.trim()) &&
+    !starter.explanation?.trim() && !starter.answerText?.trim() && !starter.solutionSteps?.some((step) => step.trim()) &&
+    !starter.distractorRationales?.some((item) => item.trim()) && Number(starter.maxPoints ?? 1) === 1;
+  return onlyEmptyStarter ? [...incoming] : [...current, ...incoming];
+}
+
 function getQuestionPoints(q: Question): number {
   if (q.type === "multiple_choice")
     return Math.max(1, Number(q.maxPoints || 1));
@@ -701,9 +710,8 @@ export default function CrearExamenPage() {
   const [aiError, setAiError] = useState("");
   const [aiProvider, setAiProvider] = useState<"groq" | "openrouter" | "cloudflare" | "">("");
   const [aiPreview, setAiPreview] = useState<Question[]>([]);
-  const [aiImportMode, setAiImportMode] = useState<"replace" | "append">(
-    "append",
-  );
+  const [aiProgressLabel, setAiProgressLabel] = useState("");
+  const aiApplyLockRef = useRef(false);
   const [aiRegenError, setAiRegenError] = useState("");
   const [aiRegenIdx, setAiRegenIdx] = useState<number | null>(null);
   const abortRef = useRef<AbortController | null>(null);
@@ -1004,7 +1012,11 @@ REGLAS ESTRICTAS:
       return;
     }
 
+    if (aiStatus === "generating" || aiRegenIdx !== null) return;
+    if (aiPreview.length && !window.confirm("Hay preguntas generadas sin incorporar. ¿Generar una nueva vista previa?")) return;
     abortRef.current?.abort();
+    aiApplyLockRef.current = false;
+    setAiProgressLabel("Preparando contexto, generando y verificando preguntas…");
     const controller = new AbortController();
     abortRef.current = controller;
 
@@ -1022,6 +1034,7 @@ REGLAS ESTRICTAS:
         body: JSON.stringify({
           prompt: buildAIPrompt(),
           mode: "full",
+          existingQuestions: questions.map((q) => q.question).filter((q) => q.trim()),
           mc: aiMC,
           tf: aiTF,
           dev: aiDev,
@@ -1060,21 +1073,19 @@ Detalle técnico: ${data.details}`
       setAiPreview(normalized);
       setAiProvider(["groq", "openrouter", "cloudflare"].includes(data.provider) ? data.provider : "");
       setAiStatus("done");
+      setAiProgressLabel("");
     } catch (e: any) {
       if (controller.signal.aborted || abortRef.current !== controller || e.name === "AbortError") return;
       setAiError(e.message);
       setAiStatus("error");
+      setAiProgressLabel("");
     }
   };
 
   const importAIQuestions = () => {
-    if (aiPreview.length === 0 || aiRegenIdx !== null || aiStatus !== "done") return;
-    if (aiImportMode === "replace" && questions.some((q) => q.question.trim()) && !window.confirm("¿Reemplazar todas las preguntas actuales por las generadas?")) return;
-    if (aiImportMode === "replace") setQuestions(aiPreview);
-    else setQuestions((prev) => {
-      const onlyEmptyStarter = prev.length === 1 && prev[0].type === "multiple_choice" && !prev[0].question.trim() && prev[0].options.every((option) => !option.trim()) && !prev[0].imageUrl;
-      return onlyEmptyStarter ? aiPreview : [...prev, ...aiPreview];
-    });
+    if (aiPreview.length === 0 || aiRegenIdx !== null || aiStatus !== "done" || aiApplyLockRef.current) return;
+    aiApplyLockRef.current = true;
+    setQuestions((prev) => appendExamQuestions(prev, aiPreview));
     if (aiPreview.some((q) => q.type === "development" || q.type === "mixed_choice_development")) {
       setDevelopmentNotebookEnabled(true);
       setDevelopmentNotebookMode("development_only");
@@ -2365,18 +2376,10 @@ Usa el mismo esquema de calidad que antes.`;
                       <label className="text-xs text-sub font-semibold block mb-2">
                         AL INCORPORAR LAS PREGUNTAS GENERADAS
                       </label>
-                      <select
-                        value={aiImportMode}
-                        onChange={(e) =>
-                          setAiImportMode(
-                            e.target.value as "replace" | "append",
-                          )
-                        }
-                        className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main focus:outline-none"
-                      >
-                        <option value="append">Agregar al final</option>
-                        <option value="replace">Reemplazar todas</option>
-                      </select>
+                      <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-900">
+                        Agregar al final
+                        <p className="mt-1 text-[11px] font-normal">Las preguntas existentes se conservan. Solo se sustituye la pregunta inicial vacía.</p>
+                      </div>
                     </div>
                   </div>
 
@@ -2393,14 +2396,14 @@ Usa el mismo esquema de calidad que antes.`;
                     {aiStatus === "generating" ? (
                       <span className="flex items-center justify-center gap-2">
                         <span className="w-4 h-4 border-2 border-soft border-t-white rounded-full animate-spin inline-block" />
-                        Generando con IA...
+                        {aiProgressLabel || "Generando con IA..."}
                       </span>
                     ) : (
                       "✨ Generar preguntas con IA"
                     )}
                   </button>
 
-                  {aiStatus === "generating" && <button type="button" onClick={() => { abortRef.current?.abort(); setAiStatus("idle"); }} className="w-full rounded-xl border border-violet-200 px-3 py-2 text-xs font-bold text-violet-700">Cancelar generación</button>}
+                  {aiStatus === "generating" && <button type="button" onClick={() => { abortRef.current?.abort(); setAiStatus("idle"); setAiProgressLabel(""); }} className="w-full rounded-xl border border-violet-200 px-3 py-2 text-xs font-bold text-violet-700">Cancelar generación</button>}
                   {/* Error IA */}
                   {aiRegenError && <p role="alert" className="text-sm text-red-700">{aiRegenError}</p>}
                   {aiError && (
@@ -2435,9 +2438,7 @@ Usa el mismo esquema de calidad que antes.`;
                           disabled={aiRegenIdx !== null}
                           className="px-4 py-2 rounded-xl bg-violet-600 hover:bg-violet-500 text-main text-xs font-bold"
                         >
-                          {aiImportMode === "replace"
-                            ? "↩ Reemplazar"
-                            : "＋ Agregar al examen"}
+                          ＋ Agregar al examen
                         </button>
                       </div>
 
@@ -2552,9 +2553,7 @@ Usa el mismo esquema de calidad que antes.`;
                           disabled={aiRegenIdx !== null}
                         className="w-full py-3 rounded-2xl font-bold text-sm bg-violet-600 hover:bg-violet-500 text-main"
                       >
-                        {aiImportMode === "replace"
-                          ? `↩ Reemplazar ${questions.length} pregunta${questions.length !== 1 ? "s" : ""} con las ${aiPreview.length} generadas`
-                          : `＋ Agregar ${aiPreview.length} pregunta${aiPreview.length !== 1 ? "s" : ""} al examen`}
+                        {`＋ Agregar ${aiPreview.length} pregunta${aiPreview.length !== 1 ? "s" : ""} al final`}
                       </button>
                     </div>
                   )}

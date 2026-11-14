@@ -99,7 +99,7 @@ function patchPage() {
       '  const [aiSkillFocus, setAiSkillFocus] = useState("");',
       '  const [aiSourceContext, setAiSourceContext] = useState("");',
       "  const [aiAuthenticContext, setAiAuthenticContext] = useState(true);",
-      "  const [aiRequireOA, setAiRequireOA] = useState(false);",
+      "  const [aiRequireOA, setAiRequireOA] = useState(true);",
     ]),
     "estados pedagógicos IA",
   )
@@ -196,6 +196,7 @@ function patchPage() {
     "      teacherPrompt: aiPrompt.trim(),",
     "      selectedOAs,",
     "      modeIds: aiModeIds,",
+    "      requireOA: aiRequireOA,"
     "      sourceContext: aiSourceContext.trim(),",
     "      skillFocus: aiSkillFocus.trim(),",
     "      authenticContext: aiAuthenticContext,",
@@ -306,6 +307,24 @@ function patchPage() {
     "placeholder disciplinar",
   )
 
+  source = replaceRequired(
+    source,
+    '          existingQuestions: questions.map((q) => q.question).filter((q) => q.trim()),',
+    block([
+      '          existingQuestions: questions.map((q) => q.question).filter((q) => q.trim()),',
+      '          curriculum: { requireOA: aiRequireOA, oaCodes: selectedOAs.map(getOASelectionKey), modeIds: aiModeIds },',
+    ]),
+    "contrato curricular para generación",
+  )
+  source = replaceRequired(
+    source,
+    'body: JSON.stringify({ prompt: singlePrompt, mode: "single", questionType: q.type }),',
+    'body: JSON.stringify({ prompt: singlePrompt, mode: "single", questionType: q.type, curriculum: { requireOA: aiRequireOA, oaCodes: selectedOAs.map(getOASelectionKey), modeIds: aiModeIds }, existingQuestions: [...questions, ...aiPreview.filter((item) => item.id !== q.id)].map((item) => item.question).filter(Boolean) }),',
+    "contrato curricular para regeneración",
+  )
+
+  source = source.replace('disabled={aiStatus === "generating" || aiRegenIdx !== null || !curriculumCurso || !subject}', 'disabled={aiStatus === "generating" || aiRegenIdx !== null || !curriculumCurso || !subject || (aiRequireOA && selectedOAs.length === 0) || aiModeIds.length === 0}')
+
   const pedagogyPanel = block([
     '                  <div className="rounded-3xl border border-violet-200 bg-white/80 p-4">',
     '                    <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">',
@@ -324,16 +343,18 @@ function patchPage() {
     "                        {curriculumCurso}",
     "                      </span>",
     "                    </div>",
-    '                    <div className="mt-3 grid gap-2 md:grid-cols-3">',
-    "                      {subjectProfile.evidence.map((item) => (",
-    '                        <div key={item} className="rounded-2xl bg-violet-50 px-3 py-2 text-[11px] leading-relaxed text-violet-900">',
-    "                          ✓ {item}",
-    "                        </div>",
+    '                    <div className="mt-3 flex flex-wrap gap-1.5">',
+    "                      {PEDAGOGICAL_MODES.filter((mode) => aiModeIds.includes(mode.id)).map((mode) => (",
+    '                        <span key={mode.id} className="rounded-full bg-violet-100 px-2.5 py-1 text-[11px] font-semibold text-violet-900">✓ {mode.label}</span>',
     "                      ))}",
     "                    </div>",
-    "                  </div>",
-    "",
-    "                  <div>",
+    '                    <p className="mt-2 text-[11px] text-slate-600">{selectedOAs.length ? selectedOAs.map(getOASelectionKey).join(" · ") : aiRequireOA ? "Selecciona al menos un OA en el paso 2." : "OA opcionales: generación desde el tema."}</p>',
+    '                    <details className="mt-3 border-t border-violet-100 pt-2">',
+    '                      <summary className="cursor-pointer text-xs font-bold text-violet-700">Configurar modos pedagógicos ({aiModeIds.length} activos)</summary>',
+    '                      <div className="mt-3 space-y-3">',
+    '                    <div className="flex flex-wrap gap-2">',
+    '                      <button type="button" onClick={() => setAiModeIds(subjectProfile.preferredModes)} className="rounded-lg border border-violet-200 px-2 py-1 text-[11px] font-semibold text-violet-700">Restaurar recomendados</button>',
+    '                    </div>',
     '                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">',
     '                      <label className="text-xs font-semibold text-sub">',
     "                        MODOS PEDAGÓGICOS",
@@ -351,6 +372,7 @@ function patchPage() {
     '                            type="button"',
     "                            onClick={() => toggleAIMode(mode.id)}",
     "                            title={mode.description}",
+    "                            aria-pressed={selected}",
     '                            className={["rounded-2xl border px-3 py-2 text-left transition-all", selected ? "border-violet-500 bg-violet-100 text-violet-900 ring-2 ring-violet-100" : "border-slate-200 bg-white text-slate-600 hover:border-violet-300"].join(" ")}',
     "                          >",
     '                            <span className="block text-xs font-black">',
@@ -363,6 +385,11 @@ function patchPage() {
     "                        );",
     "                      })}",
     "                    </div>",
+    '                      <div className="grid gap-2 md:grid-cols-3">',
+    '                        {subjectProfile.evidence.map((item) => <p key={item} className="rounded-xl bg-violet-50 p-2 text-[11px] text-violet-900">{item}</p>)}',
+    "                      </div>",
+    "                      </div>",
+    "                    </details>",
     "                  </div>",
     "",
     '                  <div className="grid gap-3 md:grid-cols-2">',
@@ -404,14 +431,14 @@ function patchPage() {
     "                      <input",
     '                        type="checkbox"',
     "                        checked={aiRequireOA}",
-    "                        disabled={availableOAs.length === 0}",
     "                        onChange={(e) => setAiRequireOA(e.target.checked)}",
     '                        className="mt-0.5"',
     "                      />",
-    "                      <span><strong>Usar OA obligatoriamente:</strong> cada pregunta debe vincularse con los OA seleccionados.{availableOAs.length === 0 ? \" No hay OA locales para esta combinación.\" : \"\"}</span>",
+    "                      <span><strong>Usar OA obligatoriamente:</strong> cada pregunta debe vincularse con los OA seleccionados.{availableOAs.length === 0 ? \" No hay OA locales para esta combinación. Desmarca esta opción si quieres continuar sin OA.\" : \" Puedes desmarcar esta opción si lo necesitas.\"}</span>",
     "                    </label>",
     "                  </div>",
     "",
+    '                  {aiRequireOA && selectedOAs.length === 0 && <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900"><span>Debes seleccionar al menos un Objetivo de Aprendizaje antes de generar.</span><button type="button" onClick={() => { setOaOpen(true); jumpToSection("objetivos"); }} className="font-bold underline">Seleccionar OA</button></div>}',
     "                  {/* Cantidad de preguntas por tipo */}",
   ])
 
