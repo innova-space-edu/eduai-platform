@@ -96,17 +96,26 @@ def verify_question(q):
     if ref:
         ab,ad,bc,unit=ref
         expected=(ab-ad)*bc/ab
-        matches=[]
-        for field in (q.get("modelAnswer"),q.get("expectedLatex"),q.get("explanation"),*(q.get("solutionSteps") or [])[:30],*(r.get("criteria") for r in (q.get("rubric") or [])[:30] if isinstance(r,dict))):
-            # Parse explicit values, including simple fractions converted by clean().
+        fields=[("Respuesta esperada",q.get("modelAnswer")),("Resultado final",q.get("expectedLatex")),("Explicación",q.get("explanation"))]
+        fields += [("Paso "+str(i+1),step) for i,step in enumerate((q.get("solutionSteps") or [])[:30])]
+        fields += [("Rúbrica · criterio "+str(i+1),r.get("criteria")) for i,r in enumerate((q.get("rubric") or [])[:30]) if isinstance(r,dict)]
+        found=False
+        for label,field in fields:
+            # A field-level diagnostic identifies the exact contradiction instead of
+            # asking the teacher to search the entire answer.
+            matches=[]
             for m in re.finditer(r"\bBE\s*(?:=|:|mide)\s*([0-9.]+|\(\([0-9.]+\)/\([0-9.]+\)\))\s*(cm|mm|m)\b",clean(field),re.I):
                 if m[2].lower()==unit:
                     try: matches.append(number(m[1]))
                     except (ValueError,SyntaxError,ZeroDivisionError,OverflowError): pass
-        if matches:
-            valid=all(abs(v-expected)<=Fraction(51,10000) for v in matches)
-            checks.append({"label":"Resultado independiente de Tales","valid":valid,"message":"BE = "+str(expected)+" "+unit+(" (coincide)" if valid else " (no coincide con la pauta)")})
-        else:
+            if matches:
+                found=True
+                wrong=[v for v in matches if abs(v-expected)>Fraction(51,10000)]
+                message="BE = "+str(expected)+" "+unit
+                if wrong: message="Contiene BE = "+", ".join(str(v) for v in wrong)+" "+unit+"; debe ser "+message+"."
+                else: message+=" (coincide)."
+                checks.append({"label":label+" · Tales","valid":not wrong,"message":message})
+        if not found:
             checks.append({"label":"Resultado independiente de Tales","valid":None,"message":"BE = "+str(expected)+" "+unit+"; no se identificó una respuesta explícita comparable."})
     failed=any(c["valid"] is False for c in checks)
     # Only generate an exact proposal for a supported construction. Preserve the rubric
