@@ -128,7 +128,8 @@ export default function LoginPage() {
 
             <p className="rounded-xl border border-soft bg-card-soft-theme p-3 text-xs leading-5 text-sub">
               Las condiciones y las preferencias opcionales guardadas en tu cuenta se conservan al iniciar sesión.
-              Solo se solicitará el formulario si todavía falta registrar la versión vigente.
+              Solo se solicitará el formulario si todavía falta registrar la versión vigente, después de comprobar tu identidad y antes de ingresar a EduAI.
+              <span className="mt-1 block"><Link href="/terminos" target="_blank" className="text-blue-600 underline">Condiciones de uso</Link> · <Link href="/privacidad" target="_blank" className="text-blue-600 underline">Tratamiento de datos</Link></span>
             </p>
 
             {error && (
