@@ -20,7 +20,10 @@ export async function GET() {
     const minorRestricted=!birth||Number.isNaN(date.getTime())||date>new Date(now.getFullYear()-18,now.getMonth(),now.getDate())
     const row=privacy.data
     const accepted=row?.policy_version==="2026-10-11-v1"&&Boolean(row.terms_acknowledged_at&&row.data_warning_acknowledged_at)
-    return privateResponse({accepted,required:!accepted&&!hasLegacyConsentGrace(user.created_at),minorRestricted,isAdmin:Boolean(role.data),choices:{ai_generation:row?.ai_generation===true,ai_documents:row?.ai_documents===true,ai_voice:row?.ai_voice===true,optional_analytics:row?.optional_analytics===true}})
+    // The original event is an immutable receipt, not a new acceptance on every login.
+    const receipt=accepted?await session.from("eduai_privacy_choice_events").select("id,recorded_at").eq("user_id",user.id).eq("policy_version",row!.policy_version).in("event_type",["signup_declarations","preferences_recorded"]).order("recorded_at",{ascending:true}).order("id",{ascending:true}).limit(1).maybeSingle():null
+    if(receipt?.error)return privateResponse({error:"No fue posible consultar el acta de aceptación."},503)
+    return privateResponse({acta:receipt?.data?{folio:"ACTA-PRIV-"+receipt.data.id,recordedAt:receipt.data.recorded_at}:null,acceptedAt:row?.terms_acknowledged_at||null,accepted,required:!accepted&&!hasLegacyConsentGrace(user.created_at),minorRestricted,isAdmin:Boolean(role.data),choices:{ai_generation:row?.ai_generation===true,ai_documents:row?.ai_documents===true,ai_voice:row?.ai_voice===true,optional_analytics:row?.optional_analytics===true}})
   } catch {
     return privateResponse({error:"No fue posible consultar tus condiciones."},503)
   }
