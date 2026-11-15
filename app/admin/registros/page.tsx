@@ -8,7 +8,7 @@ const categories=[
   {name:"Solicitudes familiares",description:"Invitaciones, formularios presentados, aprobaciones, rechazos y revocaciones"},
   {name:"Respuestas por finalidad",description:"Cada decisión Sí/No del formulario, sin confundir ausencia de respuesta con rechazo"},
   {name:"Preferencias actuales",description:"Aceptación de términos y permisos de IA, documentos, voz y analítica"},
-  {name:"Historial de privacidad",description:"Cuándo se registró o modificó cada preferencia de cada cuenta"},
+  {name:"Historial de privacidad",description:"Actas con folio, fecha, versión y decisiones registradas por cuenta"},
   {name:"Eventos familiares",description:"Cronología de actividad del proceso de autorización"},
   {name:"Historial de descargas",description:"Fecha, formato y responsable de informes administrativos anteriores"},
 ]
@@ -46,7 +46,8 @@ export default function AdminConsolidatedExportsPage(){
     <div className="mx-auto max-w-5xl space-y-6">
       <nav className="flex flex-wrap gap-4 text-sm text-blue-700">
         <Link href="/admin">← Administración</Link>
-        <Link href="/admin/actas-familiares">Archivo de actas</Link>
+        <Link href="/admin/actas-familiares">Actas familiares</Link>
+        <Link href="/admin/actas-privacidad">Actas de privacidad</Link>
         <Link href="/admin/autorizaciones-familiares">Autorizaciones</Link>
       </nav>
       <header className="rounded-2xl bg-slate-900 p-6 text-white">
