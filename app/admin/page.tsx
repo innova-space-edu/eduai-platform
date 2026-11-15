@@ -288,6 +288,11 @@ export default function AdminPage() {
               <ChevronRight size={18} className="text-cyan-500" />
             </Link>
 
+            <Link href="/admin/actas-privacidad" className="mb-4 flex items-center gap-3 rounded-2xl border border-blue-500/30 bg-blue-500/5 p-4 hover:border-blue-500/60">
+              <ClipboardList size={22} className="text-blue-500"/>
+              <div className="flex-1"><p className="font-bold text-main">Actas de condiciones y privacidad</p><p className="text-sm text-sub">Archivo privado de aceptaciones y decisiones por cuenta y versión.</p></div>
+              <ChevronRight size={18} className="text-blue-500"/>
+            </Link>
             <Link href="/admin/actas-familiares"
               className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border p-4 transition-all"
               style={{background:"rgba(16,185,129,0.06)",borderColor:"rgba(16,185,129,0.25)"}}>
