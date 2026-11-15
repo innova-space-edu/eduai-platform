@@ -39,6 +39,8 @@ export default function LoginPage() {
       }
       if (consent?.policy_version !== PRIVACY_TERMS_VERSION ||
           !consent?.terms_acknowledged_at || !consent?.data_warning_acknowledged_at) {
+        const status=await fetch("/api/privacy/self",{cache:"no-store"}).then(async res=>res.ok?res.json():null).catch(()=>null)
+        if(status?.isAdmin===true){router.push("/admin");return}
         router.push("/consentimiento")
         return
       }
@@ -49,6 +51,8 @@ export default function LoginPage() {
     const minor = !dob || Number.isNaN(date.getTime()) ||
       date > new Date(today.getFullYear() - 18,today.getMonth(),today.getDate())
     if (minor && !legacyGrace) {
+      const status=await fetch("/api/privacy/self",{cache:"no-store"}).then(async res=>res.ok?res.json():null).catch(()=>null)
+      if(status?.isAdmin===true){router.push("/admin");return}
       router.push("/autorizacion-pendiente")
       return
     }
