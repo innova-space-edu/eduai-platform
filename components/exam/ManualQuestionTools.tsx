@@ -60,9 +60,9 @@ export function ManualQuestionTools({q,patch,oaOptions,modes,requireOA,onReuse,o
   const [reuseMode,setReuseMode]=useState<ResponseMode>("long_text");
   const hasStimulus=Boolean(q.stimulusText?.trim());
   const selected=q.oaCodes||[];
-  return <div className="mb-4 space-y-3">
+  return <div className="space-y-2">
     <details className="rounded-xl border border-violet-200 bg-white p-3">
-      <summary className="cursor-pointer text-xs font-bold text-violet-900">OA y planificación pedagógica {selected.length? "· "+selected.join(", "): "· Sin OA asignado"}</summary>
+      <summary className="cursor-pointer text-xs font-bold text-violet-900">Configuración curricular {selected.length? "· "+selected.join(", "): "· Sin OA asignado"}</summary>
       <div className="mt-3 space-y-3">
         <p className="text-xs text-slate-600">{requireOA?"Selecciona al menos un OA de la evaluación para esta pregunta.":"Puedes asociar los OA seleccionados de forma opcional."}</p>
         <div className="flex flex-wrap gap-2">
@@ -73,12 +73,6 @@ export function ManualQuestionTools({q,patch,oaOptions,modes,requireOA,onReuse,o
         <label className="block text-xs font-semibold">Modo pedagógico<select className={field} value={q.pedagogicalMode||""} onChange={e=>patch({pedagogicalMode:e.target.value})}><option value="">Sin especificar</option>{modes.map(m=><option key={m.id} value={m.id}>{m.label}{recommendedModes.includes(m.id)?" (recomendado)":""}</option>)}</select></label>
         <label className="block text-xs font-semibold">Habilidad<input className={field} value={q.skill||""} onChange={e=>patch({skill:e.target.value})}/></label>
         <label className="block text-xs font-semibold">Evidencia de aprendizaje<ExamVisualEditor className={field} value={q.evidence||""} onChange={e=>patch({evidence:e.target.value})}/></label>
-      </div>
-    </details>
-    <details className="rounded-xl border border-slate-200 bg-white p-3">
-      <summary className="cursor-pointer text-xs font-bold text-slate-800">Pauta ampliada · procedimiento esperado</summary>
-      <div className="mt-3 space-y-2">
-        <label className="block text-xs font-semibold">Pasos o fundamentos esperados (uno por línea)<ExamVisualEditor className={field+" min-h-24"} value={(q.solutionSteps||[]).join("\n")} onChange={e=>patch({solutionSteps:e.target.value.split("\n")})}/></label>
       </div>
     </details>
     {hasStimulus&&<details className="rounded-xl border border-sky-200 bg-sky-50 p-3">
