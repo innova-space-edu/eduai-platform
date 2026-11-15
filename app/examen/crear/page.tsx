@@ -6,6 +6,7 @@ import { EXAM_AI_MAX_QUESTIONS } from "@/lib/exam/creator-limits";
 import { requestExamGeneration, type ExamGenerationCache, type ExamGenerationProgress } from "@/lib/exam/generation-client";
 import { useMemo, useState, useRef, useEffect } from "react";
 import ExamMathText from "@/components/ui/ExamMathText";
+import ExamConsentDialog from "@/components/legal/ExamConsentDialog";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getOAs, getAvailableAsignaturas, getCurriculumVerification, getParvulariaNucleoItems, type NivelKey, type OA } from "@/lib/mineduc-oa";
@@ -698,6 +699,19 @@ export default function CrearExamenPage() {
   } | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [consentOpen,setConsentOpen]=useState(false);
+  const [consentRetry,setConsentRetry]=useState(false);
+  const [consentStatus,setConsentStatus]=useState<boolean|null>(null);
+  useEffect(()=>{
+    if(activeStep!==4||!userId)return;
+    let live=true;
+    void fetch("/api/privacy/self",{cache:"no-store"}).then(async res=>{
+      if(!res.ok)return;
+      const status=await res.json();
+      if(live){setConsentStatus(status.accepted===true);if(status.required===true){setConsentRetry(false);setConsentOpen(true);}}
+    }).catch(()=>{});
+    return ()=>{live=false};
+  },[activeStep,userId]);
   const [successMsg, setSuccessMsg] = useState("");
 
   // ── Panel IA ──────────────────────────────────────────────────────────────
@@ -914,6 +928,9 @@ export default function CrearExamenPage() {
         }),
       });
       const data = await res.json();
+      if(res.status===403&&data?.action==="/consentimiento"){
+        setConsentRetry(true);setConsentOpen(true);return;
+      }
       if (!data?.success)
         throw new Error(data?.error || "No se pudo crear el examen.");
       setCreatedExam({
@@ -1237,6 +1254,7 @@ Usa el mismo esquema de calidad que antes.`;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f8fafc_28%,#fff7ed_68%,#f8fafc_100%)] text-slate-950">
+      {consentOpen&&<ExamConsentDialog retryPublish={consentRetry} onClose={()=>{setConsentOpen(false);setConsentRetry(false)}} onComplete={()=>{setConsentStatus(true);setConsentOpen(false);setConsentRetry(false);setErrorMsg("");if(consentRetry)void handleCreate();}}/>}
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
@@ -3455,6 +3473,12 @@ Usa el mismo esquema de calidad que antes.`;
                 </div>
               )}
 
+              <section className="mt-5 space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700" aria-label="Tratamiento de datos de la evaluación">
+                <h3 className="font-bold text-sm">Tratamiento de datos de la evaluación</h3>
+                <p>EduAI almacena el contenido, los identificadores necesarios para el acceso y las respuestas con fines de aplicación y corrección. No incorpores datos sensibles innecesarios ni compartas resultados identificables con terceros. Las funciones de IA y otros usos opcionales requieren sus autorizaciones específicas. Las autorizaciones familiares se gestionan por separado.</p>
+                <p><a href="/privacidad" target="_blank" rel="noopener noreferrer" className="underline text-blue-700">Política de privacidad</a> · <a href="/terminos" target="_blank" rel="noopener noreferrer" className="underline text-blue-700">Condiciones de uso</a></p>
+                {consentStatus===true?<p className="font-semibold text-emerald-700">✓ Condiciones vigentes registradas en tu cuenta. No necesitas aceptarlas nuevamente.</p>:<button type="button" onClick={()=>{setConsentRetry(false);setConsentOpen(true)}} className="rounded-lg border border-blue-200 bg-white px-3 py-2 font-semibold text-blue-700">Consultar o registrar condiciones</button>}
+              </section>
               <div className="mt-6 space-y-3">
                 <button
                   onClick={handleCreate}

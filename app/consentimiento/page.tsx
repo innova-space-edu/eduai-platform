@@ -17,6 +17,9 @@ export default function FirstConsentPage() {
   const [acknowledgedDataWarning,setAcknowledgedDataWarning] = useState(false)
   const [optionalChoices,setOptionalChoices] = useState<OptionalPrivacyChoices>({...EMPTY_OPTIONAL_PRIVACY_CHOICES})
   const [minor,setMinor] = useState(true)
+  const [adminReturn,setAdminReturn] = useState(false)
+  const [alreadyAccepted,setAlreadyAccepted] = useState(false)
+  const [statusReady,setStatusReady] = useState(false)
 
   useEffect(()=>{
     let active=true
@@ -24,20 +27,26 @@ export default function FirstConsentPage() {
       const supabase=createClient()
       const { data:{ user }, error: authError }=await supabase.auth.getUser()
       if (!user || authError) {router.replace("/login");return}
-      const birth=String(user.user_metadata?.birth_date||"")
-      const date=new Date(birth+"T00:00:00")
-      const today=new Date()
-      const isMinor=!birth||Number.isNaN(date.getTime())||
-        date>new Date(today.getFullYear()-18,today.getMonth(),today.getDate())
-      if(active)setMinor(isMinor)
-      const {data:existing,error:readError}=await supabase.from("eduai_privacy_choices")
-        .select("policy_version,terms_acknowledged_at,data_warning_acknowledged_at")
-        .eq("user_id",user.id).maybeSingle()
-      if (!active)return
-      if(readError){setError("No fue posible verificar el consentimiento anterior. Intenta recargar.");setLoading(false);return}
-      if(existing?.policy_version===PRIVACY_TERMS_VERSION&&existing.terms_acknowledged_at&&existing.data_warning_acknowledged_at){
-        router.replace(isMinor?"/autorizacion-pendiente":"/dashboard")
-        return
+      try{
+        const res=await fetch("/api/privacy/self",{cache:"no-store"})
+        const status=await res.json()
+        if(!active)return
+        if(!res.ok)throw Error(status.error||"No fue posible verificar el consentimiento anterior.")
+        const isAdmin=status.isAdmin===true
+        const isMinor=status.minorRestricted===true
+        setMinor(isMinor)
+        setAdminReturn(isAdmin&&(isMinor||new URLSearchParams(window.location.search).get("return")==="admin"))
+        setOptionalChoices({...EMPTY_OPTIONAL_PRIVACY_CHOICES,...status.choices})
+        setStatusReady(true)
+        if(status.accepted===true){
+          if(isAdmin&&new URLSearchParams(window.location.search).get("return")==="admin"){
+            setAlreadyAccepted(true);setLoading(false);return
+          }
+          router.replace(isAdmin&&isMinor?"/admin":isMinor?"/autorizacion-pendiente":"/dashboard")
+          return
+        }
+      }catch(e){
+        if(active)setError(e instanceof Error?e.message:"No fue posible consultar tus condiciones.")
       }
       setLoading(false)
     }
@@ -47,7 +56,7 @@ export default function FirstConsentPage() {
 
   async function saveConsent(event:React.FormEvent) {
     event.preventDefault()
-    if(!acceptedTerms||!acknowledgedDataWarning){
+    if(!statusReady||!acceptedTerms||!acknowledgedDataWarning){
       setError("Debes reconocer las condiciones necesarias y la advertencia de datos.")
       return
     }
@@ -64,7 +73,9 @@ export default function FirstConsentPage() {
       setSaving(false)
       return
     }
-    router.replace(minor?"/autorizacion-pendiente":"/dashboard")
+    const verification=await fetch("/api/privacy/self",{cache:"no-store"}).then(async res=>res.ok?res.json():null).catch(()=>null)
+    if(verification?.accepted!==true){setError("No fue posible confirmar el registro. Recarga para comprobarlo.");setSaving(false);return}
+    router.replace(adminReturn?"/admin":minor?"/autorizacion-pendiente":"/dashboard")
     router.refresh()
   }
 
@@ -76,14 +87,14 @@ export default function FirstConsentPage() {
         se guardarán en tu cuenta y podrás modificarlas después desde Configuración del perfil.
         Una nueva sesión no cambia tus decisiones ni la fecha de aceptación.
       </p>
-      {loading?<p>Cargando preferencias…</p>:<form onSubmit={saveConsent} className="space-y-4">
+      {loading?<p>Cargando preferencias…</p>:alreadyAccepted?<div className="space-y-3 rounded-xl border border-emerald-300 p-4"><p className="font-semibold text-emerald-700">Tu cuenta tiene las condiciones vigentes registradas.</p><Link href="/admin" className="block text-sm text-blue-600 underline">Volver a Administración</Link><Link href="/profile/settings" className="block text-sm text-blue-600 underline">Consultar preferencias e historial</Link></div>:<form onSubmit={saveConsent} className="space-y-4">
         <PrivacyConsentPanel
           acceptedTerms={acceptedTerms} onAcceptedTerms={setAcceptedTerms}
           acknowledgedDataWarning={acknowledgedDataWarning}
           onAcknowledgedDataWarning={setAcknowledgedDataWarning}
           value={optionalChoices} onChange={setOptionalChoices} minorRestricted={minor}/>
         {error&&<p role="alert" className="rounded-xl border border-red-300 p-3 text-sm text-red-700">{error}</p>}
-        <button type="submit" disabled={saving||!acceptedTerms||!acknowledgedDataWarning}
+        <button type="submit" disabled={saving||!statusReady||!acceptedTerms||!acknowledgedDataWarning}
           className="w-full rounded-xl bg-blue-700 px-5 py-3 font-semibold text-white disabled:opacity-40">
           {saving?"Registrando…":"Guardar decisiones y continuar"}
         </button>

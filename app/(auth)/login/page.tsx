@@ -39,6 +39,8 @@ export default function LoginPage() {
       }
       if (consent?.policy_version !== PRIVACY_TERMS_VERSION ||
           !consent?.terms_acknowledged_at || !consent?.data_warning_acknowledged_at) {
+        const status=await fetch("/api/privacy/self",{cache:"no-store"}).then(async res=>res.ok?res.json():null).catch(()=>null)
+        if(status?.isAdmin===true){router.push("/consentimiento?return=admin");return}
         router.push("/consentimiento")
         return
       }
@@ -49,6 +51,8 @@ export default function LoginPage() {
     const minor = !dob || Number.isNaN(date.getTime()) ||
       date > new Date(today.getFullYear() - 18,today.getMonth(),today.getDate())
     if (minor && !legacyGrace) {
+      const status=await fetch("/api/privacy/self",{cache:"no-store"}).then(async res=>res.ok?res.json():null).catch(()=>null)
+      if(status?.isAdmin===true){router.push("/admin");return}
       router.push("/autorizacion-pendiente")
       return
     }
@@ -124,7 +128,8 @@ export default function LoginPage() {
 
             <p className="rounded-xl border border-soft bg-card-soft-theme p-3 text-xs leading-5 text-sub">
               Las condiciones y las preferencias opcionales guardadas en tu cuenta se conservan al iniciar sesión.
-              Solo se solicitará el formulario si todavía falta registrar la versión vigente.
+              Solo se solicitará el formulario si todavía falta registrar la versión vigente, después de comprobar tu identidad y antes de ingresar a EduAI.
+              <span className="mt-1 block"><Link href="/terminos" target="_blank" className="text-blue-600 underline">Condiciones de uso</Link> · <Link href="/privacidad" target="_blank" className="text-blue-600 underline">Tratamiento de datos</Link></span>
             </p>
 
             {error && (

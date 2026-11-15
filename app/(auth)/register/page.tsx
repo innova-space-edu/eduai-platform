@@ -119,11 +119,15 @@ export default function RegisterPage() {
     }
 
     if (signUpData.session) {
-      const { error: privacyError } = await supabase.rpc("record_eduai_privacy_choices", {
+      // The signup trigger already records the declaration. Only repair a missing record.
+      const {data:existing,error:readError}=await supabase.from("eduai_privacy_choices")
+        .select("policy_version,terms_acknowledged_at,data_warning_acknowledged_at").eq("user_id",signUpData.user!.id).maybeSingle()
+      const current=existing?.policy_version===PRIVACY_TERMS_VERSION&&existing.terms_acknowledged_at&&existing.data_warning_acknowledged_at
+      const { error: privacyError } = readError?{error:readError}:current?{error:null}:await supabase.rpc("record_eduai_privacy_choices", {
         p_policy_version: PRIVACY_TERMS_VERSION,
         p_terms_acknowledged: acceptedTerms,
         p_data_warning_acknowledged: acknowledgedDataWarning,
-        p_choices: optionalChoices,
+        p_choices: isUnder18(birthDate)?EMPTY_OPTIONAL_PRIVACY_CHOICES:optionalChoices,
       })
       if (privacyError) {
         await supabase.auth.signOut()

@@ -85,6 +85,7 @@ export function PrivacyPreferences({ value, onChange, minorRestricted = false }:
 }
 
 type PrivacyConsentPanelProps = PrivacyPreferencesProps & {
+  initiallyExpanded?: boolean
   acceptedTerms: boolean
   onAcceptedTerms: (accepted: boolean) => void
   acknowledgedDataWarning: boolean
@@ -96,9 +97,10 @@ export default function PrivacyConsentPanel({
   onAcceptedTerms,
   acknowledgedDataWarning,
   onAcknowledgedDataWarning,
+  initiallyExpanded = true,
   ...preferences
 }: PrivacyConsentPanelProps) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState(initiallyExpanded)
   return (
     <section className="space-y-4 rounded-2xl border border-soft bg-card-soft-theme p-4" aria-label="Condiciones y preferencias de privacidad">
       <label className="flex cursor-pointer items-start gap-3 text-sm font-semibold text-main">

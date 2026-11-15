@@ -178,13 +178,13 @@ export async function collectAllAdminRecords(db: SupabaseClient,adminEmail:strin
       voz:yesNo(p.ai_voice),analitica:yesNo(p.optional_analytics),
       actualizacion:chileDateTime(p.updated_at)
     }))),
-    section("Cambios privacidad","Registro histórico de decisiones de privacidad de cada cuenta",[
-      col("fecha","Fecha y hora Chile"),col("usuario","Usuario"),col("correo","Correo"),
-      col("tipo","Tipo de evento"),col("version","Versión"),
+    section("Cambios privacidad","Actas históricas de declaraciones y modificaciones de privacidad",[
+      col("folio","Folio de acta"),col("fecha","Fecha y hora Chile"),col("usuario","Usuario"),col("correo","Correo"),
+      col("tipo","Tipo de evento"),col("version","Versión"),col("terminos","Condiciones"),col("advertencia","Advertencia"),
       col("ia","IA"),col("documentos","Documentos"),col("voz","Voz"),col("analitica","Analítica")
     ],privacyEvents.map(ev=>({
-      fecha:chileDateTime(ev.recorded_at),usuario:userName(ev.user_id),correo:userEmail(ev.user_id),
-      tipo:displayed(ev.event_type),version:displayed(ev.policy_version),
+      folio:["signup_declarations","preferences_recorded"].includes(ev.event_type)?"ACTA-PRIV-"+ev.id:"—",fecha:chileDateTime(ev.recorded_at),usuario:userName(ev.user_id),correo:userEmail(ev.user_id),
+      tipo:displayed(ev.event_type),version:displayed(ev.policy_version),terminos:["signup_declarations","preferences_recorded"].includes(ev.event_type)?"Sí":"No consta",advertencia:["signup_declarations","preferences_recorded"].includes(ev.event_type)?"Sí":"No consta",
       ia:yesNo(ev.choices?.ai_generation),documentos:yesNo(ev.choices?.ai_documents),
       voz:yesNo(ev.choices?.ai_voice),analitica:yesNo(ev.choices?.optional_analytics)
     }))),

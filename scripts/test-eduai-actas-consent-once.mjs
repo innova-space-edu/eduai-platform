@@ -9,6 +9,12 @@ const files = [
  "app/admin/actas-familiares/page.tsx",
  "app/api/admin/actas-familiares/route.ts",
  "app/profile/settings/page.tsx",
+ "app/api/privacy/self/route.ts",
+ "components/legal/ExamConsentDialog.tsx",
+ "app/api/admin/actas-privacidad/route.ts",
+ "app/admin/actas-privacidad/page.tsx",
+ "app/examen/crear/page.tsx",
+ "app/(auth)/register/page.tsx",
 ]
 for(const path of files){
  const source=fs.readFileSync(path,"utf8")
@@ -50,3 +56,24 @@ assert.match(signup,/on conflict \(user_id\) do nothing/,"Never overwrite a prev
 assert.match(signup,/v_minor/,"Minor purposes must remain default-denied")
 
 console.log("OK: privacy requested once, timestamp preserved and family acts restricted and archived")
+
+const self=fs.readFileSync("app/api/privacy/self/route.ts","utf8")
+const dialog=fs.readFileSync("components/legal/ExamConsentDialog.tsx","utf8")
+const archive=fs.readFileSync("app/api/admin/actas-privacidad/route.ts","utf8")
+const exam=fs.readFileSync("app/examen/crear/page.tsx","utf8")
+const register=fs.readFileSync("app/(auth)/register/page.tsx","utf8")
+const exportRecords=fs.readFileSync("lib/admin/consolidated-records.ts","utf8")
+assert.match(self,/session\.auth\.getUser/)
+assert.doesNotMatch(self,/ACTA-PRIV-/)
+assert.match(archive,/admin_emails/)
+assert.match(archive,/if\(role\.error\|\|!role\.data\)/)
+assert.match(archive,/ACTA-PRIV-/)
+assert.match(exportRecords,/ACTA-PRIV-/)
+assert.match(dialog,/record_eduai_privacy_choices/)
+assert.match(dialog,/data\.accepted!==true/)
+assert.match(exam,/activeStep!==4/)
+assert.match(exam,/data\?\.action==="\/consentimiento"/)
+assert.match(exam,/Tratamiento de datos de la evaluación/)
+assert.match(register,/current\?\{error:null\}:await supabase\.rpc/)
+assert.match(proxy,/isManualExamPublish \? \[\] : requiredPrivacyPermissionsForRoute/)
+console.log("OK: modal, registro único y archivo de actas exclusivo de administración")
