@@ -271,6 +271,13 @@ export default function AdminPage() {
               })}
             </div>
 
+            <Link href="/consentimiento?return=admin"
+              className="mb-4 flex items-center gap-3 rounded-2xl border border-blue-500/30 bg-blue-500/5 p-4 hover:border-blue-500/60">
+              <ClipboardList size={22} className="text-blue-500"/>
+              <div className="flex-1"><p className="font-bold text-main">Mis condiciones y privacidad</p><p className="text-sm text-sub">Consultar o registrar la aceptación de tu cuenta administrativa.</p></div>
+              <ChevronRight size={18} className="text-blue-500"/>
+            </Link>
+
             <Link href="/admin/autorizaciones-familiares"
               className="mb-4 flex flex-wrap items-center gap-3 rounded-2xl border border-cyan-500/30 bg-cyan-500/5 p-4 transition-all hover:border-cyan-500/60">
               <ClipboardList size={22} className="text-cyan-500" />
