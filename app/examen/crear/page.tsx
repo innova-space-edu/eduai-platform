@@ -6,6 +6,7 @@ import { EXAM_AI_MAX_QUESTIONS } from "@/lib/exam/creator-limits";
 import { requestExamGeneration, type ExamGenerationCache, type ExamGenerationProgress } from "@/lib/exam/generation-client";
 import { useMemo, useState, useRef, useEffect } from "react";
 import ExamMathText from "@/components/ui/ExamMathText";
+import ExamConsentDialog from "@/components/legal/ExamConsentDialog";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getOAs, getAvailableAsignaturas, getCurriculumVerification, getParvulariaNucleoItems, type NivelKey, type OA } from "@/lib/mineduc-oa";
@@ -698,6 +699,18 @@ export default function CrearExamenPage() {
   } | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [consentOpen,setConsentOpen]=useState(false);
+  const [consentRetry,setConsentRetry]=useState(false);
+  useEffect(()=>{
+    if(activeStep!==4||!userId)return;
+    let live=true;
+    void fetch("/api/privacy/self",{cache:"no-store"}).then(async res=>{
+      if(!res.ok)return;
+      const status=await res.json();
+      if(live&&status.required===true){setConsentRetry(false);setConsentOpen(true);}
+    }).catch(()=>{});
+    return ()=>{live=false};
+  },[activeStep,userId]);
   const [successMsg, setSuccessMsg] = useState("");
 
   // ── Panel IA ──────────────────────────────────────────────────────────────
@@ -914,6 +927,9 @@ export default function CrearExamenPage() {
         }),
       });
       const data = await res.json();
+      if(res.status===403&&data?.action==="/consentimiento"){
+        setConsentRetry(true);setConsentOpen(true);return;
+      }
       if (!data?.success)
         throw new Error(data?.error || "No se pudo crear el examen.");
       setCreatedExam({
@@ -1237,6 +1253,7 @@ Usa el mismo esquema de calidad que antes.`;
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,#dbeafe_0,#f8fafc_28%,#fff7ed_68%,#f8fafc_100%)] text-slate-950">
+      {consentOpen&&<ExamConsentDialog retryPublish={consentRetry} onClose={()=>{setConsentOpen(false);setConsentRetry(false)}} onComplete={()=>{setConsentOpen(false);setConsentRetry(false);setErrorMsg("");if(consentRetry)void handleCreate();}}/>}
       <div className="max-w-7xl mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8">
