@@ -86,6 +86,7 @@ async function checkRateLimit(
 
 export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
+  let isManualExamPublish = false
   if (isPublicRepositoryRead(pathname, request.method) || isPublicRepositorySubmission(pathname, request.method)) {
     return NextResponse.next({ request })
   }
@@ -99,6 +100,7 @@ export async function proxy(request: NextRequest) {
     if (request.method === "GET" && searchParams.has("code")) return NextResponse.next({ request })
     if (request.method === "POST") {
       const body = await request.clone().json().catch(() => null)
+      isManualExamPublish = body?.action === "create"
       if (body?.action === "start_or_resume_attempt") {
         const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"
         const examId = String(body.examId || "").slice(0, 64)
@@ -133,6 +135,7 @@ export async function proxy(request: NextRequest) {
   )
 
   const { data: { user } } = await supabase.auth.getUser()
+  if(isManualExamPublish&&!user)return NextResponse.json({error:"Debes iniciar sesión para publicar."},{status:401})
 
   // Family signature != verified parental authority; the institution must approve.
   // Cuentas nuevas: control familiar obligatorio desde el servidor.
@@ -149,7 +152,8 @@ export async function proxy(request: NextRequest) {
     const minor = !dob || Number.isNaN(born.getTime()) ||
       born > new Date(today.getFullYear() - 18, today.getMonth(), today.getDate())
     const isFamilyPage = pathname.startsWith("/autorizacion-familiar") ||
-      pathname === "/autorizacion-pendiente" || pathname.startsWith("/api/family-consent")
+      pathname === "/autorizacion-pendiente" || pathname.startsWith("/api/family-consent") ||
+      pathname === "/consentimiento" || (pathname === "/api/privacy/self" && request.method === "GET")
     if (familyGateOn && minor && !isFamilyPage) {
       try {
         const db = createFamilyAdminClient()
@@ -180,7 +184,16 @@ export async function proxy(request: NextRequest) {
      pathname.startsWith("/api/agents/") || pathname.startsWith("/api/superagent/") ||
      pathname.startsWith("/api/creator/") || pathname.startsWith("/api/whiteboard/") ||
      pathname === "/api/process-content")
-  if (needsPrivacyGate) {
+  // Administrators may reach the administrative console to resolve account issues.
+  // This is not an exemption from terms for ordinary tools, family controls, or optional purposes.
+  let adminConsoleAccess=false
+  if(needsPrivacyGate&&user?.email&&(pathname==="/admin"||pathname.startsWith("/admin/"))){
+    try{
+      const {data,error}=await createFamilyAdminClient().from("admin_emails").select("email").eq("email",user.email).maybeSingle()
+      adminConsoleAccess=!error&&Boolean(data)
+    }catch{adminConsoleAccess=false}
+  }
+  if (needsPrivacyGate&&!adminConsoleAccess) {
     const { data: savedPrivacy, error: privacyReadError } = await supabase
       .from("eduai_privacy_choices")
       .select("policy_version,terms_acknowledged_at,data_warning_acknowledged_at")
@@ -206,7 +219,8 @@ export async function proxy(request: NextRequest) {
   // Rollout flag: turn on only after deploying the RLS/RPC migration and reviewing all
   // affected routes. Until then, the consent UI must remain in draft, not production.
   if (process.env.EDUAI_PRIVACY_ENFORCE_CHOICES === "true" && (!user || !hasLegacyConsentGrace(user.created_at))) {
-    const required = requiredPrivacyPermissionsForRoute(pathname, request.method)
+    // Publishing a manually reviewed exam writes its content; it does not invoke a model.
+    const required = isManualExamPublish ? [] : requiredPrivacyPermissionsForRoute(pathname, request.method)
     if (required.length > 0) {
       if (!user) return NextResponse.json({ error: "Debes iniciar sesión antes de usar herramientas de IA." }, { status: 401 })
 
