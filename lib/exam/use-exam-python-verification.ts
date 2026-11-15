@@ -3,20 +3,22 @@ export type CorrectionReview = {required:true;confirmedSignature?:string};
 export type PythonProposal = {source:string;fields:{modelAnswer:string;expectedLatex:string;explanation:string;solutionSteps:string[]};notes:string[]};
 export type PythonResult = {id:string;status:"incorrect"|"partial"|"unsupported";checks:{label:string;valid:boolean|null;message:string}[];proposal?:PythonProposal|null};
 export function useExamPythonVerification(){
- const active=useRef<Worker|null>(null),[busy,setBusy]=useState(false);
- useEffect(()=>()=>active.current?.terminate(),[]);
+ const worker=useRef<Worker|null>(null),pending=useRef(false),sequence=useRef(0),[busy,setBusy]=useState(false);
+ useEffect(()=>()=>{worker.current?.terminate();worker.current=null;},[]);
  const verify=async(questions:unknown[]):Promise<PythonResult[]>=>{
-  if(active.current)throw Error("Hay una comprobación en curso.");
-  setBusy(true);
+  if(pending.current)throw Error("Hay una comprobación en curso.");
+  pending.current=true;setBusy(true);
   try{
-   const w=new Worker("/exam-python-worker.js?v=2");active.current=w;
+   const w=worker.current??new Worker("/exam-python-worker.js?v=2");worker.current=w;
+   const id=++sequence.current;
    return await new Promise<PythonResult[]>((resolve,reject)=>{
-    const timer=setTimeout(()=>reject(Error("Python excedió el tiempo de carga.")),45000);
-    w.onmessage=e=>{clearTimeout(timer);if(e.data?.error)reject(Error(e.data.error));else if(Array.isArray(e.data?.results)&&e.data.results.length===questions.length)resolve(e.data.results);else reject(Error("Comprobación incompleta."))};
-    w.onerror=()=>{clearTimeout(timer);reject(Error("No se pudo iniciar Python."))};
-    w.postMessage({id:1,questions});
+    const fail=(message:string)=>{clearTimeout(timer);w.terminate();if(worker.current===w)worker.current=null;reject(Error(message));};
+    const timer=setTimeout(()=>fail("Python excedió el tiempo de carga."),45000);
+    w.onmessage=e=>{if(e.data?.id!==id)return;clearTimeout(timer);if(e.data?.error)fail(e.data.error);else if(Array.isArray(e.data?.results)&&e.data.results.length===questions.length)resolve(e.data.results);else fail("Comprobación incompleta.");};
+    w.onerror=()=>fail("No se pudo iniciar Python.");
+    w.postMessage({id,questions});
    });
-  }finally{active.current?.terminate();active.current=null;setBusy(false)}
+  }finally{pending.current=false;setBusy(false)}
  };
  return {verify,busy};
 }

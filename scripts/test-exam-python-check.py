@@ -21,4 +21,9 @@ assert result["proposal"]["fields"]["expectedLatex"]==r"$BE=15\,\text{cm}$"
 assert module.verify_question({**full,**result["proposal"]["fields"]})["status"]=="partial"
 assert module.verify_question({"type":"development","question":"Otro","solutionSteps":["$2+3=7$"]})["proposal"] is None
 assert module.verify_question({**full,**result["proposal"]["fields"],"rubric":[{"criteria":"BE = 10 cm","points":2}]})["status"]=="incorrect"
-print("12 comprobaciones Python superadas")
+# Capture regression: correct final value must not hide incorrect expected answer.
+contradiction=module.verify_question({**full,"modelAnswer":"BE: 10 cm","expectedLatex":r"$BE=15\,\text{cm}$"})
+assert any(c["label"]=="Respuesta esperada · Tales" and c["valid"] is False for c in contradiction["checks"])
+assert any(c["label"]=="Resultado final · Tales" and c["valid"] is True for c in contradiction["checks"])
+assert any(c["label"]=="Rúbrica · criterio 1 · Tales" and c["valid"] is False for c in module.verify_question({**full,**result["proposal"]["fields"],"rubric":[{"criteria":"BE = 10 cm","points":2}]})["checks"])
+print("15 comprobaciones Python superadas")
