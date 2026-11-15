@@ -9,7 +9,7 @@ export default function ExamConsentDialog({onClose,onComplete,retryPublish=false
  const [loading,setLoading]=useState(true),[saving,setSaving]=useState(false),[error,setError]=useState("")
  const [terms,setTerms]=useState(false),[warning,setWarning]=useState(false),[restricted,setRestricted]=useState(true)
  const [choices,setChoices]=useState<OptionalPrivacyChoices>({...EMPTY_OPTIONAL_PRIVACY_CHOICES})
- const [alreadyAccepted,setAlreadyAccepted]=useState(false)
+ const [alreadyAccepted,setAlreadyAccepted]=useState(false),[statusReady,setStatusReady]=useState(false)
  useEffect(()=>{
    const node=dialog.current;node?.showModal()
    let live=true
@@ -18,14 +18,14 @@ export default function ExamConsentDialog({onClose,onComplete,retryPublish=false
        const res=await fetch("/api/privacy/self",{cache:"no-store"})
        const data=await res.json()
        if(!res.ok)throw Error(data.error||"No se pudieron consultar las condiciones.")
-       if(live){setRestricted(data.minorRestricted===true);setChoices({...EMPTY_OPTIONAL_PRIVACY_CHOICES,...data.choices});setAlreadyAccepted(data.accepted===true)}
+       if(live){setRestricted(data.minorRestricted===true);setChoices({...EMPTY_OPTIONAL_PRIVACY_CHOICES,...data.choices});setAlreadyAccepted(data.accepted===true);setStatusReady(true)}
      }catch(e){if(live)setError(e instanceof Error?e.message:"No se pudo consultar la aceptación.")}
      finally{if(live)setLoading(false)}
    })()
    return ()=>{live=false;node?.close()}
  },[])
  async function save(){
-   if(saving||loading||(!alreadyAccepted&&(!terms||!warning)))return
+   if(saving||loading||!statusReady||(!alreadyAccepted&&(!terms||!warning)))return
    setSaving(true);setError("")
    try{
      if(!alreadyAccepted){
@@ -53,6 +53,6 @@ export default function ExamConsentDialog({onClose,onComplete,retryPublish=false
     {restricted&&<p className="text-xs text-slate-600">Los permisos opcionales requieren edad registrada y las autorizaciones correspondientes. No son necesarios para publicar manualmente.</p>}
   </>}
   {error&&<p role="alert" className="mt-3 rounded-lg bg-red-50 p-2 text-sm text-red-700">{error}</p>}
-  <div className="mt-5 flex flex-wrap justify-end gap-2"><button type="button" onClick={onClose} disabled={saving} className="rounded-lg border px-3 py-2 text-sm">Volver al examen</button><button type="button" disabled={loading||saving||(!alreadyAccepted&&(!terms||!warning))} onClick={()=>void save()} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">{saving?"Registrando…":retryPublish?"Guardar y publicar":"Guardar condiciones"}</button></div>
+  <div className="mt-5 flex flex-wrap justify-end gap-2"><button type="button" onClick={onClose} disabled={saving} className="rounded-lg border px-3 py-2 text-sm">Volver al examen</button><button type="button" disabled={loading||saving||!statusReady||(!alreadyAccepted&&(!terms||!warning))} onClick={()=>void save()} className="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">{saving?"Registrando…":retryPublish?"Guardar y publicar":"Guardar condiciones"}</button></div>
  </dialog>
 }
