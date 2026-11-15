@@ -3,6 +3,7 @@ import { resolveGroqTextModel } from "@/lib/ai/groq-models"
 import { NextRequest, NextResponse } from "next/server"
 import { randomUUID } from "crypto"
 import { createClient } from "@supabase/supabase-js"
+import { createClient as createSessionClient } from "@/lib/supabase/server"
 import { getDesignTemplateSummary } from "@/lib/design-templates/registry"
 import { enrichQuestionAnswerKey } from "@/lib/exam/question-quality"
 import { examAnswerConsistencyIssues } from "@/lib/exam/answer-consistency.mjs"
@@ -872,6 +873,10 @@ export async function POST(request: NextRequest) {
 
     if (action === "create") {
       const { teacherId, title, topic, instructions, questions, settings, designTemplateId } = body
+      const session=await createSessionClient()
+      const {data:{user:publisher},error:publisherError}=await session.auth.getUser()
+      if(publisherError||!publisher)return NextResponse.json({error:"Inicia sesión para publicar."},{status:401})
+      if(teacherId!==publisher.id)return NextResponse.json({error:"No puedes publicar en nombre de otra cuenta."},{status:403})
 
       if (!teacherId || !title || !topic || !questions?.length) {
         return NextResponse.json(
