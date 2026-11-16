@@ -31,3 +31,5 @@ if (/from\s+public\.room_members\s+rm/i.test(policyBlock)) {
 }
 
 console.log("[collaboration-rls] legacy room-message bypass removed and membership SELECT is recursion-safe")
+
+await import("./test-collab-workspace.mjs")

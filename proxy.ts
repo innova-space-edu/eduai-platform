@@ -183,7 +183,7 @@ export async function proxy(request: NextRequest) {
     (PROTECTED_ROUTES.some(path => pathname.startsWith(path)) ||
      pathname.startsWith("/api/agents/") || pathname.startsWith("/api/superagent/") ||
      pathname.startsWith("/api/creator/") || pathname.startsWith("/api/whiteboard/") ||
-     pathname === "/api/process-content")
+     pathname === "/api/process-content" || pathname.startsWith("/api/rooms") || pathname.startsWith("/collab"))
   // Administrators may reach the administrative console to resolve account issues.
   // This is not an exemption from terms for ordinary tools, family controls, or optional purposes.
   let adminConsoleAccess=false
