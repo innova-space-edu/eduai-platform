@@ -5,9 +5,9 @@ import MathRenderer from "@/components/ui/MathRenderer"
 
 type Rating = "useful" | "incorrect" | "corrected"
 type Choice = "A" | "B"
-type Props = { answer: string; prompt?: string; module?: string }
+type Props = { answer: string; prompt?: string; module?: string; comparisonOnly?: boolean }
 
-export default function TrainingFeedback({ answer, prompt = "", module = "chat" }: Props) {
+export default function TrainingFeedback({ answer, prompt = "", module = "chat", comparisonOnly = false }: Props) {
   const groupId = useId()
   const [rating, setRating] = useState<Rating | null>(null)
   const [question, setQuestion] = useState(prompt)
@@ -126,9 +126,9 @@ export default function TrainingFeedback({ answer, prompt = "", module = "chat" 
           className="font-semibold underline underline-offset-2 disabled:opacity-40">
           {busy && !rating ? "Generando alternativa…" : "Comparar 2 respuestas"}
         </button>
-        <button type="button" disabled={busy} onClick={() => startRating("useful")}>Útil</button>
-        <button type="button" disabled={busy} onClick={() => startRating("incorrect")}>Incorrecta</button>
-        <button type="button" disabled={busy} onClick={() => startRating("corrected")}>Escribir respuesta correcta</button>
+        {!comparisonOnly && <button type="button" disabled={busy} onClick={() => startRating("useful")}>Útil</button>}
+        {!comparisonOnly && <button type="button" disabled={busy} onClick={() => startRating("incorrect")}>Incorrecta</button>}
+        {!comparisonOnly && <button type="button" disabled={busy} onClick={() => startRating("corrected")}>Escribir respuesta correcta</button>}
       </div>
 
       {alternative && (
@@ -181,12 +181,12 @@ export default function TrainingFeedback({ answer, prompt = "", module = "chat" 
           </div>
           <p className="text-xs leading-relaxed text-muted2">
             La comparación no modifica el mensaje original ni entrena automáticamente al modelo.
-            Si ambas respuestas tienen errores, puedes escribir una corrección.
+            {comparisonOnly ? " Si ninguna es correcta, cancela sin enviar." : " Si ambas respuestas tienen errores, puedes escribir una corrección."}
           </p>
-          <button type="button" disabled={busy} onClick={() => startRating("corrected")}
+          {!comparisonOnly && <button type="button" disabled={busy} onClick={() => startRating("corrected")}
             className="font-semibold text-blue-700 underline underline-offset-2 disabled:opacity-50">
             Ninguna es correcta: escribir una respuesta
-          </button>
+          </button>}
         </section>
       )}
 
