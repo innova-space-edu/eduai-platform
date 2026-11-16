@@ -58,6 +58,13 @@ const abilityOptions: { id: Ability; label: string }[] = [
   { id: "argumentacion",  label: "Argumentación"  },
 ]
 
+// Keep the live editor text unchanged while typing. Derive quality and answer keys
+// from normalized copies, so trailing spaces/newlines do not reset the caret.
+function enrichEditable(q:ExamQuestion):ExamQuestion{
+  const enriched=enrichQuestionAnswerKey(q)
+  return {...enriched,question:q.question,options:q.options??enriched.options,modelAnswer:q.modelAnswer??enriched.modelAnswer,expectedLatex:q.expectedLatex??enriched.expectedLatex,explanation:q.explanation??enriched.explanation,solutionSteps:q.solutionSteps??enriched.solutionSteps,rubric:q.rubric??enriched.rubric}
+}
+
 function clampPositive(n: number, fallback = 1) {
   if (!Number.isFinite(n)) return fallback
   return Math.max(0, Math.round(n * 10) / 10)
@@ -279,8 +286,8 @@ export default function EditarExamenPage() {
           teacherId: user.id,
           title,
           instructions,
-          questions,
-          settings: { ...settings, questionCount: questions.length, totalPoints },
+          questions:snapshot.map(q=>{const payload=enrichQuestionAnswerKey(q);return q.correctionReview?.required?{...payload,correctionReview:{required:true,confirmedSignature:q.correctionReview.confirmedSignature===correctionSignature(q)?correctionSignature(payload):undefined}}:payload}),
+          settings: { ...settings, questionCount: snapshot.length, totalPoints },
         }),
       })
       const data = await res.json()
@@ -289,6 +296,7 @@ export default function EditarExamenPage() {
       setTimeout(() => setSaved(false), 3000)
     } catch (e: any) {
       setError(e.message)
+      window.requestAnimationFrame(()=>document.getElementById("edit-global-error")?.scrollIntoView({block:"center",behavior:"smooth"}))
     } finally {
       setSaving(false)
     }
@@ -304,16 +312,16 @@ export default function EditarExamenPage() {
       if (merged.type === "true_false") {
         const sel = clampPositive(Number(merged.selectionPoints), 1) || 1
         const max = clampPositive(Number(merged.maxPoints), sel)
-        return enrichQuestionAnswerKey({ ...merged, selectionPoints: sel, maxPoints: max, justificationMaxPoints: Math.max(0, max - sel) }) as ExamQuestion
+        return enrichEditable({ ...merged, selectionPoints: sel, maxPoints: max, justificationMaxPoints: Math.max(0, max - sel) })
       }
       if (merged.type === "development" || merged.type === "mixed_choice_development") {
         const rubric = Array.isArray(merged.rubric) ? merged.rubric : []
         if (rubric.length > 0) {
           const sum = rubric.reduce((acc, r) => acc + clampPositive(Number(r.points), 0), 0)
-          return enrichQuestionAnswerKey({ ...merged, rubric, ...(merged.type==="mixed_choice_development"?{developmentMaxPoints:sum,maxPoints:sum+(merged.selectionPoints||1)}:{maxPoints:sum||clampPositive(Number(merged.maxPoints),1)}) }) as ExamQuestion
+          return enrichEditable({ ...merged, rubric, ...(merged.type==="mixed_choice_development"?{developmentMaxPoints:sum,maxPoints:sum+(merged.selectionPoints||1)}:{maxPoints:sum||clampPositive(Number(merged.maxPoints),1)}) })
         }
       }
-      return enrichQuestionAnswerKey({ ...merged, maxPoints: clampPositive(Number(merged.maxPoints), 1) }) as ExamQuestion
+      return enrichEditable({ ...merged, maxPoints: clampPositive(Number(merged.maxPoints), 1) })
     }))
   }
 
@@ -508,7 +516,7 @@ Reglas:
             value={instructions}
             onChange={e => setInstructions(e.target.value)}
             placeholder="Ej: Justifica tus respuestas y muestra procedimiento..."
-            className="w-full min-h-24 bg-card-soft-theme border border-soft rounded-xl px-4 py-3 text-base"
+            className="w-full min-h-24 bg-card-soft-theme border border-soft rounded-xl px-4 py-3 text-base" disabled={saving}
           />
         </div>
 
@@ -621,7 +629,7 @@ Reglas:
         </div></details>
         {/* Error global */}
         {error && (
-          <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-red-500/25" style={{ background: "rgba(239,68,68,0.08)" }}>
+          <div id="edit-global-error" role="alert" className="flex items-center gap-2 px-4 py-3 rounded-xl border border-red-500/25" style={{ background: "rgba(239,68,68,0.08)" }}>
             <span className="text-red-400 text-sm">{error}</span>
           </div>
         )}
@@ -643,15 +651,15 @@ Reglas:
             </div>
             {!editing?<div className="rounded-xl bg-card-soft-theme p-3 text-sm"><ExamMathText text={q.question}/></div>:<div className="space-y-4">
               <ExamCorrectionPanel q={q} issues={issues} required={required} result={pythonResults[q.id!]} busy={pythonBusy||saving} qualityReady={q.qualityStatus!=="review"} onVerify={()=>void verifyQuestions([q])} onApply={fields=>applyProposal(q,fields)} onConfirm={()=>confirmCorrection(q)}/>
-              <div><label className={label}>Enunciado</label><ExamVisualEditor value={q.question} onChange={e=>updateQuestion(i,{question:e.target.value})} placeholder="Enunciado de la pregunta" className={field+" min-h-36"}/></div>
+              <div><label className={label}>Enunciado</label><ExamVisualEditor value={q.question} onChange={e=>updateQuestion(i,{question:e.target.value})} placeholder="Enunciado de la pregunta" className={field+" !min-h-36"}/></div>
               {q.type!=="development"&&<div className="space-y-2"><label className={label}>Alternativas · marca la correcta</label>{(q.options||[]).map((opt,j)=><div key={j} className="grid grid-cols-[40px_minmax(0,1fr)] items-start gap-2"><button type="button" onClick={()=>updateQuestion(i,{correctAnswer:j})} className={"mt-6 rounded-lg border p-2 text-sm font-bold "+(j===q.correctAnswer?"border-emerald-400 bg-emerald-50 text-emerald-700":"border-soft")} aria-label={"Marcar alternativa "+(j+1)+" como correcta"}>{j===q.correctAnswer?"✓":String.fromCharCode(65+j)}</button><ExamVisualEditor value={opt} disabled={q.type==="true_false"} onChange={e=>{const options=[...(q.options||[])];options[j]=e.target.value;updateQuestion(i,{options})}} className={field} placeholder={"Alternativa "+(j+1)}/></div>)}</div>}
-              {constructed&&<><div><label className={label}>Respuesta esperada</label><ExamVisualEditor value={q.modelAnswer||""} onChange={e=>updateQuestion(i,{modelAnswer:e.target.value})} placeholder="Desarrolla la solución esperada" className={field+" min-h-44"}/></div><div><label className={label}>Resultado final (opcional)</label><ExamVisualEditor value={q.expectedLatex||""} onChange={e=>updateQuestion(i,{expectedLatex:e.target.value})} placeholder="Resultado final de la pregunta" className={field+" min-h-24"}/></div></>}
-              <details className="rounded-xl border border-soft p-3"><summary className="cursor-pointer text-sm font-semibold">Pauta ampliada · editar explicación y procedimiento</summary><div className="mt-3 space-y-3"><div><label className={label}>Explicación de la pauta</label><ExamVisualEditor value={q.explanation||""} onChange={e=>updateQuestion(i,{explanation:e.target.value})} placeholder="Explica el fundamento de la solución" className={field+" min-h-32"}/></div><div><label className={label}>Pasos esperados</label><ExamVisualEditor value={(q.solutionSteps||[]).join("\n")} onChange={e=>updateQuestion(i,{solutionSteps:e.target.value.split("\n")})} placeholder="Un paso por línea" className={field+" min-h-40"}/></div></div></details>
+              {constructed&&<><div><label className={label}>Respuesta esperada</label><ExamVisualEditor value={q.modelAnswer||""} onChange={e=>updateQuestion(i,{modelAnswer:e.target.value})} placeholder="Desarrolla la solución esperada" className={field+" !min-h-44"}/></div><div><label className={label}>Resultado final (opcional)</label><ExamVisualEditor value={q.expectedLatex||""} onChange={e=>updateQuestion(i,{expectedLatex:e.target.value})} placeholder="Resultado final de la pregunta" className={field+" !min-h-24"}/></div></>}
+              <details className="rounded-xl border border-soft p-3"><summary className="cursor-pointer text-sm font-semibold">Pauta ampliada · editar explicación y procedimiento</summary><div className="mt-3 space-y-3"><div><label className={label}>Explicación de la pauta</label><ExamVisualEditor value={q.explanation||""} onChange={e=>updateQuestion(i,{explanation:e.target.value})} placeholder="Explica el fundamento de la solución" className={field+" !min-h-32"}/></div><div><label className={label}>Pasos esperados</label><ExamVisualEditor value={(q.solutionSteps||[]).join("\n")} onChange={e=>updateQuestion(i,{solutionSteps:e.target.value.split("\n")})} placeholder="Un paso por línea" className={field+" !min-h-40"}/></div></div></details>
               {constructed&&<div className="space-y-3 rounded-xl border border-soft p-3"><label className={label}>Rúbrica</label>{(q.rubric||[]).map((item,j)=><div key={j} className="grid grid-cols-[minmax(0,1fr)_64px_auto] items-start gap-2"><ExamVisualEditor value={item.criteria} onChange={e=>updateQuestion(i,{rubric:(q.rubric||[]).map((r,k)=>k===j?{...r,criteria:e.target.value}:r)})} placeholder="Criterio de evaluación" className={field}/><label className="text-xs text-muted2">Pts<input type="number" min={0} step={0.5} value={item.points} onChange={e=>updateQuestion(i,{rubric:(q.rubric||[]).map((r,k)=>k===j?{...r,points:clampPositive(Number(e.target.value),0)}:r)})} className="mt-1 w-full rounded-xl border border-soft bg-card-soft-theme p-2 text-sm"/></label><button type="button" className="mt-5 rounded-lg border border-red-200 px-2 py-2 text-xs text-red-600" onClick={()=>updateQuestion(i,{rubric:(q.rubric||[]).filter((_,k)=>k!==j)})}>Quitar</button></div>)}<button type="button" onClick={()=>updateQuestion(i,{rubric:[...(q.rubric||[]),{criteria:"Nuevo criterio",points:1}]})} className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white">+ Agregar criterio</button><p className="text-xs text-muted2">Puntaje total: {getQuestionMaxPoints(q)}</p></div>}
               <details className="rounded-xl border border-soft p-3"><summary className="cursor-pointer text-sm font-semibold">Opciones adicionales · material y configuración</summary><div className="mt-3 space-y-3">
                 <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={q.showStimulusToStudent===true} onChange={e=>updateQuestion(i,{showStimulusToStudent:e.target.checked})}/> Mostrar material de apoyo al estudiante</label>
                 <ExamVisualEditor value={q.stimulusTitle||""} onChange={e=>updateQuestion(i,{stimulusTitle:e.target.value})} placeholder="Título del material de apoyo" className={field}/>
-                <ExamVisualEditor value={q.stimulusText||""} onChange={e=>updateQuestion(i,{stimulusText:e.target.value})} placeholder="Texto o datos de apoyo" className={field+" min-h-28"}/>
+                <ExamVisualEditor value={q.stimulusText||""} onChange={e=>updateQuestion(i,{stimulusText:e.target.value})} placeholder="Texto o datos de apoyo" className={field+" !min-h-28"}/>
                 <label className="block text-xs font-semibold">Imagen (URL)<input value={q.imageUrl||""} onChange={e=>updateQuestion(i,{imageUrl:e.target.value})} className="mt-1 w-full rounded-xl border border-soft bg-card-soft-theme p-3 text-sm" placeholder="https://..."/></label>
                 {constructed&&<label className="block text-xs font-semibold">Forma de respuesta<select value={q.responseMode||"long_text"} onChange={e=>updateQuestion(i,{responseMode:e.target.value})} className="mt-1 w-full rounded-xl border border-soft bg-card-soft-theme p-3 text-sm">{[["short_text","Respuesta breve"],["long_text","Respuesta abierta"],["math","Matemática"],["text_math","Texto + matemática"],["math_steps","Procedimiento"]].map(([value,name])=><option key={value} value={value}>{name}</option>)}</select></label>}
                 <div className="grid gap-3 sm:grid-cols-3"><label className="text-xs font-semibold">Dificultad<select value={q.difficulty||2} onChange={e=>updateQuestion(i,{difficulty:Number(e.target.value) as 1|2|3})} className="mt-1 w-full rounded-xl border border-soft bg-card-soft-theme p-3 text-sm"><option value={1}>Fácil</option><option value={2}>Medio</option><option value={3}>Difícil</option></select></label><label className="text-xs font-semibold">Habilidad<select value={q.ability||"aplicacion"} onChange={e=>updateQuestion(i,{ability:e.target.value as Ability})} className="mt-1 w-full rounded-xl border border-soft bg-card-soft-theme p-3 text-sm">{abilityOptions.map(a=><option key={a.id} value={a.id}>{a.label}</option>)}</select></label><label className="text-xs font-semibold">Puntaje<input type="number" min={0} step={0.5} value={getQuestionMaxPoints(q)} disabled={constructed&&Boolean(q.rubric?.length)} onChange={e=>updateQuestion(i,{maxPoints:clampPositive(Number(e.target.value),0)})} className="mt-1 w-full rounded-xl border border-soft bg-card-soft-theme p-3 text-sm"/></label></div>
