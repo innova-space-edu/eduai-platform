@@ -1,543 +1,92 @@
 "use client"
-
-import { useEffect, useRef, useState, useCallback } from "react"
-import { createClient } from "@/lib/supabase/client"
+import {useCallback,useEffect,useRef,useState} from "react"
 import Link from "next/link"
 import MathRenderer from "@/components/ui/MathRenderer"
+import CallPanel from "./CallPanel"
+import {ArrowLeft,BookOpen,CalendarDays,Check,ChevronRight,ClipboardList,Copy,FileText,Folder,Link2,Mail,MessageCircle,PanelRightClose,PanelRightOpen,Pencil,Plus,Send,Shield, Sparkles,Users,Video,X} from "lucide-react"
 
-interface Room    { id: string; code: string; topic: string; host_id: string; guest_id: string | null; status: string }
-interface Message { id: string; room_id?: string; user_id: string; user_name: string; content: string; type: string; created_at: string }
-interface Props   { room: Room; userId: string; userName: string }
-
-// Colores para avatares por nombre
-const AVATAR_COLORS = [
-  "from-blue-500 to-cyan-500",
-  "from-purple-500 to-pink-500",
-  "from-green-500 to-emerald-500",
-  "from-amber-500 to-orange-500",
-  "from-red-500 to-rose-500",
-  "from-indigo-500 to-violet-500",
-]
-
-function getAvatarColor(name: string): string {
-  let hash = 0
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash)
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length]
+type Room={id:string;code:string;topic:string;host_id:string;access_mode:"invited"|"open";invite_token?:string}
+type Person={user_id:string;name:string;status:string;last_seen:string;peer_id?:string;call_seen?:string}
+type Message={id:string;user_id:string;user_name:string;content:string;type:string;created_at:string}
+type Tool={id:string;kind:string;title:string;content:string;due_at:string|null;done:boolean;revision:number;created_by:string}
+type State={room:Room;userId:string;userName:string;people:Person[];messages:Message[];tools:Tool[]}
+type Panel="chat"|"note"|"event"|"file"|"task"|"activity"|"board"|"ai"|"people"
+const actions=[{id:"note",label:"Notas",icon:FileText},{id:"event",label:"Calendario",icon:CalendarDays},{id:"file",label:"Archivos",icon:Folder},{id:"task",label:"Tareas",icon:ClipboardList},{id:"activity",label:"Actividades",icon:BookOpen},{id:"ai",label:"IA",icon:Sparkles},{id:"board",label:"Pizarra",icon:Pencil},{id:"people",label:"Personas",icon:Users}] as const
+const control="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl border border-soft bg-card-theme px-3 py-2 text-xs font-semibold text-sub transition hover:border-violet-400 focus-visible:outline-2 focus-visible:outline-violet-500 disabled:opacity-40"
+const primary="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-violet-500/20 transition disabled:opacity-50"
+const field="w-full min-w-0 rounded-xl border border-soft bg-card-theme px-3 py-2 text-sm text-main outline-none focus:ring-2 focus:ring-violet-400"
+const date=(d:string)=>new Date(d).toLocaleString("es-CL",{dateStyle:"short",timeStyle:"short"})
+function Chat({state,input,setInput,send,sending,ask,thinking}:{state:State;input:string;setInput:(v:string)=>void;send:()=>void;sending:boolean;ask:()=>void;thinking:boolean}){
+ const feed=useRef<HTMLDivElement>(null),nearBottom=useRef(true)
+ useEffect(()=>{if(nearBottom.current&&feed.current)feed.current.scrollTop=feed.current.scrollHeight},[state.messages.length,thinking])
+ return <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border border-violet-400/20 bg-card-theme/80 shadow-sm">
+  <div className="flex shrink-0 items-center gap-2 border-b border-soft px-4 py-3"><MessageCircle size={19} className="text-violet-600"/><h2 className="font-bold">Chat del equipo</h2><span className="ml-auto text-xs text-muted2">{state.people.filter(p=>p.status==="approved").length} integrantes</span></div>
+  <div ref={feed} onScroll={()=>{const el=feed.current;if(el)nearBottom.current=el.scrollHeight-el.clientHeight-el.scrollTop<100}} className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+   {!state.messages.length&&<div className="flex h-full min-h-32 flex-col items-center justify-center gap-2 text-center"><div className="grid h-14 w-14 place-items-center rounded-2xl bg-violet-500/10 text-violet-600"><MessageCircle size={27}/></div><p className="font-semibold">Comienza la conversación</p><p className="max-w-sm text-sm text-muted2">Comparte ideas, preguntas y materiales con tu equipo.</p></div>}
+   {state.messages.map(m=>{const ai=m.type==="agent",mine=m.user_id===state.userId&&!ai;return <article key={m.id} className={"flex items-start gap-2 "+(mine?"flex-row-reverse":"")}>
+    <div className={"grid h-8 w-8 shrink-0 place-items-center rounded-xl text-xs font-bold "+(ai?"bg-violet-600 text-white":"bg-violet-500/10 text-violet-700")}>{ai?<Sparkles size={16}/>:mine?"Tú":m.user_name.slice(0,1).toUpperCase()}</div><div className={"min-w-0 max-w-[85%] rounded-2xl border px-3 py-2 text-sm "+(mine?"border-violet-400/20 bg-violet-500/10":"border-soft bg-card-theme")}><div className="mb-1 flex flex-wrap gap-2 text-[11px]"><strong className="text-main">{ai?"ACo · EduAI":mine?"Tú":m.user_name}</strong><span className="text-muted2">{date(m.created_at)}</span></div>{ai?<MathRenderer content={m.content}/>:<p className="whitespace-pre-wrap break-words">{m.content}</p>}</div>
+   </article>})}
+   {thinking&&<p role="status" className="text-xs text-violet-600">ACo está preparando la respuesta solicitada…</p>}
+  </div>
+  <div className="shrink-0 border-t border-soft p-3"><form onSubmit={e=>{e.preventDefault();send()}} className="space-y-2 rounded-2xl border border-violet-400/25 bg-card-theme p-2 shadow-sm"><textarea aria-label="Mensaje al equipo" rows={2} maxLength={16000} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();send()}}} className="w-full resize-none bg-transparent p-1 text-sm outline-none" placeholder="Escribe un mensaje al equipo…"/><div className="flex flex-wrap items-center gap-2 border-t border-soft pt-2"><button type="button" className={control} onClick={ask}><Sparkles size={15} className="text-violet-600"/> Pedir ayuda a la IA</button><span className="ml-auto"/><button type="submit" disabled={sending||!input.trim()} className={primary}><Send size={16}/> Enviar</button></div></form></div>
+ </section>
 }
-
-function Avatar({ name, size = "sm" }: { name: string; size?: "sm" | "md" }) {
-  const color = getAvatarColor(name)
-  const cls   = size === "md" ? "w-8 h-8 text-sm" : "w-6 h-6 text-xs"
-  return (
-    <div className={`${cls} rounded-full bg-gradient-to-br ${color} flex items-center justify-center text-main font-bold flex-shrink-0`}>
-      {name.charAt(0).toUpperCase()}
-    </div>
-  )
+function Tools({panel,state,mutate,refresh,close}:{panel:Exclude<Panel,"chat"|"ai"|"people">;state:State;mutate:(action:string,data:Record<string,unknown>)=>Promise<any>;refresh:()=>Promise<void>;close:()=>void}){
+ const [draft,setDraft]=useState<{id?:string;revision?:number;title:string;content:string;due_at:string;done:boolean}>({title:"",content:"",due_at:"",done:false})
+ const [error,setError]=useState(""),[busy,setBusy]=useState(false)
+ const list=state.tools.filter(t=>t.kind===panel)
+ const blank=()=>({title:"",content:"",due_at:"",done:false})
+ async function save(e:React.FormEvent){e.preventDefault();if(busy||!draft.title.trim())return;setBusy(true);setError("");try{await mutate("tool",{...draft,kind:panel,due_at:draft.due_at?new Date(draft.due_at).toISOString():null});setDraft(blank());await refresh()}catch(e){setError(e instanceof Error?e.message:"Error al guardar.")}finally{setBusy(false)}}
+ const edit=(t:Tool)=>{const d=t.due_at?new Date(t.due_at):null;setDraft({id:t.id,revision:t.revision,title:t.title,content:t.content,due_at:d?new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16):"",done:t.done})}
+ return <div className="space-y-3 p-3"><div className="flex flex-wrap items-center justify-between gap-2"><h3 className="text-sm font-bold">{actions.find(a=>a.id===panel)?.label} de la sala</h3>{panel==="note"&&<Link href="/workspace" target="_blank" className={control}>Workspace <ChevronRight size={13}/></Link>}{panel==="board"&&<Link href="/pizarra-interactiva" target="_blank" className={control}>Abrir pizarra <ChevronRight size={13}/></Link>}</div>
+  {panel==="board"&&<p className="text-xs text-muted2">Comparte un enlace de una pizarra o un esquema textual con el equipo. La pizarra personal se abre en otra pestaña.</p>}
+  {panel==="file"&&<p className="text-xs text-muted2">Comparte enlaces HTTPS de documentos a los que tu equipo tenga acceso. No cambia los permisos del documento original.</p>}
+  {panel==="event"&&<p className="text-xs text-muted2">Agenda compartida de la sala. Las fechas se muestran en tu zona horaria.</p>}
+  <form onSubmit={save} className="space-y-2 rounded-2xl border border-soft bg-card-theme p-3"><input required maxLength={200} aria-label="Título" placeholder={panel==="event"?"Nombre de la actividad":"Título"} className={field} value={draft.title} onChange={e=>setDraft({...draft,title:e.target.value})}/>{panel==="file"?<input required type="url" aria-label="Enlace HTTPS" placeholder="https://…" className={field} value={draft.content} onChange={e=>setDraft({...draft,content:e.target.value})}/>:<textarea rows={panel==="note"?5:3} maxLength={40000} aria-label="Contenido" placeholder={panel==="note"?"Apuntes compartidos…":"Detalles…"} className={field} value={draft.content} onChange={e=>setDraft({...draft,content:e.target.value})}/>}
+   {(panel==="event"||panel==="task"||panel==="activity")&&<input type="datetime-local" aria-label="Fecha y hora" className={field} value={draft.due_at} onChange={e=>setDraft({...draft,due_at:e.target.value})}/>}
+   {(panel==="task"||panel==="activity")&&<label className="flex items-center gap-2 text-xs"><input type="checkbox" checked={draft.done} onChange={e=>setDraft({...draft,done:e.target.checked})}/> Completada</label>}
+   <div className="flex gap-2"><button disabled={busy} type="submit" className={primary}>{draft.id?"Guardar cambios":"Añadir"}</button>{draft.id&&<button type="button" onClick={()=>setDraft(blank())} className={control}>Cancelar</button>}</div>
+  </form>
+  {error&&<p role="alert" className="text-xs text-rose-600">{error}</p>}
+  {!list.length&&<p className="text-sm text-muted2">Aún no hay recursos compartidos de este tipo.</p>}
+  {list.map(t=><article key={t.id} className="space-y-1 rounded-xl border border-soft bg-card-theme p-3"><h4 className="break-words text-sm font-semibold">{t.title}{t.done?" ✓":""}</h4>{t.due_at&&<p className="text-xs text-muted2">{date(t.due_at)}</p>}{panel==="file"?<a href={/^https:\/\//i.test(t.content)?t.content:undefined} target="_blank" rel="noopener noreferrer" className="break-all text-xs text-violet-600 underline">Abrir archivo</a>:<p className="whitespace-pre-wrap break-words text-xs text-sub">{t.content}</p>}<div className="flex gap-2"><button type="button" className={control} onClick={()=>edit(t)}>Editar</button>{(state.room.host_id===state.userId||t.created_by===state.userId)&&<button type="button" className={control} onClick={async()=>{if(window.confirm("¿Eliminar este recurso compartido?"))try{await mutate("delete-tool",{id:t.id});await refresh()}catch(e){setError(e instanceof Error?e.message:"Error")}}}>Eliminar</button>}</div></article>)}
+ </div>
 }
-
-// ── Presencia en tiempo real ───────────────────────────────────────────────────
-interface PresenceUser {
-  userId: string
-  userName: string
-  isTyping: boolean
-  joinedAt: number
-}
-
-export default function CollabClient({ room, userId, userName }: Props) {
-  const [messages, setMessages]      = useState<Message[]>([])
-  const [input, setInput]            = useState("")
-  const [roomStatus, setRoomStatus]  = useState(room.status)
-  const [acoThinking, setAcoThinking]= useState(false)
-  const [sending, setSending]        = useState(false)
-  const [realtimeOk, setRealtimeOk]  = useState(false)
-
-  // ── Presencia
-  const [presentUsers, setPresentUsers] = useState<PresenceUser[]>([])
-  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const isTypingRef      = useRef(false)
-
-  const bottomRef = useRef<HTMLDivElement>(null)
-  const supabase  = useRef(createClient()).current
-  const acoRef    = useRef(false)
-  const isHost    = room.host_id === userId
-  const tabId     = useRef(`${userId.slice(0, 8)}-${Date.now()}`).current
-
-  // Canal de presencia compartido por sala
-  const presenceChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null)
-
-  // ── Helpers de presencia ─────────────────────────────────────────────────────
-  function broadcastPresence(isTyping: boolean) {
-    presenceChannelRef.current?.track({
-      userId,
-      userName,
-      isTyping,
-      joinedAt: Date.now(),
-    })
-  }
-
-  function handleInputChange(val: string) {
-    setInput(val)
-
-    // Typing indicator
-    if (val.trim() && !isTypingRef.current) {
-      isTypingRef.current = true
-      broadcastPresence(true)
-    }
-
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
-    typingTimeoutRef.current = setTimeout(() => {
-      isTypingRef.current = false
-      broadcastPresence(false)
-    }, 2000)
-  }
-
-  // ── Inicialización ───────────────────────────────────────────────────────────
-  useEffect(() => {
-    joinRoom()
-    loadMessages()
-    setupPresenceChannel()
-    setupMessageChannel()
-    setupRoomChannel()
-
-    if (room.status === "active" && isHost) {
-      setTimeout(() => triggerACo(true), 2000)
-    }
-
-    // Heartbeat cada 20s para mantener presencia activa
-    const heartbeat = setInterval(() => {
-      broadcastPresence(isTypingRef.current)
-    }, 20_000)
-
-    return () => {
-      clearInterval(heartbeat)
-      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
-      presenceChannelRef.current?.untrack()
-      supabase.removeAllChannels()
-    }
-  }, [])
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages, acoThinking])
-
-  // ── Canal de presencia (Supabase Realtime Presence) ──────────────────────────
-  function setupPresenceChannel() {
-    const ch = supabase.channel(`presence:${room.id}`, {
-      config: { presence: { key: userId } },
-    })
-
-    ch.on("presence", { event: "sync" }, () => {
-      const state = ch.presenceState<PresenceUser>()
-      const users = Object.values(state).flat().map(u => ({
-        userId:   u.userId,
-        userName: u.userName,
-        isTyping: u.isTyping,
-        joinedAt: u.joinedAt,
-      }))
-      setPresentUsers(users)
-    })
-
-    ch.on("presence", { event: "join" }, ({ newPresences }) => {
-      const joined = newPresences.map((p: any) => p.userName).filter((n: string) => n !== userName)
-      if (joined.length > 0) {
-        setMessages(prev => [
-          ...prev,
-          {
-            id: `presence-join-${Date.now()}`,
-            user_id: "system",
-            user_name: "Sistema",
-            content: `${joined.join(", ")} se conectó`,
-            type: "system",
-            created_at: new Date().toISOString(),
-          },
-        ])
-      }
-    })
-
-    ch.on("presence", { event: "leave" }, ({ leftPresences }) => {
-      const left = leftPresences.map((p: any) => p.userName).filter((n: string) => n !== userName)
-      if (left.length > 0) {
-        setMessages(prev => [
-          ...prev,
-          {
-            id: `presence-leave-${Date.now()}`,
-            user_id: "system",
-            user_name: "Sistema",
-            content: `${left.join(", ")} se desconectó`,
-            type: "system",
-            created_at: new Date().toISOString(),
-          },
-        ])
-      }
-    })
-
-    ch.subscribe(async (status) => {
-      if (status === "SUBSCRIBED") {
-        setRealtimeOk(true)
-        // Broadcast presencia inicial
-        await ch.track({ userId, userName, isTyping: false, joinedAt: Date.now() })
-      }
-    })
-
-    presenceChannelRef.current = ch
-  }
-
-  // ── Canal de mensajes ─────────────────────────────────────────────────────────
-  function setupMessageChannel() {
-    supabase
-      .channel(`rm-${tabId}`)
-      .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "room_messages",
-        filter: `room_id=eq.${room.id}`,
-      }, (payload) => {
-        const msg = payload.new as Message
-        setMessages(prev => prev.some(m => m.id === msg.id) ? prev : [...prev, msg])
-        if (
-          msg.type === "chat" &&
-          msg.user_id !== "system" &&
-          msg.user_id !== "00000000-0000-0000-0000-000000000000" &&
-          msg.user_id !== userId
-        ) {
-          if (looksLikeQuestion(msg.content)) {
-            setTimeout(() => triggerACo(false), 600)
-          }
-        }
-      })
-      .subscribe()
-  }
-
-  // ── Canal de sala ─────────────────────────────────────────────────────────────
-  function setupRoomChannel() {
-    supabase
-      .channel(`rs-${tabId}`)
-      .on("postgres_changes", {
-        event: "UPDATE",
-        schema: "public",
-        table: "study_rooms",
-        filter: `id=eq.${room.id}`,
-      }, (payload) => {
-        const s = (payload.new as any)?.status
-        setRoomStatus(s)
-        if (s === "active" && isHost) setTimeout(() => triggerACo(true), 1500)
-      })
-      .subscribe()
-  }
-
-  // ── Helpers ───────────────────────────────────────────────────────────────────
-  function looksLikeQuestion(text: string) {
-    const t = text.toLowerCase()
-    return t.includes("?") || t.includes("¿") || t.includes("no entiendo") ||
-      t.includes("explica") || t.includes("cómo") || t.includes("como ") ||
-      t.includes("por qué") || t.includes("porque") || t.includes("ayuda") ||
-      t.includes("ejemplo") || t.includes("duda")
-  }
-
-  async function joinRoom() {
-    await supabase.from("room_members").upsert({
-      room_id: room.id, user_id: userId, user_name: userName,
-      role: isHost ? "host" : "member", is_online: true,
-      last_seen: new Date().toISOString(),
-    }, { onConflict: "room_id,user_id" })
-
-    await supabase.from("room_messages").insert({
-      room_id: room.id, user_id: userId,
-      user_name: "Sistema",
-      content: `${userName} se unió a la sesión`,
-      type: "system",
-    })
-
-    const { count } = await supabase.from("room_members")
-      .select("id", { count: "exact", head: true }).eq("room_id", room.id)
-
-    if ((count || 0) >= 2) {
-      await supabase.from("study_rooms").update({ status: "active" }).eq("id", room.id)
-      setRoomStatus("active")
-    }
-  }
-
-  async function loadMessages() {
-    const { data } = await supabase.from("room_messages").select("*")
-      .eq("room_id", room.id).order("created_at", { ascending: true })
-    setMessages((data as Message[]) || [])
-  }
-
-  async function sendMessage() {
-    if (!input.trim() || sending) return
-    const content = input.trim()
-    setInput("")
-    setSending(true)
-
-    // Limpiar typing
-    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current)
-    isTypingRef.current = false
-    broadcastPresence(false)
-
-    try {
-      const { error } = await supabase.from("room_messages").insert({
-        room_id: room.id, user_id: userId, user_name: userName, content, type: "chat",
-      })
-      if (error) { console.error(error); setInput(content) }
-    } finally {
-      setSending(false)
-    }
-  }
-
-  async function triggerACo(isWelcome = false) {
-    if (acoRef.current) return
-    acoRef.current = true
-    setAcoThinking(true)
-    try {
-      if (!isWelcome) {
-        const { data: locked } = await supabase.rpc("claim_tutor_lock", {
-          p_room_id: room.id, p_owner: userId, p_seconds: 15,
-        })
-        if (!locked) { setAcoThinking(false); acoRef.current = false; return }
-      }
-      const { data: recent } = await supabase.from("room_messages").select("*")
-        .eq("room_id", room.id).order("created_at", { ascending: false }).limit(8)
-      const res = await fetch("/api/agents/collab", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic: room.topic, messages: (recent || []).reverse(), isWelcome }),
-      })
-      if (!res.ok) return
-      const data = await res.json()
-      await supabase.from("room_messages").insert({
-        room_id: room.id, user_id: userId,
-        user_name: "ACo", content: data.message, type: "agent",
-      })
-    } catch (e) { console.error("ACo:", e) }
-    finally { setAcoThinking(false); setTimeout(() => { acoRef.current = false }, 3000) }
-  }
-
-  function formatTime(d: string) {
-    return new Date(d).toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })
-  }
-
-  // ── Usuarios en línea (excluye al propio usuario de la lista visible) ─────────
-  const otherUsers    = presentUsers.filter(u => u.userId !== userId)
-  const typingUsers   = otherUsers.filter(u => u.isTyping)
-  const onlineCount   = presentUsers.length
-  const typingNames   = typingUsers.map(u => u.userName)
-
-  // ── Render ───────────────────────────────────────────────────────────────────
-  return (
-    <main className="min-h-screen bg-app text-main flex flex-col">
-
-      {/* Nav */}
-      <nav className="border-b border-soft bg-card-theme backdrop-blur px-4 py-3 sticky top-0 z-20">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="text-muted2 hover:text-main text-sm transition-colors">← Salir</Link>
-            <span className="text-muted2">|</span>
-            <span className="text-main font-semibold text-sm">{room.topic}</span>
-            <span className="text-muted2 text-xs">#{room.code}</span>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {/* Avatares de presencia en tiempo real */}
-            <div className="flex items-center gap-1.5">
-              {/* Avatares de otros usuarios */}
-              <div className="flex -space-x-2">
-                {/* Propio avatar */}
-                <div className="relative" title={`${userName} (tú)`}>
-                  <Avatar name={userName} size="md" />
-                  {isHost && (
-                    <span className="absolute -top-1 -right-1 text-[8px]">👑</span>
-                  )}
-                  <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-400 rounded-full border border-soft" />
-                </div>
-
-                {/* Avatares de otros */}
-                {otherUsers.map(u => (
-                  <div key={u.userId} className="relative" title={u.userName}>
-                    <Avatar name={u.userName} size="md" />
-                    <span className="absolute bottom-0 right-0 w-2 h-2 bg-green-400 rounded-full border border-soft" />
-                  </div>
-                ))}
-              </div>
-
-              {/* Contador y estado */}
-              <div className="flex items-center gap-1.5 ml-1">
-                <div className={`w-1.5 h-1.5 rounded-full ${roomStatus === "active" ? "bg-green-400 animate-pulse" : "bg-amber-400 animate-pulse"}`} />
-                <span className="text-xs text-sub">
-                  {roomStatus === "active" ? `${onlineCount} en línea` : "Esperando..."}
-                </span>
-              </div>
-            </div>
-
-            {/* Indicador realtime */}
-            <div
-              className={`w-1.5 h-1.5 rounded-full ${realtimeOk ? "bg-emerald-400" : "bg-red-300"}`}
-              title={realtimeOk ? "Realtime activo" : "Conectando..."}
-            />
-          </div>
-        </div>
-      </nav>
-
-      {/* Waiting */}
-      {roomStatus === "waiting" && isHost && (
-        <div className="flex-1 flex flex-col items-center justify-center gap-5 px-6">
-          <div className="text-5xl animate-bounce">⏳</div>
-          <h2 className="text-xl font-bold">Sala creada</h2>
-          <div className="bg-card-theme border border-blue-500/30 rounded-2xl px-10 py-6 text-center">
-            <p className="text-5xl font-bold text-blue-400 tracking-widest">{room.code}</p>
-            <p className="text-muted2 text-xs mt-3">Tema: {room.topic}</p>
-          </div>
-          <p className="text-muted2 text-xs">Esperando que se una alguien...</p>
-          <div className="flex items-center gap-2 text-muted2 text-xs">
-            <div className={`w-2 h-2 rounded-full ${realtimeOk ? "bg-green-400 animate-pulse" : "bg-card-soft-theme"}`} />
-            {realtimeOk ? "Presencia activa — te notificaremos al instante" : "Conectando..."}
-          </div>
-        </div>
-      )}
-
-      {/* Chat activo */}
-      {(roomStatus === "active" || !isHost) && (
-        <>
-          {/* Lista de mensajes */}
-          <div className="flex-1 max-w-2xl w-full mx-auto px-4 py-4 space-y-3 overflow-y-auto">
-            {messages.length === 0 && (
-              <div className="text-center py-16">
-                <p className="text-5xl mb-3">🤝</p>
-                <p className="text-sub font-medium">¡Sesión colaborativa iniciada!</p>
-                <p className="text-muted2 text-sm mt-1">Tema: <span className="text-blue-400">{room.topic}</span></p>
-                <p className="text-muted2 text-xs mt-2">El Profesor ACo llegará pronto...</p>
-              </div>
-            )}
-
-            {messages.map((msg) => {
-              const isMe     = msg.user_id === userId
-              const isAgent  = msg.type === "agent"
-              const isSystem = msg.type === "system"
-
-              if (isSystem) return (
-                <div key={msg.id} className="flex justify-center">
-                  <span className="text-muted2 text-xs bg-card-theme border border-soft px-3 py-1 rounded-full">
-                    {msg.content}
-                  </span>
-                </div>
-              )
-
-              if (isAgent) return (
-                <div key={msg.id} className="flex justify-start gap-2">
-                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm flex-shrink-0 mt-1">
-                    🎓
-                  </div>
-                  <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl rounded-tl-sm px-4 py-3 max-w-lg">
-                    <div className="flex items-center gap-2 mb-2">
-                      <span className="text-purple-400 text-xs font-semibold">Profesor ACo</span>
-                      <span className="text-muted2 text-[10px]">{formatTime(msg.created_at)}</span>
-                    </div>
-                    <MathRenderer content={msg.content} />
-                  </div>
-                </div>
-              )
-
-              return (
-                <div key={msg.id} className={`flex gap-2 ${isMe ? "justify-end" : "justify-start"}`}>
-                  {!isMe && <Avatar name={msg.user_name} />}
-                  <div className={`rounded-2xl px-4 py-3 max-w-sm ${isMe ? "bg-blue-600/20 border border-blue-500/30 rounded-tr-sm" : "bg-card-theme border border-soft rounded-tl-sm"}`}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={`text-xs font-semibold ${isMe ? "text-blue-700" : "text-amber-400"}`}>
-                        {isMe ? "Tú" : msg.user_name}
-                      </span>
-                      <span className="text-muted2 text-[10px]">{formatTime(msg.created_at)}</span>
-                    </div>
-                    <p className="text-main text-sm leading-relaxed">{msg.content}</p>
-                  </div>
-                  {isMe && <Avatar name={userName} />}
-                </div>
-              )
-            })}
-
-            {/* ACo thinking */}
-            {acoThinking && (
-              <div className="flex justify-start gap-2">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-sm flex-shrink-0">
-                  🎓
-                </div>
-                <div className="bg-purple-500/10 border border-purple-500/20 rounded-2xl px-4 py-3">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-purple-400 text-xs font-semibold">Profesor ACo está escribiendo...</span>
-                  </div>
-                  <div className="flex gap-1 mt-1">
-                    {[0, 150, 300].map(d => (
-                      <div key={d} className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Typing indicators de otros usuarios */}
-            {typingNames.length > 0 && (
-              <div className="flex justify-start gap-2 items-center">
-                <div className="flex -space-x-1">
-                  {typingUsers.map(u => <Avatar key={u.userId} name={u.userName} />)}
-                </div>
-                <div className="bg-card-soft-theme border border-soft rounded-2xl px-3 py-2 flex items-center gap-2">
-                  <div className="flex gap-0.5">
-                    {[0, 150, 300].map(d => (
-                      <div key={d} className="w-1 h-1 bg-blue-400 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
-                    ))}
-                  </div>
-                  <span className="text-muted2 text-xs">
-                    {typingNames.length === 1
-                      ? `${typingNames[0]} está escribiendo`
-                      : `${typingNames.join(", ")} están escribiendo`}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div ref={bottomRef} />
-          </div>
-
-          {/* Barra inferior — acciones */}
-          <div className="max-w-2xl mx-auto w-full px-4 pb-2 flex items-center gap-4">
-            <button
-              onClick={() => triggerACo(false)}
-              disabled={acoThinking}
-              className="text-xs text-purple-500 hover:text-purple-700 disabled:opacity-40 transition-colors"
-            >
-              🎓 Pedir explicación
-            </button>
-
-            {/* Panel de presencia expandido */}
-            {otherUsers.length > 0 && (
-              <div className="flex items-center gap-1.5 ml-auto">
-                <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-[10px] text-muted2">
-                  {otherUsers.map(u => u.userName).join(", ")} en línea
-                </span>
-              </div>
-            )}
-          </div>
-
-          {/* Input */}
-          <div className="border-t border-soft bg-card-theme backdrop-blur px-4 py-3">
-            <div className="max-w-2xl mx-auto flex gap-3">
-              <input
-                type="text"
-                value={input}
-                onChange={e => handleInputChange(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && !sending && sendMessage()}
-                placeholder="Escribe tu respuesta o pregunta..."
-                className="flex-1 bg-card-soft-theme focus:border-blue-500/40 rounded-2xl px-4 py-2.5 text-main placeholder-gray-400 focus:outline-none text-sm"
-              />
-              <button
-                onClick={sendMessage}
-                disabled={!input.trim() || sending}
-                className="bg-blue-600 hover:bg-blue-500 disabled:bg-card-soft-theme disabled:text-muted2 text-main px-5 py-2.5 rounded-2xl text-sm font-medium transition-colors"
-              >
-                {sending ? "..." : "Enviar"}
-              </button>
-            </div>
-          </div>
-        </>
-      )}
-    </main>
-  )
+export default function CollabClient({code,invite}:{code:string;invite:string}){
+ const [state,setState]=useState<State|null>(null),[access,setAccess]=useState("loading"),[error,setError]=useState(""),[notice,setNotice]=useState(""),[mode,setMode]=useState<"chat"|"video">("chat"),[panel,setPanel]=useState<Panel|null>(null),[input,setInput]=useState(""),[sending,setSending]=useState(false),[thinking,setThinking]=useState(false),[question,setQuestion]=useState(""),[share,setShare]=useState(false)
+ const refreshing=useRef(false),joined=useRef(false)
+ const mutate=useCallback(async(action:string,data:Record<string,unknown>={})=>{const res=await fetch("/api/rooms",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,action,...data})});const json=await res.json().catch(()=>({}));if(!res.ok)throw Error(json.error||"No se pudo completar la acción.");return json},[code])
+ const refresh=useCallback(async()=>{
+  if(refreshing.current)return;refreshing.current=true
+  try{const res=await fetch("/api/rooms?action=state&code="+encodeURIComponent(code),{cache:"no-store"});const data=await res.json().catch(()=>({}));if(res.status===401){setAccess("login");setState(null);return}if(res.status===403){setAccess(data.status||"pending");setState(null);return}if(!res.ok)throw Error(data.error||"No se pudo cargar la sala.");setState(data);setAccess("approved")}
+  catch(e){setError(e instanceof Error?e.message:"Error de conexión.");setAccess(prev=>prev==="loading"?"error":prev)}finally{refreshing.current=false}
+ },[code])
+ const join=useCallback(async()=>{try{const res=await fetch("/api/rooms",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,token:invite})});const data=await res.json().catch(()=>({}));if(res.status===401){setAccess("login");return}if(!res.ok)throw Error(data.error||"No se pudo entrar.");setAccess(data.status);await refresh()}catch(e){setError(e instanceof Error?e.message:"No se pudo entrar.");setAccess("error")}},[code,invite,refresh])
+ useEffect(()=>{if(!joined.current){joined.current=true;void join()}const timer=window.setInterval(()=>{if(document.visibilityState==="visible")void refresh()},5000);return()=>window.clearInterval(timer)},[join,refresh])
+ const host=state?.room.host_id===state?.userId
+ const toggle=(p:Panel)=>setPanel(prev=>prev===p?null:p)
+ const shareLink=()=>window.location.origin+"/collab/"+encodeURIComponent(code)+(state?.room.invite_token?"?invite="+encodeURIComponent(state.room.invite_token):"")
+ async function copy(value:string){try{await navigator.clipboard.writeText(value);setNotice("Copiado al portapapeles.")}catch{setError("No se pudo copiar. Selecciona el enlace manualmente.")}}
+ async function send(){const content=input.trim();if(!content||sending)return;setSending(true);setInput("");setError("");try{const data=await mutate("message",{content});setState(prev=>prev?{...prev,messages:prev.messages.some(m=>m.id===data.message.id)?prev.messages:[...prev.messages,data.message]}:prev)}catch(e){setInput(content);setError(e instanceof Error?e.message:"No se pudo enviar.")}finally{setSending(false)}}
+ async function ask(){if(!question.trim()||thinking)return;setThinking(true);setError("");try{const res=await fetch("/api/agents/collab",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,question:question.trim()})});const data=await res.json();if(!res.ok)throw Error(data.error||"La IA no pudo responder.");setQuestion("");await refresh();if(mode==="video")setPanel("chat");else setPanel(null)}catch(e){setError(e instanceof Error?e.message:"La IA no pudo responder.")}finally{setThinking(false)}}
+ async function manage(action:string,data:Record<string,unknown>={}){try{await mutate(action,data);await refresh()}catch(e){setError(e instanceof Error?e.message:"No se pudo cambiar el permiso.")}}
+ if(!state)return <main className="grid min-h-screen place-items-center bg-app p-4 text-main"><section className="w-full max-w-lg rounded-3xl border border-violet-400/20 bg-card-theme p-6 text-center shadow-lg"><Users className="mx-auto mb-3 text-violet-600" size={36}/><h1 className="text-xl font-bold">Estudio Colaborativo</h1><p className="mt-2 text-sm text-muted2">{access==="login"?"Inicia sesión para aceptar la invitación.":access==="pending"?"Tu solicitud fue enviada. El anfitrión debe permitir tu acceso.":access==="denied"?"El anfitrión no ha autorizado tu acceso.":access==="error"?"No se pudo entrar a la sala.":"Comprobando acceso a la sala…"}</p><p className="mt-2 text-xs text-muted2">Código: {code}</p>{error&&<p role="alert" className="mt-2 text-sm text-rose-600">{error}</p>}<div className="mt-4 flex flex-wrap justify-center gap-2">{access==="login"&&<Link href="/login" target="_blank" className={primary}>Iniciar sesión</Link>}<button type="button" className={control} onClick={()=>void join()}>{access==="login"?"Ya inicié sesión":"Actualizar acceso"}</button><Link href="/collab" className={control}>Volver</Link></div></section></main>
+ const approved=state.people.filter(p=>p.status==="approved"),pending=state.people.filter(p=>p.status==="pending")
+ const chat=<Chat state={state} input={input} setInput={setInput} send={()=>void send()} sending={sending} ask={()=>setPanel("ai")} thinking={thinking}/>
+ return <main className="flex h-[calc(100dvh-var(--legacy-consent-banner-height,0px))] min-h-0 flex-col overflow-hidden bg-app text-main" style={{backgroundImage:"radial-gradient(ellipse at 5% 0%,rgba(167,139,250,.16),transparent 55%),radial-gradient(ellipse at 98% 8%,rgba(45,212,191,.12),transparent 55%)"}}>
+  <header className="shrink-0 border-b border-soft bg-card-theme/90 px-3 py-3 sm:px-6"><div className="mx-auto flex max-w-7xl flex-wrap items-center gap-3"><Link href="/collab" aria-label="Volver a salas" className={control}><ArrowLeft size={17}/></Link><div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-500 text-white"><Users size={22}/></div><div className="min-w-0 flex-1"><h1 className="text-lg font-bold">Estudio Colaborativo</h1><p className="truncate text-xs text-muted2">Mensajería, videollamada y herramientas compartidas</p></div><div className="flex rounded-full border border-violet-300/30 bg-violet-500/5 p-1"><button type="button" aria-pressed={mode==="video"} className={control+" !rounded-full "+(mode==="video"?"!bg-violet-600 !text-white":"")} onClick={()=>{setMode("video");setPanel(null)}}><Video size={15}/> Modo video</button><button type="button" aria-pressed={mode==="chat"} className={control+" !rounded-full "+(mode==="chat"?"!bg-violet-600 !text-white":"")} onClick={()=>{setMode("chat");setPanel(null)}}><MessageCircle size={15}/> Modo chat</button></div></div></header>
+  <div className="mx-auto flex w-full max-w-7xl min-h-0 flex-1 flex-col gap-2 px-2 py-2 sm:px-4 sm:py-3">
+   <section className="shrink-0 rounded-2xl border border-violet-400/20 bg-card-theme p-3 shadow-sm" style={{backgroundImage:"linear-gradient(115deg,rgba(167,139,250,.12),rgba(96,165,250,.07),rgba(45,212,191,.08))"}}><div className="flex flex-wrap items-center gap-2"><div className="min-w-[150px] flex-1"><h2 className="truncate font-bold">{state.room.topic}</h2><button type="button" onClick={()=>toggle("people")} className="text-xs text-muted2">{approved.length} integrantes · {approved.filter(p=>Date.now()-Date.parse(p.last_seen)<20000).length} en línea{host&&pending.length?" · "+pending.length+" solicitudes":""}</button></div><button type="button" className={control} onClick={()=>void copy(code)}><Copy size={14}/>{code}</button><button type="button" className={control} onClick={()=>setShare(!share)}><Link2 size={15}/> Compartir</button>{host&&<select aria-label="Permisos de acceso" value={state.room.access_mode} onChange={e=>void manage("access",{mode:e.target.value})} className={control}><option value="invited">Solo invitados</option><option value="open">Acceso abierto</option></select>}<button type="button" className={control} onClick={()=>toggle("people")}><Shield size={15}/> Acceso</button></div>
+    {share&&<div className="mt-2 flex flex-wrap items-center gap-2 border-t border-soft pt-2"><input readOnly aria-label="Enlace para compartir" value={shareLink()} className={field+" flex-1 min-w-[160px]"}/><button type="button" className={control} onClick={()=>void copy(shareLink())}><Copy size={14}/> Copiar</button><a href={"https://wa.me/?text="+encodeURIComponent("Te invito a estudiar en EduAI: "+shareLink())} target="_blank" rel="noopener noreferrer" className={control}>WhatsApp</a><a href={"mailto:?subject="+encodeURIComponent("Invitación EduAI")+"&body="+encodeURIComponent("Te invito a esta sala: "+shareLink())} className={control}><Mail size={14}/> Correo</a>{host&&<button type="button" className={control} onClick={()=>{if(window.confirm("¿Invalidar el enlace anterior?"))void manage("rotate")}}>Renovar invitación</button>}</div>}
+   </section>
+   {(error||notice)&&<div role={error?"alert":"status"} className="flex shrink-0 items-center gap-2 rounded-xl border border-soft bg-card-theme px-3 py-2 text-xs"><span className="flex-1">{error||notice}</span><button type="button" aria-label="Cerrar aviso" onClick={()=>{setError("");setNotice("")}}><X size={16}/></button></div>}
+   <div className="relative flex min-h-0 flex-1 gap-2">
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col">{mode==="chat"?chat:<CallPanel code={code} userId={state.userId} userName={state.userName} enabled onExit={()=>{setMode("chat");setPanel(null)}}/>}</div>
+    {panel&&!(panel==="chat"&&mode==="chat")&&<aside className="absolute inset-y-0 right-0 z-20 flex w-[min(100%,360px)] min-h-0 flex-col rounded-2xl border border-violet-400/25 bg-card-theme shadow-xl lg:static lg:z-auto lg:w-[340px]"><div className="flex shrink-0 items-center justify-between border-b border-soft px-3 py-2"><strong className="text-sm">{panel==="chat"?"Chat del equipo":actions.find(a=>a.id===panel)?.label}</strong><button type="button" className={control} onClick={()=>setPanel(null)} aria-label="Cerrar panel"><X size={15}/></button></div>
+     {panel==="chat"?chat:<div className="min-h-0 flex-1 overflow-y-auto">{panel==="ai"?<form onSubmit={e=>{e.preventDefault();void ask()}} className="space-y-3 p-3"><p className="text-sm text-muted2">La IA solo responde cuando se solicita. Se enviará la pregunta y el tema de la sala; la respuesta será visible para todos.</p><textarea rows={4} maxLength={4000} aria-label="Pregunta para la IA" value={question} onChange={e=>setQuestion(e.target.value)} className={field} placeholder="¿Qué duda quieres resolver?"/><button type="submit" disabled={!question.trim()||thinking} className={primary}><Sparkles size={16}/>{thinking?"Consultando…":"Preguntar a la IA"}</button></form>:panel==="people"?<div className="space-y-2 p-3">{state.people.map(p=><div key={p.user_id} className="flex flex-wrap items-center gap-2 rounded-xl border border-soft p-2"><div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold">{p.name}{p.user_id===state.room.host_id?" · Anfitrión":""}</p><p className="text-xs text-muted2">{p.status==="pending"?"Solicita acceso":p.status==="denied"?"Acceso denegado":"Miembro"}</p></div>{host&&p.user_id!==state.userId&&<>{p.status!=="approved"&&<button type="button" className={control} onClick={()=>void manage("admit",{userId:p.user_id,status:"approved"})}>Permitir</button>}{p.status!=="denied"&&<button type="button" className={control} onClick={()=>void manage("admit",{userId:p.user_id,status:"denied"})}>{p.status==="pending"?"Denegar":"Revocar"}</button>}</>}</div>)}</div>:<Tools key={panel} panel={panel} state={state} mutate={mutate} refresh={refresh} close={()=>setPanel(null)}/>}</div>}
+    </aside>}
+    <nav aria-label="Herramientas de colaboración" className="z-30 flex shrink-0 flex-col items-center gap-1 overflow-y-auto rounded-2xl border border-violet-400/20 bg-card-theme p-1.5 shadow-sm sm:p-2"><button type="button" className={control+" !px-2"} aria-label="Mostrar u ocultar herramientas" onClick={()=>setPanel(panel?null:"note")}>{panel?<PanelRightClose size={18}/>:<PanelRightOpen size={18}/>}</button>{mode==="video"&&<button type="button" aria-pressed={panel==="chat"} className={control+" !flex-col !px-2"} onClick={()=>toggle("chat")}><MessageCircle size={18}/> <span className="text-[10px]">Chat</span></button>}{actions.map(a=><button key={a.id} type="button" aria-label={a.label} aria-pressed={panel===a.id} className={"flex min-h-11 w-full flex-col items-center justify-center rounded-xl px-2 py-1 text-violet-600 transition hover:bg-violet-500/10 "+(panel===a.id?"bg-violet-500/15":"")} onClick={()=>toggle(a.id)}><a.icon size={19}/><span className="text-[10px]">{a.label}</span></button>)}</nav>
+   </div>
+  </div>
+ </main>
 }
