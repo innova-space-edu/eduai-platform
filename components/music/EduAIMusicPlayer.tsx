@@ -57,14 +57,12 @@ function GamingLightingControl() {
   );
 }
 
-// Reuse the original artwork, isolated from the live controls. The crop shows
-// only the city and DJ; baked-in controls must never sit behind live buttons.
+// Clean city/DJ artwork is independent of live controls and panel geometry.
 function GamingHeroScene() {
   return (
     <div className="gaming-hero-scene" aria-hidden="true">
       <div className="gaming-original-art" />
-      <div className="gaming-hero-halo" />
-      <div className="gaming-hero-line" />
+
     </div>
   );
 }
@@ -170,75 +168,8 @@ function cn(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
 }
 
-const RHYTHM_PENTAGONS = [
-  { left: "-1%", top: "8%", size: 78, glow: "#12eaff", delay: 0, travelX: 18, travelY: -8, rotate: -8 },
-  { left: "8%", top: "25%", size: 54, glow: "#9dff36", delay: -0.08, travelX: 22, travelY: 5, rotate: 11 },
-  { left: "-2%", top: "49%", size: 68, glow: "#536dff", delay: -0.16, travelX: 19, travelY: 8, rotate: -13 },
-  { left: "11%", top: "70%", size: 48, glow: "#12eaff", delay: -0.24, travelX: 20, travelY: -5, rotate: 8 },
-  { left: "3%", top: "84%", size: 62, glow: "#9dff36", delay: -0.32, travelX: 15, travelY: -10, rotate: -6 },
-  { left: "95%", top: "7%", size: 72, glow: "#9dff36", delay: -0.04, travelX: -18, travelY: 8, rotate: 9 },
-  { left: "88%", top: "24%", size: 50, glow: "#12eaff", delay: -0.12, travelX: -22, travelY: -4, rotate: -10 },
-  { left: "96%", top: "45%", size: 64, glow: "#536dff", delay: -0.2, travelX: -18, travelY: 7, rotate: 12 },
-  { left: "87%", top: "68%", size: 54, glow: "#9dff36", delay: -0.28, travelX: -23, travelY: 0, rotate: -8 },
-  { left: "94%", top: "83%", size: 74, glow: "#12eaff", delay: -0.36, travelX: -16, travelY: -9, rotate: 7 },
-  { left: "28%", top: "-2%", size: 44, glow: "#12eaff", delay: -0.1, travelX: 0, travelY: 17, rotate: 6 },
-  { left: "70%", top: "-2%", size: 46, glow: "#9dff36", delay: -0.22, travelX: 0, travelY: 18, rotate: -7 },
-  { left: "30%", top: "93%", size: 42, glow: "#536dff", delay: -0.3, travelX: 0, travelY: -18, rotate: 9 },
-  { left: "69%", top: "92%", size: 48, glow: "#12eaff", delay: -0.38, travelX: 0, travelY: -17, rotate: -5 },
-] as const;
-
 function CyberStaticBackdrop() {
   return <div className="cyber-static-backdrop" aria-hidden="true" />;
-}
-
-// Movimiento medio sin redibujar ni separar artificialmente la imagen original.
-// La copia enmascarada conserva la misma alineación y tamaño que el fondo.
-function CyberDjParallax({ active }: { active: boolean }) {
-  return (
-    <div className={cn("cyber-dj-scene", active && "is-playing")} aria-hidden="true">
-      <div className="cyber-dj-aura" />
-      <div className="cyber-dj-parallax" />
-    </div>
-  );
-}
-
-function RhythmPentagonField({
-  active,
-  currentTime,
-}: {
-  active: boolean;
-  currentTime: number;
-}) {
-  // 0.5 s = pulso visual de 120 BPM. Se recalibra con el reloj real de
-  // reproducción para que pausa/seek no desfasen las figuras.
-  const cycleSeconds = 0.5;
-  const phase = -(Math.max(0, currentTime) % cycleSeconds);
-
-  return (
-    <div
-      className={cn("cyber-rhythm-field", active && "is-playing")}
-      aria-hidden="true"
-    >
-      {RHYTHM_PENTAGONS.map((pentagon, index) => (
-        <span
-          key={index}
-          className="rhythm-pentagon"
-          style={
-            {
-              left: pentagon.left,
-              top: pentagon.top,
-              width: `${pentagon.size}px`,
-              "--pentagon-glow": pentagon.glow,
-              "--travel-x": `${pentagon.travelX}px`,
-              "--travel-y": `${pentagon.travelY}px`,
-              "--pentagon-rotate": `${pentagon.rotate}deg`,
-              animationDelay: `${phase + pentagon.delay}s`,
-            } as CSSProperties
-          }
-        />
-      ))}
-    </div>
-  );
 }
 
 function CyberHeroIllustration() {
@@ -284,34 +215,6 @@ function CyberHeroIllustration() {
         <path d="M26 167c-33 15-55 39-66 72h211c-10-35-34-59-67-72-19 15-57 16-78 0Z" fill="#020611" stroke="url(#hero-neon)" strokeOpacity=".55" strokeWidth="2" />
       </g>
       <path className="cyber-hero-streak" d="M180 206C270 156 330 188 418 140S508 92 560 78" fill="none" stroke="url(#hero-neon)" strokeWidth="3" strokeLinecap="round" filter="url(#hero-glow)" />
-    </svg>
-  );
-}
-
-function MusicBackContour({ active, currentTime }: { active: boolean; currentTime: number }) {
-  const phase = -((Number.isFinite(currentTime) ? currentTime : 0) % 0.62);
-  return (
-    <svg
-      viewBox="0 0 520 300"
-      className={cn("music-back-contour", active && "is-playing")}
-      style={{ "--contour-delay": `${phase}s` } as CSSProperties}
-      aria-hidden="true"
-    >
-      <defs>
-        <linearGradient id="music-back-neon" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#12eaff" />
-          <stop offset="48%" stopColor="#536dff" />
-          <stop offset="100%" stopColor="#9dff36" />
-        </linearGradient>
-      </defs>
-      <path
-        className="music-back-contour-glow"
-        d="M292 34 C252 42 226 67 215 103 C206 132 211 151 198 168 C181 190 147 203 122 225 C105 240 93 259 87 282"
-      />
-      <path
-        className="music-back-contour-core"
-        d="M292 34 C252 42 226 67 215 103 C206 132 211 151 198 168 C181 190 147 203 122 225 C105 240 93 259 87 282"
-      />
     </svg>
   );
 }
@@ -2165,7 +2068,7 @@ function NeonSidebar({
         Volver a Agentes
       </Link>
 
-      <div className="mt-3 space-y-1">
+      <div className="gaming-navigation mt-3 space-y-1">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
           const active = item.id === "spotify" ? spotifyActive : music.view === item.view;
@@ -2206,7 +2109,7 @@ function NeonSidebar({
         })}
       </div>
 
-      <div className="mt-4 border-t border-cyan-300/15 pt-3">
+      <div className="gaming-library mt-4 border-t border-cyan-300/15 pt-3">
         <div className="flex items-center justify-between px-2">
           <div>
             <p className="text-[9px] font-black uppercase tracking-[0.18em] text-cyan-200/80">Biblioteca</p>
@@ -2241,7 +2144,7 @@ function NeonSidebar({
           </div>
         )}
 
-        <div className="mt-2 space-y-0.5">
+        <div className="gaming-playlists mt-2 space-y-0.5">
           {music.userPlaylists.slice(0, 6).map((playlist) => (
             <button
               key={playlist.id}
@@ -2273,7 +2176,7 @@ function NeonSidebar({
         </div>
       </div>
 
-      <div className="mt-auto border-t border-cyan-300/15 pt-3">
+      <div className="gaming-library-footer mt-auto border-t border-cyan-300/15 pt-3">
         <button
           type="button"
           onClick={() => {
@@ -2436,7 +2339,7 @@ function SpotifyCenter({
 }) {
   return (
     <main className="neon-main min-h-0 overflow-hidden px-[clamp(12px,1.2vw,20px)] pb-3 pt-5">
-      <div className="flex h-full min-h-0 flex-col">
+      <div className="gaming-main-stack flex h-full min-h-0 flex-col">
         <div className="flex shrink-0 items-center justify-between gap-3 px-2 pb-3">
           <div className="flex min-w-0 items-center gap-3">
             <Link
@@ -2645,8 +2548,8 @@ function NeonMain({
   }
 
   return (
-    <main className="neon-main min-h-0 overflow-hidden px-[clamp(12px,1.2vw,20px)] pb-3 pt-5">
-      <div className="flex h-full min-h-0 flex-col">
+    <main data-embedded-radio={music.view === "radio" && isEmbedTrack(music.currentTrack) && Boolean(getEmbedUrl(music.currentTrack))} className="neon-main min-h-0 overflow-hidden px-[clamp(12px,1.2vw,20px)] pb-3 pt-5">
+      <div className="gaming-main-stack flex h-full min-h-0 flex-col">
         <div className="gaming-hero relative shrink-0 px-[clamp(12px,2vw,30px)] pt-[clamp(6px,1vh,14px)]">
           <GamingHeroScene />
           <Link
@@ -2799,7 +2702,7 @@ function NeonMain({
             </section>
           )}
 
-          <div className="neon-view-context mt-3 flex items-center justify-between gap-3 rounded-xl border border-cyan-300/15 bg-[#03101c]/72 px-3 py-2">
+          {(music.view === "radio" || music.view === "liked") && <div className="neon-view-context mt-3 flex items-center justify-between gap-3 rounded-xl border border-cyan-300/15 bg-[#03101c]/72 px-3 py-2">
             <div className="min-w-0">
               <p className="truncate text-[11px] font-black text-cyan-100">{viewTitle}</p>
               <p className="truncate text-[9px] text-slate-400">{viewDescription}</p>
@@ -2820,10 +2723,10 @@ function NeonMain({
                 </button>
               </div>
             ) : (
-              <span className="hidden shrink-0 rounded-full border border-emerald-300/20 bg-emerald-300/8 px-2 py-1 text-[8px] font-black uppercase tracking-[.12em] text-emerald-200 sm:inline-flex">Reproducción continua</span>
+              null
             )}
-          </div>
-          {(music.view === "radio" && (music.radioLoading || music.radioError)) || ((music.view === "search" || music.view === "liked") && music.onlineError) ? (
+          </div>}
+          {music.view === "radio" && (music.radioLoading || music.radioError) ? (
             <div className={cn(
               "mt-2 flex items-center justify-between gap-3 rounded-xl border px-3 py-2 text-[9px] font-bold",
               music.view === "radio" && music.radioError
@@ -2868,9 +2771,9 @@ function NeonMain({
         </div>
 
         <div className={cn("gaming-results mt-3 min-h-0 flex-1 px-2", music.view === "radio" && "overflow-y-auto overscroll-contain pb-3 [scrollbar-color:#12eaff55_transparent] [scrollbar-width:thin]")}>
-          <div className={cn("flex min-h-0 flex-col gap-3", music.view === "radio" ? "min-h-full" : "h-full")}>
-            <div className="shrink-0">
-              <div className="mb-2 flex items-center justify-between">
+          <div className="gaming-results-stack flex min-h-0 flex-col">
+            <div className="gaming-catalog-section shrink-0">
+              <div className="gaming-catalog-heading mb-2 flex items-center justify-between">
                 <div>
                   <h2 className="text-[13px] font-black text-white">
                     {music.view === "search" ? "Catálogo de resultados" : music.view === "home" ? "Escuchado recientemente" : viewTitle}
@@ -2903,6 +2806,17 @@ function NeonMain({
                 )}
               </div>
 
+              <div className="gaming-catalog-controls" aria-label="Navegar catálogo">
+                {([-1, 1] as const).map((direction) => (
+                  <button key={direction} type="button" aria-label={direction < 0 ? "Resultados anteriores" : "Resultados siguientes"}
+                    onClick={() => {
+                      const scroller = catalogScrollerRef.current;
+                      if (scroller) scroller.scrollBy({ left: direction * scroller.clientWidth * .8, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+                    }}>
+                    {direction < 0 ? <ChevronLeft /> : <ChevronRight />}
+                  </button>
+                ))}
+              </div>
               {catalogTracks.length > 0 && (
                 <div className="neon-catalog-surface relative rounded-2xl p-2.5">
                   {music.view === "liked" ? (
@@ -2918,17 +2832,6 @@ function NeonMain({
                     </div>
                   ) : (
                     <>
-                    <div className="gaming-catalog-controls" aria-label="Navegar catálogo">
-                      {([-1, 1] as const).map((direction) => (
-                        <button key={direction} type="button" aria-label={direction < 0 ? "Resultados anteriores" : "Resultados siguientes"}
-                          onClick={() => {
-                            const scroller = catalogScrollerRef.current;
-                            if (scroller) scroller.scrollBy({ left: direction * scroller.clientWidth * .8, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
-                          }}>
-                          {direction < 0 ? <ChevronLeft /> : <ChevronRight />}
-                        </button>
-                      ))}
-                    </div>
                     <div
                     ref={catalogScrollerRef}
                     className="neon-catalog flex gap-3 overflow-x-auto pb-1"
@@ -2956,7 +2859,7 @@ function NeonMain({
               )}
             </div>
 
-            <div className={cn("flex flex-1 flex-col", music.view === "radio" ? "min-h-[190px]" : "min-h-0")}>
+            <div className="gaming-table-section flex min-h-0 flex-1 flex-col">
               <div className="mb-1.5 flex shrink-0 items-center justify-between">
                 <h2 className="text-[13px] font-black text-white">{music.view === "mix" ? "Lista completa · Mix Favorite" : music.view === "home" ? "Canciones para ti" : music.view === "radio" ? "Lista completa de emisoras" : "Canciones"}</h2>
                 <span className="text-[9px] font-bold text-cyan-300/85">{tableTracks.length} resultados</span>
@@ -3446,9 +3349,7 @@ export default function EduAIMusicPlayer({
     <GamingLightingContext.Provider value={lightingContext}>
     <div className="eduai-music-cyber relative h-screen min-h-[560px] overflow-hidden bg-[#05070a] text-white md:min-h-[680px]" data-lighting={effectiveLighting} data-playing={music.playing}>
       <CyberStaticBackdrop />
-      <CyberDjParallax active={music.playing && effectiveLighting === "dynamic"} />
-      <MusicBackContour active={music.playing && effectiveLighting === "dynamic"} currentTime={music.currentTime} />
-      <RhythmPentagonField active={music.playing && effectiveLighting === "dynamic"} currentTime={music.currentTime} />
+
       <style jsx global>{`
         @keyframes eduai-dj-progress {
           from { transform: scaleX(0); }
@@ -4472,270 +4373,175 @@ export default function EduAIMusicPlayer({
           }
         }
 
-        /* Emerald RGB Gaming Edition — structural borders remain independent of artwork. */
+        /* Gaming layout: one grid, independent artwork, content-owned scrolling. */
         .eduai-music-cyber {
-          --gaming-cyan: #12eaff;
-          --gaming-blue: #3975ff;
-          --gaming-green: #39f5a3;
-          --gaming-lime: #a5ff39;
-          --gaming-violet: #8b78ff;
-          --gaming-spectrum: linear-gradient(100deg,#3975ff,#12eaff,#39f5a3,#a5ff39,#12eaff,#536dff,#3975ff);
-          background: #020711;
+          --gaming-cyan:#12eaff;--gaming-blue:#3776ff;--gaming-green:#39f5a3;--gaming-lime:#a5ff39;
+          --gaming-spectrum:linear-gradient(110deg,#166bff,#12eaff 30%,#39ff8f 55%,#246aff 80%,#12eaff);
+          --music-gap:clamp(8px,.7vw,14px);--music-pad:clamp(12px,1vw,22px);
+          --music-dock:clamp(82px,11.5dvh,116px);--music-nav:clamp(27px,4dvh,46px);
+          height:100dvh;min-height:0 !important;background:#020815;
         }
-        .eduai-music-cyber .cyber-static-backdrop {
-          background: radial-gradient(ellipse at 76% 12%,#073d4d 0,transparent 38%),radial-gradient(ellipse at 12% 80%,#0b173e,transparent 45%),linear-gradient(145deg,#020611,#061420 60%,#020710);
-          transform: none;
+        .eduai-music-cyber .cyber-static-backdrop { background:radial-gradient(ellipse at 60% 0,#06304d,transparent 65%),#020712;transform:none; }
+        .eduai-music-cyber .cyber-static-backdrop::after { background:repeating-linear-gradient(120deg,transparent 0 100px,#127cd00b 101px 102px); }
+        .eduai-music-cyber .neon-overlay { display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) var(--music-dock);gap:var(--music-gap);height:100%;padding:var(--music-gap); }
+        .eduai-music-cyber .neon-layout { height:auto;min-height:0;min-width:0;padding:0;gap:var(--music-gap);grid-template-columns:clamp(180px,16.5vw,300px) minmax(0,1fr) clamp(260px,23vw,410px); }
+        .eduai-music-cyber :is(.neon-sidebar,.neon-main,.neon-right-panel,.neon-bottom-player) {
+          position:relative;isolation:isolate;border:1px solid transparent;border-radius:22px 7px 22px 7px;
+          background:linear-gradient(155deg,#041020,#020916 75%) padding-box,var(--gaming-spectrum) border-box;
+          background-size:100% 100%,240% 100%;
+          box-shadow:inset 0 0 0 3px #020812,inset 0 0 0 4px #1078c97a,inset 0 0 22px #106bff22,0 0 9px #12eaff50;
+          backdrop-filter:none;animation:gaming-frame-flow 12s linear infinite;
         }
-        .eduai-music-cyber .cyber-dj-scene { display:none; }
-        .eduai-music-cyber .neon-sidebar,
-        .eduai-music-cyber .neon-main,
-        .eduai-music-cyber .neon-right-panel,
-        .eduai-music-cyber .neon-bottom-player {
-          border:1px solid transparent;
-          background:linear-gradient(155deg,#071321 0%,#030b16 60%,#061424 100%) padding-box,var(--gaming-spectrum) border-box;
-          background-size:100% 100%,250% 100%;
-          border-radius:14px;
-          box-shadow:inset 0 0 22px #0a40ab26,0 0 12px #157dff30,0 12px 30px #0008;
-          animation:gaming-frame-flow 11s linear infinite;
+        /* Corner rails are attached to panel boxes, never to scrolling content. */
+        .eduai-music-cyber :is(.neon-sidebar,.neon-main,.neon-right-panel,.neon-bottom-player)::before {
+          content:"";position:absolute;inset:2px;pointer-events:none;z-index:0;border-radius:20px 5px 20px 5px;
+          background:linear-gradient(135deg,#19dfff 0 16px,transparent 17px) top left / 65px 18px no-repeat,linear-gradient(315deg,#19dfff 0 16px,transparent 17px) bottom right / 65px 18px no-repeat,linear-gradient(90deg,#1274ff,#39ffae,transparent) top left / 38% 2px no-repeat,linear-gradient(270deg,#1274ff,#12eaff,transparent) bottom right / 38% 2px no-repeat;
+          opacity:.85;filter:drop-shadow(0 0 3px #12eaff);
         }
-        .eduai-music-cyber .neon-main { background-image:linear-gradient(155deg,#061421,#020a15 67%,#06111d),var(--gaming-spectrum); }
-        .eduai-music-cyber .neon-bottom-player { border-radius:14px 14px 0 0; box-shadow:0 -3px 20px #0b66ff45; }
-        @keyframes gaming-frame-flow { 0%{background-position:0 0,0% 50%} 100%{background-position:0 0,166.6667% 50%} }
-        @keyframes gaming-gradient-flow { 0%{background-position:0% 50%} 100%{background-position:166.6667% 50%} }
-        @keyframes gaming-halo { 0%,100%{opacity:.48;transform:scale(.97)} 50%{opacity:.82;transform:scale(1.035)} }
-        @keyframes gaming-city-glow { 0%,100%{opacity:.45} 50%{opacity:.95} }
-        .gaming-hero { isolation:isolate; }
-        .gaming-hero-scene { position:absolute;inset:-12px -10px 0;overflow:hidden;z-index:-1;pointer-events:none;mask-image:linear-gradient(to bottom,#000 0%,#000 56%,transparent 92%); }
-        .gaming-hero-scene > svg { top:-8px;right:0;opacity:.75;max-height:210px;pointer-events:none; }
-        .gaming-hero-halo { position:absolute;right:9%;top:-40px;width:230px;height:230px;border-radius:50%;border:2px solid #47ffae;box-shadow:0 0 32px #17efaf60,inset 0 0 24px #13bfff33;animation:gaming-halo 6s ease-in-out infinite; }
-        .gaming-skyline { position:absolute;left:35%;right:0;top:22px;height:112px;display:flex;align-items:flex-end;gap:3px;opacity:.75;mask-image:linear-gradient(90deg,transparent,#000 20%); }
-        .gaming-skyline span { flex:1;height:var(--building-height);background:repeating-linear-gradient(0deg,transparent 0 5px,#16e8ff35 5px 6px),linear-gradient(90deg,#071e35,#0b3452 70%,#12eaff6b);border-top:1px solid #2dffae99;box-shadow:0 0 9px #12eaff33;animation:gaming-city-glow 4s ease-in-out infinite;animation-delay:var(--building-delay); }
-        .gaming-skyline span:nth-child(4n) { border-top-color:#a5ff39;box-shadow:0 0 12px #a5ff3938; }
-        .gaming-hero-line { position:absolute;left:0;right:0;top:125px;height:1px;background:var(--gaming-spectrum);background-size:250% 100%;box-shadow:0 0 15px #12eaff;animation:gaming-gradient-flow 5s linear infinite; }
-        .gaming-hero-kicker { position:relative; }
-        .gaming-lighting-control { position:relative;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;padding:5px 9px;border-radius:999px;border:1px solid #39f5a36b;background:#061321e8;color:#c4ffcb;font-size:9px;font-weight:800; }
-        .gaming-status-dot { height:6px;width:6px;border-radius:50%;background:var(--gaming-lime);box-shadow:0 0 8px var(--gaming-lime); }
-        .eduai-music-cyber .neon-title-gradient { background-image:linear-gradient(90deg,#12eaff,#39f5a3,#a5ff39,#12eaff,#536dff,#12eaff);background-size:250% 100%;animation:gaming-gradient-flow 8s linear infinite; }
-        .eduai-music-cyber .neon-nav-button.is-active,
-        .eduai-music-cyber .neon-search,
-        .eduai-music-cyber .neon-queue-row.is-active,
-        .eduai-music-cyber .neon-track-row.is-active,
-        .eduai-music-cyber .neon-recent-card.is-active {
-          border:1px solid transparent !important;
-          background:linear-gradient(120deg,#093347,#061523 65%,#092b21) padding-box,var(--gaming-spectrum) border-box;
-          background-size:100% 100%,250% 100%;
-          box-shadow:0 0 15px #12eaff38,inset 0 0 14px #39f5a317;
-          animation:gaming-frame-flow 6s linear infinite;
+        .eduai-music-cyber :is(.neon-sidebar,.neon-main,.neon-right-panel,.neon-bottom-player)::after { content:none; }
+        .eduai-music-cyber .neon-sidebar { padding:var(--music-pad);overflow:hidden;gap:0; }
+        .eduai-music-cyber .neon-sidebar > * { flex-shrink:0; }
+        .eduai-music-cyber .neon-sidebar > a { height:32px;min-height:32px;margin-top:12px; }
+        .eduai-music-cyber .gaming-navigation { margin-top:10px;display:grid;gap:clamp(2px,.4dvh,5px); }
+        .eduai-music-cyber .gaming-navigation > * { margin:0; }
+        .eduai-music-cyber .neon-nav-button { height:var(--music-nav);min-height:0;border-radius:999px;font-size:clamp(11px,.85vw,15px);border-color:#167ab480;background:#030e1d; }
+        .eduai-music-cyber .neon-nav-button.is-active { background:linear-gradient(100deg,#073746,#031820);border-color:#7aff8e;box-shadow:0 0 5px #44ff8c,0 0 14px #12eaff66,inset 0 0 14px #00ffa633; }
+        .eduai-music-cyber .gaming-library { margin-top:12px;padding-top:10px;min-height:0;flex:1;display:flex;flex-direction:column; }
+        .eduai-music-cyber .gaming-playlists { min-height:0;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#12eaff55 transparent; }
+        .eduai-music-cyber .gaming-library-footer { margin-top:8px;padding-top:8px; }
+        .eduai-music-cyber .neon-main { padding:var(--music-pad);overflow:hidden !important; }
+        .eduai-music-cyber .gaming-main-stack { height:100%;min-height:0;min-width:0;gap:10px; }
+        .eduai-music-cyber .gaming-hero { flex:none;isolation:isolate;position:relative;padding:12px 8px 0;min-height:clamp(170px,26dvh,290px);display:flex;flex-direction:column;justify-content:flex-end; }
+        .eduai-music-cyber .gaming-hero-scene { position:absolute;inset:-8px -8px 0;z-index:-1;overflow:hidden;mask-image:none;border-radius:14px;pointer-events:none; }
+        .gaming-original-art { position:absolute;inset:0;background:linear-gradient(90deg,#030d1b 0%,#030d1b55 36%,transparent 75%),url('/music/eduai-music-dj-hero.webp') right center / auto 100% no-repeat;mask-image:linear-gradient(#000 0 82%,transparent); }
+        .eduai-music-cyber .gaming-hero-halo,.eduai-music-cyber .gaming-hero-line { display:none; }
+        .eduai-music-cyber .gaming-hero-kicker { align-items:flex-start; }
+        .gaming-lighting-control { display:inline-flex;align-items:center;gap:5px;white-space:nowrap;padding:5px 8px;border-radius:999px;border:1px solid #39f5a366;background:#041525d9;color:#c4ffcb;font-size:9px;font-weight:800; }
+        .gaming-status-dot { width:5px;height:5px;border-radius:50%;background:#95ff43;box-shadow:0 0 5px #95ff43; }
+        .eduai-music-cyber .gaming-hero h1 { font-size:clamp(35px,3.6vw,78px);font-style:italic;letter-spacing:-.055em;margin-top:8px;max-width:76%; }
+        .eduai-music-cyber .gaming-hero > p { font-size:clamp(8px,.65vw,12px);position:relative; }
+        .eduai-music-cyber .neon-title-gradient { background-image:linear-gradient(90deg,#12eaff,#35ffd1,#a5ff39,#12eaff);background-size:240% 100%;animation:gaming-gradient-flow 8s linear infinite; }
+        .eduai-music-cyber .neon-search-row { max-width:none;margin-top:auto;padding-top:14px;gap:10px;width:100%; }
+        .eduai-music-cyber .neon-search { height:clamp(38px,5dvh,52px);border-radius:999px;border:1px solid #5cdfff !important;background:linear-gradient(110deg,#031224d9,#03122488);box-shadow:0 0 6px #12eaff88,0 0 14px #3776ff50,inset 0 0 15px #215cff22;backdrop-filter:blur(6px); }
+        .eduai-music-cyber .neon-search input { font-size:clamp(11px,.85vw,15px); }
+        .eduai-music-cyber .gaming-search-button { height:clamp(38px,5dvh,50px);border-radius:999px;background:linear-gradient(115deg,#a5ff39,#17ff54);color:#02140b;font-size:12px;padding:0 20px;box-shadow:0 0 14px #39ff8755; }
+        .eduai-music-cyber .gaming-hero > .mt-2 { gap:6px;margin-top:8px; }
+        .eduai-music-cyber .neon-filter-chip { padding:6px 12px;font-size:clamp(10px,.7vw,13px);border-color:#168bb080; }
+        .eduai-music-cyber .neon-filter-chip.is-active { background:linear-gradient(#a2ff3a,#19f54e);color:#02140b !important;border-color:#8bff91;box-shadow:0 0 10px #39ff8750; }
+        .eduai-music-cyber .neon-view-context { margin-top:8px;padding:6px 12px;border-radius:14px;background:#031425b3; }
+        .eduai-music-cyber .neon-view-context > div:first-child { display:none; }
+        .eduai-music-cyber .gaming-results { flex:1;min-height:0;margin:0;padding:0;overflow:hidden !important; }
+        .eduai-music-cyber .gaming-results-stack { height:100%;min-height:0;min-width:0;gap:10px; }
+        .eduai-music-cyber .gaming-catalog-section { position:relative;flex:none;min-height:0; }
+        .eduai-music-cyber .gaming-catalog-heading { min-height:30px;margin-bottom:6px;padding-right:78px; }
+        .eduai-music-cyber :is(.neon-main h2,.neon-right-panel h2,.neon-right-panel h3) { border:0;padding-left:10px;position:relative;font-size:clamp(14px,1.1vw,22px);line-height:1.2; }
+        .eduai-music-cyber :is(.neon-main h2,.neon-right-panel h2,.neon-right-panel h3)::before { content:"";position:absolute;left:0;top:0;width:3px;height:100%;background:#a5ff39;box-shadow:0 0 7px #39ff88;transform:skew(-12deg); }
+        .eduai-music-cyber .neon-catalog-surface { padding:8px;background:#020a17aa;border:1px solid #1279ba66;border-radius:18px;box-shadow:none;overflow:hidden; }
+        .eduai-music-cyber .neon-catalog { gap:8px;padding:2px;scrollbar-width:none;align-items:stretch; }
+        .eduai-music-cyber .neon-catalog::-webkit-scrollbar { display:none; }
+        .eduai-music-cyber .neon-catalog-slide { flex:0 0 calc((100% - 32px) / 5);width:calc((100% - 32px) / 5);min-width:0; }
+        .eduai-music-cyber .neon-recent-card { padding:5px 5px 8px;border-radius:14px;border:1px solid #12eaffb3;background:linear-gradient(155deg,#072136,#020a17 65%);box-shadow:inset 0 0 7px #12eaff20,0 0 5px #126dff30; }
+        .eduai-music-cyber .neon-catalog-slide:nth-child(2n) .neon-recent-card { border-color:#7772ffb0; }
+        .eduai-music-cyber .neon-recent-card.is-active,.eduai-music-cyber .neon-recent-card:hover { transform:none;border-color:#5dffb2;box-shadow:inset 0 0 10px #39ffaf22,0 0 8px #39ffaf50; }
+        .eduai-music-cyber .neon-recent-card > div:first-child { aspect-ratio:1.35;max-height:clamp(90px,16dvh,215px);border-radius:9px; }
+        .eduai-music-cyber .gaming-card-like { position:relative;align-self:flex-start;margin:3px 0 0;height:22px;width:24px;border:0;background:transparent;box-shadow:none; }
+        .eduai-music-cyber .neon-recent-meta { margin-top:2px;min-height:0; }
+        .eduai-music-cyber .neon-recent-meta p:first-child { font-size:clamp(10px,.76vw,14px);line-height:1.3;font-weight:700;min-height:2.6em; }
+        .eduai-music-cyber .neon-recent-meta p + p { margin-top:4px;font-size:clamp(9px,.7vw,12px);color:#a9d3e5; }
+        .eduai-music-cyber .neon-recent-card > a { margin-top:6px;font-size:clamp(9px,.7vw,12px); }
+        .gaming-catalog-controls { position:absolute;top:0;right:0;display:flex;gap:6px; }
+        .gaming-catalog-controls button { display:grid;place-items:center;width:28px;height:28px;border-radius:50%;border:1px solid #12eaff80;color:#6dffe1;background:#031827; }
+        .gaming-catalog-controls svg { width:17px;height:17px; }
+        .eduai-music-cyber .gaming-table-section { flex:1;min-height:0; }
+        .eduai-music-cyber .gaming-song-list { flex:1;min-height:0 !important;max-height:none;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#12eaff55 transparent; }
+        .eduai-music-cyber .neon-track-row { min-height:36px;border-radius:8px; }
+        .eduai-music-cyber .neon-right-panel { padding:var(--music-pad);overflow:hidden; }
+        .eduai-music-cyber .neon-youtube-player { max-width:none;max-height:27dvh;border-radius:14px;border-color:#12eaff80;box-shadow:0 0 12px #12eaff25; }
+        .eduai-music-cyber .neon-right-panel .neon-spectrum-bar { background:linear-gradient(to top,#267aff,#12eaff 55%,#5bff52);box-shadow:0 0 6px #12eaff66; }
+        .eduai-music-cyber .neon-queue-list { scrollbar-width:thin;scrollbar-color:#12eaff55 transparent; }
+        .eduai-music-cyber .neon-queue-row { min-height:clamp(34px,4.8dvh,51px);border-radius:10px;border-color:#1665b26b; }
+        .eduai-music-cyber .neon-queue-row.is-active { background:linear-gradient(90deg,#07503966,#06314c66);border-color:#52ff9b;box-shadow:inset 0 0 10px #39ff8a22,0 0 8px #39ff8a40; }
+        .eduai-music-cyber .neon-queue-row button > span:first-child { font-size:clamp(10px,.7vw,13px); }
+        .eduai-music-cyber .neon-queue-row button > span + span { font-size:clamp(9px,.6vw,11px); }
+        .eduai-music-cyber .neon-bottom-player { position:relative;inset:auto;height:100%;padding:8px clamp(12px,1.3vw,28px);border-radius:18px 6px 18px 6px; }
+        .eduai-music-cyber .neon-bottom-grid { grid-template-columns:minmax(180px,23%) minmax(300px,1fr) minmax(150px,18%);gap:16px;position:relative;z-index:1; }
+        .eduai-music-cyber .neon-bottom-grid > div:first-child img { height:clamp(42px,7dvh,70px);width:clamp(42px,7dvh,70px);border-radius:8px;border:1px solid #12eaff90; }
+        .eduai-music-cyber .neon-bottom-grid > div:first-child p:first-child { font-size:clamp(11px,.9vw,17px); }
+        .eduai-music-cyber .neon-control-button { height:clamp(30px,4.6dvh,46px);width:clamp(30px,4.6dvh,46px);border-color:#12eaff80; }
+        .eduai-music-cyber .neon-main-play { width:clamp(44px,7dvh,72px);height:clamp(44px,7dvh,72px);background:#041526;border:3px solid #50ffad;color:white;box-shadow:0 0 13px #12eaff66,inset 0 0 12px #12eaff33; }
+        .eduai-music-cyber .neon-main-play svg { height:24px;width:24px; }
+        .gaming-dock-waves { position:absolute;left:25%;right:25%;bottom:24px;display:grid;grid-template-columns:1fr 1fr;gap:48%;pointer-events:none;opacity:.4; }
+        .eduai-music-cyber .gaming-progress-fill { background:linear-gradient(90deg,#12eaff,#39ffae,#82ff43);box-shadow:0 0 7px #12eaff80; }
+        .eduai-music-cyber input[type=range] { accent-color:#39ffad; }
+        .eduai-music-cyber button:focus-visible,.eduai-music-cyber a:focus-visible,.eduai-music-cyber [tabindex="0"]:focus-visible { outline:2px solid #a5ff39;outline-offset:2px; }
+        @keyframes gaming-frame-flow { to { background-position:0 0,166.667% 50%; } }
+        @keyframes gaming-gradient-flow { to { background-position:166.667% 50%; } }
+        .eduai-music-cyber[data-lighting="off"] :is(.neon-sidebar,.neon-main,.neon-right-panel,.neon-bottom-player,.neon-title-gradient,.neon-main-play) { animation:none !important; }
+        .eduai-music-cyber[data-lighting="calm"] :is(.neon-sidebar,.neon-main,.neon-right-panel,.neon-bottom-player,.neon-title-gradient) { animation-duration:30s; }
+        @media (max-height:760px) and (min-width:1000px) {
+          .eduai-music-cyber { --music-pad:12px;--music-nav:clamp(28px,4.5dvh,34px);--music-dock:82px; }
+          .eduai-music-cyber .gaming-hero { min-height:170px;padding-top:4px; }
+          .eduai-music-cyber .gaming-hero h1 { font-size:clamp(32px,3.5vw,52px);margin-top:4px; }
+          .eduai-music-cyber .gaming-library { margin-top:8px;padding-top:6px; }
+          .eduai-music-cyber .gaming-navigation { gap:3px;margin-top:8px; }
+          .eduai-music-cyber .gaming-library-footer { padding-top:4px;margin-top:4px; }
+          .eduai-music-cyber .neon-recent-card > div:first-child { max-height:104px;aspect-ratio:1.45; }
+          .eduai-music-cyber .neon-right-panel > div > div:last-child { margin-top:10px;padding-top:9px; }
         }
-        .eduai-music-cyber .neon-nav-button.is-active { box-shadow:inset 3px 0 0 var(--gaming-lime),0 0 15px #12eaff50; }
-        .eduai-music-cyber .neon-filter-chip.is-active,
-        .eduai-music-cyber .gaming-search-button { background:linear-gradient(105deg,#12eaff,#39f5a3,#a5ff39,#39f5a3,#12eaff);background-size:250% 100%;color:#02140b !important;border-color:#83ff9e !important;box-shadow:0 0 14px #39f5a350;animation:gaming-gradient-flow 7s linear infinite; }
-        .eduai-music-cyber .neon-recent-card { border-color:#1e8edc70;background:linear-gradient(150deg,#081b2e,#030c17); }
-        .eduai-music-cyber .neon-recent-card:hover { border-color:#5fffac;box-shadow:0 0 20px #39f5a344;transform:translateY(-2px); }
-        .eduai-music-cyber .neon-catalog-surface { border-color:#2e86e84d;background:#030b16cc; }
-        .eduai-music-cyber .neon-right-panel h2,
-        .eduai-music-cyber .neon-right-panel h3,
-        .eduai-music-cyber .neon-main h2 { border-left:3px solid var(--gaming-lime);padding-left:8px; }
-        .eduai-music-cyber .neon-youtube-player { border-color:#38eead65;box-shadow:0 0 22px #12eaff30; }
-        .eduai-music-cyber .neon-spectrum-bar { background:linear-gradient(to top,#3975ff,#12eaff 45%,#39f5a3 76%,#a5ff39);box-shadow:0 0 8px #12eaff5c; }
-        .eduai-music-cyber .neon-spectrum-bar:nth-child(3n) { background:linear-gradient(to top,#3975ff,#8b78ff 55%,#12eaff); }
-        .eduai-music-cyber .gaming-progress-fill { background:var(--gaming-spectrum);background-size:250% 100%;animation:gaming-gradient-flow 7s linear infinite;box-shadow:0 0 9px #12eaff85;position:relative; }
-        .eduai-music-cyber .gaming-progress-fill::after { content:"";position:absolute;right:0;top:0;width:7px;height:100%;border-radius:50%;background:#eaffd9;box-shadow:0 0 7px #a5ff39; }
-        .eduai-music-cyber .gaming-progress:focus-within { outline:2px solid var(--gaming-lime);outline-offset:3px;border-radius:5px; }
-        .eduai-music-cyber .neon-main-play { background:linear-gradient(#051b2b,#06101c) padding-box,var(--gaming-spectrum) border-box; background-size:100% 100%,250% 100%;border:3px solid transparent;color:#efffff;box-shadow:0 0 22px #12eaff65; }
-        .eduai-music-cyber .neon-main-play.is-playing { animation:gaming-frame-flow 3s linear infinite,neon-play-breathe 2s ease-in-out infinite; }
-        .eduai-music-cyber .neon-control-button:hover,.eduai-music-cyber .neon-control-button.is-active { border-color:#39f5a3;color:#c4ffdb;box-shadow:0 0 12px #39f5a344; }
-        .eduai-music-cyber .neon-bottom-grid { position:relative;z-index:1; }
-        .gaming-dock-waves { position:absolute;left:26%;right:26%;bottom:20px;display:grid;grid-template-columns:1fr 1fr;gap:48%;pointer-events:none;opacity:.33; }
-        .eduai-music-cyber input[type="range"] { accent-color:var(--gaming-green); }
-        .eduai-music-cyber button:focus-visible,.eduai-music-cyber a:focus-visible { outline:2px solid var(--gaming-lime);outline-offset:2px; }
-        .eduai-music-cyber[data-playing="false"] .gaming-hero-halo,
-        .eduai-music-cyber[data-playing="false"] .gaming-skyline span { animation-play-state:paused; }
-        .eduai-music-cyber[data-lighting="calm"] .gaming-skyline span,
-        .eduai-music-cyber[data-lighting="calm"] .gaming-hero-halo,
-        .eduai-music-cyber[data-lighting="calm"] .rhythm-pentagon,
-        .eduai-music-cyber[data-lighting="calm"] .music-back-contour { animation:none !important; }
-        .eduai-music-cyber[data-lighting="calm"] .neon-sidebar,
-        .eduai-music-cyber[data-lighting="calm"] .neon-main,
-        .eduai-music-cyber[data-lighting="calm"] .neon-right-panel,
-        .eduai-music-cyber[data-lighting="calm"] .neon-bottom-player { animation-duration:28s; }
-        .eduai-music-cyber[data-lighting="off"] :is(.neon-sidebar,.neon-main,.neon-right-panel,.neon-bottom-player,.neon-title-gradient,.neon-nav-button,.neon-search,.neon-queue-row,.neon-track-row,.neon-recent-card,.neon-filter-chip,.gaming-search-button,.gaming-progress-fill,.neon-main-play,.gaming-hero-halo,.gaming-skyline span,.gaming-hero-line,.rhythm-pentagon,.music-back-contour path,.cyber-hero-rings,.cyber-hero-streak) { animation:none !important;transition:none !important; }
-        .eduai-music-cyber[data-lighting="off"] .gaming-dock-waves,.eduai-music-cyber[data-lighting="off"] .cyber-rhythm-field { display:none; }
+        @media (min-width:1000px) and (max-width:1199px) {
+          .eduai-music-cyber .neon-right-panel { display:block; }
+          .eduai-music-cyber .neon-layout { grid-template-columns:165px minmax(0,1fr) 240px; }
+          .eduai-music-cyber .neon-catalog-slide { flex-basis:calc((100% - 24px) / 4);width:calc((100% - 24px) / 4); }
+          .eduai-music-cyber .neon-bottom-grid > :last-child { display:flex; }
+          .eduai-music-cyber .neon-bottom-grid { grid-template-columns:190px minmax(0,1fr) 150px; }
+          .eduai-music-cyber .neon-filter-chip { padding:5px 8px;font-size:9px; }
+        }
+        @media (max-width:999px) {
+          .eduai-music-cyber .neon-layout { grid-template-columns:170px minmax(0,1fr); }
+          .eduai-music-cyber .neon-right-panel { display:none; }
+          .eduai-music-cyber .neon-bottom-grid { grid-template-columns:190px minmax(0,1fr); }
+          .eduai-music-cyber .neon-bottom-grid > :last-child { display:none; }
+          .eduai-music-cyber .neon-catalog-slide { flex-basis:calc((100% - 24px) / 4);width:calc((100% - 24px) / 4); }
+        }
         @media (max-width:767px) {
-          .eduai-music-cyber .neon-main { border:0;border-radius:0;background:#040d18;animation:none; }
-          .eduai-music-cyber .neon-bottom-player { border-radius:0; }
-          .gaming-hero-scene { opacity:.4; }
-          .gaming-hero-scene > svg { min-width:220px;width:65%;max-height:150px; }
-          .gaming-dock-waves,.gaming-search-spectrum { display:none !important; }
-          .gaming-lighting-control { font-size:8px;padding:4px 6px; }
-          .gaming-hero-kicker p { letter-spacing:.24em; }
+          .eduai-music-cyber { --music-dock:calc(122px + env(safe-area-inset-bottom));--music-gap:6px;--music-pad:12px;min-height:0 !important; }
+          .eduai-music-cyber .neon-layout { display:block;height:100%; }
+          .eduai-music-cyber .neon-main { height:100%;padding:10px;background:linear-gradient(#041020,#020916) padding-box,var(--gaming-spectrum) border-box;border:1px solid transparent;border-radius:16px; }
+          .eduai-music-cyber .neon-sidebar { display:none; }
+          .eduai-music-cyber .gaming-hero { min-height:220px;padding:6px 0 0; }
+          .eduai-music-cyber .gaming-hero h1 { font-size:36px; }
+          .eduai-music-cyber .gaming-original-art { opacity:.8;background-position:center,right top; }
+          .eduai-music-cyber .neon-search-row { flex-wrap:nowrap;margin-top:8px;padding-top:10px; }
+          .eduai-music-cyber .neon-search-row > .neon-search { flex-basis:auto; }
+          .eduai-music-cyber .neon-search-row > button { width:auto;padding:0 12px;font-size:11px; }
+          .eduai-music-cyber .neon-filter-chip { min-height:29px;padding:4px 9px;font-size:10px; }
+          .eduai-music-cyber .neon-catalog-slide { flex-basis:calc((100% - 8px) / 2);width:calc((100% - 8px) / 2); }
+          .eduai-music-cyber .neon-recent-card > div:first-child { max-height:115px;aspect-ratio:1.5; }
+          .eduai-music-cyber .neon-bottom-player { height:100%;padding:6px 10px env(safe-area-inset-bottom); }
+          .eduai-music-cyber .neon-bottom-grid { grid-template-columns:minmax(0,1fr) !important;gap:3px; }
+          .eduai-music-cyber .neon-bottom-grid > div:first-child img { width:30px;height:30px; }
+          .eduai-music-cyber .neon-main-play { height:42px !important;width:42px !important; }
+          .eduai-music-cyber .neon-control-button { height:28px;width:28px; }
+          .eduai-music-cyber .gaming-search-spectrum,.gaming-dock-waves { display:none !important; }
+        }
+        @media (max-height:650px) and (max-width:767px) {
+          .eduai-music-cyber .neon-main { overflow-y:auto !important; }
+          .eduai-music-cyber .gaming-main-stack { height:auto;min-height:100%; }
+          .eduai-music-cyber .gaming-results { overflow:visible !important;flex:none; }
+          .eduai-music-cyber .gaming-results-stack { height:auto; }
+          .eduai-music-cyber .gaming-table-section { min-height:160px; }
+        }
+        /* Embedded radio can expand the header at any mobile/tablet height. */
+        @media (max-width:1279px) {
+          .eduai-music-cyber .neon-main[data-embedded-radio="true"] { overflow-y:auto !important; }
+          .eduai-music-cyber .neon-main[data-embedded-radio="true"] .gaming-main-stack { height:auto;min-height:100%; }
+          .eduai-music-cyber .neon-main[data-embedded-radio="true"] .gaming-results { overflow:visible !important;flex:none; }
+          .eduai-music-cyber .neon-main[data-embedded-radio="true"] .gaming-results-stack { height:auto; }
+          .eduai-music-cyber .neon-main[data-embedded-radio="true"] .gaming-table-section { flex:none;min-height:160px; }
+          .eduai-music-cyber .neon-main[data-embedded-radio="true"] .gaming-song-list { overflow:visible;flex:none;max-height:none; }
         }
         @media (prefers-reduced-motion:reduce) {
-          .eduai-music-cyber :is(.neon-sidebar,.neon-main,.neon-right-panel,.neon-bottom-player,.neon-title-gradient,.neon-nav-button,.neon-search,.neon-queue-row,.neon-track-row,.neon-recent-card,.neon-filter-chip,.gaming-search-button,.gaming-progress-fill,.neon-main-play,.gaming-hero-halo,.gaming-skyline span,.gaming-hero-line,.rhythm-pentagon,.music-back-contour path,.cyber-hero-rings,.cyber-hero-streak) { animation:none !important;transition:none !important; }
-        }
-
-        /* Reference composition: original art + independent, live HUD. */
-        .eduai-music-cyber .cyber-static-backdrop {
-          background:linear-gradient(#02081322,#02081355),url("/music/eduai-music-ui-background.png") center / 100% 100% no-repeat;
-          filter:saturate(1.15);transform:none;
-        }
-        .eduai-music-cyber .cyber-rhythm-field { opacity:.28; }
-        .eduai-music-cyber .music-back-contour { display:none; }
-        .eduai-music-cyber .neon-layout { gap:12px;padding:12px 10px 10px;grid-template-columns:clamp(190px,17vw,290px) minmax(0,1fr) clamp(270px,23vw,390px); }
-        .eduai-music-cyber :is(.neon-sidebar,.neon-main,.neon-right-panel,.neon-bottom-player) {
-          position:relative;isolation:isolate;border:2px solid transparent;border-radius:24px 8px 24px 8px;
-          background:linear-gradient(150deg,#030c19f5,#020916f7) padding-box,var(--gaming-spectrum) border-box;
-          background-size:100% 100%,250% 100%;
-          box-shadow:inset 0 0 0 4px #020916,inset 0 0 0 5px #1366bda0,inset 0 0 24px #126aff38,0 0 16px #12eaff66;
-          backdrop-filter:none;
-        }
-        /* Angular rails are decorative; do not clip focus rings or controls. */
-        .eduai-music-cyber :is(.neon-sidebar,.neon-main,.neon-right-panel,.neon-bottom-player)::after {
-          content:"";position:absolute;inset:3px;z-index:2;pointer-events:none;
-          border:2px solid #12eaff90;
-          clip-path:polygon(0 0,32% 0,36% 9px,70% 9px,74% 0,100% 0,100% 28%,calc(100% - 5px) 32%,calc(100% - 5px) 70%,100% 74%,100% 100%,68% 100%,64% calc(100% - 9px),30% calc(100% - 9px),26% 100%,0 100%,0 74%,5px 70%,5px 32%,0 28%);
-          filter:drop-shadow(0 0 4px #008dff);border-radius:18px 4px 18px 4px;
-        }
-        .eduai-music-cyber .neon-sidebar { padding:26px 22px 22px; }
-        .eduai-music-cyber .neon-main { padding:20px 20px 12px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#12eaff66 transparent; }
-        .eduai-music-cyber .neon-main > div { min-height:100%;height:auto; }
-        .eduai-music-cyber .neon-right-panel { padding:24px 20px 18px; }
-        .eduai-music-cyber .neon-nav-button { min-height:40px;font-size:13px;border-color:#168bce70;background:#020c18; }
-        .eduai-music-cyber .neon-nav-button.is-active { border:2px solid #75ff8b !important;box-shadow:0 0 7px #49ff70,inset 0 0 15px #15ffaa55,0 0 20px #00eaff80; }
-        .eduai-music-cyber .gaming-hero { padding:12px 12px 0; }
-        .eduai-music-cyber .gaming-hero-scene { inset:-18px -18px auto;height:210px;z-index:-1;mask-image:none; }
-        .gaming-original-art { position:absolute;inset:0;background-image:linear-gradient(90deg,#030c19 0%,#030c19d9 32%,transparent 63%),url("/music/eduai-music-ui-background.png");background-size:100% 100%,174% auto;background-position:center,64% top;background-repeat:no-repeat;mask-image:linear-gradient(#000 0 76%,transparent 100%); }
-        .eduai-music-cyber .gaming-hero-halo { right:5%;top:0;width:180px;height:180px;opacity:.35;mix-blend-mode:screen; }
-        .eduai-music-cyber .gaming-hero-line { top:138px; }
-        .eduai-music-cyber .gaming-hero h1 { font-size:clamp(38px,4vw,72px);letter-spacing:-.055em;font-style:italic;margin-top:10px;text-shadow:0 0 24px #008dff30; }
-        .eduai-music-cyber .gaming-hero-kicker p { font-size:10px; }
-        .eduai-music-cyber .neon-search-row { max-width:none;margin-top:30px;gap:12px; }
-        .eduai-music-cyber .neon-search { height:48px;border-radius:999px;background:linear-gradient(#020b1f,#020916) padding-box,var(--gaming-spectrum) border-box;box-shadow:0 0 6px #12eaff,0 0 16px #4672ff70,inset 0 0 18px #245cff26; }
-        .eduai-music-cyber .neon-search input { font-size:13px; }
-        .eduai-music-cyber .gaming-search-button { height:44px;border-radius:999px;padding:0 24px;font-size:13px;background:linear-gradient(100deg,#85ff21,#0bff47); }
-        .eduai-music-cyber .neon-filter-chip { font-size:11px;font-weight:600;padding:7px 15px;border-color:#12eaff88; }
-        .eduai-music-cyber .neon-filter-chip.is-active { background:linear-gradient(#90ff35,#0dff45);box-shadow:0 0 12px #4cff6670; }
-        .eduai-music-cyber .neon-view-context { border:1px solid #12eaffaa;border-radius:999px;background:linear-gradient(100deg,#08142b,#030c18);box-shadow:inset 0 -2px 8px #16ffc24d,0 0 12px #325eff44;padding:10px 18px; }
-        .eduai-music-cyber :is(.neon-main h2,.neon-right-panel h2,.neon-right-panel h3) { font-size:18px;line-height:1.3;border-left:4px solid #a5ff39;text-shadow:0 0 12px #3975ff55; }
-        .eduai-music-cyber .neon-catalog-surface { overflow:visible;background:#020a16e8;border-color:#168bce90;padding:10px;border-radius:20px; }
-        .eduai-music-cyber .neon-catalog-slide { flex:0 0 calc((100% - 40px) / 5);width:calc((100% - 40px) / 5);min-width:140px; }
-        .eduai-music-cyber .neon-recent-card { padding:5px 5px 12px;border:1px solid #12eaffb0;border-radius:18px;background:linear-gradient(165deg,#0b2535,#020a18 75%);box-shadow:inset 0 0 8px #12eaff30,0 0 8px #3975ff40; }
-        .eduai-music-cyber .neon-recent-card:nth-child(2n) { border-color:#7973ff; }
-        .eduai-music-cyber .neon-recent-card:hover,.eduai-music-cyber .neon-recent-card.is-active { transform:translateY(-3px);border-color:#78ff9b;box-shadow:0 0 15px #39f5a380,inset 0 0 8px #39f5a350; }
-        .eduai-music-cyber .neon-recent-card > div:first-child { border-radius:13px; }
-        .eduai-music-cyber .neon-recent-meta { margin-top:3px; }
-        .eduai-music-cyber .neon-recent-meta p:first-child { font-size:12px;line-height:1.3;font-weight:700; }
-        .eduai-music-cyber .neon-recent-meta p + p { font-size:11px;color:#b5dbe9; }
-        .eduai-music-cyber .neon-recent-card > a { font-size:11px;margin-top:8px; }
-        .eduai-music-cyber .gaming-card-like { position:relative;align-self:flex-start;margin:3px 0 0;height:23px;width:27px;background:transparent;border:0;box-shadow:none; }
-        .eduai-music-cyber .neon-youtube-player { border-radius:18px;border:1px solid #12eaff80; }
-        .eduai-music-cyber .neon-queue-row { min-height:43px;border-color:#267bd36b;border-radius:12px; }
-        .eduai-music-cyber .neon-queue-row.is-active { box-shadow:0 0 12px #3dff6a66,inset 0 0 10px #38ff8b33; }
-        .eduai-music-cyber .neon-overlay { padding-bottom:138px; }
-        .eduai-music-cyber .neon-bottom-player { position:absolute;inset:auto 8px 8px;height:122px;padding:12px 26px;border-radius:22px 8px 22px 8px; }
-        .eduai-music-cyber .neon-bottom-grid { grid-template-columns:minmax(210px,23%) minmax(320px,1fr) minmax(150px,18%);gap:24px; }
-        .eduai-music-cyber .neon-bottom-grid > div:first-child img { height:64px;width:64px;border-radius:8px;border:1px solid #12eaff; }
-        .eduai-music-cyber .neon-bottom-grid > div:first-child p:first-child { font-size:15px; }
-        .eduai-music-cyber .neon-bottom-grid > div:first-child p + p { font-size:12px; }
-        .eduai-music-cyber .neon-control-button { height:42px;width:42px;border-color:#12eaffaa; }
-        .eduai-music-cyber .neon-main-play { height:66px;width:66px;border:4px solid transparent;box-shadow:0 0 12px #39ff62,0 0 26px #12eaff80; }
-        .eduai-music-cyber .neon-main-play svg { width:28px;height:28px; }
-        .eduai-music-cyber .gaming-dock-waves { left:24%;right:24%;bottom:38px;gap:42%;opacity:.7; }
-        .eduai-music-cyber .neon-spectrum-bar { background:linear-gradient(to top,#167aff,#12eaff 48%,#39ff8c 78%,#a5ff39); }
-        .eduai-music-cyber[data-lighting="off"] .gaming-hero-halo { display:none; }
-        @media (max-width:1199px) {
-          .eduai-music-cyber .neon-layout { grid-template-columns:190px minmax(0,1fr); }
-          .eduai-music-cyber .neon-bottom-grid { grid-template-columns:210px minmax(0,1fr);gap:14px; }
-          .eduai-music-cyber .neon-catalog-slide { flex-basis:156px;width:156px; }
-          .eduai-music-cyber .neon-sidebar { padding:22px 14px; }
-        }
-        @media (max-width:767px) {
-          .eduai-music-cyber .neon-layout { display:block;padding:0; }
-          .eduai-music-cyber .neon-main { height:100%;border:0;border-radius:0;padding:16px 10px;background:#030c19; }
-          .eduai-music-cyber .neon-main::after { display:none; }
-          .eduai-music-cyber .gaming-hero { padding:8px 2px 0; }
-          .eduai-music-cyber .gaming-hero-scene { height:210px;opacity:.8; }
-          .gaming-original-art { background-size:100% 100%,220% auto;background-position:center,70% top; }
-          .eduai-music-cyber .gaming-hero h1 { font-size:42px; }
-          .eduai-music-cyber .neon-filter-chip { font-size:10px;padding:7px 12px; }
-          .eduai-music-cyber .neon-catalog-slide { flex-basis:160px;width:160px; }
-          .eduai-music-cyber .neon-overlay { padding-bottom:calc(132px + env(safe-area-inset-bottom)); }
-          .eduai-music-cyber .neon-bottom-player { inset:auto 0 0;height:calc(132px + env(safe-area-inset-bottom));padding:8px 10px env(safe-area-inset-bottom);border-radius:12px 12px 0 0; }
-          .eduai-music-cyber .neon-bottom-grid { grid-template-columns:minmax(0,1fr);gap:4px; }
-          .eduai-music-cyber .neon-bottom-grid > div:first-child img { height:32px;width:32px; }
-          .eduai-music-cyber .neon-bottom-grid > div:first-child p:first-child { font-size:12px; }
-          .eduai-music-cyber .neon-bottom-grid > div:first-child p + p { font-size:10px; }
-          .eduai-music-cyber .neon-main-play { height:44px;width:44px; }
-          .eduai-music-cyber .neon-main-play svg { height:20px;width:20px; }
-          .eduai-music-cyber .neon-control-button { height:30px;width:30px; }
-          .eduai-music-cyber .neon-view-context { border-radius:18px;padding:10px; }
-        }
-
-        /* Compact, scrollable content: the dock never hides the last card. */
-        .eduai-music-cyber { height:100dvh; }
-        .eduai-music-cyber .neon-main { overflow-y:auto !important;overflow-x:hidden !important;scroll-padding-block:16px; }
-        .eduai-music-cyber .neon-main > div { height:auto;min-height:100%; }
-        .eduai-music-cyber .gaming-results { flex:0 0 auto;min-height:0;padding-bottom:18px; }
-        .eduai-music-cyber .gaming-results > div { height:auto; }
-        .eduai-music-cyber .gaming-song-list { flex:none;min-height:160px;max-height:340px; }
-        .eduai-music-cyber .gaming-hero { padding-top:6px; }
-        .eduai-music-cyber .gaming-hero h1 { margin-top:8px;font-size:clamp(38px,3.6vw,62px); }
-        .eduai-music-cyber .gaming-hero-scene { height:166px;inset:-12px -10px auto;overflow:hidden;border-radius:12px; }
-        .eduai-music-cyber .gaming-original-art { background-position:center,68% top;mask-image:linear-gradient(#000 0 55%,transparent 98%); }
-        .eduai-music-cyber .gaming-hero-line { top:auto;bottom:0;opacity:.4; }
-        .eduai-music-cyber .gaming-hero-halo { right:9%;top:-30px;opacity:.22; }
-        .eduai-music-cyber .gaming-hero > p { position:relative;z-index:1; }
-        .eduai-music-cyber .neon-search-row { margin-top:22px; }
-        .eduai-music-cyber .neon-view-context { margin-top:10px;padding:8px 15px; }
-        .eduai-music-cyber .neon-view-context p:first-child { font-size:12px; }
-        .eduai-music-cyber .neon-view-context p + p { font-size:10px; }
-        .eduai-music-cyber .neon-catalog-surface { overflow:hidden;padding:9px 12px; }
-        .eduai-music-cyber .neon-catalog { gap:10px;padding:4px 0 8px;scrollbar-width:thin;scrollbar-color:#12eaff60 transparent; }
-        .eduai-music-cyber .neon-catalog::-webkit-scrollbar { display:block;height:4px; }
-        .eduai-music-cyber .neon-catalog::-webkit-scrollbar-thumb { background:#12eaff60;border-radius:6px; }
-        .eduai-music-cyber .neon-catalog-slide { flex-basis:calc((100% - 40px) / 5);width:calc((100% - 40px) / 5);min-width:136px; }
-        .eduai-music-cyber .neon-recent-card > div:first-child { aspect-ratio:1.12; }
-        .eduai-music-cyber .neon-recent-card { padding-bottom:9px; }
-        .eduai-music-cyber .neon-recent-meta { min-height:58px; }
-        .eduai-music-cyber .neon-recent-meta p:first-child { font-size:12px;line-height:1.35; }
-        .eduai-music-cyber .neon-recent-meta p + p { font-size:11px; }
-        .eduai-music-cyber .neon-recent-card > a { margin-top:auto;padding-top:6px; }
-        .gaming-catalog-controls { display:flex;justify-content:flex-end;gap:8px;margin-bottom:5px; }
-        .gaming-catalog-controls button { display:grid;place-items:center;width:29px;height:29px;border-radius:50%;border:1px solid #12eaff90;background:#041526;color:#95ffdc; }
-        .gaming-catalog-controls svg { width:18px;height:18px; }
-        .eduai-music-cyber .neon-sidebar { scrollbar-width:thin;scrollbar-color:#12eaff55 transparent;padding-top:20px; }
-        .eduai-music-cyber .neon-sidebar > * { flex-shrink:0; }
-        .eduai-music-cyber .neon-sidebar > a { min-height:34px; }
-        .eduai-music-cyber .neon-nav-button { min-height:36px; }
-        .eduai-music-cyber .neon-queue-row { min-height:45px; }
-        .eduai-music-cyber .neon-queue-row p:first-child { font-size:11px; }
-        .eduai-music-cyber .neon-queue-row p + p { font-size:10px; }
-        .eduai-music-cyber .neon-track-row { min-height:41px; }
-        .eduai-music-cyber .neon-track-row button span.block { font-size:11px; }
-        .eduai-music-cyber .neon-track-row > span { font-size:10px; }
-        .eduai-music-cyber .neon-overlay { padding-bottom:122px; }
-        .eduai-music-cyber .neon-bottom-player { height:108px; }
-        .eduai-music-cyber .neon-bottom-grid > div:first-child p:first-child { font-size:13px; }
-        .eduai-music-cyber .neon-main-play { height:58px;width:58px; }
-        .eduai-music-cyber .gaming-dock-waves { bottom:28px;opacity:.5; }
-        @media (max-height:800px) and (min-width:768px) {
-          .eduai-music-cyber .neon-main { padding-top:14px; }
-          .eduai-music-cyber .gaming-hero h1 { font-size:clamp(36px,3.4vw,54px); }
-          .eduai-music-cyber .neon-search-row { margin-top:16px; }
-          .eduai-music-cyber .neon-search { height:42px; }
-          .eduai-music-cyber .neon-recent-card > div:first-child { aspect-ratio:1.3; }
-        }
-        @media (max-width:1199px) {
-          .eduai-music-cyber .neon-catalog-slide { flex-basis:150px;width:150px; }
-        }
-        @media (max-width:767px) {
-          .eduai-music-cyber .neon-overlay { padding-bottom:calc(132px + env(safe-area-inset-bottom)); }
-          .eduai-music-cyber .neon-bottom-player { height:calc(132px + env(safe-area-inset-bottom)); }
-          .eduai-music-cyber .neon-main-play { height:44px;width:44px; }
-          .eduai-music-cyber .neon-catalog-slide { flex-basis:160px;width:160px; }
-          .eduai-music-cyber .gaming-hero h1 { font-size:40px; }
-          .eduai-music-cyber .gaming-hero-scene { height:190px; }
-          .eduai-music-cyber .neon-view-context p + p { white-space:normal; }
+          .eduai-music-cyber :is(.neon-sidebar,.neon-main,.neon-right-panel,.neon-bottom-player,.neon-title-gradient,.neon-main-play) { animation:none !important; }
         }
       `}</style>
       <NeonMusicOverlay
