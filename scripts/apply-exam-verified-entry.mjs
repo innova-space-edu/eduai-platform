@@ -187,7 +187,7 @@ const patches = {
     ],
     [
       "                  </p>\n                  <p className=\"mt-1\">\n                    RUT: <span className=\"text-sub\">{rut ? formatRut(rut) : \"—\"}</span>\n                  </p>\n                </div>\n",
-      "                  </p>\n                  <p className=\"mt-1\">\n                    Curso: <span className=\"text-sub\">{course}</span>\n                  </p>\n                </div>\n"
+      "                  </p>\n                </div>\n"
     ]
   ]
 }

@@ -125,6 +125,9 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
   const recognitionAbortRef = useRef<AbortController | null>(null);
   const recognitionRequestIdRef = useRef(0);
   const hydratedRef = useRef(false);
+  const skipInitialPersistRef = useRef(false);
+  const onArtifactChangeRef = useRef(onArtifactChange);
+  useEffect(()=>{onArtifactChangeRef.current=onArtifactChange},[onArtifactChange]);
 
   const [pages, setPages] = useState<ExamNotebookPage[]>([createPage(0)]);
   const [activePageId, setActivePageId] = useState("");
@@ -166,6 +169,7 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
       if (saved) {
         const parsed = JSON.parse(saved) as Partial<ExamNotebookArtifact>;
         if (Array.isArray(parsed.pages) && parsed.pages.length > 0) {
+          skipInitialPersistRef.current=true;
           setPages(parsed.pages as ExamNotebookPage[]);
           setActivePageId((parsed.pages[0] as ExamNotebookPage).id);
         }
@@ -180,10 +184,11 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
 
   useEffect(() => {
     if (!hydratedRef.current) return;
+    if(skipInitialPersistRef.current){skipInitialPersistRef.current=false;return;}
     const artifact = getArtifact();
-    localStorage.setItem(storageKey, JSON.stringify(artifact));
-    onArtifactChange?.(artifact);
-  }, [getArtifact, onArtifactChange, storageKey]);
+    try{localStorage.setItem(storageKey, JSON.stringify(artifact));}catch(error){console.error("[exam-notebook/save-local]",error)}
+    onArtifactChangeRef.current?.(artifact);
+  }, [getArtifact, storageKey]);
 
   const recognize = useCallback(async (nextStrokes: Stroke[], pageId: string) => {
     if (recognitionTimer.current) {
@@ -353,8 +358,13 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
 
   async function exportPng() {
     const svg = svgRef.current;
-    if (!svg || !activePage) return undefined;
-    const serialized = new XMLSerializer().serializeToString(svg);
+    if (!svg || !activePage || !activePage.strokes.length) return undefined;
+    // A collapsed notebook has zero layout width; serialize a sized copy without reopening it.
+    const width=Math.max(900,svg.clientWidth||0,Math.ceil(activePage.strokes.reduce((max,stroke)=>stroke.points.reduce((m,p)=>Math.max(m,p.x+8),max),0)));
+    const height=Math.max(1,activePage.canvasHeight);
+    const copy=svg.cloneNode(true) as SVGSVGElement;
+    copy.setAttribute("width",String(width));copy.setAttribute("height",String(height));copy.setAttribute("viewBox",`0 0 ${width} ${height}`);copy.removeAttribute("style");
+    const serialized = new XMLSerializer().serializeToString(copy);
     const blob = new Blob([serialized], { type: "image/svg+xml;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     try {
@@ -365,8 +375,8 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
         image.src = url;
       });
       const canvas = document.createElement("canvas");
-      canvas.width = Math.max(900, svg.clientWidth || 900);
-      canvas.height = Math.min(Math.max(activePage.canvasHeight, 900), 2400);
+      canvas.width = width;
+      canvas.height = Math.min(height, 2400);
       const context = canvas.getContext("2d");
       if (!context) return undefined;
       context.fillStyle = "#ffffff";
@@ -397,7 +407,7 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
   return (
     <section
       className={`flex min-h-0 flex-col overflow-hidden rounded-[24px] border border-blue-200 bg-white shadow-sm ${
-        expanded ? "fixed inset-3 z-[9998] shadow-2xl" : ""
+        expanded ? "fixed inset-1 z-[9998] shadow-2xl sm:inset-3" : ""
       }`}
     >
       <div className="flex flex-wrap items-center justify-between gap-2 border-b border-blue-100 bg-blue-50/60 px-3 py-3">
@@ -440,8 +450,8 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
         ))}
       </div>
 
-      <div className={`grid min-h-0 flex-1 ${expanded ? "lg:grid-cols-[minmax(0,1fr)_320px]" : "grid-rows-[auto_1fr]"}`}>
-        <aside className={`space-y-2 bg-white p-3 ${expanded ? "lg:order-2 lg:border-l lg:border-slate-200" : "border-b border-slate-200"}`}>
+      <div className={`grid min-h-0 flex-1 ${expanded ? "grid-rows-[minmax(0,auto)_minmax(0,1fr)] lg:grid-rows-1 lg:grid-cols-[minmax(0,1fr)_320px]" : "grid-rows-[auto_1fr]"}`}>
+        <aside className={`min-w-0 space-y-2 overflow-auto bg-white p-3 ${expanded ? "max-h-[26dvh] lg:max-h-none lg:order-2 lg:border-l lg:border-slate-200" : "border-b border-slate-200"}`}>
           <div className="rounded-2xl border border-blue-100 bg-blue-50/60 p-3">
             <div className="mb-2 flex items-center justify-between gap-2">
               <p className="text-xs font-black uppercase tracking-[0.12em] text-blue-700">Vista matemática</p>
@@ -461,7 +471,7 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
 
         <div
           ref={scrollRef}
-          className={`${expanded ? "lg:order-1 h-full" : "h-[560px] xl:h-[calc(100vh-300px)] xl:min-h-[520px] xl:max-h-[720px]"} overflow-y-scroll bg-white`}
+          className={`${expanded ? "min-h-0 lg:order-1 h-full" : "h-[clamp(260px,52dvh,650px)]"} overflow-y-scroll bg-white`}
         >
           <svg
             ref={svgRef}

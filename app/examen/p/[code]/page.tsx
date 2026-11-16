@@ -234,6 +234,8 @@ export default function ExamenPublicoPage() {
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [feedbackDone, setFeedbackDone] = useState(false);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
+  const [notebookOpen, setNotebookOpen] = useState(false);
+  const openedNotebookQuestions = useRef(new Set<number>());
   const attemptIdRef = useRef(createAttemptId());
   const notebookRef = useRef<ExamQuestionNotebookHandle>(null);
   const [developmentArtifacts, setDevelopmentArtifacts] = useState<
@@ -788,6 +790,12 @@ export default function ExamenPublicoPage() {
     async (finalized = true): Promise<ExamNotebookArtifact | null> => {
       if (!exam || !currentNotebookEnabled || !notebookRef.current) return null;
 
+      // A typed response does not need a blank notebook upload.
+      const currentArtifact = notebookRef.current.getArtifact();
+      const hasNotebookContent = Boolean(currentArtifact.latex?.trim() || currentArtifact.ocrText?.trim() || currentArtifact.pages.some(page=>page.strokes.length>0));
+      if (!openedNotebookQuestions.current.has(curQ) && !hasNotebookContent) {
+        return latestExamStateRef.current.developmentArtifacts[curQ] || currentArtifact;
+      }
       setDevelopmentSaving(true);
       setDevelopmentSaveStatus("Guardando desarrollo...");
       try {
@@ -859,6 +867,7 @@ export default function ExamenPublicoPage() {
       if (!autosaved) return;
 
       setCurQ(nextIndex);
+      setNotebookOpen(false);
     },
     [autosaveAttempt, curQ, currentNotebookEnabled, saveCurrentDevelopment, totalQ],
   );
@@ -1802,10 +1811,10 @@ export default function ExamenPublicoPage() {
 
         {phase === "exam" && allowCalculator ? <ExamScientificCalculator /> : null}
 
-        <div className="mx-auto w-full max-w-[1760px] px-4 py-5 sm:px-5 lg:px-6 xl:pl-8 xl:pr-6">
-          <div className="exam-themed-card mb-6 mx-auto w-full max-w-[900px] overflow-hidden rounded-[28px] border shadow-sm">
+        <div className="mx-auto w-full max-w-[1440px] px-3 py-3 sm:px-5 sm:py-5 lg:px-6">
+          <div className="exam-themed-card mb-4 mx-auto w-full overflow-hidden rounded-[24px] border shadow-sm">
             <div
-              className="flex flex-col items-center gap-3 px-5 py-5 text-center"
+              className="flex flex-col items-center gap-2 px-4 py-3 sm:py-4 text-center"
               style={{
                 background:
                   "linear-gradient(135deg, color-mix(in srgb, var(--exam-accent) 12%, transparent), color-mix(in srgb, var(--exam-accent-soft) 48%, transparent), transparent)",
@@ -1821,12 +1830,11 @@ export default function ExamenPublicoPage() {
                 <h1 className="mt-1 text-2xl md:text-3xl font-extrabold">
                   {exam.title}
                 </h1>
-                <p className="text-sub text-sm mt-1">
-                  {exam.topic || "Evaluación"}
-                </p>
+                {exam.topic && exam.topic !== exam.title && <p className="text-sub text-sm mt-1">{exam.topic}</p>}
+                <ExamDigitalClock />
                 {securitySessionId ? (
                   <p className="text-muted2 text-xs mt-2">
-                    Seguridad activa · sesión {securitySessionId}
+                    Seguridad activa
                   </p>
                 ) : null}
                 {kioskExamId ? (
@@ -1882,8 +1890,16 @@ export default function ExamenPublicoPage() {
             </div>
           ) : null}
 
-          <div className="mx-auto grid w-full grid-cols-1 gap-6 2xl:ml-[320px] 2xl:w-[calc(100%-320px)] 2xl:grid-cols-[minmax(0,1040px)_320px] xl:items-start">
-            <main className="w-full min-w-0">
+          <div className="sticky top-0 z-40 mb-3 flex items-center justify-between gap-2 rounded-xl border border-[var(--exam-border)] bg-[var(--exam-surface)] p-2 shadow-sm lg:hidden">
+            <div className="min-w-0"><p className="text-[10px] font-bold text-muted2">Tiempo restante del examen</p><p className="font-mono text-lg font-black tabular-nums" style={{color:timeLeft<=300?"#b91c1c":"var(--exam-accent)"}}>{fmt(timeLeft)}</p></div>
+            <div className="flex shrink-0 items-center gap-1">
+              <button type="button" aria-label="Pregunta anterior" onClick={()=>void goToQuestion(curQ-1)} disabled={curQ===0||developmentSaving} className="rounded-lg border border-soft px-3 py-2 text-sm disabled:opacity-30">←</button>
+              <span className="px-1 text-xs font-bold tabular-nums">{curQ+1}/{totalQ}</span>
+              {curQ<totalQ-1?<button type="button" aria-label="Pregunta siguiente" onClick={()=>void goToQuestion(curQ+1)} disabled={developmentSaving} className="rounded-lg border border-soft px-3 py-2 text-sm disabled:opacity-30">→</button>:<button type="button" disabled={developmentSaving} onClick={()=>{setConfirmSubmit(true);document.getElementById("exam-question-navigation")?.scrollIntoView({block:"center",behavior:"smooth"});}} className="rounded-lg bg-red-600 px-2 py-2 text-xs font-bold text-white disabled:opacity-30">Entregar</button>}
+            </div>
+          </div>
+          <div className="mx-auto grid w-full grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
+            <main className="order-2 w-full min-w-0 lg:order-1">
               <div className="mx-auto flex w-full max-w-[1040px] flex-col items-stretch space-y-4">
                 {/* Botón narrar pregunta — PIE/accesibilidad */}
                 {exam?.settings?.accessibility?.pieMode && (
@@ -1940,7 +1956,12 @@ export default function ExamenPublicoPage() {
                 </div>
 
                 {currentNotebookEnabled ? (
-                  <div className="mx-auto w-full max-w-[1040px] min-w-0 [&>section]:!w-full [&>section]:!max-w-none">
+                  <div className="mx-auto w-full max-w-[1040px] min-w-0 rounded-2xl border border-[var(--exam-border)] bg-[var(--exam-surface)] p-2">
+                    <button type="button" aria-expanded={notebookOpen} aria-controls="exam-notebook-body" onClick={()=>{if(!notebookOpen)openedNotebookQuestions.current.add(curQ);setNotebookOpen(!notebookOpen)}} className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-3 text-sm font-bold text-main hover:bg-card-soft-theme">
+                      <span>✍️ Cuaderno de desarrollo <span className="ml-1 text-xs font-normal text-muted2">· Opcional</span></span>
+                      <span style={{color:"var(--exam-accent)"}}>{notebookOpen?"Contraer ↑":"Abrir ↓"}</span>
+                    </button>
+                    <div id="exam-notebook-body" hidden={!notebookOpen} className="[&>section]:!w-full [&>section]:!max-w-none">
                     <ExamQuestionNotebook
                       key={`${exam.id}-${curQ}`}
                       ref={notebookRef}
@@ -1957,12 +1978,13 @@ export default function ExamenPublicoPage() {
                         scheduleAutosave({ developmentArtifacts: next });
                       }}
                     />
+                    </div>
                   </div>
                 ) : null}
               </div>
             </main>
 
-            <aside className="mt-5 space-y-4 2xl:sticky 2xl:top-24 2xl:z-40 2xl:mt-0 2xl:max-h-[calc(100vh-7rem)] 2xl:w-[320px] 2xl:overflow-y-auto">
+            <aside className="order-1 min-w-0 space-y-3 lg:order-2 lg:sticky lg:top-3 lg:max-h-[calc(100dvh-1.5rem)] lg:overflow-y-auto">
               <div
                 className="rounded-[24px] border p-3 shadow-sm backdrop-blur"
                 style={{
@@ -1972,7 +1994,7 @@ export default function ExamenPublicoPage() {
                     "color-mix(in srgb, var(--exam-surface) 92%, transparent)",
                 }}
               >
-                <div className="grid grid-cols-2 gap-3">
+                <div className="hidden lg:block">
                   <div
                     className="min-w-0 rounded-2xl border px-3 py-3 text-center shadow-sm"
                     style={{
@@ -1990,24 +2012,21 @@ export default function ExamenPublicoPage() {
                         color: "var(--exam-accent)",
                       }}
                     >
-                      Tiempo
+                      Tiempo restante del examen
                     </p>
                     <p
                       className="font-mono text-2xl font-black tabular-nums leading-none"
-                      style={{ color: "var(--exam-accent)" }}
+                      style={{ color: timeLeft <= 300 ? "#b91c1c" : "var(--exam-accent)" }}
                     >
                       {fmt(timeLeft)}
                     </p>
-                    <p className="mt-2 truncate text-[10px] font-bold uppercase tracking-[0.08em] text-muted2">
-                      Restante
-                    </p>
+                    <p className="mt-2 text-[10px] font-semibold text-muted2">Minutos : segundos</p>
                   </div>
 
-                  <ExamDigitalClock />
                 </div>
 
                 <div
-                  className="mt-3 rounded-2xl border px-3 py-2 text-center"
+                  className="rounded-xl border px-3 py-2 text-center lg:mt-3"
                   style={{
                     borderColor:
                       "color-mix(in srgb, var(--exam-accent) 15%, white)",
@@ -2039,8 +2058,8 @@ export default function ExamenPublicoPage() {
                 </div>
               </div>
 
-              <div className="exam-themed-soft rounded-[28px] border p-5 shadow-sm">
-                <div className="mb-4 flex items-center justify-between gap-3">
+              <div id="exam-question-navigation" className="exam-themed-soft scroll-mt-20 rounded-2xl border p-3 shadow-sm lg:p-4">
+                <div className="mb-2 flex items-center justify-between gap-2 lg:mb-4">
                   <div>
                     <h3 className="text-sm font-black text-main">Navegación</h3>
                     <p className="text-xs text-muted2">
@@ -2058,7 +2077,7 @@ export default function ExamenPublicoPage() {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-5 gap-2 mb-6">
+                <div className="grid grid-cols-[repeat(auto-fit,minmax(36px,1fr))] gap-1.5 mb-3 lg:grid-cols-5 lg:gap-2 lg:mb-5">
                   {qs.map((_: any, i: number) => {
                     const answered = isNotebookQuestion(qs[i])
                       ? Boolean(
@@ -2075,7 +2094,8 @@ export default function ExamenPublicoPage() {
                       <button
                         key={i}
                         onClick={() => void goToQuestion(i)}
-                        className={`h-10 rounded-xl text-sm font-bold border transition ${
+                        disabled={developmentSaving}
+                        className={`h-9 rounded-lg text-sm font-bold border transition ${
                           curQ === i
                             ? "border-[var(--exam-accent)] bg-[var(--exam-accent-soft)] text-[var(--exam-accent)]"
                             : answered
@@ -2102,7 +2122,7 @@ export default function ExamenPublicoPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => void goToQuestion(Math.max(0, curQ - 1))}
-                      disabled={curQ === 0}
+                      disabled={curQ === 0 || developmentSaving}
                       className="flex-1 py-2.5 rounded-2xl bg-card-soft-theme border border-soft text-main text-sm disabled:opacity-30 transition-all"
                     >
                       ← Anterior
@@ -2111,7 +2131,7 @@ export default function ExamenPublicoPage() {
                       onClick={() =>
                         void goToQuestion(Math.min(totalQ - 1, curQ + 1))
                       }
-                      disabled={curQ === totalQ - 1}
+                      disabled={curQ === totalQ - 1 || developmentSaving}
                       className="flex-1 py-2.5 rounded-2xl text-white font-bold text-sm transition-all disabled:opacity-30"
                       style={{
                         background:
@@ -2192,7 +2212,7 @@ export default function ExamenPublicoPage() {
                   )}
                 </div>
 
-                <div className="mt-6 text-xs text-muted2">
+                <div className="mt-3 text-xs text-muted2 break-words">
                   <p>
                     Alumno: <span className="text-sub">{name || "—"}</span>
                   </p>

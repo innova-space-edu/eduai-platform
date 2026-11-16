@@ -269,13 +269,15 @@ export default function QuestionCard({
           )}
 
           {shouldUseNotebook ? (
-            <div className="rounded-[calc(var(--exam-radius)-6px)] border border-blue-200 bg-blue-50/70 px-4 py-3">
-              <p className="text-sm font-black text-blue-800">
-                ✍️ Responde en el cuaderno digital
-              </p>
-              <p className="mt-1 text-xs leading-relaxed text-blue-700">
-                El cuaderno está visible abajo. Puedes escribir procedimientos, ecuaciones, fórmulas químicas o desarrollos; el sistema guardará el lienzo y el LaTeX reconocido al avanzar o entregar.
-              </p>
+            <div className="space-y-2">
+              <label className="exam-question-meta block text-xs font-bold">Escribe tu respuesta o procedimiento</label>
+              <textarea
+                value={devAnswer || ""}
+                onChange={(e) => onDevChange(e.target.value)}
+                className="exam-input min-h-[120px] w-full resize-y px-3 py-3 text-base outline-none focus:ring-2 focus:ring-[var(--exam-accent-soft)] sm:min-h-[160px]"
+                placeholder={responsePlaceholder}
+              />
+              <p className="text-xs leading-relaxed text-muted2">Puedes responder aquí o abrir el cuaderno de desarrollo para escribir a mano. Ambas opciones conservan el avance.</p>
             </div>
           ) : responseMode === "short_text" ? (
             <div>
