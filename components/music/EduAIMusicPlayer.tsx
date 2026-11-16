@@ -2017,7 +2017,6 @@ function CompactPanel({ onOpenPanel }: { onOpenPanel?: () => void }) {
       </div>
       <AddToPlaylistBar />
     </div>
-    </GamingLightingContext.Provider>
   );
 }
 
@@ -4499,13 +4498,13 @@ export default function EduAIMusicPlayer({
         .eduai-music-cyber .neon-recent-card.is-active {
           border:1px solid transparent !important;
           background:linear-gradient(120deg,#093347,#061523 65%,#092b21) padding-box,var(--gaming-spectrum) border-box !important;
-          background-size:100% 100%,250% 100% !important;
+          background-size:100% 100%,250% 100%;
           box-shadow:0 0 15px #12eaff38,inset 0 0 14px #39f5a317;
           animation:gaming-frame-flow 6s linear infinite;
         }
         .eduai-music-cyber .neon-nav-button.is-active { box-shadow:inset 3px 0 0 var(--gaming-lime),0 0 15px #12eaff50; }
         .eduai-music-cyber .neon-filter-chip.is-active,
-        .eduai-music-cyber .gaming-search-button { background:linear-gradient(105deg,#12eaff,#39f5a3,#a5ff39,#39f5a3,#12eaff) !important;background-size:250% 100% !important;color:#02140b !important;border-color:#83ff9e !important;box-shadow:0 0 14px #39f5a350;animation:gaming-gradient-flow 7s linear infinite; }
+        .eduai-music-cyber .gaming-search-button { background:linear-gradient(105deg,#12eaff,#39f5a3,#a5ff39,#39f5a3,#12eaff) !important;background-size:250% 100%;color:#02140b !important;border-color:#83ff9e !important;box-shadow:0 0 14px #39f5a350;animation:gaming-gradient-flow 7s linear infinite; }
         .eduai-music-cyber .neon-recent-card { border-color:#1e8edc70;background:linear-gradient(150deg,#081b2e,#030c17); }
         .eduai-music-cyber .neon-recent-card:hover { border-color:#5fffac;box-shadow:0 0 20px #39f5a344;transform:translateY(-2px); }
         .eduai-music-cyber .neon-catalog-surface { border-color:#2e86e84d;background:#030b16cc; }
@@ -4535,7 +4534,7 @@ export default function EduAIMusicPlayer({
         .eduai-music-cyber[data-lighting="calm"] .neon-main,
         .eduai-music-cyber[data-lighting="calm"] .neon-right-panel,
         .eduai-music-cyber[data-lighting="calm"] .neon-bottom-player { animation-duration:28s; }
-        .eduai-music-cyber[data-lighting="off"] *, .eduai-music-cyber[data-lighting="off"] *::before,.eduai-music-cyber[data-lighting="off"] *::after { animation:none !important;transition:none !important; }
+        .eduai-music-cyber[data-lighting="off"] :is(.neon-sidebar,.neon-main,.neon-right-panel,.neon-bottom-player,.neon-title-gradient,.neon-nav-button,.neon-search,.neon-queue-row,.neon-track-row,.neon-recent-card,.neon-filter-chip,.gaming-search-button,.gaming-progress-fill,.neon-main-play,.gaming-hero-halo,.gaming-skyline span,.gaming-hero-line,.rhythm-pentagon,.music-back-contour path,.cyber-hero-rings,.cyber-hero-streak) { animation:none !important;transition:none !important; }
         .eduai-music-cyber[data-lighting="off"] .gaming-dock-waves,.eduai-music-cyber[data-lighting="off"] .cyber-rhythm-field { display:none; }
         @media (max-width:767px) {
           .eduai-music-cyber .neon-main { border:0;border-radius:0;background:#040d18;animation:none; }
@@ -4547,7 +4546,7 @@ export default function EduAIMusicPlayer({
           .gaming-hero-kicker p { letter-spacing:.24em; }
         }
         @media (prefers-reduced-motion:reduce) {
-          .eduai-music-cyber *, .eduai-music-cyber *::before,.eduai-music-cyber *::after { animation:none !important;transition:none !important; }
+          .eduai-music-cyber :is(.neon-sidebar,.neon-main,.neon-right-panel,.neon-bottom-player,.neon-title-gradient,.neon-nav-button,.neon-search,.neon-queue-row,.neon-track-row,.neon-recent-card,.neon-filter-chip,.gaming-search-button,.gaming-progress-fill,.neon-main-play,.gaming-hero-halo,.gaming-skyline span,.gaming-hero-line,.rhythm-pentagon,.music-back-contour path,.cyber-hero-rings,.cyber-hero-streak) { animation:none !important;transition:none !important; }
         }
       `}</style>
       <NeonMusicOverlay
@@ -4565,5 +4564,6 @@ export default function EduAIMusicPlayer({
       />
       <AddToPlaylistBar />
     </div>
+    </GamingLightingContext.Provider>
   );
 }
