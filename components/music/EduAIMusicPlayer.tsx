@@ -4017,7 +4017,7 @@ export default function EduAIMusicPlayer({
             0 0 18px rgba(18,234,255,.14);
         }
         .neon-search {
-          background: rgba(2, 9, 19, .84) !important;
+          background: rgba(2, 9, 19, .84);
           border-color: rgba(139, 92, 246, .58) !important;
           box-shadow:
             inset 0 0 22px rgba(83,109,255,.08),
@@ -4030,7 +4030,7 @@ export default function EduAIMusicPlayer({
           box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
         }
         .neon-filter-chip.is-active {
-          background: #12eaff !important;
+          background: #12eaff;
           color: #02131d !important;
           border-color: rgba(165, 251, 255, .86) !important;
           box-shadow: 0 0 18px rgba(18,234,255,.24), inset 0 1px 0 rgba(255,255,255,.28);
@@ -4475,8 +4475,8 @@ export default function EduAIMusicPlayer({
         }
         .eduai-music-cyber .neon-main { background-image:linear-gradient(155deg,#061421,#020a15 67%,#06111d),var(--gaming-spectrum); }
         .eduai-music-cyber .neon-bottom-player { border-radius:14px 14px 0 0; box-shadow:0 -3px 20px #0b66ff45; }
-        @keyframes gaming-frame-flow { 0%{background-position:0 0,0% 50%} 100%{background-position:0 0,250% 50%} }
-        @keyframes gaming-gradient-flow { 0%{background-position:0% 50%} 100%{background-position:250% 50%} }
+        @keyframes gaming-frame-flow { 0%{background-position:0 0,0% 50%} 100%{background-position:0 0,166.6667% 50%} }
+        @keyframes gaming-gradient-flow { 0%{background-position:0% 50%} 100%{background-position:166.6667% 50%} }
         @keyframes gaming-halo { 0%,100%{opacity:.48;transform:scale(.97)} 50%{opacity:.82;transform:scale(1.035)} }
         @keyframes gaming-city-glow { 0%,100%{opacity:.45} 50%{opacity:.95} }
         .gaming-hero { isolation:isolate; }
@@ -4497,14 +4497,14 @@ export default function EduAIMusicPlayer({
         .eduai-music-cyber .neon-track-row.is-active,
         .eduai-music-cyber .neon-recent-card.is-active {
           border:1px solid transparent !important;
-          background:linear-gradient(120deg,#093347,#061523 65%,#092b21) padding-box,var(--gaming-spectrum) border-box !important;
+          background:linear-gradient(120deg,#093347,#061523 65%,#092b21) padding-box,var(--gaming-spectrum) border-box;
           background-size:100% 100%,250% 100%;
           box-shadow:0 0 15px #12eaff38,inset 0 0 14px #39f5a317;
           animation:gaming-frame-flow 6s linear infinite;
         }
         .eduai-music-cyber .neon-nav-button.is-active { box-shadow:inset 3px 0 0 var(--gaming-lime),0 0 15px #12eaff50; }
         .eduai-music-cyber .neon-filter-chip.is-active,
-        .eduai-music-cyber .gaming-search-button { background:linear-gradient(105deg,#12eaff,#39f5a3,#a5ff39,#39f5a3,#12eaff) !important;background-size:250% 100%;color:#02140b !important;border-color:#83ff9e !important;box-shadow:0 0 14px #39f5a350;animation:gaming-gradient-flow 7s linear infinite; }
+        .eduai-music-cyber .gaming-search-button { background:linear-gradient(105deg,#12eaff,#39f5a3,#a5ff39,#39f5a3,#12eaff);background-size:250% 100%;color:#02140b !important;border-color:#83ff9e !important;box-shadow:0 0 14px #39f5a350;animation:gaming-gradient-flow 7s linear infinite; }
         .eduai-music-cyber .neon-recent-card { border-color:#1e8edc70;background:linear-gradient(150deg,#081b2e,#030c17); }
         .eduai-music-cyber .neon-recent-card:hover { border-color:#5fffac;box-shadow:0 0 20px #39f5a344;transform:translateY(-2px); }
         .eduai-music-cyber .neon-catalog-surface { border-color:#2e86e84d;background:#030b16cc; }
