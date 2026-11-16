@@ -171,12 +171,10 @@ function addAdminAccessShortcut() {
 export default function ExamUiPolish() {
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
-    installEditInstructionsFetchPatch();
-
     const run = () => {
       autoCloseCreateDesign();
       autoCollapseEditColors();
-      void enhanceEditInstructionsTextarea();
+      // The published editor now owns instructions directly in React.
       addAdminAccessShortcut();
     };
     const schedule = () => {
