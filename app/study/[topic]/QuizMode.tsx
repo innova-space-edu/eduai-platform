@@ -67,6 +67,7 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit, learni
       })
       if (!res.ok) throw new Error("Error generando pregunta")
       const q = await res.json()
+      if(typeof q?.question!=="string"||typeof q?.correct!=="string"||!Array.isArray(q.options)||q.options.length!==4||!q.options.every((o:unknown)=>typeof o==="string")||!q.options.some((o:string)=>o.startsWith(q.correct)))throw Error("Pregunta inválida")
       setCurrentQuestion(q)
     } catch (e) {
       console.error(e)
