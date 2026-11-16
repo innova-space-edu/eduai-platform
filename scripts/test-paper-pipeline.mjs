@@ -194,5 +194,6 @@ assert(
 await import("./apply-student-rut-consent.mjs")
 await import("./fix-student-rut-consent.mjs")
 await import("./apply-exam-verified-entry.mjs")
+await import("./test-exam-multiple-courses.mjs")
 
 console.log("[test-paper-pipeline] Pipeline PDF híbrido, historial, caché por ruta y reutilización SHA-256 verificados correctamente.")

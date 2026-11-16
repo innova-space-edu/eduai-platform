@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/client"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import ExamMathText from "@/components/ui/ExamMathText"
+import CourseAssignmentPicker from "@/components/exam/CourseAssignmentPicker"
+import { assignedCourses } from "@/lib/exam/course-assignment.mjs"
 import { ArrowLeft, Save, RefreshCw, Loader2, Copy, Check, Trash2, Plus } from "lucide-react"
 import { enrichQuestionAnswerKey, normalizeAnswerIndex } from "@/lib/exam/question-quality"
 import { getQuestionMaxPoints } from "@/lib/exam/grading"
@@ -186,6 +188,17 @@ export default function EditarExamenPage() {
   }
 
   // ── Guardar cambios ───────────────────────────────────────────────────────
+  async function saveCourseAssignments(){
+    if(!user||!assignedCourses(settings).length)return
+    setSaving(true);setError("");setSaved(false)
+    try{
+      const res=await fetch("/api/agents/examen-docente",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"update",examId,teacherId:user.id,settings})})
+      const data=await res.json()
+      if(!res.ok||!data.success)throw Error(data.error||"No se pudieron guardar los cursos.")
+      setSaved(true)
+    }catch(e){setError(e instanceof Error?e.message:"No se pudieron guardar los cursos.")}
+    finally{setSaving(false)}
+  }
   async function saveChanges() {
     if (!user) return
     setSaving(true); setError(""); setSaved(false)
@@ -428,6 +441,11 @@ Reglas:
           />
         </div>
 
+        <section id="cursos-asignados" className="rounded-2xl border border-soft bg-card-soft-theme p-4 space-y-3">
+          <CourseAssignmentPicker value={assignedCourses(settings)} disabled={saving} onChange={courses=>setSettings((prev:any)=>({...prev,rosterCourses:courses,rosterCourse:courses[0]||""}))}/>
+          <button type="button" disabled={saving||!assignedCourses(settings).length} onClick={()=>void saveCourseAssignments()} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Guardar cursos sin modificar preguntas</button>
+          <p className="text-xs text-muted2">Se conserva el mismo enlace, preguntas y entregas existentes.</p>
+        </section>
         {/* Configuración del examen */}
         <div className="rounded-2xl p-4 border" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

@@ -17,6 +17,7 @@ import {
   Loader2,
 } from "lucide-react"
 import ReportExporter from "./ReportExporter"
+import { assignedCourses, cleanCourses, normalizeCourse } from "@/lib/exam/course-assignment.mjs"
 import ExamMathText from "@/components/ui/ExamMathText"
 import StudentPdfExporter from "./StudentPdfExporter"
 import { calculateGradeFromPercentage, getQuestionMaxPoints } from "@/lib/exam/grading"
@@ -1327,6 +1328,7 @@ export default function ResultadosExamenPage() {
   const [user, setUser] = useState<any>(null)
   const [exam, setExam] = useState<any>(null)
   const [submissions, setSubmissions] = useState<any[]>([])
+  const [courseFilter, setCourseFilter] = useState("")
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [incidentSub, setIncidentSub] = useState<any>(null)
@@ -1440,16 +1442,19 @@ export default function ResultadosExamenPage() {
     }
   }
 
-  const totalStudents = submissions.length
+  const courseOptions = useMemo(()=>cleanCourses([...assignedCourses(exam?.settings),...submissions.map(s=>String(s.student_course||"").trim()).filter(Boolean)]),[exam,submissions])
+  const activeCourse = courseFilter==="all"?"all":courseOptions.some((c:string)=>normalizeCourse(c)===courseFilter)?courseFilter:courseOptions.length>1?normalizeCourse(courseOptions[0]):"all"
+  const visibleSubmissions = useMemo(()=>activeCourse==="all"?submissions:submissions.filter(s=>normalizeCourse(s.student_course)===activeCourse),[submissions,activeCourse])
+  const totalStudents = visibleSubmissions.length
   const avgGrade =
-    totalStudents > 0 ? submissions.reduce((a, s) => a + Number(s.grade || 0), 0) / totalStudents : 0
+    totalStudents > 0 ? visibleSubmissions.reduce((a, s) => a + Number(s.grade || 0), 0) / totalStudents : 0
   const avgScore =
-    totalStudents > 0 ? submissions.reduce((a, s) => a + Number(s.score || 0), 0) / totalStudents : 0
-  const passCount = submissions.filter((s) => Number(s.grade || 0) >= 4.0).length
-  const maxGrade = totalStudents > 0 ? Math.max(...submissions.map((s) => Number(s.grade || 0))) : 0
-  const minGrade = totalStudents > 0 ? Math.min(...submissions.map((s) => Number(s.grade || 0))) : 0
+    totalStudents > 0 ? visibleSubmissions.reduce((a, s) => a + Number(s.score || 0), 0) / totalStudents : 0
+  const passCount = visibleSubmissions.filter((s) => Number(s.grade || 0) >= 4.0).length
+  const maxGrade = totalStudents > 0 ? Math.max(...visibleSubmissions.map((s) => Number(s.grade || 0))) : 0
+  const minGrade = totalStudents > 0 ? Math.min(...visibleSubmissions.map((s) => Number(s.grade || 0))) : 0
 
-  const pendingReview = submissions.filter(
+  const pendingReview = visibleSubmissions.filter(
     (s) =>
       !s.manually_reviewed &&
       (exam?.questions || []).some((q: any) => q.type === "development" || q.type === "mixed_choice_development" || q.type === "true_false"),
@@ -1460,7 +1465,7 @@ export default function ResultadosExamenPage() {
     let medium = 0
     let high = 0
 
-    submissions.forEach((s) => {
+    visibleSubmissions.forEach((s) => {
       const lvl = s.risk_level || "clean"
       if (lvl === "low") low += 1
       if (lvl === "medium") medium += 1
@@ -1468,7 +1473,7 @@ export default function ResultadosExamenPage() {
     })
 
     return { low, medium, high }
-  }, [submissions])
+  }, [visibleSubmissions])
 
   if (loading) {
     return (
@@ -1518,7 +1523,7 @@ export default function ResultadosExamenPage() {
               {exam?.status === "active" ? "Cerrar examen" : "Reabrir examen"}
             </button>
 
-            <ReportExporter exam={exam} submissions={submissions} />
+            <ReportExporter exam={exam} submissions={visibleSubmissions} />
 
             <span className="text-[10px] text-muted2">
               {refreshing ? "⟳ Actualizando..." : "🔴 En vivo · 8s"}
@@ -1526,6 +1531,19 @@ export default function ResultadosExamenPage() {
           </div>
         </div>
 
+        <section className="mb-5 rounded-2xl border border-soft bg-card-soft-theme p-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div><h2 className="text-sm font-bold">Resultados por curso</h2><p className="text-xs text-muted2">Selecciona un curso para consultar sus entregas, indicadores y exportar sus resultados.</p></div>
+            <Link href={`/examen/editar/${examId}#cursos-asignados`} className="rounded-xl border border-blue-300 px-3 py-2 text-xs font-semibold text-blue-600">Editar cursos asignados</Link>
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {[...courseOptions,"all"].map((course:string)=>{
+              const key=course==="all"?"all":normalizeCourse(course)
+              const count=key==="all"?submissions.length:submissions.filter(s=>normalizeCourse(s.student_course)===key).length
+              return <button key={key} type="button" aria-pressed={activeCourse===key} onClick={()=>setCourseFilter(key)} className={`rounded-xl border px-3 py-2 text-xs font-semibold ${activeCourse===key?"border-blue-600 bg-blue-600 text-white":"border-soft text-sub hover:bg-card-theme"}`}>{key==="all"?"Todos los cursos":course} · {count}</button>
+            })}
+          </div>
+        </section>
         <div className="grid md:grid-cols-6 gap-4 mb-8">
           {[
             { label: "Rindieron", value: totalStudents, color: "#93c5fd" },
@@ -1633,14 +1651,14 @@ export default function ResultadosExamenPage() {
               </thead>
 
               <tbody>
-                {submissions.length === 0 ? (
+                {visibleSubmissions.length === 0 ? (
                   <tr>
                     <td colSpan={9} className="py-12 text-center text-muted2 text-sm">
-                      Aún no hay estudiantes que hayan rendido este examen.
+                      Aún no hay entregas para el curso seleccionado.
                     </td>
                   </tr>
                 ) : (
-                  submissions.map((s: any) => (
+                  visibleSubmissions.map((s: any) => (
                     <tr
                       key={s.id}
                       className="border-t border-soft"

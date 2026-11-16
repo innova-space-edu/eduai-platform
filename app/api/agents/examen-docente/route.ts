@@ -8,6 +8,7 @@ import { getDesignTemplateSummary } from "@/lib/design-templates/registry"
 import { enrichQuestionAnswerKey } from "@/lib/exam/question-quality"
 import { examAnswerConsistencyIssues } from "@/lib/exam/answer-consistency.mjs"
 import { correctionPublicationIssue } from "@/lib/exam/correction-review.mjs"
+import { cleanCourses } from "@/lib/exam/course-assignment.mjs"
 import {
   calculateGradeFromPercentage,
   calculateScoreSummary,
@@ -364,6 +365,11 @@ function normalizeExamSettings(settings: any, designTemplateId?: string) {
   const nextSettings: Record<string, any> = {
     ...safeSettings,
     allowCalculator: safeSettings.allowCalculator === true,
+  }
+
+  if (Array.isArray(safeSettings.rosterCourses)) {
+    nextSettings.rosterCourses = cleanCourses(safeSettings.rosterCourses)
+    nextSettings.rosterCourse = nextSettings.rosterCourses[0] || ""
   }
 
   if (examDesignTemplateId) {
@@ -885,6 +891,7 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      if(Array.isArray(settings?.rosterCourses)&&!cleanCourses(settings.rosterCourses).length) return NextResponse.json({error:"Agrega al menos un curso de la nómina."},{status:400})
       const correctionIssue = correctionPublicationIssue(questions, examAnswerConsistencyIssues)
       if(correctionIssue) return NextResponse.json({error:correctionIssue},{status:422})
       const sanitizedQuestions = sanitizeQuestions(questions)
@@ -1143,6 +1150,7 @@ export async function POST(request: NextRequest) {
         )
       }
 
+      if(Array.isArray(settings?.rosterCourses)&&!cleanCourses(settings.rosterCourses).length) return NextResponse.json({error:"Agrega al menos un curso de la nómina."},{status:400})
       const correctionIssue = correctionPublicationIssue(questions, examAnswerConsistencyIssues)
       if(correctionIssue) return NextResponse.json({error:correctionIssue},{status:422})
       const sanitized = Array.isArray(questions)
