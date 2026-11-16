@@ -49,6 +49,7 @@ type Props = {
   attemptId: string;
   questionIndex: number;
   questionId?: string;
+  initialArtifact?: ExamNotebookArtifact;
   onArtifactChange?: (artifact: ExamNotebookArtifact) => void;
 };
 
@@ -111,14 +112,14 @@ function averageConfidence(pages: ExamNotebookPage[]) {
 }
 
 const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(function ExamQuestionNotebook(
-  { examId, attemptId, questionIndex, questionId, onArtifactChange },
+  { examId, attemptId, questionIndex, questionId, initialArtifact, onArtifactChange },
   ref,
 ) {
   const storageKey = useMemo(
     () => `eduai-exam-notebook:${examId}:${attemptId}:${questionIndex}`,
     [attemptId, examId, questionIndex],
   );
-  const artifactIdRef = useRef(createId());
+  const artifactIdRef = useRef(initialArtifact?.artifactId || createId());
   const svgRef = useRef<SVGSVGElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const recognitionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -129,7 +130,7 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
   const onArtifactChangeRef = useRef(onArtifactChange);
   useEffect(()=>{onArtifactChangeRef.current=onArtifactChange},[onArtifactChange]);
 
-  const [pages, setPages] = useState<ExamNotebookPage[]>([createPage(0)]);
+  const [pages, setPages] = useState<ExamNotebookPage[]>(()=>initialArtifact?.pages?.length?initialArtifact.pages:[createPage(0)]);
   const [activePageId, setActivePageId] = useState("");
   const [activeStroke, setActiveStroke] = useState<Stroke | null>(null);
   const [redoStack, setRedoStack] = useState<Stroke[][]>([]);
@@ -163,32 +164,32 @@ const ExamQuestionNotebook = forwardRef<ExamQuestionNotebookHandle, Props>(funct
     updatedAt: new Date().toISOString(),
   }), [pages, questionId, questionIndex]);
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(storageKey);
-      if (saved) {
-        const parsed = JSON.parse(saved) as Partial<ExamNotebookArtifact>;
-        if (Array.isArray(parsed.pages) && parsed.pages.length > 0) {
-          skipInitialPersistRef.current=true;
-          setPages(parsed.pages as ExamNotebookPage[]);
-          setActivePageId((parsed.pages[0] as ExamNotebookPage).id);
-        }
-        if (typeof parsed.artifactId === "string" && parsed.artifactId) artifactIdRef.current = parsed.artifactId;
+  // After identity verification, prefer the authoritative restored artifact.
+  // Read only this attempt's legacy notebook once, never another attempt's cache.
+  const initialArtifactRef=useRef(initialArtifact);
+  useEffect(()=>{
+    const restored=initialArtifactRef.current;
+    try{
+      const raw=localStorage.getItem(storageKey);
+      const parsed=raw?JSON.parse(raw) as Partial<ExamNotebookArtifact>:null;
+      if(!restored?.pages?.length&&parsed?.pages?.length){
+        skipInitialPersistRef.current=true;
+        setPages(parsed.pages);
+        setActivePageId(parsed.pages[0].id);
+        if(parsed.artifactId)artifactIdRef.current=parsed.artifactId;
       }
-    } catch (error) {
-      console.error("[exam-question-notebook/hydrate]", error);
-    } finally {
-      hydratedRef.current = true;
-    }
-  }, [storageKey]);
-
-  useEffect(() => {
-    if (!hydratedRef.current) return;
+      // A verified server/local checkpoint supersedes the old plaintext cache.
+      if(restored?.pages?.length)localStorage.removeItem(storageKey);
+    }catch(error){console.error("[exam-notebook/hydrate]",error)}
+    finally{hydratedRef.current=true}
+  },[storageKey]);
+  useEffect(()=>{
+    if(!hydratedRef.current)return;
     if(skipInitialPersistRef.current){skipInitialPersistRef.current=false;return;}
-    const artifact = getArtifact();
-    try{localStorage.setItem(storageKey, JSON.stringify(artifact));}catch(error){console.error("[exam-notebook/save-local]",error)}
+    const artifact=getArtifact();
+    // Parent writes the encrypted checkpoint and the verified server draft.
     onArtifactChangeRef.current?.(artifact);
-  }, [getArtifact, storageKey]);
+  },[getArtifact,storageKey]);
 
   const recognize = useCallback(async (nextStrokes: Stroke[], pageId: string) => {
     if (recognitionTimer.current) {
