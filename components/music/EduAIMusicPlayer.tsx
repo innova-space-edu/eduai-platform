@@ -4,6 +4,8 @@ import Link from "next/link";
 import { type CSSProperties, createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   ExternalLink,
   Home,
@@ -152,6 +154,17 @@ const SPOTIFY_EMBEDS: SpotifyEmbedItem[] = [
     accent: "from-amber-300 to-orange-400",
   },
 ];
+
+// Decode provider metadata as text only. Never interpret titles as HTML.
+export function musicDisplayText(value: string | undefined): string {
+  if (!value) return "";
+  const named: Record<string, string> = { amp: "&", quot: '"', apos: "'", lt: "<", gt: ">", nbsp: " " };
+  return value.replace(/&(#x[0-9a-f]+|#[0-9]+|amp|quot|apos|lt|gt|nbsp);/gi, (entity, code: string) => {
+    if (code[0] !== "#") return named[code.toLowerCase()] ?? entity;
+    const point = code[1].toLowerCase() === "x" ? parseInt(code.slice(2), 16) : parseInt(code.slice(1), 10);
+    return point > 0 && point <= 0x10ffff && !(point >= 0xd800 && point <= 0xdfff) ? String.fromCodePoint(point) : entity;
+  });
+}
 
 function cn(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
@@ -583,10 +596,10 @@ function SidebarTrackRow({
             active ? "text-cyan-300" : "text-current",
           )}
         >
-          {track.title}
+          {musicDisplayText(track.title)}
         </span>
         <span className="block truncate text-[10px] text-slate-500">
-          {track.artist} · {sourceLabel(track.source)}
+          {musicDisplayText(track.artist)} · {sourceLabel(track.source)}
         </span>
       </span>
     </button>
@@ -622,7 +635,7 @@ function TableTrackRow({
             ? "bg-cyan-400 text-slate-950"
             : "bg-white/8 text-slate-400 group-hover:bg-cyan-400 group-hover:text-slate-950",
         )}
-        aria-label={`Reproducir ${track.title}`}
+        aria-label={`Reproducir ${musicDisplayText(track.title)}`}
       >
         {active && music.playing ? (
           <Pause className="h-3.5 w-3.5" fill="currentColor" />
@@ -644,14 +657,14 @@ function TableTrackRow({
             active ? "text-cyan-300" : "text-current",
           )}
         >
-          {track.title}
+          {musicDisplayText(track.title)}
         </span>
         <span className="block truncate text-xs text-slate-500">
-          {track.artist}
+          {musicDisplayText(track.artist)}
         </span>
       </button>
       <span className="hidden min-w-0 flex-1 truncate text-xs text-slate-400 md:block">
-        {track.album}
+        {musicDisplayText(track.album)}
       </span>
       <span className="hidden w-20 shrink-0 rounded-full bg-white/7 px-2 py-1 text-center text-[10px] font-bold uppercase tracking-wide text-slate-400 lg:block">
         {sourceLabel(track.source)}
@@ -845,8 +858,8 @@ function RadioPanel() {
                   {active && music.playing ? <Pause className="h-3 w-3" fill="currentColor" /> : index + 1}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[11px] font-black text-white">{track.title}</span>
-                  <span className="block truncate text-[10px] text-slate-500">{track.artist}</span>
+                  <span className="block truncate text-[11px] font-black text-white">{musicDisplayText(track.title)}</span>
+                  <span className="block truncate text-[10px] text-slate-500">{musicDisplayText(track.artist)}</span>
                 </span>
               </button>
             );
@@ -1147,7 +1160,7 @@ function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={artwork}
-            alt={track.title}
+            alt={musicDisplayText(track.title)}
             className="pointer-events-none absolute inset-0 h-full w-full object-cover opacity-60"
           />
         ) : (
@@ -1157,8 +1170,8 @@ function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
           YouTube · fuente oficial
         </div>
         <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent p-4 text-left">
-          <p className="line-clamp-1 text-sm font-black text-white drop-shadow">{track.title}</p>
-          <p className="mt-0.5 line-clamp-1 text-xs font-semibold text-slate-200">{track.artist}</p>
+          <p className="line-clamp-1 text-sm font-black text-white drop-shadow">{musicDisplayText(track.title)}</p>
+          <p className="mt-0.5 line-clamp-1 text-xs font-semibold text-slate-200">{musicDisplayText(track.artist)}</p>
         </div>
       </div>
     );
@@ -1169,7 +1182,7 @@ function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={artwork}
-        alt={track.title}
+        alt={musicDisplayText(track.title)}
         className="h-44 w-44 rounded-3xl object-cover shadow-2xl shadow-black/35 ring-1 ring-white/10 max-xl:h-36 max-xl:w-36"
       />
     );
@@ -1184,10 +1197,10 @@ function CurrentTrackArtwork({ track }: { track: EduMusicTrack }) {
         {track.title.slice(0, 1).toUpperCase()}
       </span>
       <span className="mt-3 line-clamp-2 text-xs font-black leading-tight text-slate-950">
-        {track.title}
+        {musicDisplayText(track.title)}
       </span>
       <span className="mt-1 line-clamp-1 text-[10px] font-bold text-slate-800">
-        {track.artist}
+        {musicDisplayText(track.artist)}
       </span>
     </div>
   );
@@ -1311,8 +1324,8 @@ function CyberHomeDashboard({ onOpenSpotify }: { onOpenSpotify: () => void }) {
                       {active && music.playing ? <Pause className="h-3.5 w-3.5" fill="currentColor" /> : <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />}
                     </span>
                   </div>
-                  <p className="mt-2 truncate text-xs font-black text-white">{track.title}</p>
-                  <p className="truncate text-[10px] text-slate-500">{track.artist} · {sourceLabel(track.source)}</p>
+                  <p className="mt-2 truncate text-xs font-black text-white">{musicDisplayText(track.title)}</p>
+                  <p className="truncate text-[10px] text-slate-500">{musicDisplayText(track.artist)} · {sourceLabel(track.source)}</p>
                 </button>
               );
             })}
@@ -1465,10 +1478,10 @@ function MainPanel({
                   {playbackKind(track)}
                 </p>
                 <h3 className="line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
-                  {track.title}
+                  {musicDisplayText(track.title)}
                 </h3>
                 <p className="mt-1 truncate text-sm font-semibold text-slate-300">
-                  {track.artist}
+                  {musicDisplayText(track.artist)}
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
                   Canal 95 usa el reproductor oficial de ConectaAPP. No se reproduce con el audio global de EduAI porque no entrega un stream directo estable.
@@ -1479,7 +1492,7 @@ function MainPanel({
                 {embedUrl ? (
                   <SafeRadioEmbed
                     src={embedUrl}
-                    title={`${track.title} - reproductor oficial`}
+                    title={`${musicDisplayText(track.title)} - reproductor oficial`}
                     externalUrl={track.externalUrl}
                     className="h-[560px] w-full max-lg:h-[520px] max-sm:h-[480px]"
                   />
@@ -1516,10 +1529,10 @@ function MainPanel({
                   {playbackKind(track)}
                 </p>
                 <h3 className="line-clamp-2 text-xl font-black leading-tight text-white max-xl:text-lg">
-                  {track.title}
+                  {musicDisplayText(track.title)}
                 </h3>
                 <p className="mt-1 truncate text-sm font-semibold text-slate-300">
-                  {track.artist}
+                  {musicDisplayText(track.artist)}
                 </p>
                 <p className="mt-1 truncate text-xs text-slate-500">
                   {track.album || "Sin álbum"} · {track.duration || "--:--"}
@@ -1643,7 +1656,7 @@ function SpotifyEmbeds({
             >
               <span className={`mb-2 block h-1.5 rounded-full bg-gradient-to-r ${item.accent}`} />
               <span className="block truncate text-[11px] font-black text-white">
-                {item.title}
+                {musicDisplayText(item.title)}
               </span>
               <span className="mt-0.5 block line-clamp-2 text-[9px] leading-tight text-slate-500">
                 {item.subtitle}
@@ -1683,7 +1696,7 @@ function RightPanel({
         <div className="relative mx-auto aspect-square w-full max-w-[232px] overflow-hidden rounded-2xl border border-cyan-200/25 bg-[#040914] shadow-[0_0_36px_rgba(18,234,255,.12)]">
           {artwork ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={artwork} alt={track.title} className="h-full w-full object-cover" />
+            <img src={artwork} alt={musicDisplayText(track.title)} className="h-full w-full object-cover" />
           ) : (
             <div className="relative h-full w-full overflow-hidden" style={{ background: track.cover || "linear-gradient(135deg,#03101b,#251052,#6a0f67)" }}>
               <div className="absolute inset-[18%] rounded-full border-2 border-cyan-300/70 shadow-[0_0_28px_rgba(18,234,255,.4)]" />
@@ -1698,8 +1711,8 @@ function RightPanel({
 
         <div className="mt-3 flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <h3 className="truncate text-base font-black text-white">{track.title}</h3>
-            <p className="truncate text-xs font-bold text-cyan-300">{track.artist}</p>
+            <h3 className="truncate text-base font-black text-white">{musicDisplayText(track.title)}</h3>
+            <p className="truncate text-xs font-bold text-cyan-300">{musicDisplayText(track.artist)}</p>
           </div>
           {!idle && (
             <MusicLikeButton liked={music.liked.has(track.id)} onToggle={() => music.toggleLike(track.id)}
@@ -1816,8 +1829,8 @@ function BottomPlayer() {
       <div className="flex min-w-0 items-center gap-3" style={{ width: 320 }}>
         <Cover track={music.currentTrack} size="md" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-black text-white">{music.currentTrack.title}</p>
-          <p className="truncate text-xs text-slate-400">{music.currentTrack.artist} · {sourceLabel(music.currentTrack.source)}</p>
+          <p className="truncate text-sm font-black text-white">{musicDisplayText(music.currentTrack.title)}</p>
+          <p className="truncate text-xs text-slate-400">{musicDisplayText(music.currentTrack.artist)} · {sourceLabel(music.currentTrack.source)}</p>
         </div>
         <MusicLikeButton liked={music.liked.has(music.currentTrack.id)}
           onToggle={() => music.toggleLike(music.currentTrack.id)} size="sm" />
@@ -1913,7 +1926,7 @@ function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
         >
           <Cover track={music.currentTrack} size="xs" />
           <span className="hidden max-w-[112px] truncate text-[10px] font-black sm:block">
-            {music.currentTrack.title}
+            {musicDisplayText(music.currentTrack.title)}
           </span>
         </button>
         <PlayButton size="xs" />
@@ -1932,8 +1945,8 @@ function MiniBar({ onOpenPanel }: { onOpenPanel?: () => void }) {
         >
           <Cover track={music.currentTrack} size="sm" />
           <span className="min-w-0">
-            <span className="block truncate text-xs font-black text-white">{music.currentTrack.title}</span>
-            <span className="block truncate text-[10px] text-slate-400">{music.currentTrack.artist}</span>
+            <span className="block truncate text-xs font-black text-white">{musicDisplayText(music.currentTrack.title)}</span>
+            <span className="block truncate text-[10px] text-slate-400">{musicDisplayText(music.currentTrack.artist)}</span>
           </span>
         </button>
 
@@ -1991,7 +2004,7 @@ function CompactPanel({ onOpenPanel }: { onOpenPanel?: () => void }) {
           <div className="flex items-center justify-between gap-2">
             <button type="button" onClick={onOpenPanel} className="min-w-0 text-left">
               <p className="text-sm font-black text-white">EduAI Music</p>
-              <p className="truncate text-[10px] text-slate-400">{music.currentTrack.title}</p>
+              <p className="truncate text-[10px] text-slate-400">{musicDisplayText(music.currentTrack.title)}</p>
             </button>
             <Link href="/music" className="rounded-full bg-cyan-400 px-3 py-1.5 text-[10px] font-black text-slate-950 hover:bg-cyan-300">
               Abrir
@@ -2005,8 +2018,8 @@ function CompactPanel({ onOpenPanel }: { onOpenPanel?: () => void }) {
           <div className="flex items-center gap-2">
             <Cover track={music.currentTrack} size="sm" />
             <div className="min-w-0 flex-1">
-              <p className="truncate text-xs font-black text-white">{music.currentTrack.title}</p>
-              <p className="truncate text-[10px] text-slate-400">{music.currentTrack.artist}</p>
+              <p className="truncate text-xs font-black text-white">{musicDisplayText(music.currentTrack.title)}</p>
+              <p className="truncate text-[10px] text-slate-400">{musicDisplayText(music.currentTrack.artist)}</p>
             </div>
             <PlayButton size="sm" />
           </div>
@@ -2300,7 +2313,7 @@ function NeonRecentCard({
           type="button"
           onClick={() => music.playTrack(track, tracks)}
           className="absolute inset-0 z-0 block h-full w-full text-left"
-          aria-label={active && music.playing ? `Pausar ${track.title}` : `Reproducir ${track.title}`}
+          aria-label={active && music.playing ? `Pausar ${musicDisplayText(track.title)}` : `Reproducir ${musicDisplayText(track.title)}`}
         >
           {artwork ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -2324,8 +2337,8 @@ function NeonRecentCard({
         onClick={() => music.playTrack(track, tracks)}
         className="neon-recent-meta mt-2 min-w-0 text-left"
       >
-        <p className="line-clamp-2 text-[11px] font-black leading-[1.2] text-white">{track.title}</p>
-        <p className="mt-1 truncate text-[9px] text-slate-400">{track.artist}</p>
+        <p className="line-clamp-2 text-[11px] font-black leading-[1.2] text-white">{musicDisplayText(track.title)}</p>
+        <p className="mt-1 truncate text-[9px] text-slate-400">{musicDisplayText(track.artist)}</p>
       </button>
       {track.externalUrl && (
         <a href={track.externalUrl} target="_blank" rel="noopener noreferrer"
@@ -2344,7 +2357,7 @@ function NeonTrackTable({ tracks, radio = false }: { tracks: EduMusicTrack[]; ra
 
   return (
     <div
-      className={cn("flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-color:#12eaff55_transparent] [scrollbar-width:thin]", radio ? "min-h-[150px] max-h-[42vh]" : "min-h-0")}
+      className={cn("gaming-song-list flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-color:#12eaff55_transparent] [scrollbar-width:thin]", radio ? "min-h-[150px] max-h-[42vh]" : "min-h-0")}
       role="region"
       aria-label={radio ? "Lista desplazable de emisoras" : "Lista desplazable de canciones"}
       tabIndex={0}
@@ -2383,14 +2396,14 @@ function NeonTrackTable({ tracks, radio = false }: { tracks: EduMusicTrack[]; ra
               <button type="button" onClick={() => music.playTrack(track, tracks)} className="flex min-w-0 items-center gap-2 text-left">
                 <Cover track={track} size="xs" />
                 <span className="min-w-0">
-                  <span className={cn("block truncate text-[10px] font-black", active ? "text-cyan-200" : "text-white")}>{track.title}</span>
+                  <span className={cn("block truncate text-[10px] font-black", active ? "text-cyan-200" : "text-white")}>{musicDisplayText(track.title)}</span>
                   {externalOnly && <span className="block truncate text-[8px] text-amber-300">{track.source === "radio" ? "Solo sitio oficial" : "Solo en YouTube"}</span>}
-                  <span className="block truncate text-[8px] text-slate-500 sm:hidden">{track.artist}</span>
+                  <span className="block truncate text-[8px] text-slate-500 sm:hidden">{musicDisplayText(track.artist)}</span>
                 </span>
               </button>
 
-              <span className="truncate text-[9px] text-slate-300">{track.artist}</span>
-              <span className="truncate text-[9px] text-slate-400">{track.album}</span>
+              <span className="truncate text-[9px] text-slate-300">{musicDisplayText(track.artist)}</span>
+              <span className="truncate text-[9px] text-slate-400">{musicDisplayText(track.album)}</span>
               <span className="text-[9px] tabular-nums text-slate-400">{track.duration}</span>
               <span className="flex items-center justify-end gap-2">
                 {track.externalUrl && (
@@ -2463,7 +2476,7 @@ function SpotifyCenter({
                     )}
                   >
                     <span className={`mb-2 block h-1.5 rounded-full bg-gradient-to-r ${item.accent}`} />
-                    <span className="block text-[12px] font-black text-white">{item.title}</span>
+                    <span className="block text-[12px] font-black text-white">{musicDisplayText(item.title)}</span>
                     <span className="mt-1 block text-[9px] leading-4 text-slate-400">{item.subtitle}</span>
                   </button>
                 );
@@ -2561,7 +2574,7 @@ function NeonMain({
 
   useEffect(() => {
     const scroller = catalogScrollerRef.current;
-    if (!scroller || music.view !== "search" || catalogTracks.length < 2) return;
+    if (!scroller || music.view !== "search" || catalogTracks.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     scroller.scrollLeft = 0;
     let settleTimer: number | null = null;
@@ -2835,7 +2848,7 @@ function NeonMain({
             <div className="mt-2 overflow-hidden rounded-2xl border border-cyan-300/20 bg-black/20 xl:hidden">
               <div className="flex items-center justify-between border-b border-cyan-300/10 px-3 py-2">
                 <div>
-                  <p className="text-[10px] font-black text-white">{music.currentTrack.title}</p>
+                  <p className="text-[10px] font-black text-white">{musicDisplayText(music.currentTrack.title)}</p>
                   <p className="text-[8px] text-slate-400">Reproductor oficial de la emisora</p>
                 </div>
                 {music.currentTrack.externalUrl ? (
@@ -2846,7 +2859,7 @@ function NeonMain({
               </div>
               <SafeRadioEmbed
                 src={getEmbedUrl(music.currentTrack)}
-                title={music.currentTrack.title}
+                title={musicDisplayText(music.currentTrack.title)}
                 externalUrl={music.currentTrack.externalUrl}
                 className="h-[180px] w-full"
               />
@@ -2854,7 +2867,7 @@ function NeonMain({
           ) : null}
         </div>
 
-        <div className={cn("mt-3 min-h-0 flex-1 px-2", music.view === "radio" && "overflow-y-auto overscroll-contain pb-3 [scrollbar-color:#12eaff55_transparent] [scrollbar-width:thin]")}>
+        <div className={cn("gaming-results mt-3 min-h-0 flex-1 px-2", music.view === "radio" && "overflow-y-auto overscroll-contain pb-3 [scrollbar-color:#12eaff55_transparent] [scrollbar-width:thin]")}>
           <div className={cn("flex min-h-0 flex-col gap-3", music.view === "radio" ? "min-h-full" : "h-full")}>
             <div className="shrink-0">
               <div className="mb-2 flex items-center justify-between">
@@ -2891,7 +2904,7 @@ function NeonMain({
               </div>
 
               {catalogTracks.length > 0 && (
-                <div className="neon-catalog-surface rounded-2xl p-2.5">
+                <div className="neon-catalog-surface relative rounded-2xl p-2.5">
                   {music.view === "liked" ? (
                     <div
                       className="grid max-h-[min(36vh,340px)] grid-cols-2 gap-3 overflow-y-auto overscroll-contain pr-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 [scrollbar-color:#12eaff55_transparent] [scrollbar-width:thin]"
@@ -2904,6 +2917,18 @@ function NeonMain({
                       ))}
                     </div>
                   ) : (
+                    <>
+                    <div className="gaming-catalog-controls" aria-label="Navegar catálogo">
+                      {([-1, 1] as const).map((direction) => (
+                        <button key={direction} type="button" aria-label={direction < 0 ? "Resultados anteriores" : "Resultados siguientes"}
+                          onClick={() => {
+                            const scroller = catalogScrollerRef.current;
+                            if (scroller) scroller.scrollBy({ left: direction * scroller.clientWidth * .8, behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth" });
+                          }}>
+                          {direction < 0 ? <ChevronLeft /> : <ChevronRight />}
+                        </button>
+                      ))}
+                    </div>
                     <div
                     ref={catalogScrollerRef}
                     className="neon-catalog flex gap-3 overflow-x-auto pb-1"
@@ -2911,6 +2936,8 @@ function NeonMain({
                     onPointerLeave={() => { catalogPausedRef.current = false; }}
                     onFocusCapture={() => { catalogPausedRef.current = true; }}
                     onBlurCapture={() => { catalogPausedRef.current = false; }}
+                    tabIndex={0}
+                    role="region"
                     aria-label="Carrusel de resultados musicales"
                   >
                     {carouselTracks.map((track, index) => (
@@ -2923,6 +2950,7 @@ function NeonMain({
                       </div>
                     ))}
                     </div>
+                    </>
                   )}
                 </div>
               )}
@@ -2972,7 +3000,7 @@ function NeonRightPanel() {
             {!idle && embedTrack && embedUrl ? (
               <SafeRadioEmbed
                 src={embedUrl}
-                title={track.title}
+                title={musicDisplayText(track.title)}
                 externalUrl={track.externalUrl}
                 className="aspect-video w-full max-w-[260px] rounded-2xl border border-cyan-300/30 shadow-[0_0_34px_rgba(18,234,255,.14)]"
               />
@@ -2984,7 +3012,7 @@ function NeonRightPanel() {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={artwork}
-                alt={track.title}
+                alt={musicDisplayText(track.title)}
                 className="aspect-square w-[min(100%,220px)] rounded-2xl border border-cyan-300/30 object-cover shadow-[0_0_34px_rgba(18,234,255,.14)]"
               />
             ) : (
@@ -2994,8 +3022,8 @@ function NeonRightPanel() {
 
           <div className="mt-2 flex items-start justify-between gap-2">
             <div className="min-w-0">
-              <p className="truncate text-[13px] font-black text-white">{track.title}</p>
-              <p className="truncate text-[10px] font-bold text-cyan-300">{track.artist}</p>
+              <p className="truncate text-[13px] font-black text-white">{musicDisplayText(track.title)}</p>
+              <p className="truncate text-[10px] font-bold text-cyan-300">{musicDisplayText(track.artist)}</p>
             </div>
             {!idle && (
               <MusicLikeButton liked={music.liked.has(track.id)}
@@ -3031,8 +3059,8 @@ function NeonRightPanel() {
                   <span className="w-4 text-center text-[9px] font-black text-slate-500">{index + 1}</span>
                   <Cover track={item} size="xs" />
                   <button type="button" onClick={() => music.playTrack(item, music.queue)} className="min-w-0 flex-1 text-left">
-                    <span className={cn("block truncate text-[9px] font-black", active ? "text-cyan-200" : "text-white")}>{item.title}</span>
-                    <span className="block truncate text-[8px] text-slate-500">{item.artist}</span>
+                    <span className={cn("block truncate text-[9px] font-black", active ? "text-cyan-200" : "text-white")}>{musicDisplayText(item.title)}</span>
+                    <span className="block truncate text-[8px] text-slate-500">{musicDisplayText(item.artist)}</span>
                   </button>
                   {active && <NeonSpectrum active={music.playing} bars={4} currentTime={music.currentTime} trackId={track.id} className="h-5 w-5" />}
                   <Menu className="h-3 w-3 text-slate-600" />
@@ -3080,7 +3108,7 @@ function NeonBottomPlayer() {
 
   const shareText =
     shareMode === "track" && !idle
-      ? `🎧 Estoy escuchando "${track.title}" — ${track.artist} en EDUAI Music.`
+      ? `🎧 Estoy escuchando "${musicDisplayText(track.title)}" — ${musicDisplayText(track.artist)} en EDUAI Music.`
       : "🎶 Explora el catálogo de EDUAI Music.";
 
   // Las previews de Vercel pueden estar protegidas y los crawlers sociales
@@ -3124,7 +3152,7 @@ function NeonBottomPlayer() {
 
   const shareNative = async (preferred?: "Instagram" | "TikTok") => {
     const data = {
-      title: shareMode === "track" && !idle ? `${track.title} · EDUAI Music` : "EDUAI Music",
+      title: shareMode === "track" && !idle ? `${musicDisplayText(track.title)} · EDUAI Music` : "EDUAI Music",
       text: shareText,
       url: shareBaseUrl,
     };
@@ -3162,8 +3190,8 @@ function NeonBottomPlayer() {
           <div className="flex min-w-0 items-center gap-2.5">
             {!idle && <Cover track={track} size="md" />}
             <div className="min-w-0 flex-1">
-              <p className="truncate text-[11px] font-black text-white">{track.title}</p>
-              <p className="truncate text-[9px] text-slate-400">{track.artist}</p>
+              <p className="truncate text-[11px] font-black text-white">{musicDisplayText(track.title)}</p>
+              <p className="truncate text-[9px] text-slate-400">{musicDisplayText(track.artist)}</p>
             </div>
             {!idle && (
               <MusicLikeButton liked={music.liked.has(track.id)} onToggle={() => music.toggleLike(track.id)} size="sm" />
@@ -4641,6 +4669,73 @@ export default function EduAIMusicPlayer({
           .eduai-music-cyber .neon-main-play svg { height:20px;width:20px; }
           .eduai-music-cyber .neon-control-button { height:30px;width:30px; }
           .eduai-music-cyber .neon-view-context { border-radius:18px;padding:10px; }
+        }
+
+        /* Compact, scrollable content: the dock never hides the last card. */
+        .eduai-music-cyber { height:100dvh; }
+        .eduai-music-cyber .neon-main { overflow-y:auto !important;overflow-x:hidden !important;scroll-padding-block:16px; }
+        .eduai-music-cyber .neon-main > div { height:auto;min-height:100%; }
+        .eduai-music-cyber .gaming-results { flex:0 0 auto;min-height:0;padding-bottom:18px; }
+        .eduai-music-cyber .gaming-results > div { height:auto; }
+        .eduai-music-cyber .gaming-song-list { flex:none;min-height:160px;max-height:340px; }
+        .eduai-music-cyber .gaming-hero { padding-top:6px; }
+        .eduai-music-cyber .gaming-hero h1 { margin-top:8px;font-size:clamp(38px,3.6vw,62px); }
+        .eduai-music-cyber .gaming-hero-scene { height:166px;inset:-12px -10px auto;overflow:hidden;border-radius:12px; }
+        .eduai-music-cyber .gaming-original-art { background-position:center,68% top;mask-image:linear-gradient(#000 0 55%,transparent 98%); }
+        .eduai-music-cyber .gaming-hero-line { top:auto;bottom:0;opacity:.4; }
+        .eduai-music-cyber .gaming-hero-halo { right:9%;top:-30px;opacity:.22; }
+        .eduai-music-cyber .gaming-hero > p { position:relative;z-index:1; }
+        .eduai-music-cyber .neon-search-row { margin-top:22px; }
+        .eduai-music-cyber .neon-view-context { margin-top:10px;padding:8px 15px; }
+        .eduai-music-cyber .neon-view-context p:first-child { font-size:12px; }
+        .eduai-music-cyber .neon-view-context p + p { font-size:10px; }
+        .eduai-music-cyber .neon-catalog-surface { overflow:hidden;padding:9px 12px; }
+        .eduai-music-cyber .neon-catalog { gap:10px;padding:4px 0 8px;scrollbar-width:thin;scrollbar-color:#12eaff60 transparent; }
+        .eduai-music-cyber .neon-catalog::-webkit-scrollbar { display:block;height:4px; }
+        .eduai-music-cyber .neon-catalog::-webkit-scrollbar-thumb { background:#12eaff60;border-radius:6px; }
+        .eduai-music-cyber .neon-catalog-slide { flex-basis:calc((100% - 40px) / 5);width:calc((100% - 40px) / 5);min-width:136px; }
+        .eduai-music-cyber .neon-recent-card > div:first-child { aspect-ratio:1.12; }
+        .eduai-music-cyber .neon-recent-card { padding-bottom:9px; }
+        .eduai-music-cyber .neon-recent-meta { min-height:58px; }
+        .eduai-music-cyber .neon-recent-meta p:first-child { font-size:12px;line-height:1.35; }
+        .eduai-music-cyber .neon-recent-meta p + p { font-size:11px; }
+        .eduai-music-cyber .neon-recent-card > a { margin-top:auto;padding-top:6px; }
+        .gaming-catalog-controls { display:flex;justify-content:flex-end;gap:8px;margin-bottom:5px; }
+        .gaming-catalog-controls button { display:grid;place-items:center;width:29px;height:29px;border-radius:50%;border:1px solid #12eaff90;background:#041526;color:#95ffdc; }
+        .gaming-catalog-controls svg { width:18px;height:18px; }
+        .eduai-music-cyber .neon-sidebar { scrollbar-width:thin;scrollbar-color:#12eaff55 transparent;padding-top:20px; }
+        .eduai-music-cyber .neon-sidebar > * { flex-shrink:0; }
+        .eduai-music-cyber .neon-sidebar > a { min-height:34px; }
+        .eduai-music-cyber .neon-nav-button { min-height:36px; }
+        .eduai-music-cyber .neon-queue-row { min-height:45px; }
+        .eduai-music-cyber .neon-queue-row p:first-child { font-size:11px; }
+        .eduai-music-cyber .neon-queue-row p + p { font-size:10px; }
+        .eduai-music-cyber .neon-track-row { min-height:41px; }
+        .eduai-music-cyber .neon-track-row button span.block { font-size:11px; }
+        .eduai-music-cyber .neon-track-row > span { font-size:10px; }
+        .eduai-music-cyber .neon-overlay { padding-bottom:122px; }
+        .eduai-music-cyber .neon-bottom-player { height:108px; }
+        .eduai-music-cyber .neon-bottom-grid > div:first-child p:first-child { font-size:13px; }
+        .eduai-music-cyber .neon-main-play { height:58px;width:58px; }
+        .eduai-music-cyber .gaming-dock-waves { bottom:28px;opacity:.5; }
+        @media (max-height:800px) and (min-width:768px) {
+          .eduai-music-cyber .neon-main { padding-top:14px; }
+          .eduai-music-cyber .gaming-hero h1 { font-size:clamp(36px,3.4vw,54px); }
+          .eduai-music-cyber .neon-search-row { margin-top:16px; }
+          .eduai-music-cyber .neon-search { height:42px; }
+          .eduai-music-cyber .neon-recent-card > div:first-child { aspect-ratio:1.3; }
+        }
+        @media (max-width:1199px) {
+          .eduai-music-cyber .neon-catalog-slide { flex-basis:150px;width:150px; }
+        }
+        @media (max-width:767px) {
+          .eduai-music-cyber .neon-overlay { padding-bottom:calc(132px + env(safe-area-inset-bottom)); }
+          .eduai-music-cyber .neon-bottom-player { height:calc(132px + env(safe-area-inset-bottom)); }
+          .eduai-music-cyber .neon-main-play { height:44px;width:44px; }
+          .eduai-music-cyber .neon-catalog-slide { flex-basis:160px;width:160px; }
+          .eduai-music-cyber .gaming-hero h1 { font-size:40px; }
+          .eduai-music-cyber .gaming-hero-scene { height:190px; }
+          .eduai-music-cyber .neon-view-context p + p { white-space:normal; }
         }
       `}</style>
       <NeonMusicOverlay
