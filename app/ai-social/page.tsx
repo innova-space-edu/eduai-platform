@@ -1,11 +1,10 @@
-// app/ai-social/page.tsx
 "use client"
-
 import TrainingFeedback from "@/components/ai/TrainingFeedback"
+import MathRenderer from "@/components/ui/MathRenderer"
 import Link from "next/link"
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useCallback,useEffect,useRef,useState } from "react"
+import { ArrowLeft, ArrowRight, Bot, Briefcase, ChevronRight, FileText, FlaskConical, GraduationCap, History, Lightbulb, MessageCircle, Palette, Pause, Play, Plus, RefreshCw, Send, Sparkles, Trash2, Users, X } from "lucide-react"
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 type SocialRoomSlug = "ideas" | "research" | "teaching-lab" | "creative-studio" | "user-support" | "anticipation"
 type SocialParticipantRole = "supervisor" | "researcher" | "educator" | "engineer" | "mathematician" | "creative" | "assistant"
 
@@ -54,650 +53,193 @@ type DraftApiResponse = {
   draft?: DraftFile; logs?: Record<string, unknown>[]; error?: string
 }
 
-// ─── Constants ────────────────────────────────────────────────────────────────
-const ROOM_PRESETS: Array<{ slug: SocialRoomSlug; emoji: string; title: string; suggestedGoal: string }> = [
-  { slug: "ideas",           emoji: "💡", title: "Ideas",        suggestedGoal: "Conversemos sobre nuevas ideas para mejorar EduAI" },
-  { slug: "research",        emoji: "🔬", title: "Research",     suggestedGoal: "Quiero debatir una idea de investigación sobre plasma y CubeSats" },
-  { slug: "teaching-lab",    emoji: "🏫", title: "Docencia",     suggestedGoal: "Necesito apoyo para una planificación con OA e indicadores MINEDUC" },
-  { slug: "creative-studio", emoji: "🎨", title: "Creativo",     suggestedGoal: "Quiero crear una infografía educativa y materiales visuales" },
-  { slug: "user-support",    emoji: "🤝", title: "Soporte",      suggestedGoal: "¿Cómo podemos mejorar la experiencia del usuario en EduAI?" },
-  { slug: "anticipation",    emoji: "⚡", title: "Anticipar",    suggestedGoal: "Anticipemos un borrador de guía de estudio para mañana" },
-]
 
-const ROLE_COLORS: Record<string, { dot: string; name: string }> = {
-  supervisor:    { dot: "bg-cyan-400",    name: "text-cyan-700" },
-  researcher:    { dot: "bg-violet-400",  name: "text-violet-700" },
-  educator:      { dot: "bg-emerald-400", name: "text-emerald-700" },
-  engineer:      { dot: "bg-blue-400",    name: "text-blue-700" },
-  mathematician: { dot: "bg-amber-400",   name: "text-amber-700" },
-  creative:      { dot: "bg-fuchsia-400", name: "text-fuchsia-700" },
-  assistant:     { dot: "bg-slate-200",   name: "text-sub" },
+type Recent = {id:string;title:string;topic:string;updatedAt:string}
+type LiveEvent =
+  | {type:"session";session:SocialSession}
+  | {type:"speakers";speakers:SocialParticipant[]}
+  | {type:"delta";authorId:string;content:string}
+  | {type:"message";message:SocialMessage}
+  | {type:"agent-error";authorId:string;name:string}
+  | {type:"done";session:SocialSession;actionSuggestion?:SocialActionSuggestion;warning?:string}
+  | {type:"error";error:string}
+const rooms = [
+  {slug:"ideas",title:"Ideas",description:"Explora soluciones y nuevas perspectivas.",prompt:"Quiero explorar nuevas ideas y discutir sus posibilidades.",icon:Lightbulb,color:"#b45309"},
+  {slug:"research",title:"Investigación",description:"Analiza hipótesis, evidencia y métodos.",prompt:"Quiero conversar sobre una idea de investigación.",icon:FlaskConical,color:"#7c3aed"},
+  {slug:"teaching-lab",title:"Docencia",description:"Diseña experiencias de aprendizaje.",prompt:"Necesito apoyo para planificar una experiencia educativa.",icon:GraduationCap,color:"#047857"},
+  {slug:"creative-studio",title:"Creatividad",description:"Desarrolla conceptos, recursos y diseños.",prompt:"Quiero desarrollar una idea creativa.",icon:Palette,color:"#be185d"},
+  {slug:"user-support",title:"Soporte",description:"Resuelve dudas y problemas técnicos.",prompt:"Necesito ayuda para resolver un problema.",icon:Briefcase,color:"#2563eb"},
+  {slug:"anticipation",title:"Proyectos",description:"Organiza próximos pasos y borradores.",prompt:"Quiero anticipar los pasos de un proyecto.",icon:FileText,color:"#0891b2"},
+] as const
+const roles:Record<SocialParticipantRole,{label:string;color:string}> = {
+ supervisor:{label:"Coordinación",color:"#7c3aed"},researcher:{label:"Investigación",color:"#6d28d9"},
+ educator:{label:"Educación",color:"#047857"},engineer:{label:"Ingeniería",color:"#2563eb"},
+ mathematician:{label:"Matemáticas",color:"#b45309"},creative:{label:"Creatividad",color:"#be185d"},
+ assistant:{label:"Asistente",color:"#64748b"},
 }
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function timeAgo(iso: string) {
-  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000)
-  if (s < 60)   return "ahora"
-  if (s < 3600) return `${Math.floor(s / 60)}m`
-  return `${Math.floor(s / 3600)}h`
+const endpoint="/api/superagent/social/live"
+const control="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl border border-soft bg-card-theme px-3 py-2 text-xs font-semibold text-sub transition hover:border-violet-400 focus-visible:outline-2 focus-visible:outline-violet-500 disabled:opacity-40"
+const primary="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-violet-500/20 transition hover:brightness-110 focus-visible:outline-2 focus-visible:outline-violet-500 disabled:opacity-50"
+const backdrop={backgroundImage:"radial-gradient(ellipse at 7% 0%,rgba(167,139,250,.14),transparent 48%),radial-gradient(ellipse at 99% 20%,rgba(45,212,191,.10),transparent 50%)"}
+function Bubble({msg,prompt,partial=false}:{msg:SocialMessage;prompt?:string;partial?:boolean}){
+ const user=msg.authorId==="user",style=roles[msg.role]||roles.assistant
+ return <article className={"flex items-start gap-2.5 "+(user?"flex-row-reverse":"")}>
+  <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl text-xs font-bold" style={{background:user?"#7c3aed":style.color+"18",color:user?"white":style.color}}>{user?"Tú":msg.authorName.slice(0,2)}</div>
+  <div className={"min-w-0 max-w-[88%] sm:max-w-[82%] "+(user?"text-right":"")}>
+   {!user&&<div className="mb-1 flex flex-wrap items-center gap-2 text-xs"><strong style={{color:style.color}}>{msg.authorName}</strong><span className="text-muted2">{style.label}</span>{partial&&<span className="text-violet-600">Escribiendo…</span>}</div>}
+   <div className={"overflow-hidden rounded-2xl border px-4 py-3 text-left text-sm leading-relaxed "+(user?"rounded-tr-sm border-violet-400/20 bg-violet-500/10":"rounded-tl-sm border-soft bg-card-theme shadow-sm")} style={user?undefined:{backgroundImage:"linear-gradient(145deg,transparent,"+style.color+"08)"}}>
+    {user||partial?<p className="whitespace-pre-wrap break-words">{msg.content||"…"}</p>:<><MathRenderer content={msg.content}/><TrainingFeedback answer={msg.content} prompt={prompt} module="ai-social" comparisonOnly/></>}
+   </div>
+  </div>
+ </article>
 }
-
-// ─── Message bubble ───────────────────────────────────────────────────────────
-function MessageBubble({ msg, isUser, originalPrompt }: { msg: SocialMessage; isUser: boolean; originalPrompt?: string }) {
-  const colors = ROLE_COLORS[msg.role] || ROLE_COLORS.assistant
-  return (
-    <div className={`flex gap-3 ${isUser ? "flex-row-reverse" : ""}`}>
-      <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-[11px] font-bold
-        ${isUser
-          ? "bg-cyan-500/20 text-cyan-700 border border-cyan-500/30"
-          : "bg-card-soft-theme text-main"}`}>
-        {isUser ? "Tú" : msg.authorName.slice(0, 2)}
-      </div>
-      <div className={`max-w-[78%] flex flex-col gap-1 ${isUser ? "items-end" : "items-start"}`}>
-        {!isUser && (
-          <span className={`text-[11px] font-semibold ${colors.name}`}>
-            {msg.authorName}
-            <span className="text-muted2 font-normal ml-1.5 uppercase tracking-wide text-[10px]">{msg.role}</span>
-          </span>
-        )}
-        <div className={`rounded-2xl px-4 py-2.5 text-sm leading-relaxed
-          ${isUser
-            ? "bg-cyan-500/15 border border-cyan-500/20 text-main rounded-tr-sm"
-            : "bg-card-soft-theme text-main rounded-tl-sm"}`}>
-          {msg.content}
-          {!isUser && <TrainingFeedback answer={msg.content} prompt={originalPrompt} module="ai-social" />}
-        </div>
-        {!isUser && msg.model && (
-          <span className="text-[9px] text-muted2 px-1">
-            {msg.provider ? `${msg.provider} · ` : ""}{msg.model}
-          </span>
-        )}
-        <span className="text-[10px] text-muted2 px-1">{timeAgo(msg.createdAt)}</span>
-      </div>
-    </div>
-  )
-}
-
-// ─── Main page ────────────────────────────────────────────────────────────────
-export default function AISocialPage() {
-  // Session state
-  const [session, setSession]           = useState<SocialSession | null>(null)
-  const [loading, setLoading]           = useState(false)
-  const [sending, setSending]           = useState(false)
-  const [countdown, setCountdown]       = useState(60)
-  const [error, setError]               = useState<string | null>(null)
-
-  // UI state
-  const [userMessage, setUserMessage]   = useState("")
-  const [goal, setGoal]                 = useState("")
-  const [topicInput, setTopicInput]     = useState("") // entrada libre del usuario
-  const [phase, setPhase]               = useState<"start" | "chat">("start") // pantalla inicial vs chat
-
-  // Action / draft state
-  const [actionSuggestion, setActionSuggestion]   = useState<SocialActionSuggestion | null>(null)
-  const [executedAction, setExecutedAction]         = useState<ExecutedActionResult | null>(null)
-  const [draftLoading, setDraftLoading]             = useState(false)
-  const [draftResponse, setDraftResponse]           = useState<DraftApiResponse | null>(null)
-
-  const bottomRef   = useRef<HTMLDivElement>(null)
-  const countdownRef = useRef<NodeJS.Timeout | null>(null)
-  const cleanupRef   = useRef<NodeJS.Timeout | null>(null)
-
-  const activeRoomSlug = session?.room?.slug
-
-  // Auto-scroll
-  useEffect(() => {
-    if (session?.messages?.length) bottomRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [session?.messages?.length])
-
-  const resetCountdown = useCallback(() => {
-    setCountdown(Math.floor((session?.inactivityTimeoutMs ?? 60000) / 1000))
-  }, [session?.inactivityTimeoutMs])
-
-  // ── createSession ──────────────────────────────────────────────────────────
-  const createSession = useCallback(async (customGoal: string) => {
-    const finalGoal = customGoal.trim()
-    if (!finalGoal) { setError("Escribe primero un tema."); return }
-
-    setLoading(true); setError(null); setDraftResponse(null)
-    setActionSuggestion(null); setExecutedAction(null)
-    try {
-      const res  = await fetch("/api/superagent/social/session", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "create", currentPage: "/ai-social", activeAgent: "social",
-          userGoal: finalGoal, tags: ["social", "agents"], inactivityTimeoutMs: 60000,
-        }),
-      })
-      const json = (await res.json()) as SocialSessionResponse
-      if (!res.ok || !json.ok || !json.session) { setError(json.error || "No se pudo crear la sesión."); return }
-      setGoal(finalGoal)
-      setSession(json.session)
-      setUserMessage("")
-      setCountdown(Math.floor(json.session.inactivityTimeoutMs / 1000))
-      setPhase("chat")
-    } catch { setError("Error al crear la sesión.") }
-    finally   { setLoading(false) }
-  }, [])
-
-  // ── touchSession ───────────────────────────────────────────────────────────
-  const touchSession = useCallback(async (sessionId: string) => {
-    try {
-      const res  = await fetch("/api/superagent/social/session", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "touch", sessionId }),
-      })
-      const json = (await res.json()) as SocialSessionResponse
-      if (res.ok && json.ok && json.session) {
-        setSession(json.session)
-        setCountdown(Math.floor(json.session.inactivityTimeoutMs / 1000))
+export default function AISocialPage(){
+ const [session,setSession]=useState<SocialSession|null>(null)
+ const [phase,setPhase]=useState<"start"|"chat">("start")
+ const [topic,setTopic]=useState("")
+ const [input,setInput]=useState("")
+ const [selectedRoom,setSelectedRoom]=useState<SocialRoomSlug|undefined>()
+ const [recent,setRecent]=useState<Recent[]>([])
+ const [historyError,setHistoryError]=useState("")
+ const [loading,setLoading]=useState(false)
+ const [waiting,setWaiting]=useState(false)
+ const [remoteBusy,setRemoteBusy]=useState(false)
+ const [optimistic,setOptimistic]=useState("")
+ const [speakers,setSpeakers]=useState<SocialParticipant[]>([])
+ const [partials,setPartials]=useState<Record<string,string>>({})
+ const [finished,setFinished]=useState<string[]>([])
+ const [error,setError]=useState("")
+ const [warning,setWarning]=useState("")
+ const [action,setAction]=useState<SocialActionSuggestion|null>(null)
+ const [result,setResult]=useState<ExecutedActionResult|null>(null)
+ const [draft,setDraft]=useState<DraftFile|null>(null)
+ const [draftBusy,setDraftBusy]=useState(false)
+ const feed=useRef<HTMLDivElement>(null)
+ const composer=useRef<HTMLTextAreaElement>(null)
+ const operation=useRef(false)
+ const streamAbort=useRef<AbortController|null>(null)
+ const nearBottom=useRef(true)
+ const busy=loading||waiting||remoteBusy
+ const loadRecent=useCallback(async()=>{
+  try{const res=await fetch(endpoint,{cache:"no-store"});const data=await res.json();if(!res.ok)throw Error(data.error);setRecent(data.sessions||[]);setHistoryError("")}catch{setHistoryError("No se pudo cargar el historial.")}
+ },[])
+ useEffect(()=>{void loadRecent();return()=>streamAbort.current?.abort()},[loadRecent])
+ useEffect(()=>{if(phase==="chat"&&nearBottom.current&&feed.current)feed.current.scrollTop=feed.current.scrollHeight},[phase,session?.messages,partials,speakers,optimistic,warning,error])
+ async function open(id:string){
+  if(operation.current)return
+  operation.current=true;setLoading(true);setError("")
+  try{const res=await fetch(endpoint+"?sessionId="+encodeURIComponent(id),{cache:"no-store"});const data=await res.json();if(!res.ok||!data.session)throw Error(data.error||"No se pudo abrir.");setSession(data.session);setRemoteBusy(!!data.busy);setPhase("chat");setOptimistic("");setSpeakers([]);setPartials({});setFinished([]);setAction(null);setWarning("");setDraft(null);setResult(null);nearBottom.current=true}
+  catch(e){setError(e instanceof Error?e.message:"No se pudo abrir.")}finally{operation.current=false;setLoading(false)}
+ }
+ async function run(body:Record<string,unknown>,userText:string){
+  if(operation.current||remoteBusy)return
+  operation.current=true
+  const controller=new AbortController();streamAbort.current=controller
+  const timer=window.setTimeout(()=>controller.abort(),45000)
+  const creating=body.action==="create"
+  setWaiting(true);setError("");setWarning("");setAction(null);setResult(null);setDraft(null)
+  setSpeakers([]);setPartials({});setFinished([]);setOptimistic(userText);nearBottom.current=true
+  if(creating){setSession(null);setPhase("chat")}
+  if(body.action==="turn")setInput("")
+  let accepted=false,completed=false
+  try{
+    const response=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),signal:controller.signal})
+    if(!response.ok){const data=await response.json().catch(()=>({}));throw Error(data.error||"No se pudo iniciar la respuesta.")}
+    if(!response.body)throw Error("No se recibió la conversación.")
+    const reader=response.body.getReader(),decoder=new TextDecoder()
+    let buffer=""
+    const handle=(event:LiveEvent)=>{
+      switch(event.type){
+       case "session":accepted=true;setSession(event.session);setOptimistic("");break
+       case "speakers":setSpeakers(event.speakers);break
+       case "delta":setPartials(prev=>({...prev,[event.authorId]:event.content}));break
+       case "message":setSession(prev=>prev?{...prev,messages:prev.messages.some(m=>m.id===event.message.id)?prev.messages:[...prev.messages,event.message]}:prev);setFinished(prev=>[...prev,event.message.authorId]);break
+       case "agent-error":setFinished(prev=>[...prev,event.authorId]);break
+       case "done":completed=true;setSession(event.session);setAction(event.actionSuggestion||null);setWarning(event.warning||"");break
+       case "error":throw Error(event.error)
       }
-    } catch {}
-  }, [])
-
-  // ── pauseSession ───────────────────────────────────────────────────────────
-  const pauseSession = useCallback(async (sessionId: string) => {
-    try {
-      const res  = await fetch("/api/superagent/social/session", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "pause", sessionId }),
-      })
-      const json = (await res.json()) as SocialSessionResponse
-      if (res.ok && json.ok && json.session) setSession(json.session)
-    } catch {}
-  }, [])
-
-  // ── resumeSession ──────────────────────────────────────────────────────────
-  const resumeSession = useCallback(async () => {
-    if (!session?.sessionId) return
-    setLoading(true)
-    try {
-      const res  = await fetch("/api/superagent/social/session", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "resume", sessionId: session.sessionId }),
-      })
-      const json = (await res.json()) as SocialSessionResponse
-      if (!res.ok || !json.ok || !json.session) { setError(json.error || "No se pudo reanudar."); return }
-      setSession(json.session)
-      setCountdown(Math.floor(json.session.inactivityTimeoutMs / 1000))
-    } catch { setError("Error al reanudar.") }
-    finally  { setLoading(false) }
-  }, [session?.sessionId])
-
-  // ── sendUserMessage ────────────────────────────────────────────────────────
-  const sendUserMessage = useCallback(async () => {
-    if (!session?.sessionId || !userMessage.trim()) return
-    const messageToSend = userMessage.trim()
-    try {
-      setSending(true); setError(null)
-
-      const appendRes  = await fetch("/api/superagent/social/session", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "append-message", sessionId: session.sessionId,
-          authorId: "user", authorName: "Usuario", role: "assistant",
-          content: messageToSend, fromUser: true,
-        }),
-      })
-      const appendJson = (await appendRes.json()) as SocialSessionResponse
-      if (!appendRes.ok || !appendJson.ok || !appendJson.session) {
-        setError(appendJson.error || "No se pudo enviar."); return
-      }
-      setSession(appendJson.session); setUserMessage("")
-      setCountdown(Math.floor(appendJson.session.inactivityTimeoutMs / 1000))
-
-      const roundRes  = await fetch("/api/superagent/social/session", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "agent-round", sessionId: session.sessionId, userMessage: messageToSend }),
-      })
-      const roundJson = (await roundRes.json()) as SocialSessionResponse
-      if (roundRes.ok && roundJson.ok && roundJson.session) {
-        setSession(roundJson.session)
-        setCountdown(Math.floor(roundJson.session.inactivityTimeoutMs / 1000))
-        setActionSuggestion(roundJson.actionSuggestion || null)
-      }
-    } catch { setError("Error al enviar tu mensaje.") }
-    finally  { setSending(false) }
-  }, [session?.sessionId, userMessage])
-
-  // ── executeDetectedAction ──────────────────────────────────────────────────
-  const executeDetectedAction = useCallback(async () => {
-    if (!actionSuggestion) return
-    setLoading(true); setError(null)
-    try {
-      const res  = await fetch("/api/superagent/social/session", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          action: "execute-suggested-action",
-          suggestion: actionSuggestion,
-          userGoal: actionSuggestion.suggestedGoal || goal,
-          tags: ["social", "executed-action"],
-          metadata: {
-            source: "ai-social",
-            sessionId: session?.sessionId || null,
-            roomTitle: session?.room?.title || null,
-            roomTopic: session?.room?.topic || null,
-          },
-        }),
-      })
-      const json = (await res.json()) as { ok: boolean; result?: ExecutedActionResult; error?: string }
-      if (!res.ok || !json.ok || !json.result) { setError(json.error || "No se pudo ejecutar la acción."); return }
-      setExecutedAction(json.result)
-      if (json.result.mode === "draft_created" && json.result.draft) {
-        setDraftResponse({ ok: true, message: json.result.message, target: "drafts", draft: json.result.draft })
-      }
-    } catch { setError("Error al ejecutar la acción.") }
-    finally  { setLoading(false) }
-  }, [actionSuggestion, goal, session?.room?.title, session?.room?.topic, session?.sessionId])
-
-  // ── createDraft ────────────────────────────────────────────────────────────
-  const createDraft = useCallback(async () => {
-    if (!session) return
-    setDraftLoading(true); setError(null)
-    try {
-      const ctx = session.messages.map(m => `${m.authorName}: ${m.content}`).join("\n")
-      const res = await fetch("/api/superagent/drafts", {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          currentPage: "/ai-social", activeAgent: "drafts",
-          userGoal: `${session.room.topic}\n\nResumen:\n${session.summary}\n\nConversación:\n${ctx}`,
-          tags: ["social", "draft", session.room.slug, ...session.participants.map(p => p.role)],
-          metadata: {
-            source: "ai-social", sessionId: session.sessionId,
-            roomTitle: session.room.title, roomTopic: session.room.topic,
-            socialSummary: session.summary, messageCount: session.messages.length,
-          },
-        }),
-      })
-      const json = (await res.json()) as DraftApiResponse
-      if (!res.ok || !json.ok) setError(json.error || json.message || "No se pudo crear el borrador.")
-      setDraftResponse(json)
-    } catch { setError("Error al crear el borrador.") }
-    finally  { setDraftLoading(false) }
-  }, [session])
-
-  // ── Effects ────────────────────────────────────────────────────────────────
-  useEffect(() => {
-    if (!session || session.status !== "active") {
-      if (countdownRef.current) clearInterval(countdownRef.current); return
     }
-    if (countdownRef.current) clearInterval(countdownRef.current)
-    countdownRef.current = setInterval(() => {
-      setCountdown(prev => {
-        if (prev <= 1) { if (session?.sessionId) pauseSession(session.sessionId); return 0 }
-        return prev - 1
-      })
-    }, 1000)
-    return () => { if (countdownRef.current) clearInterval(countdownRef.current) }
-  }, [session, pauseSession])
-
-  useEffect(() => {
-    if (cleanupRef.current) clearInterval(cleanupRef.current)
-    cleanupRef.current = setInterval(async () => {
-      try { await fetch("/api/superagent/social/session?cleanup=true", { method: "GET", cache: "no-store" }) } catch {}
-    }, 15000)
-    return () => { if (cleanupRef.current) clearInterval(cleanupRef.current) }
-  }, [])
-
-  const handleInteraction = async () => {
-    if (session?.sessionId && session.status === "active") { await touchSession(session.sessionId); resetCountdown() }
-  }
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendUserMessage() }
-  }
-  const handleTopicKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); createSession(topicInput) }
-  }
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // PANTALLA INICIAL — el usuario elige el tema
-  // ════════════════════════════════════════════════════════════════════════════
-  if (phase === "start") {
-    return (
-      <div className="min-h-screen bg-app text-main flex flex-col">
-        <header className="sticky top-0 z-20 border-b border-soft bg-app/90 backdrop-blur-sm">
-          <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Link href="/" className="text-sub hover:text-main transition text-sm">←</Link>
-              <div className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-violet-600 flex items-center justify-center text-xs font-bold">C</div>
-                <p className="text-sm font-semibold">EduAI Social</p>
-              </div>
-            </div>
-            <Link href="/superagent" className="text-[11px] text-muted2 hover:text-sub transition px-2 py-1 rounded-lg border border-soft hover:border-medium">
-              Claw ↗
-            </Link>
-          </div>
-        </header>
-
-        <div className="flex-1 flex flex-col items-center justify-center px-4 py-12">
-          <div className="w-full max-w-lg space-y-6">
-            {/* Hero */}
-            <div className="text-center space-y-2">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-cyan-500/20 to-violet-600/20 border border-soft flex items-center justify-center text-2xl mx-auto">
-                💬
-              </div>
-              <h1 className="text-2xl font-bold">Chat social de agentes</h1>
-              <p className="text-sm text-sub">
-                Plantea un tema. EduAI decide qué agentes tienen algo útil que aportar y conversa contigo sin un guion fijo.
-              </p>
-            </div>
-
-            {/* Topic input */}
-            <div className="rounded-2xl border border-medium bg-card-theme p-4 space-y-3">
-              <label className="text-xs text-muted2 uppercase tracking-wide">¿Sobre qué quieres conversar?</label>
-              <textarea
-                value={topicInput}
-                onChange={e => setTopicInput(e.target.value)}
-                onKeyDown={handleTopicKeyDown}
-                rows={3}
-                autoFocus
-                className="w-full bg-transparent text-sm text-main outline-none resize-none placeholder-gray-400"
-                placeholder="Escribe tu tema, pregunta u opinión... (Enter para iniciar)"
-              />
-              <button
-                onClick={() => createSession(topicInput)}
-                disabled={loading || !topicInput.trim()}
-                className="w-full py-2.5 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-700 text-sm font-medium hover:bg-cyan-500/30 transition disabled:opacity-30"
-              >
-                {loading ? "Iniciando..." : "Iniciar conversación →"}
-              </button>
-            </div>
-
-            {/* Room presets */}
-            <div className="space-y-2">
-              <p className="text-xs text-muted2 text-center">o elige una sala temática</p>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {ROOM_PRESETS.map(r => (
-                  <button
-                    key={r.slug}
-                    onClick={() => { setTopicInput(r.suggestedGoal); createSession(r.suggestedGoal) }}
-                    disabled={loading}
-                    className="flex flex-col gap-1 p-3 rounded-2xl border border-soft bg-card-theme hover:border-medium hover:bg-card-soft-theme transition text-left disabled:opacity-40"
-                  >
-                    <span className="text-lg">{r.emoji}</span>
-                    <span className="text-xs font-semibold text-main">{r.title}</span>
-                    <span className="text-[10px] text-muted2 line-clamp-2">{r.suggestedGoal}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {error && (
-              <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 text-sm text-rose-700">
-                {error}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // ════════════════════════════════════════════════════════════════════════════
-  // PANTALLA CHAT
-  // ════════════════════════════════════════════════════════════════════════════
-  return (
-    <div className="min-h-screen bg-app text-main flex flex-col">
-
-      {/* ── Top bar ── */}
-      <header className="sticky top-0 z-20 border-b border-soft bg-app/90 backdrop-blur-sm">
-        <div className="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => { setPhase("start"); setSession(null) }}
-              className="text-sub hover:text-main transition text-sm"
-            >
-              ←
-            </button>
-            <div className="flex items-center gap-2 min-w-0">
-              <div className="w-7 h-7 rounded-full bg-gradient-to-br from-cyan-500 to-violet-600 flex-shrink-0 flex items-center justify-center text-xs font-bold">C</div>
-              <div className="min-w-0">
-                <p className="text-sm font-semibold leading-none truncate">{session?.room?.title ?? "..."}</p>
-                <p className="text-[11px] text-muted2 leading-none mt-0.5">
-                  <span className={session?.status === "active" ? "text-emerald-400" : "text-amber-400"}>
-                    {session?.status === "active" ? "activa" : "pausada"}
-                  </span>
-                  {session?.status === "active" && <span className="text-muted2"> · {countdown}s</span>}
-                  {" · "}{session?.participants?.length ?? 0} agentes
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Room pills — mobile: hidden, sm: visible */}
-            <div className="hidden sm:flex items-center gap-1">
-              {ROOM_PRESETS.map(r => (
-                <button
-                  key={r.slug}
-                  onClick={() => createSession(r.suggestedGoal)}
-                  className={`text-[11px] px-2 py-1 rounded-full border transition ${
-                    activeRoomSlug === r.slug
-                      ? "border-cyan-400/40 bg-cyan-400/10 text-cyan-700"
-                      : "border-soft text-muted2 hover:text-sub hover:border-medium"
-                  }`}
-                >
-                  {r.emoji}
-                </button>
-              ))}
-            </div>
-            <Link href="/superagent" className="text-[11px] text-muted2 hover:text-sub transition px-2 py-1 rounded-lg border border-soft hover:border-medium">
-              Claw ↗
-            </Link>
-          </div>
-        </div>
-      </header>
-
-      {/* ── Content ── */}
-      <div className="max-w-2xl mx-auto w-full flex-1 flex flex-col px-4 py-4 gap-3">
-
-        {/* Topic badge */}
-        {goal && (
-          <div className="rounded-xl border border-soft bg-card-soft-theme px-3 py-2 flex items-center justify-between gap-2">
-            <p className="text-xs text-sub truncate flex-1">{goal}</p>
-            <button
-              onClick={() => setPhase("start")}
-              className="flex-shrink-0 text-[10px] px-2.5 py-1 rounded-lg border border-soft text-muted2 hover:text-main hover:border-medium transition"
-            >
-              Cambiar
-            </button>
-          </div>
-        )}
-
-        {/* Action suggestion banner */}
-        {actionSuggestion?.detected && (
-          <div className="rounded-2xl border border-violet-400/20 bg-violet-400/10 px-4 py-3 space-y-2">
-            <p className="text-xs font-semibold text-violet-700">⚡ EduAI Claw sugiere</p>
-            <p className="text-sm text-main">{actionSuggestion.label}</p>
-            <p className="text-xs text-sub">{actionSuggestion.reason}</p>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] px-2 py-0.5 rounded-full border border-violet-400/20 bg-violet-400/10 text-violet-700">
-                {actionSuggestion.intent}
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full border border-cyan-400/20 bg-cyan-400/10 text-cyan-700">
-                → {actionSuggestion.target}
-              </span>
-              <button
-                onClick={executeDetectedAction}
-                disabled={loading}
-                className="ml-auto text-[11px] px-3 py-1.5 rounded-xl border border-violet-400/30 bg-violet-400/10 text-violet-700 hover:bg-violet-400/20 transition disabled:opacity-40"
-              >
-                {loading ? "Ejecutando..." : "Ejecutar →"}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Error */}
-        {error && (
-          <div className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 text-sm text-rose-700">
-            {error}
-          </div>
-        )}
-
-        {/* Chat feed */}
-        <div className="flex-1 space-y-4 py-2 min-h-[300px]">
-          {!session ? (
-            <div className="flex items-center justify-center h-48 text-muted2 text-sm">Cargando...</div>
-          ) : session.messages.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-48 gap-2 text-muted2">
-              <div className="text-3xl">💬</div>
-              <p className="text-sm">La conversación aparecerá aquí</p>
-            </div>
-          ) : (
-            session.messages.map((msg, index) => (
-              <MessageBubble key={msg.id} msg={msg} isUser={msg.authorId === "user"}
-                originalPrompt={session.messages.slice(0, index).reverse().find(previous => previous.authorId === "user")?.content} />
-            ))
-          )}
-
-          {sending && (
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-card-soft-theme flex-shrink-0 flex items-center justify-center">
-                <span className="flex gap-0.5">
-                  {[0, 150, 300].map(d => (
-                    <span key={d} className="w-1 h-1 rounded-full bg-cyan-400 animate-bounce" style={{ animationDelay: `${d}ms` }} />
-                  ))}
-                </span>
-              </div>
-              <div className="rounded-2xl rounded-tl-sm px-4 py-3 bg-card-soft-theme text-muted2 text-xs">
-                El equipo decide quién aporta...
-              </div>
-            </div>
-          )}
-          <div ref={bottomRef} />
-        </div>
-
-        {/* Participants strip */}
-        {session?.participants?.length ? (
-          <div className="flex gap-1.5 overflow-x-auto pb-0.5">
-            {session.participants.map(p => {
-              const c = ROLE_COLORS[p.role] || ROLE_COLORS.assistant
-              return (
-                <div key={p.id} className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-soft bg-card-soft-theme">
-                  <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
-                  <span className="text-[11px] text-sub">{p.name}</span>
-                </div>
-              )
-            })}
-          </div>
-        ) : null}
-
-        {/* Paused banner */}
-        {session?.status === "paused" && (
-          <div className="rounded-2xl border border-amber-400/20 bg-amber-400/5 px-4 py-3 flex items-center justify-between gap-3">
-            <p className="text-sm text-amber-700">Conversación pausada</p>
-            <button
-              onClick={resumeSession}
-              disabled={loading}
-              className="text-xs px-3 py-1.5 rounded-xl border border-amber-400/30 bg-amber-400/10 text-amber-700 hover:bg-amber-400/20 transition disabled:opacity-40"
-            >
-              {loading ? "..." : "Reanudar →"}
-            </button>
-          </div>
-        )}
-
-        {/* Input box */}
-        <div className="rounded-2xl border border-medium bg-card-theme p-3">
-          <textarea
-            value={userMessage}
-            onChange={e => setUserMessage(e.target.value)}
-            onFocus={handleInteraction}
-            onKeyDown={handleKeyDown}
-            disabled={!session || session.status !== "active" || sending}
-            rows={2}
-            className="w-full bg-transparent text-sm text-main outline-none resize-none placeholder-gray-400 disabled:opacity-40"
-            placeholder={session?.status === "active"
-              ? "Escribe tu aporte o llama a un agente con @Ingeniero, @Investigador, @Educador... (Enter para enviar)"
-              : "Reanuda la conversación para escribir"}
-          />
-          <div className="flex items-center justify-between mt-2 pt-2 border-t border-soft">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={createDraft}
-                disabled={draftLoading || !session || session.messages.length === 0 ||
-                  !!(actionSuggestion && actionSuggestion.target !== "drafts" && actionSuggestion.target !== "unknown")}
-                className="text-[11px] px-3 py-1.5 rounded-xl border border-emerald-400/20 text-emerald-700 hover:bg-emerald-400/10 transition disabled:opacity-30"
-              >
-                {draftLoading ? "Creando..." : "📄 Borrador"}
-              </button>
-              {session?.status === "active" && (
-                <button
-                  onClick={() => session?.sessionId && pauseSession(session.sessionId)}
-                  className="text-[11px] px-3 py-1.5 rounded-xl border border-soft text-muted2 hover:text-sub hover:border-medium transition"
-                >
-                  Pausar
-                </button>
-              )}
-            </div>
-            <button
-              onClick={sendUserMessage}
-              disabled={sending || !session || session.status !== "active" || !userMessage.trim()}
-              className="px-4 py-1.5 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-700 text-sm font-medium hover:bg-cyan-500/30 transition disabled:opacity-30"
-            >
-              {sending ? "..." : "Enviar →"}
-            </button>
-          </div>
-        </div>
-
-        {/* Draft result */}
-        {draftResponse?.draft && (
-          <div className="rounded-2xl border border-emerald-400/15 bg-emerald-400/5 p-4 space-y-3">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-emerald-700">Borrador generado ✓</p>
-                <p className="text-xs text-sub mt-1">{draftResponse.draft.summary}</p>
-              </div>
-              <span className="text-[10px] px-2 py-1 rounded-lg border border-emerald-400/20 bg-emerald-400/10 text-emerald-700 flex-shrink-0">
-                {draftResponse.draft.draftType}
-              </span>
-            </div>
-            <div className="rounded-xl border border-soft bg-app p-3 max-h-48 overflow-y-auto">
-              <pre className="whitespace-pre-wrap text-xs leading-6 text-sub">
-                {draftResponse.draft.content}
-              </pre>
-            </div>
-          </div>
-        )}
-
-        {/* Executed action panel */}
-        {executedAction && executedAction.mode === "prepared_action" && (
-          <div className="rounded-2xl border border-cyan-400/15 bg-cyan-400/5 p-4 space-y-3">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-cyan-700">Acción ejecutada por EduAI Claw</p>
-                <p className="text-xs text-sub mt-1">{executedAction.message}</p>
-              </div>
-              <span className="text-[10px] px-2 py-1 rounded-lg border border-cyan-400/20 bg-cyan-400/10 text-cyan-700 flex-shrink-0">
-                {executedAction.target}
-              </span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {[
-                { label: "Intent", value: executedAction.intent },
-                { label: "Target", value: executedAction.target },
-                { label: "Modo",   value: executedAction.mode },
-              ].map(item => (
-                <div key={item.label} className="rounded-xl border border-soft bg-card-theme p-2.5">
-                  <p className="text-[10px] uppercase tracking-wide text-muted2">{item.label}</p>
-                  <p className="text-xs font-medium text-main mt-0.5">{item.value}</p>
-                </div>
-              ))}
-            </div>
-            {executedAction.payload && (
-              <div className="rounded-xl border border-soft bg-app p-3 max-h-40 overflow-y-auto">
-                <p className="text-[10px] text-muted2 mb-2">Payload preparado</p>
-                <pre className="whitespace-pre-wrap text-xs leading-6 text-sub">
-                  {JSON.stringify(executedAction.payload, null, 2)}
-                </pre>
-              </div>
-            )}
-          </div>
-        )}
-
-      </div>
+    while(true){const chunk=await reader.read();if(chunk.done)break;buffer+=decoder.decode(chunk.value,{stream:true});const lines=buffer.split("\n");buffer=lines.pop()||"";for(const line of lines)if(line.trim())handle(JSON.parse(line))}
+    buffer+=decoder.decode();if(buffer.trim())handle(JSON.parse(buffer))
+    if(!completed)throw Error("La conexión terminó antes de finalizar. Revisa el historial o reintenta.")
+  }catch(e){
+    setError(controller.signal.aborted?"La respuesta tardó demasiado. Puedes recuperar la conversación desde el historial.":e instanceof Error?e.message:"No se pudo responder.")
+    if(!accepted&&creating){setPhase("start");setTopic(userText)}
+    if(!accepted&&body.action==="turn")setInput(userText)
+    if(accepted)setWarning("Si la ronda sigue activa, actualiza la conversación antes de volver a enviar.")
+  }finally{window.clearTimeout(timer);streamAbort.current=null;operation.current=false;setWaiting(false);setOptimistic("");setSpeakers([]);setPartials({});setFinished([]);void loadRecent()}
+ }
+ const start=(value:string,room=selectedRoom)=>{const text=value.trim();if(text)void run({action:"create",topic:text,room},text)}
+ const send=()=>{const content=input.trim();if(session&&content&&!busy&&session.status==="active")void run({action:"turn",sessionId:session.sessionId,content},content)}
+ async function changeStatus(action:"pause"|"resume"){
+  if(!session||operation.current||remoteBusy)return
+  operation.current=true;setLoading(true);setError("")
+  try{const res=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action,sessionId:session.sessionId})});const data=await res.json();if(!res.ok)throw Error(data.error);setSession(data.session)}catch(e){setError(e instanceof Error?e.message:"No se pudo cambiar el estado.")}finally{operation.current=false;setLoading(false)}
+ }
+ async function remove(id:string){
+  if(operation.current||!window.confirm("¿Eliminar esta conversación de EduAI Social?"))return
+  operation.current=true;setLoading(true)
+  try{const res=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"delete",sessionId:id})});const data=await res.json();if(!res.ok)throw Error(data.error);await loadRecent()}catch(e){setError(e instanceof Error?e.message:"No se pudo eliminar.")}finally{operation.current=false;setLoading(false)}
+ }
+ async function createDraft(){
+  if(!session||draftBusy||busy)return
+  setDraftBusy(true);setError("")
+  try{const res=await fetch("/api/superagent/drafts",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({currentPage:"/ai-social",activeAgent:"drafts",userGoal:session.room.topic+"\n\n"+session.messages.slice(-20).map(m=>m.authorName+": "+m.content).join("\n").slice(0,18000),tags:["social","draft",session.room.slug],metadata:{source:"ai-social",sessionId:session.sessionId}})});const data=await res.json() as DraftApiResponse;if(!res.ok||!data.ok||!data.draft)throw Error(data.error||"No se pudo generar el borrador.");setDraft(data.draft)}catch(e){setError(e instanceof Error?e.message:"No se pudo generar el borrador.")}finally{setDraftBusy(false)}
+ }
+ async function execute(){
+  if(!session||busy||!action||operation.current)return
+  operation.current=true;setLoading(true);setError("")
+  try{const res=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"execute-suggested-action",sessionId:session.sessionId})});const data=await res.json();if(!res.ok||!data.ok)throw Error(data.error||"No se pudo ejecutar.");setResult(data.result);if(data.result?.draft)setDraft(data.result.draft);setAction(null)}catch(e){setError(e instanceof Error?e.message:"No se pudo ejecutar.")}finally{operation.current=false;setLoading(false)}
+ }
+ const goHome=()=>{if(waiting)return;setPhase("start");setSession(null);setRemoteBusy(false);setError("");setWarning("");void loadRecent()}
+ const lastUser=session?.messages.filter(m=>m.authorId==="user").at(-1)
+ const pendingLast=session?.messages.at(-1)?.authorId==="user"
+ return <main className={phase==="chat"?"flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-app text-main":"min-h-screen bg-app text-main"} style={backdrop}>
+  <header className="shrink-0 border-b border-soft bg-card-theme/90 backdrop-blur-xl">
+   <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
+    {phase==="chat"?<button type="button" onClick={goHome} disabled={waiting} aria-label="Volver a salas" className={control}><ArrowLeft size={17}/></button>:<Link href="/dashboard" aria-label="Volver a EduAI" className={control}><ArrowLeft size={17}/></Link>}
+    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 text-white shadow-md"><Users size={21}/></div>
+    <div className="min-w-0 flex-1"><h1 className="truncate text-base font-bold">{phase==="chat"?session?.room.title||"EduAI Social":"EduAI Social"}</h1><p className="truncate text-xs text-muted2">{phase==="chat"?session?.room.topic||optimistic:"Conversaciones con especialistas de IA"}</p></div>
+    {phase==="chat"&&<button type="button" onClick={goHome} disabled={waiting} className={control}><Plus size={15}/><span className="hidden sm:inline">Nueva conversación</span></button>}
+    <Link href="/dashboard" className={control}><Bot size={15}/> Claw</Link>
+   </div>
+  </header>
+  {phase==="start"?<div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-5 sm:px-6">
+   <section className="rounded-3xl border border-violet-400/20 bg-card-theme p-5 shadow-sm sm:p-6" style={{backgroundImage:"linear-gradient(115deg,rgba(167,139,250,.17),rgba(96,165,250,.09),rgba(45,212,191,.11))"}}>
+    <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-violet-600"><Sparkles size={15}/> Tu equipo inteligente</p>
+    <h2 className="mt-2 text-2xl font-bold tracking-tight sm:text-3xl">Conversa con tus agentes</h2><p className="mt-1 text-sm text-muted2">Plantea una pregunta o una idea. Los especialistas pertinentes te responderán en el mismo chat.</p>
+    <form onSubmit={e=>{e.preventDefault();start(topic)}} className="mt-4 rounded-2xl border border-violet-400/25 bg-card-theme p-3 shadow-sm">
+     <textarea aria-label="Tema de conversación" maxLength={6000} rows={2} value={topic} onChange={e=>setTopic(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();start(topic)}}} placeholder="¿Sobre qué quieres conversar?" className="w-full resize-none bg-transparent px-2 py-1 text-sm outline-none placeholder:text-muted2"/>
+     <div className="flex flex-wrap items-center justify-between gap-2 border-t border-soft pt-2"><span className="text-xs text-muted2">{selectedRoom?rooms.find(r=>r.slug===selectedRoom)?.title:"Selección automática de agentes"}</span><button type="submit" disabled={!topic.trim()||loading} className={primary}>Iniciar conversación <ArrowRight size={16}/></button></div>
+    </form>
+   </section>
+   <section><h2 className="mb-2 text-sm font-bold">Salas temáticas</h2><div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{rooms.map(r=><button type="button" key={r.slug} disabled={loading} onClick={()=>{setSelectedRoom(r.slug);setTopic(r.prompt);start(r.prompt,r.slug)}} className="group flex items-center gap-3 rounded-2xl border bg-card-theme p-3 text-left shadow-sm transition hover:shadow-md focus-visible:outline-2 focus-visible:outline-violet-500" style={{borderColor:r.color+"25",backgroundImage:"linear-gradient(145deg,transparent,"+r.color+"0b)"}}><div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl" style={{background:r.color+"18",color:r.color}}><r.icon size={22}/></div><div className="min-w-0 flex-1"><p className="text-sm font-bold">{r.title}</p><p className="text-xs text-muted2">{r.description}</p></div><ChevronRight size={16} className="shrink-0 text-muted2"/></button>)}</div></section>
+   {error&&<p role="alert" className="rounded-xl border border-red-400/30 bg-red-500/5 p-3 text-sm text-red-600">{error}</p>}
+   <section className="rounded-2xl border border-soft bg-card-theme p-3 shadow-sm"><div className="mb-2 flex items-center gap-2"><History size={17} className="text-violet-500"/><h2 className="text-sm font-bold">Conversaciones recientes</h2><button type="button" className={control+" ml-auto"} onClick={()=>void loadRecent()} aria-label="Actualizar historial"><RefreshCw size={14}/></button></div>{historyError?<p className="text-xs text-muted2">{historyError}</p>:!recent.length?<p className="p-2 text-xs text-muted2">Tus nuevas conversaciones aparecerán aquí.</p>:<div className="grid gap-2 sm:grid-cols-2">{recent.slice(0,6).map(item=><div key={item.id} className="flex min-w-0 items-center gap-1 rounded-xl border border-soft p-2"><button type="button" disabled={loading} onClick={()=>void open(item.id)} className="min-w-0 flex-1 text-left"><p className="truncate text-sm font-medium">{item.topic}</p><p className="text-xs text-muted2">{item.title} · {new Date(item.updatedAt).toLocaleDateString("es-CL")}</p></button><button type="button" disabled={loading} className={control+" !px-2"} onClick={()=>void remove(item.id)} aria-label="Eliminar conversación"><Trash2 size={14}/></button></div>)}</div>}</section>
+  </div>:<>
+   <div className="mx-auto flex w-full max-w-6xl flex-1 min-h-0 flex-col px-3 sm:px-6">
+    {session&&<div className="flex shrink-0 flex-wrap items-center gap-1.5 py-2"><span className="mr-1 text-xs font-semibold text-muted2">Equipo:</span>{session.participants.map(p=>{const color=roles[p.role]?.color||"#64748b";const writing=waiting&&speakers.some(s=>s.id===p.id)&&!finished.includes(p.id);return <button key={p.id} type="button" title={"Mencionar a "+p.name} onClick={()=>{setInput(prev=>prev+" @"+p.id+" ");composer.current?.focus()}} className="inline-flex items-center gap-1.5 rounded-full border bg-card-theme px-2.5 py-1 text-xs" style={{borderColor:color+"30",color}}><span className={"h-2 w-2 rounded-full "+(writing?"animate-pulse":"")} style={{background:color}}/>{p.name}{writing?" · escribiendo":""}</button>})}</div>}
+    <div ref={feed} onScroll={()=>{const el=feed.current;if(el)nearBottom.current=el.scrollHeight-el.scrollTop-el.clientHeight<100}} className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain rounded-2xl px-1 py-3 sm:px-3" aria-label="Conversación">
+     {session?.messages.map((m,i)=><Bubble key={m.id} msg={m} prompt={session.messages.slice(0,i).reverse().find(p=>p.authorId==="user")?.content}/>)}
+     {optimistic&&<Bubble msg={{id:"pending",authorId:"user",authorName:"Usuario",role:"assistant",content:optimistic,createdAt:""}}/>}
+     {waiting&&speakers.filter(p=>!finished.includes(p.id)).map(p=><Bubble key={p.id} partial msg={{id:p.id,authorId:p.id,authorName:p.name,role:p.role,content:partials[p.id]||"",createdAt:""}}/>)}
+     {waiting&&!speakers.length&&<div role="status" className="flex items-center gap-2 text-sm text-muted2"><span className="h-2 w-2 animate-pulse rounded-full bg-violet-500"/> Conectando con los agentes…</div>}
+     {remoteBusy&&<div className="rounded-xl border border-violet-400/25 p-3 text-sm">Hay una ronda en curso. <button type="button" disabled={loading} className="font-semibold underline" onClick={()=>session&&void open(session.sessionId)}>Actualizar conversación</button></div>}
+     {warning&&<p role="status" className="rounded-xl border border-amber-400/25 bg-amber-500/5 p-3 text-sm text-sub">{warning}</p>}
+     {error&&<p role="alert" className="rounded-xl border border-red-400/30 p-3 text-sm text-red-600">{error}</p>}
+     {action?.detected&&<div className="rounded-2xl border border-violet-400/25 bg-card-theme p-3"><p className="text-sm font-semibold">{action.label}</p><p className="mt-1 text-xs text-muted2">{action.reason}</p><button type="button" disabled={busy} className={control+" mt-2"} onClick={()=>void execute()}>Ejecutar acción <ArrowRight size={14}/></button></div>}
+     {result&&<div className="rounded-xl border border-soft bg-card-theme p-3 text-sm">{result.message}</div>}
+     {draft&&<div className="rounded-2xl border border-emerald-400/25 bg-card-theme p-3"><p className="font-semibold">{draft.title}</p><p className="mt-1 text-xs text-muted2">{draft.summary}</p><pre className="mt-2 max-h-60 overflow-y-auto whitespace-pre-wrap text-xs">{draft.content}</pre></div>}
     </div>
-  )
+    <div className="shrink-0 space-y-2 py-2 sm:py-3">
+     {!waiting&&session&&pendingLast&&!remoteBusy&&session.status==="active"&&<button type="button" disabled={loading} className={control} onClick={()=>void run({action:"retry",sessionId:session.sessionId},"")}><RefreshCw size={14}/> Reintentar última respuesta</button>}
+     {session?.status==="paused"&&<div className="flex items-center justify-between rounded-xl border border-soft bg-card-theme p-2 text-xs"><span>Conversación pausada</span><button type="button" disabled={busy} className={control} onClick={()=>void changeStatus("resume")}><Play size={14}/> Reanudar</button></div>}
+     <form onSubmit={e=>{e.preventDefault();send()}} className="rounded-2xl border border-violet-400/30 bg-card-theme p-3 shadow-md shadow-violet-500/10" style={{backgroundImage:"linear-gradient(115deg,rgba(167,139,250,.08),transparent,rgba(96,165,250,.07))"}}>
+      <textarea ref={composer} aria-label="Mensaje" maxLength={6000} rows={2} value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();send()}}} placeholder="Escribe tu mensaje o menciona a un agente con @…" className="w-full resize-none bg-transparent px-1 text-sm outline-none placeholder:text-muted2"/>
+      <div className="flex flex-wrap items-center gap-2 border-t border-soft pt-2"><button type="button" className={control} disabled={busy||draftBusy||!session||!lastUser} onClick={()=>void createDraft()}><FileText size={14}/> {draftBusy?"Creando…":"Borrador"}</button>{session?.status==="active"&&<button type="button" className={control} disabled={busy} onClick={()=>void changeStatus("pause")}><Pause size={14}/> Pausar</button>}<span className="ml-auto text-xs text-muted2">{waiting?"Agentes respondiendo…":""}</span><button type="submit" disabled={busy||!session||session.status!=="active"||!input.trim()} className={primary}><Send size={16}/> Enviar</button></div>
+     </form>
+    </div>
+   </div>
+  </>}
+ </main>
 }
