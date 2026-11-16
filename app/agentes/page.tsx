@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { ArrowLeft, BookOpen, Bot, Calculator, ChevronLeft, ChevronRight, Clock, Cloud, Clapperboard, FilePenLine, FileText, FolderOpen, Globe, GraduationCap, Image, LayoutGrid, Microscope, Mic, Music, Palette, Pause, Play, Presentation, Search, Sparkles, Star, Trophy, Wrench, X } from "lucide-react";
+import { useMemo, useState, useSyncExternalStore } from "react";
+import { ArrowLeft, BookOpen, Bot, Calculator, ChevronLeft, ChevronRight, Clock, Cloud, Clapperboard, FilePenLine, FileText, FolderOpen, Globe, GraduationCap, Image, LayoutGrid, Microscope, Mic, Music, Palette, Presentation, Search, Sparkles, Star, Trophy, Wrench, X } from "lucide-react";
 
 type AgentItem = {
   id: string;
@@ -314,8 +314,6 @@ const AGENT_ICONS = {
   workspace: FolderOpen, biblioteca: BookOpen, repositorio: Cloud,
 } satisfies Record<string, typeof Bot>;
 
-const FEATURED_IDS = ["educador", "investigador", "redactor", "matematico", "pizarra-interactiva", "cuaderno-creativo", "superagent-chat", "examen-docente", "creator-hub"];
-const FEATURED = FEATURED_IDS.flatMap((id) => AGENTS.filter((agent) => agent.id === id && agent.status !== "maintenance"));
 const PAGE_SIZE = 6;
 const STORAGE_KEY = "eduai:agents:preferences:v1";
 const STORAGE_EVENT = "eduai:agents:preferences";
@@ -355,15 +353,6 @@ function updatePreferences(update: (previous: Preferences) => Preferences) {
   window.dispatchEvent(new Event(STORAGE_EVENT));
 }
 
-function subscribeMotion(callback: () => void) {
-  const media = window.matchMedia("(prefers-reduced-motion: reduce)");
-  media.addEventListener("change", callback);
-  return () => media.removeEventListener("change", callback);
-}
-function reducedMotion() {
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-}
-
 function normalize(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 }
@@ -371,14 +360,14 @@ function normalize(value: string) {
 const control = "inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-medium px-3.5 text-sm font-medium text-sub shadow-sm transition hover:border-violet-400 hover:text-violet-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 dark:hover:text-violet-300";
 const selected = "border-violet-600! bg-violet-600! text-white! hover:bg-violet-700!";
 
-function AgentCard({ agent, favorite, onFavorite, onOpen, featured = false }: {
+function AgentCard({ agent, favorite, onFavorite, onOpen }: {
   agent: AgentItem; favorite: boolean; onFavorite: (id: string) => void;
-  onOpen: (id: string) => void; featured?: boolean;
+  onOpen: (id: string) => void;
 }) {
   const maintenance = agent.status === "maintenance";
   const AgentIcon = AGENT_ICONS[agent.id as keyof typeof AGENT_ICONS] ?? Bot;
   return (
-    <article className={`group relative isolate flex h-full min-w-0 flex-col overflow-hidden rounded-3xl border bg-card-theme p-4 shadow-sm transition duration-200 focus-within:ring-2 focus-within:ring-violet-400 motion-safe:hover:-translate-y-0.5 hover:shadow-lg ${featured ? "min-h-48 sm:p-5" : "min-h-40"} ${maintenance ? "opacity-80" : ""}`}
+    <article className={`group relative isolate flex h-full min-w-0 flex-col overflow-hidden rounded-3xl border bg-card-theme p-4 shadow-sm transition duration-200 focus-within:ring-2 focus-within:ring-violet-400 motion-safe:hover:-translate-y-0.5 hover:shadow-lg min-h-40 ${maintenance ? "opacity-80" : ""}`}
       style={{ borderColor: agent.border, backgroundImage: `linear-gradient(145deg, transparent 45%, ${agent.glow})` }}>
       <div aria-hidden="true" className="pointer-events-none absolute -bottom-12 -right-10 h-32 w-40 rounded-full opacity-50 transition group-hover:scale-125 motion-reduce:transition-none" style={{ background: agent.glow }} />
       <button type="button" aria-label={favorite ? `Quitar ${agent.name} de favoritos` : `Añadir ${agent.name} a favoritos`} aria-pressed={favorite}
@@ -387,13 +376,13 @@ function AgentCard({ agent, favorite, onFavorite, onOpen, featured = false }: {
         <Star size={19} fill={favorite ? "currentColor" : "none"} />
       </button>
       <div className="relative flex flex-1 items-start gap-3.5 pr-8">
-        <div aria-hidden="true" className={`relative grid shrink-0 place-items-center overflow-hidden rounded-[1.25rem] bg-gradient-to-br ${agent.color} text-white shadow-md ring-1 ring-white/40 transition duration-300 motion-safe:group-hover:scale-105 ${featured ? "h-[4.5rem] w-[4.5rem]" : "h-14 w-14"}`}
+        <div aria-hidden="true" className={`relative grid shrink-0 place-items-center overflow-hidden rounded-[1.25rem] bg-gradient-to-br ${agent.color} text-white shadow-md ring-1 ring-white/40 transition duration-300 motion-safe:group-hover:scale-105 h-14 w-14`}
           style={{ boxShadow: `0 8px 20px ${agent.glow}` }}>
           <div className="absolute -left-2 -top-5 h-14 w-16 rotate-[-25deg] rounded-full bg-white/20 blur-sm" />
-          <AgentIcon size={featured ? 34 : 27} strokeWidth={1.8} className="relative drop-shadow-sm" />
+          <AgentIcon size={27} strokeWidth={1.8} className="relative drop-shadow-sm" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className={`font-bold leading-tight text-main ${featured ? "text-lg" : "text-base"}`}>{agent.name}</h3>
+          <h3 className="font-bold leading-tight text-main text-base">{agent.name}</h3>
           <span className="mt-1.5 inline-flex rounded-full border px-2.5 py-0.5 text-[11px] font-semibold text-sub" style={{ borderColor: agent.border, background: agent.glow }}>{agent.tag}</span>
           <p className="mt-2 text-sm leading-snug text-muted2">{agent.description}</p>
         </div>
@@ -403,95 +392,12 @@ function AgentCard({ agent, favorite, onFavorite, onOpen, featured = false }: {
           <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-400/40 bg-amber-400/10 px-3 py-2 text-xs font-semibold text-amber-800 dark:text-amber-200"><Wrench size={13} />{agent.ctaLabel || "En mantención"}</span>
         ) : (
           <Link href={agent.href} prefetch={false} onClick={() => onOpen(agent.id)} aria-label={`Abrir ${agent.name}`}
-            className={`inline-flex min-h-9 items-center gap-1.5 rounded-full px-3.5 text-xs font-semibold transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 ${featured ? "bg-violet-600 text-white shadow-md shadow-violet-500/20 hover:bg-violet-700" : "border border-violet-300/60 bg-card-theme text-violet-700 hover:bg-violet-100 dark:text-violet-300 dark:hover:bg-violet-900"}`}>
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-full border border-violet-300/60 bg-card-theme px-3.5 text-xs font-semibold text-violet-700 transition hover:bg-violet-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 dark:text-violet-300 dark:hover:bg-violet-900">
             {agent.ctaLabel || "Abrir agente"} <ChevronRight size={15} />
           </Link>
         )}
       </div>
     </article>
-  );
-}
-
-function FeaturedCarousel({ favorites, onFavorite, onOpen }: {
-  favorites: string[]; onFavorite: (id: string) => void; onOpen: (id: string) => void;
-}) {
-  const track = useRef<HTMLDivElement>(null);
-  const [index, setIndex] = useState(0);
-  const [lastIndex, setLastIndex] = useState(FEATURED.length - 1);
-  const [playing, setPlaying] = useState(true);
-  const [hovered, setHovered] = useState(false);
-  const [focused, setFocused] = useState(false);
-  const reduce = useSyncExternalStore(subscribeMotion, reducedMotion, () => false);
-  const step = useCallback(() => {
-    const el = track.current;
-    if (!el || el.children.length < 2) return 1;
-    return (el.children[1] as HTMLElement).offsetLeft - (el.children[0] as HTMLElement).offsetLeft || 1;
-  }, []);
-  const sync = useCallback(() => {
-    const el = track.current;
-    if (!el) return;
-    const distance = Math.max(0, el.scrollWidth - el.clientWidth);
-    const size = step();
-    const end = Math.max(0, Math.round(distance / size));
-    setLastIndex(end);
-    setIndex(Math.min(end, Math.max(0, Math.round(el.scrollLeft / size))));
-  }, [step]);
-  const go = useCallback((next: number) => {
-    const el = track.current;
-    if (!el) return;
-    const end = Math.max(0, Math.round((el.scrollWidth - el.clientWidth) / step()));
-    const target = next < 0 ? end : next > end ? 0 : next;
-    el.scrollTo({ left: target * step(), behavior: reduce ? "auto" : "smooth" });
-  }, [reduce, step]);
-
-  useEffect(() => {
-    const el = track.current;
-    if (!el) return;
-    const observer = new ResizeObserver(sync);
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [sync]);
-  useEffect(() => {
-    if (!playing || hovered || focused || reduce || lastIndex === 0) return;
-    const timer = window.setInterval(() => {
-      const el = track.current;
-      if (el && !document.hidden) go(Math.round(el.scrollLeft / step()) + 1);
-    }, 6000);
-    return () => window.clearInterval(timer);
-  }, [playing, hovered, focused, reduce, lastIndex, go, step]);
-
-  return (
-    <section aria-label="Agentes destacados" aria-roledescription="carrusel"
-      onPointerEnter={(event) => { if (event.pointerType === "mouse") setHovered(true); }}
-      onPointerLeave={() => setHovered(false)}
-      onFocusCapture={() => setFocused(true)}
-      onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false); }}
-      className="rounded-[1.75rem] border border-medium bg-card-theme p-4 shadow-sm sm:p-5"
-      style={{ backgroundImage: "linear-gradient(110deg, rgba(96,165,250,.09), rgba(167,139,250,.13), rgba(45,212,191,.07))" }}>
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-lg font-bold text-main"><Sparkles className="text-violet-500" size={21} /> Agentes destacados</h2>
-        <div className="flex items-center gap-1.5">
-          {!reduce && <button type="button" aria-label={playing ? "Pausar rotación automática" : "Reanudar rotación automática"} onClick={() => setPlaying(!playing)} className={control + " !px-3"}>{playing ? <Pause size={15} /> : <Play size={15} />}</button>}
-          <button type="button" aria-label="Agente anterior" onClick={() => go(index - 1)} disabled={lastIndex === 0} className={control + " !px-3 disabled:opacity-40"}><ChevronLeft size={18} /></button>
-          <button type="button" aria-label="Siguiente agente" onClick={() => go(index + 1)} disabled={lastIndex === 0} className={control + " !px-3 disabled:opacity-40"}><ChevronRight size={18} /></button>
-        </div>
-      </div>
-      <div ref={track} onScroll={sync} className="relative flex snap-x snap-mandatory gap-3 overflow-x-auto px-1 pb-3 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {FEATURED.map((agent) => (
-          <div key={agent.id} className="w-[calc(100%-0.25rem)] shrink-0 snap-start sm:w-[calc((100%-0.75rem)/2)] lg:w-[calc((100%-1.5rem)/3)]">
-            <AgentCard agent={agent} favorite={favorites.includes(agent.id)} onFavorite={onFavorite} onOpen={onOpen} featured />
-          </div>
-        ))}
-      </div>
-      <div className="flex justify-center gap-1" aria-label="Posiciones del carrusel">
-        {Array.from({ length: lastIndex + 1 }, (_, i) => (
-          <button key={i} type="button" aria-label={`Ir a posición ${i + 1}`} aria-current={i === index ? "true" : undefined}
-            onClick={() => go(i)} className="grid h-7 min-w-7 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-violet-500">
-            <span className={`h-2 rounded-full transition-all ${i === index ? "w-5 bg-violet-600" : "w-2 bg-violet-300 dark:bg-violet-800"}`} />
-          </button>
-        ))}
-      </div>
-    </section>
   );
 }
 
@@ -520,7 +426,7 @@ export default function AgentesPage() {
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const activePage = Math.min(page, totalPages);
   const visible = filtered.slice((activePage - 1) * PAGE_SIZE, activePage * PAGE_SIZE);
-  const showFeatured = view === "all" && category === "Todos" && !matches;
+  const hasFilters = view !== "all" || category !== "Todos" || Boolean(matches);
   return (
     <div className="min-h-screen bg-app text-main" style={{ backgroundImage: "radial-gradient(ellipse at 12% 0%, rgba(167,139,250,.13), transparent 43%), radial-gradient(ellipse at 90% 12%, rgba(56,189,248,.10), transparent 48%)" }}>
       <main className="mx-auto max-w-7xl space-y-5 px-4 py-5 sm:px-6 sm:py-7 lg:px-8">
@@ -557,15 +463,13 @@ export default function AgentesPage() {
           ))}
         </nav>
 
-        {showFeatured && <FeaturedCarousel favorites={favorites} onFavorite={toggleFavorite} onOpen={openAgent} />}
-
         <section aria-labelledby="agent-catalog-heading" className="space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 id="agent-catalog-heading" className="text-lg font-bold">{view === "favorites" ? "Tus favoritos" : view === "recent" ? "Utilizados recientemente" : category === "Todos" ? "Explorar herramientas" : category}</h2>
               <p aria-live="polite" className="text-xs text-muted2">{filtered.length} {filtered.length === 1 ? "agente" : "agentes"}{filtered.length > PAGE_SIZE ? ` · Página ${activePage} de ${totalPages}` : ""}</p>
             </div>
-            {!showFeatured && <button type="button" onClick={reset} className={control}>Ver todos <X size={14} /></button>}
+            {hasFilters && <button type="button" onClick={reset} className={control}>Ver todos <X size={14} /></button>}
           </div>
           {visible.length ? (
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
