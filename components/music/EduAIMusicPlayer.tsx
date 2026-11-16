@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Copy,
@@ -37,6 +37,38 @@ import { YOUTUBE_PLAYER_ID, useEduAIMusic } from "@/components/music/MusicProvid
 import { MusicLikeButton } from "@/components/music/MusicLikeButton";
 
 type PlayerMode = "panel" | "mini" | "page";
+type GamingLighting = "dynamic" | "calm" | "off";
+const GamingLightingContext = createContext<{
+  mode: GamingLighting;
+  effective: GamingLighting;
+  setMode: (mode: GamingLighting) => void;
+}>({ mode: "dynamic", effective: "dynamic", setMode: () => {} });
+
+function GamingLightingControl() {
+  const { mode, setMode } = useContext(GamingLightingContext);
+  return (
+    <button type="button" className="gaming-lighting-control" aria-label="Cambiar intensidad de iluminación"
+      title="Iluminación: dinámica, suave o estática" onClick={() => setMode(mode === "dynamic" ? "calm" : mode === "calm" ? "off" : "dynamic")}>
+      <span className="gaming-status-dot" aria-hidden="true" />
+      {mode === "dynamic" ? "RGB dinámico" : mode === "calm" ? "RGB suave" : "RGB estático"}
+    </button>
+  );
+}
+
+function GamingHeroScene() {
+  return (
+    <div className="gaming-hero-scene" aria-hidden="true">
+      <div className="gaming-hero-halo" />
+      <div className="gaming-skyline">
+        {Array.from({ length: 28 }, (_, index) => (
+          <span key={index} style={{ "--building-height": `${24 + ((index * 37 + 17) % 72)}%`, "--building-delay": `${-index * .23}s` } as CSSProperties} />
+        ))}
+      </div>
+      <CyberHeroIllustration />
+      <div className="gaming-hero-line" />
+    </div>
+  );
+}
 
 type Props = {
   mode?: PlayerMode;
@@ -129,20 +161,20 @@ function cn(...values: Array<string | false | null | undefined>) {
 }
 
 const RHYTHM_PENTAGONS = [
-  { left: "-1%", top: "8%", size: 78, glow: "#25f4ff", delay: 0, travelX: 18, travelY: -8, rotate: -8 },
-  { left: "8%", top: "25%", size: 54, glow: "#ff42cf", delay: -0.08, travelX: 22, travelY: 5, rotate: 11 },
-  { left: "-2%", top: "49%", size: 68, glow: "#9b6cff", delay: -0.16, travelX: 19, travelY: 8, rotate: -13 },
-  { left: "11%", top: "70%", size: 48, glow: "#25f4ff", delay: -0.24, travelX: 20, travelY: -5, rotate: 8 },
-  { left: "3%", top: "84%", size: 62, glow: "#ff42cf", delay: -0.32, travelX: 15, travelY: -10, rotate: -6 },
-  { left: "95%", top: "7%", size: 72, glow: "#ff42cf", delay: -0.04, travelX: -18, travelY: 8, rotate: 9 },
-  { left: "88%", top: "24%", size: 50, glow: "#25f4ff", delay: -0.12, travelX: -22, travelY: -4, rotate: -10 },
-  { left: "96%", top: "45%", size: 64, glow: "#9b6cff", delay: -0.2, travelX: -18, travelY: 7, rotate: 12 },
-  { left: "87%", top: "68%", size: 54, glow: "#ff42cf", delay: -0.28, travelX: -23, travelY: 0, rotate: -8 },
-  { left: "94%", top: "83%", size: 74, glow: "#25f4ff", delay: -0.36, travelX: -16, travelY: -9, rotate: 7 },
-  { left: "28%", top: "-2%", size: 44, glow: "#25f4ff", delay: -0.1, travelX: 0, travelY: 17, rotate: 6 },
-  { left: "70%", top: "-2%", size: 46, glow: "#ff42cf", delay: -0.22, travelX: 0, travelY: 18, rotate: -7 },
-  { left: "30%", top: "93%", size: 42, glow: "#9b6cff", delay: -0.3, travelX: 0, travelY: -18, rotate: 9 },
-  { left: "69%", top: "92%", size: 48, glow: "#25f4ff", delay: -0.38, travelX: 0, travelY: -17, rotate: -5 },
+  { left: "-1%", top: "8%", size: 78, glow: "#12eaff", delay: 0, travelX: 18, travelY: -8, rotate: -8 },
+  { left: "8%", top: "25%", size: 54, glow: "#9dff36", delay: -0.08, travelX: 22, travelY: 5, rotate: 11 },
+  { left: "-2%", top: "49%", size: 68, glow: "#536dff", delay: -0.16, travelX: 19, travelY: 8, rotate: -13 },
+  { left: "11%", top: "70%", size: 48, glow: "#12eaff", delay: -0.24, travelX: 20, travelY: -5, rotate: 8 },
+  { left: "3%", top: "84%", size: 62, glow: "#9dff36", delay: -0.32, travelX: 15, travelY: -10, rotate: -6 },
+  { left: "95%", top: "7%", size: 72, glow: "#9dff36", delay: -0.04, travelX: -18, travelY: 8, rotate: 9 },
+  { left: "88%", top: "24%", size: 50, glow: "#12eaff", delay: -0.12, travelX: -22, travelY: -4, rotate: -10 },
+  { left: "96%", top: "45%", size: 64, glow: "#536dff", delay: -0.2, travelX: -18, travelY: 7, rotate: 12 },
+  { left: "87%", top: "68%", size: 54, glow: "#9dff36", delay: -0.28, travelX: -23, travelY: 0, rotate: -8 },
+  { left: "94%", top: "83%", size: 74, glow: "#12eaff", delay: -0.36, travelX: -16, travelY: -9, rotate: 7 },
+  { left: "28%", top: "-2%", size: 44, glow: "#12eaff", delay: -0.1, travelX: 0, travelY: 17, rotate: 6 },
+  { left: "70%", top: "-2%", size: 46, glow: "#9dff36", delay: -0.22, travelX: 0, travelY: 18, rotate: -7 },
+  { left: "30%", top: "93%", size: 42, glow: "#536dff", delay: -0.3, travelX: 0, travelY: -18, rotate: 9 },
+  { left: "69%", top: "92%", size: 48, glow: "#12eaff", delay: -0.38, travelX: 0, travelY: -17, rotate: -5 },
 ] as const;
 
 function CyberStaticBackdrop() {
@@ -204,14 +236,14 @@ function CyberHeroIllustration() {
     <svg viewBox="0 0 520 250" className="absolute inset-y-0 right-0 h-full w-[54%] min-w-[420px]" aria-hidden="true">
       <defs>
         <linearGradient id="hero-neon" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#25f4ff" />
+          <stop offset="0%" stopColor="#12eaff" />
           <stop offset="46%" stopColor="#5d7cff" />
-          <stop offset="100%" stopColor="#ff42cf" />
+          <stop offset="100%" stopColor="#9dff36" />
         </linearGradient>
         <radialGradient id="hero-aura" cx="50%" cy="45%" r="58%">
-          <stop offset="0%" stopColor="#25f4ff" stopOpacity=".3" />
-          <stop offset="45%" stopColor="#9b6cff" stopOpacity=".16" />
-          <stop offset="100%" stopColor="#ff42cf" stopOpacity="0" />
+          <stop offset="0%" stopColor="#12eaff" stopOpacity=".3" />
+          <stop offset="45%" stopColor="#536dff" stopOpacity=".16" />
+          <stop offset="100%" stopColor="#9dff36" stopOpacity="0" />
         </radialGradient>
         <filter id="hero-glow" x="-80%" y="-80%" width="260%" height="260%">
           <feGaussianBlur stdDeviation="5" result="heroBlur" />
@@ -219,7 +251,7 @@ function CyberHeroIllustration() {
         </filter>
       </defs>
       <circle cx="345" cy="120" r="118" fill="url(#hero-aura)" />
-      <g opacity=".28" stroke="#25f4ff" fill="none">
+      <g opacity=".28" stroke="#12eaff" fill="none">
         <path d="M35 28H115L145 72 115 116H35L5 72Z" />
         <path d="M136 76H216L246 120 216 164H136L106 120Z" />
         <path d="M38 126H118L148 170 118 214H38L8 170Z" />
@@ -232,13 +264,13 @@ function CyberHeroIllustration() {
         <path
           d="M64 22c34 0 62 28 62 63v32c0 19-8 35-22 47l-4 3v23H35v-24l-3-2C18 152 10 136 10 117V84C10 49 31 22 64 22Z"
           fill="#030814"
-          stroke="#25f4ff"
+          stroke="#12eaff"
           strokeOpacity=".6"
           strokeWidth="2"
         />
         <path d="M18 91c-16 4-22 17-19 34s14 26 31 24M110 91c16 4 22 17 19 34s-14 26-31 24" fill="none" stroke="url(#hero-neon)" strokeWidth="8" strokeLinecap="round" filter="url(#hero-glow)" />
-        <path d="M17 90c0-40 19-72 48-72s49 31 49 72" fill="none" stroke="#9b6cff" strokeWidth="4" strokeLinecap="round" />
-        <path d="M38 58c14-18 43-25 68-9M35 78c21-18 50-18 73-3" fill="none" stroke="#ff42cf" strokeOpacity=".65" strokeWidth="2" />
+        <path d="M17 90c0-40 19-72 48-72s49 31 49 72" fill="none" stroke="#536dff" strokeWidth="4" strokeLinecap="round" />
+        <path d="M38 58c14-18 43-25 68-9M35 78c21-18 50-18 73-3" fill="none" stroke="#9dff36" strokeOpacity=".65" strokeWidth="2" />
         <path d="M26 167c-33 15-55 39-66 72h211c-10-35-34-59-67-72-19 15-57 16-78 0Z" fill="#020611" stroke="url(#hero-neon)" strokeOpacity=".55" strokeWidth="2" />
       </g>
       <path className="cyber-hero-streak" d="M180 206C270 156 330 188 418 140S508 92 560 78" fill="none" stroke="url(#hero-neon)" strokeWidth="3" strokeLinecap="round" filter="url(#hero-glow)" />
@@ -257,9 +289,9 @@ function MusicBackContour({ active, currentTime }: { active: boolean; currentTim
     >
       <defs>
         <linearGradient id="music-back-neon" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#25f4ff" />
-          <stop offset="48%" stopColor="#9b6cff" />
-          <stop offset="100%" stopColor="#ff42cf" />
+          <stop offset="0%" stopColor="#12eaff" />
+          <stop offset="48%" stopColor="#536dff" />
+          <stop offset="100%" stopColor="#9dff36" />
         </linearGradient>
       </defs>
       <path
@@ -1241,11 +1273,11 @@ function CyberHomeDashboard({ onOpenSpotify }: { onOpenSpotify: () => void }) {
           </div>
 
           <div className="mt-3 flex flex-wrap gap-2">
-            {sourceButton("Todo", () => music.setView("home"), "#25f4ff")}
+            {sourceButton("Todo", () => music.setView("home"), "#12eaff")}
             {sourceButton("YouTube", () => { music.setOnlineProviderMode("youtube"); music.setView("search"); }, "#ff4b6e")}
             {sourceButton("Spotify", onOpenSpotify, "#44ffd2")}
-            {sourceButton("Radio", () => music.setView("radio"), "#9b6cff")}
-            {sourceButton("Mis audios", () => music.setView("library"), "#ff42cf")}
+            {sourceButton("Radio", () => music.setView("radio"), "#536dff")}
+            {sourceButton("Mis audios", () => music.setView("library"), "#9dff36")}
           </div>
         </div>
       </section>
@@ -1276,9 +1308,9 @@ function CyberHomeDashboard({ onOpenSpotify }: { onOpenSpotify: () => void }) {
                       // eslint-disable-next-line @next/next/no-img-element
                       <img src={artwork} alt="" className="h-full w-full object-cover transition duration-500 group-hover:scale-105" />
                     ) : (
-                      <div className="h-full w-full" style={{ background: track.cover || "linear-gradient(135deg,#25f4ff,#9b6cff,#ff42cf)" }} />
+                      <div className="h-full w-full" style={{ background: track.cover || "linear-gradient(135deg,#12eaff,#536dff,#9dff36)" }} />
                     )}
-                    <span className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full border border-cyan-200/60 bg-[#02131d]/90 text-cyan-200 shadow-[0_0_18px_rgba(37,244,255,.35)]">
+                    <span className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full border border-cyan-200/60 bg-[#02131d]/90 text-cyan-200 shadow-[0_0_18px_rgba(18,234,255,.35)]">
                       {active && music.playing ? <Pause className="h-3.5 w-3.5" fill="currentColor" /> : <Play className="h-3.5 w-3.5 translate-x-px" fill="currentColor" />}
                     </span>
                   </div>
@@ -1293,8 +1325,8 @@ function CyberHomeDashboard({ onOpenSpotify }: { onOpenSpotify: () => void }) {
             {[
               ["YouTube", "Busca canciones y videos oficiales", "#ff4568", () => { music.setOnlineProviderMode("youtube"); music.setView("search"); }],
               ["Spotify", "Abre el reproductor oficial", "#44ffd2", onOpenSpotify],
-              ["Radio", "Sintoniza emisoras en vivo", "#9b6cff", () => music.setView("radio")],
-              ["Mis audios", "Sube tu propia música", "#25f4ff", () => music.setView("library")],
+              ["Radio", "Sintoniza emisoras en vivo", "#536dff", () => music.setView("radio")],
+              ["Mis audios", "Sube tu propia música", "#12eaff", () => music.setView("library")],
             ].map(([label, text, accent, action]) => (
               <button
                 key={String(label)}
@@ -1651,14 +1683,14 @@ function RightPanel({
           </span>
         </div>
 
-        <div className="relative mx-auto aspect-square w-full max-w-[232px] overflow-hidden rounded-2xl border border-cyan-200/25 bg-[#040914] shadow-[0_0_36px_rgba(37,244,255,.12)]">
+        <div className="relative mx-auto aspect-square w-full max-w-[232px] overflow-hidden rounded-2xl border border-cyan-200/25 bg-[#040914] shadow-[0_0_36px_rgba(18,234,255,.12)]">
           {artwork ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={artwork} alt={track.title} className="h-full w-full object-cover" />
           ) : (
             <div className="relative h-full w-full overflow-hidden" style={{ background: track.cover || "linear-gradient(135deg,#03101b,#251052,#6a0f67)" }}>
-              <div className="absolute inset-[18%] rounded-full border-2 border-cyan-300/70 shadow-[0_0_28px_rgba(37,244,255,.4)]" />
-              <div className="absolute inset-[31%] rounded-full border border-fuchsia-300/70 shadow-[0_0_22px_rgba(255,66,207,.35)]" />
+              <div className="absolute inset-[18%] rounded-full border-2 border-cyan-300/70 shadow-[0_0_28px_rgba(18,234,255,.4)]" />
+              <div className="absolute inset-[31%] rounded-full border border-fuchsia-300/70 shadow-[0_0_22px_rgba(157,255,54,.35)]" />
               <div className="absolute inset-0 flex items-center justify-center">
                 <Music2 className="h-10 w-10 text-white/80" />
               </div>
@@ -1757,10 +1789,10 @@ function ProgressRange({
   const progress = Math.min(100, (value / safeDuration) * 100);
 
   return (
-    <div className="relative min-w-0 flex-1">
+    <div className="gaming-progress relative min-w-0 flex-1">
       <div className={cn("absolute left-0 right-0 top-1/2 -translate-y-1/2 overflow-hidden rounded-full bg-white/16", compact ? "h-1.5" : "h-2")}> 
         <div
-          className="h-full rounded-full bg-gradient-to-r from-cyan-400 via-cyan-300 to-violet-400 shadow-[0_0_14px_rgba(52,211,153,.45)]"
+          className="gaming-progress-fill h-full rounded-full bg-gradient-to-r from-cyan-400 via-cyan-300 to-violet-400 shadow-[0_0_14px_rgba(52,211,153,.45)]"
           style={{ width: `${progress}%` }}
         />
       </div>
@@ -1985,6 +2017,7 @@ function CompactPanel({ onOpenPanel }: { onOpenPanel?: () => void }) {
       </div>
       <AddToPlaylistBar />
     </div>
+    </GamingLightingContext.Provider>
   );
 }
 
@@ -2003,6 +2036,7 @@ function NeonSpectrum({
   trackId?: string;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const { effective } = useContext(GamingLightingContext);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -2011,7 +2045,7 @@ function NeonSpectrum({
     const nodes = Array.from(root.querySelectorAll<HTMLElement>(".neon-spectrum-bar"));
     if (!nodes.length) return;
 
-    if (!active) {
+    if (!active || effective !== "dynamic") {
       nodes.forEach((node, index) => {
         const idle = 0.12 + ((index * 13) % 9) / 100;
         node.style.transform = `scaleY(${idle})`;
@@ -2030,6 +2064,7 @@ function NeonSpectrum({
     let frame = 0;
 
     const tick = (now: number) => {
+      if (document.hidden) { frame = requestAnimationFrame(tick); return; }
       const t = baseTime + (now - startedAt) / 1000;
       const beat = t * bpm / 60;
       const beatPhase = beat - Math.floor(beat);
@@ -2067,7 +2102,7 @@ function NeonSpectrum({
 
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [active, bars, currentTime, trackId]);
+  }, [active, bars, currentTime, trackId, effective]);
 
   return (
     <div ref={rootRef} className={cn("neon-spectrum flex items-end gap-[2px]", className)} aria-hidden="true">
@@ -2100,7 +2135,7 @@ function NeonSidebar({
   return (
     <aside className="neon-sidebar flex min-h-0 flex-col px-[clamp(12px,1.25vw,22px)] pb-4 pt-5">
       <div className="flex items-center gap-3 pl-1">
-        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-400/10 shadow-[0_0_24px_rgba(37,244,255,.18)]">
+        <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-400/10 shadow-[0_0_24px_rgba(18,234,255,.18)]">
           <Music2 className="h-5 w-5 text-cyan-200" />
         </div>
         <div className="min-w-0">
@@ -2156,7 +2191,7 @@ function NeonSidebar({
             >
               <Icon className={cn("h-[17px] w-[17px] shrink-0", active ? "text-cyan-200" : "text-slate-400 group-hover:text-cyan-200")} />
               <span className="truncate">{item.label}</span>
-              {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(37,244,255,.95)]" />}
+              {active && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-cyan-300 shadow-[0_0_10px_rgba(18,234,255,.95)]" />}
             </button>
           );
         })}
@@ -2211,7 +2246,7 @@ function NeonSidebar({
             >
               <span
                 className="h-6 w-6 shrink-0 rounded-md border border-white/10"
-                style={{ background: playlist.cover || "linear-gradient(135deg,#25f4ff,#9b6cff,#ff42cf)" }}
+                style={{ background: playlist.cover || "linear-gradient(135deg,#12eaff,#536dff,#9dff36)" }}
               />
               <span className="min-w-0 flex-1 truncate">{playlist.name}</span>
               <span className="text-[9px] text-slate-600">{playlist.trackIds.length}</span>
@@ -2238,7 +2273,7 @@ function NeonSidebar({
           }}
           className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left transition hover:bg-white/5"
         >
-          <span className="h-8 w-8 rounded-full border border-fuchsia-300/30 bg-[radial-gradient(circle_at_35%_30%,#25f4ff,#6d4cff_48%,#ff42cf_82%,#030713)] shadow-[0_0_16px_rgba(155,108,255,.28)]" />
+          <span className="h-8 w-8 rounded-full border border-fuchsia-300/30 bg-[radial-gradient(circle_at_35%_30%,#12eaff,#6d4cff_48%,#9dff36_82%,#030713)] shadow-[0_0_16px_rgba(83,109,255,.28)]" />
           <span className="min-w-0">
             <span className="block truncate text-[11px] font-black text-white">Mi biblioteca</span>
             <span className="block truncate text-[9px] text-cyan-300/80">{music.uploadedTracks.length} audios propios</span>
@@ -2277,7 +2312,7 @@ function NeonRecentCard({
           ) : (
             <span className="block h-full w-full" style={{ background: track.cover || "linear-gradient(135deg,#03111e,#231249,#570b59)" }} />
           )}
-          <span className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full border border-cyan-200/65 bg-[#02131d]/90 text-cyan-100 shadow-[0_0_18px_rgba(37,244,255,.38)]">
+          <span className="absolute bottom-2 right-2 flex h-8 w-8 items-center justify-center rounded-full border border-cyan-200/65 bg-[#02131d]/90 text-cyan-100 shadow-[0_0_18px_rgba(18,234,255,.38)]">
             {active && music.playing ? (
               <Pause className="h-3.5 w-3.5" fill="currentColor" />
             ) : (
@@ -2313,7 +2348,7 @@ function NeonTrackTable({ tracks, radio = false }: { tracks: EduMusicTrack[]; ra
 
   return (
     <div
-      className={cn("flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-color:#25f4ff55_transparent] [scrollbar-width:thin]", radio ? "min-h-[150px] max-h-[42vh]" : "min-h-0")}
+      className={cn("flex-1 overflow-y-auto overscroll-contain pr-1 [scrollbar-color:#12eaff55_transparent] [scrollbar-width:thin]", radio ? "min-h-[150px] max-h-[42vh]" : "min-h-0")}
       role="region"
       aria-label={radio ? "Lista desplazable de emisoras" : "Lista desplazable de canciones"}
       tabIndex={0}
@@ -2427,7 +2462,7 @@ function SpotifyCenter({
                     className={cn(
                       "rounded-2xl border p-3 text-left transition",
                       active
-                        ? "border-cyan-300/55 bg-cyan-400/14 shadow-[0_0_20px_rgba(37,244,255,.08)]"
+                        ? "border-cyan-300/55 bg-cyan-400/14 shadow-[0_0_20px_rgba(18,234,255,.08)]"
                         : "border-white/10 bg-white/[0.04] hover:border-fuchsia-300/35 hover:bg-fuchsia-400/[0.07]",
                     )}
                   >
@@ -2603,7 +2638,8 @@ function NeonMain({
   return (
     <main className="neon-main min-h-0 overflow-hidden px-[clamp(12px,1.2vw,20px)] pb-3 pt-5">
       <div className="flex h-full min-h-0 flex-col">
-        <div className="relative shrink-0 px-[clamp(12px,2vw,30px)] pt-[clamp(6px,1vh,14px)]">
+        <div className="gaming-hero relative shrink-0 px-[clamp(12px,2vw,30px)] pt-[clamp(6px,1vh,14px)]">
+          <GamingHeroScene />
           <Link
             href="/agentes"
             className="mb-3 inline-flex h-9 items-center gap-2 rounded-full border border-cyan-300/20 bg-black/20 px-3 text-[10px] font-black text-cyan-100 hover:bg-cyan-400/10 md:hidden"
@@ -2611,7 +2647,7 @@ function NeonMain({
             <ArrowLeft className="h-3.5 w-3.5" />
             Volver a Agentes
           </Link>
-          <p className="text-[9px] font-black uppercase tracking-[.48em] text-slate-300/90">Más que música</p>
+          <div className="gaming-hero-kicker flex items-center justify-between gap-3"><p className="text-[9px] font-black uppercase tracking-[.48em] text-slate-300/90">Más que música</p><GamingLightingControl /></div>
           <h1 className="mt-0.5 text-[clamp(34px,3.8vw,64px)] font-black leading-none tracking-[-.065em] text-white">
             EDUAI <span className="neon-title-gradient italic">Music</span>
           </h1>
@@ -2627,12 +2663,13 @@ function NeonMain({
                 placeholder={music.view === "radio" ? "Buscar emisora..." : "Buscar canciones, artistas, álbumes o playlists..."}
                 className="min-w-0 flex-1 bg-transparent text-[11px] text-white outline-none placeholder:text-slate-500"
               />
+              <NeonSpectrum active={music.playing} bars={22} currentTime={music.currentTime} trackId={music.currentTrack.id} className="gaming-search-spectrum hidden h-5 w-24 shrink-0 lg:flex" />
             </div>
             <button
               type="button"
               onClick={() => void runSearch()}
               disabled={music.onlineLoading || music.radioLoading}
-              className="h-10 rounded-xl bg-cyan-400 px-4 text-[10px] font-black text-slate-950 shadow-[0_0_20px_rgba(37,244,255,.25)] disabled:opacity-50"
+              className="gaming-search-button h-10 rounded-xl bg-cyan-400 px-4 text-[10px] font-black text-slate-950 shadow-[0_0_20px_rgba(18,234,255,.25)] disabled:opacity-50"
             >
               Buscar
             </button>
@@ -2668,7 +2705,7 @@ function NeonMain({
                 className={cn(
                   "neon-filter-chip rounded-full border px-3 py-1.5 text-[9px] font-black transition",
                   music.view === view
-                    ? "is-active border-cyan-200/65 bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(37,244,255,.22)]"
+                    ? "is-active border-cyan-200/65 bg-cyan-400 text-slate-950 shadow-[0_0_15px_rgba(18,234,255,.22)]"
                     : "border-cyan-300/20 bg-black/12 text-slate-300 hover:border-cyan-300/40 hover:text-cyan-100",
                 )}
               >
@@ -2821,7 +2858,7 @@ function NeonMain({
           ) : null}
         </div>
 
-        <div className={cn("mt-3 min-h-0 flex-1 px-2", music.view === "radio" && "overflow-y-auto overscroll-contain pb-3 [scrollbar-color:#25f4ff55_transparent] [scrollbar-width:thin]")}>
+        <div className={cn("mt-3 min-h-0 flex-1 px-2", music.view === "radio" && "overflow-y-auto overscroll-contain pb-3 [scrollbar-color:#12eaff55_transparent] [scrollbar-width:thin]")}>
           <div className={cn("flex min-h-0 flex-col gap-3", music.view === "radio" ? "min-h-full" : "h-full")}>
             <div className="shrink-0">
               <div className="mb-2 flex items-center justify-between">
@@ -2861,7 +2898,7 @@ function NeonMain({
                 <div className="neon-catalog-surface rounded-2xl p-2.5">
                   {music.view === "liked" ? (
                     <div
-                      className="grid max-h-[min(36vh,340px)] grid-cols-2 gap-3 overflow-y-auto overscroll-contain pr-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 [scrollbar-color:#25f4ff55_transparent] [scrollbar-width:thin]"
+                      className="grid max-h-[min(36vh,340px)] grid-cols-2 gap-3 overflow-y-auto overscroll-contain pr-1 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 [scrollbar-color:#12eaff55_transparent] [scrollbar-width:thin]"
                       role="region"
                       tabIndex={0}
                       aria-label="Favoritos guardados, desplázate hacia abajo para ver más canciones"
@@ -2941,10 +2978,10 @@ function NeonRightPanel() {
                 src={embedUrl}
                 title={track.title}
                 externalUrl={track.externalUrl}
-                className="aspect-video w-full max-w-[260px] rounded-2xl border border-cyan-300/30 shadow-[0_0_34px_rgba(37,244,255,.14)]"
+                className="aspect-video w-full max-w-[260px] rounded-2xl border border-cyan-300/30 shadow-[0_0_34px_rgba(18,234,255,.14)]"
               />
             ) : !idle && track.source === "youtube" && track.youtubeVideoId ? (
-              <div className="neon-youtube-player aspect-video w-full max-w-[260px] overflow-hidden rounded-2xl border border-cyan-300/30 bg-black shadow-[0_0_34px_rgba(37,244,255,.14)]">
+              <div className="neon-youtube-player aspect-video w-full max-w-[260px] overflow-hidden rounded-2xl border border-cyan-300/30 bg-black shadow-[0_0_34px_rgba(18,234,255,.14)]">
                 <div id={YOUTUBE_PLAYER_ID} className="h-full w-full bg-black" />
               </div>
             ) : !idle && artwork ? (
@@ -2952,7 +2989,7 @@ function NeonRightPanel() {
               <img
                 src={artwork}
                 alt={track.title}
-                className="aspect-square w-[min(100%,220px)] rounded-2xl border border-cyan-300/30 object-cover shadow-[0_0_34px_rgba(37,244,255,.14)]"
+                className="aspect-square w-[min(100%,220px)] rounded-2xl border border-cyan-300/30 object-cover shadow-[0_0_34px_rgba(18,234,255,.14)]"
               />
             ) : (
               <div className="aspect-square w-[min(100%,220px)]" aria-hidden="true" />
@@ -3124,6 +3161,7 @@ function NeonBottomPlayer() {
   return (
     <>
       <div className="neon-bottom-player absolute inset-x-0 bottom-0 z-20 h-[84px] px-[clamp(14px,1.5vw,24px)]">
+        <div className="gaming-dock-waves" aria-hidden="true"><NeonSpectrum active={music.playing && !idle} bars={24} currentTime={music.currentTime} trackId={track.id} className="h-8 w-full" /><NeonSpectrum active={music.playing && !idle} bars={24} currentTime={music.currentTime} trackId={track.id} className="h-8 w-full" /></div>
         <div className="neon-bottom-grid grid h-full grid-cols-[minmax(190px,280px)_minmax(320px,1fr)_minmax(190px,280px)] items-center gap-4">
           <div className="flex min-w-0 items-center gap-2.5">
             {!idle && <Cover track={track} size="md" />}
@@ -3229,7 +3267,7 @@ function NeonBottomPlayer() {
             role="dialog"
             aria-modal="true"
             aria-label="Compartir desde EDUAI Music"
-            className="neon-share-modal w-full max-w-[520px] overflow-hidden rounded-3xl border border-cyan-300/25 bg-[#030b16]/96 shadow-[0_24px_90px_rgba(0,0,0,.62),0_0_42px_rgba(37,244,255,.10)]"
+            className="neon-share-modal w-full max-w-[520px] overflow-hidden rounded-3xl border border-cyan-300/25 bg-[#030b16]/96 shadow-[0_24px_90px_rgba(0,0,0,.62),0_0_42px_rgba(18,234,255,.10)]"
           >
             <div className="flex items-center justify-between border-b border-cyan-300/12 px-5 py-4">
               <div>
@@ -3247,7 +3285,7 @@ function NeonBottomPlayer() {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={artwork} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
                 ) : (
-                  <div className="h-16 w-16 shrink-0 rounded-xl bg-[linear-gradient(135deg,#25f4ff,#9b6cff,#ff42cf)]" />
+                  <div className="h-16 w-16 shrink-0 rounded-xl bg-[linear-gradient(135deg,#12eaff,#536dff,#9dff36)]" />
                 )}
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-black text-white">{idle ? "EDUAI Music" : track.title}</p>
@@ -3345,6 +3383,18 @@ export default function EduAIMusicPlayer({
   const [spotifyOpen, setSpotifyOpen] = useState(false);
   const [selectedSpotifyEmbed, setSelectedSpotifyEmbed] = useState<SpotifyEmbedItem | null>(null);
   const setPendingTrackId = music.setPendingTrackId;
+  const [lighting, setLighting] = useState<GamingLighting>("dynamic");
+  const [reducedMotion, setReducedMotion] = useState(false);
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReducedMotion(media.matches);
+    sync();
+    media.addEventListener("change", sync);
+    try { const saved = localStorage.getItem("eduai-music-lighting"); if (saved === "dynamic" || saved === "calm" || saved === "off") setLighting(saved); } catch { /* Storage can be blocked. */ }
+    return () => media.removeEventListener("change", sync);
+  }, []);
+  const effectiveLighting = reducedMotion ? "off" : lighting;
+  const lightingContext = { mode: lighting, effective: effectiveLighting, setMode: (next: GamingLighting) => { setLighting(next); try { localStorage.setItem("eduai-music-lighting", next); } catch { /* Optional preference. */ } } };
 
   useEffect(() => {
     if (mode === "page") setPendingTrackId(null);
@@ -3369,11 +3419,12 @@ export default function EduAIMusicPlayer({
   if (mode === "panel") return <CompactPanel onOpenPanel={onOpenPanel} />;
 
   return (
-    <div className="eduai-music-cyber relative h-screen min-h-[560px] overflow-hidden bg-[#05070a] text-white md:min-h-[680px]">
+    <GamingLightingContext.Provider value={lightingContext}>
+    <div className="eduai-music-cyber relative h-screen min-h-[560px] overflow-hidden bg-[#05070a] text-white md:min-h-[680px]" data-lighting={effectiveLighting} data-playing={music.playing}>
       <CyberStaticBackdrop />
-      <CyberDjParallax active={music.playing} />
-      <MusicBackContour active={music.playing} currentTime={music.currentTime} />
-      <RhythmPentagonField active={music.playing} currentTime={music.currentTime} />
+      <CyberDjParallax active={music.playing && effectiveLighting === "dynamic"} />
+      <MusicBackContour active={music.playing && effectiveLighting === "dynamic"} currentTime={music.currentTime} />
+      <RhythmPentagonField active={music.playing && effectiveLighting === "dynamic"} currentTime={music.currentTime} />
       <style jsx global>{`
         @keyframes eduai-dj-progress {
           from { transform: scaleX(0); }
@@ -3404,15 +3455,15 @@ export default function EduAIMusicPlayer({
         @keyframes music-back-pulse {
           0%, 100% {
             opacity: .30;
-            filter: hue-rotate(0deg) drop-shadow(0 0 5px rgba(37,244,255,.42));
+            filter: hue-rotate(0deg) drop-shadow(0 0 5px rgba(18,234,255,.42));
           }
           30% {
             opacity: .95;
-            filter: hue-rotate(26deg) drop-shadow(0 0 14px rgba(255,66,207,.72));
+            filter: hue-rotate(26deg) drop-shadow(0 0 14px rgba(157,255,54,.72));
           }
           55% {
             opacity: .62;
-            filter: hue-rotate(-18deg) drop-shadow(0 0 10px rgba(155,108,255,.68));
+            filter: hue-rotate(-18deg) drop-shadow(0 0 10px rgba(83,109,255,.68));
           }
         }
         @keyframes cyber-pentagon-beat {
@@ -3448,9 +3499,9 @@ export default function EduAIMusicPlayer({
           }
         }
         .eduai-music-cyber {
-          --cyber-cyan: #25f4ff;
-          --cyber-pink: #ff42cf;
-          --cyber-violet: #9b6cff;
+          --cyber-cyan: #12eaff;
+          --cyber-pink: #9dff36;
+          --cyber-violet: #536dff;
           --cyber-blue: #4aa8ff;
           background: #02050c;
           isolation: isolate;
@@ -3503,8 +3554,8 @@ export default function EduAIMusicPlayer({
           position: absolute;
           inset: 0;
           background:
-            radial-gradient(ellipse 14% 18% at 76% 14%, rgba(37,244,255,.20), transparent 95%),
-            radial-gradient(ellipse 12% 17% at 82% 26%, rgba(155,108,255,.18), transparent 95%);
+            radial-gradient(ellipse 14% 18% at 76% 14%, rgba(18,234,255,.20), transparent 95%),
+            radial-gradient(ellipse 12% 17% at 82% 26%, rgba(83,109,255,.18), transparent 95%);
           opacity: .35;
           animation: cyber-dj-aura 8s ease-in-out infinite;
           will-change: opacity;
@@ -3566,7 +3617,7 @@ export default function EduAIMusicPlayer({
         .music-back-contour-core {
           stroke-width: 2.2;
           stroke-dasharray: 16 9;
-          filter: drop-shadow(0 0 8px rgba(37,244,255,.78));
+          filter: drop-shadow(0 0 8px rgba(18,234,255,.78));
         }
         .cyber-rhythm-field {
           position: absolute;
@@ -3577,7 +3628,7 @@ export default function EduAIMusicPlayer({
           perspective: 900px;
         }
         .rhythm-pentagon {
-          --pentagon-glow: #25f4ff;
+          --pentagon-glow: #12eaff;
           --travel-x: 0px;
           --travel-y: 0px;
           --pentagon-rotate: 0deg;
@@ -3642,13 +3693,13 @@ export default function EduAIMusicPlayer({
           -webkit-backdrop-filter: blur(6px) saturate(1.12);
           box-shadow:
             inset 0 1px 0 rgba(255,255,255,.035),
-            inset 0 0 42px rgba(37,244,255,.025),
-            0 0 0 1px rgba(255,66,207,.025),
+            inset 0 0 42px rgba(18,234,255,.025),
+            0 0 0 1px rgba(157,255,54,.025),
             0 16px 40px rgba(0,0,0,.24);
         }
         .cyber-sidebar,
         .cyber-rightbar {
-          box-shadow: inset 0 0 34px rgba(37,244,255,.025);
+          box-shadow: inset 0 0 34px rgba(18,234,255,.025);
         }
         .cyber-sidebar > div:first-child,
         .cyber-sidebar > details,
@@ -3675,14 +3726,14 @@ export default function EduAIMusicPlayer({
         }
         .cyber-player-stage {
           background:
-            radial-gradient(circle at 50% 42%, rgba(37,244,255,.07), transparent 28%),
+            radial-gradient(circle at 50% 42%, rgba(18,234,255,.07), transparent 28%),
             linear-gradient(145deg, rgba(2,10,20,.18), rgba(5,5,17,.10), rgba(28,5,34,.16)) !important;
           border-color: rgba(78,228,255,.28) !important;
           backdrop-filter: blur(2px);
           -webkit-backdrop-filter: blur(2px);
           box-shadow:
             inset 0 0 70px rgba(0,8,18,.12),
-            0 0 0 1px rgba(255,66,207,.04);
+            0 0 0 1px rgba(157,255,54,.04);
         }
         .cyber-player-core {
           background: linear-gradient(145deg, rgba(2,9,18,.44), rgba(8,5,18,.34)) !important;
@@ -3692,8 +3743,8 @@ export default function EduAIMusicPlayer({
         }
         .cyber-hero-grid {
           background:
-            radial-gradient(circle at 82% 32%, rgba(255,66,207,.16), transparent 28%),
-            radial-gradient(circle at 64% 70%, rgba(37,244,255,.14), transparent 30%),
+            radial-gradient(circle at 82% 32%, rgba(157,255,54,.16), transparent 28%),
+            radial-gradient(circle at 64% 70%, rgba(18,234,255,.14), transparent 30%),
             linear-gradient(120deg, rgba(2,8,17,.96), rgba(5,20,32,.72) 48%, rgba(32,4,44,.42));
         }
         .cyber-hero-grid::before {
@@ -3701,29 +3752,29 @@ export default function EduAIMusicPlayer({
           position: absolute;
           inset: 0;
           background-image:
-            linear-gradient(rgba(37,244,255,.05) 1px, transparent 1px),
-            linear-gradient(90deg, rgba(37,244,255,.05) 1px, transparent 1px);
+            linear-gradient(rgba(18,234,255,.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(18,234,255,.05) 1px, transparent 1px);
           background-size: 42px 42px;
           mask-image: linear-gradient(90deg, black, transparent 76%);
         }
         .cyber-hero-title {
-          background: linear-gradient(90deg,#ff42cf 0%,#b552ff 42%,#25f4ff 100%);
+          background: linear-gradient(90deg,#9dff36 0%,#b552ff 42%,#12eaff 100%);
           -webkit-background-clip: text;
           background-clip: text;
           color: transparent;
-          text-shadow: 0 0 28px rgba(255,66,207,.22);
+          text-shadow: 0 0 28px rgba(157,255,54,.22);
           font-style: italic;
         }
         .cyber-search-shell {
           border: 1px solid rgba(139,92,246,.72);
           background: rgba(2,7,16,.76);
           box-shadow:
-            inset 0 0 0 1px rgba(37,244,255,.06),
-            0 0 24px rgba(155,108,255,.12);
+            inset 0 0 0 1px rgba(18,234,255,.06),
+            0 0 24px rgba(83,109,255,.12);
         }
         .cyber-search-button {
-          background: linear-gradient(90deg,#25f4ff,#46d7ff);
-          box-shadow: 0 0 22px rgba(37,244,255,.22);
+          background: linear-gradient(90deg,#12eaff,#46d7ff);
+          box-shadow: 0 0 22px rgba(18,234,255,.22);
         }
         .cyber-source-chip {
           border: 1px solid color-mix(in srgb, var(--source-accent) 62%, transparent);
@@ -3749,10 +3800,10 @@ export default function EduAIMusicPlayer({
         }
         .cyber-track-card:hover,
         .cyber-track-card.is-active {
-          border-color: rgba(37,244,255,.54);
+          border-color: rgba(18,234,255,.54);
           transform: translateY(-3px);
           box-shadow:
-            0 0 20px rgba(37,244,255,.1),
+            0 0 20px rgba(18,234,255,.1),
             0 12px 24px rgba(0,0,0,.28);
         }
         .cyber-empty-source {
@@ -3772,7 +3823,7 @@ export default function EduAIMusicPlayer({
           position: absolute;
           inset: -40% 20% auto -20%;
           height: 180px;
-          background: radial-gradient(circle, rgba(255,66,207,.14), transparent 68%);
+          background: radial-gradient(circle, rgba(157,255,54,.14), transparent 68%);
           pointer-events: none;
         }
         .cyber-hero-rings {
@@ -3792,12 +3843,12 @@ export default function EduAIMusicPlayer({
             0 14px 34px rgba(0,0,0,.2);
         }
         .eduai-music-cyber section:hover {
-          border-color: rgba(37,244,255,.24) !important;
+          border-color: rgba(18,234,255,.24) !important;
         }
         .cyber-playerbar {
           box-shadow:
             0 -16px 50px rgba(0,0,0,.46),
-            0 -1px 0 rgba(37,244,255,.13);
+            0 -1px 0 rgba(18,234,255,.13);
         }
         .cyber-equalizer {
           display: flex;
@@ -3806,7 +3857,7 @@ export default function EduAIMusicPlayer({
           width: 58px;
           height: 24px;
           padding: 3px 5px;
-          border: 1px solid rgba(37,244,255,.12);
+          border: 1px solid rgba(18,234,255,.12);
           border-radius: 999px;
           background: rgba(0,0,0,.2);
           overflow: hidden;
@@ -3833,7 +3884,7 @@ export default function EduAIMusicPlayer({
           height: 1px;
           pointer-events: none;
           background: linear-gradient(90deg, transparent, var(--cyber-cyan), var(--cyber-pink), transparent);
-          box-shadow: 0 0 16px rgba(37,244,255,.72);
+          box-shadow: 0 0 16px rgba(18,234,255,.72);
           animation: cyber-player-flow 6.5s linear infinite;
         }
         .cyber-brand {
@@ -3841,7 +3892,7 @@ export default function EduAIMusicPlayer({
           -webkit-background-clip: text;
           background-clip: text;
           color: transparent;
-          text-shadow: 0 0 24px rgba(37,244,255,.12);
+          text-shadow: 0 0 24px rgba(18,234,255,.12);
         }
         .cyber-brand span {
           font-style: italic;
@@ -3860,13 +3911,13 @@ export default function EduAIMusicPlayer({
           line-height: .9;
           letter-spacing: -.065em;
           white-space: nowrap;
-          background: linear-gradient(90deg, #ffffff 0 38%, #25f4ff 55%, #9b6cff 74%, #ff42cf 100%);
+          background: linear-gradient(90deg, #ffffff 0 38%, #12eaff 55%, #536dff 74%, #9dff36 100%);
           -webkit-background-clip: text;
           background-clip: text;
           color: transparent;
           text-shadow:
-            0 0 24px rgba(37,244,255,.16),
-            0 0 34px rgba(255,66,207,.10);
+            0 0 24px rgba(18,234,255,.16),
+            0 0 34px rgba(157,255,54,.10);
           pointer-events: none;
           user-select: none;
         }
@@ -3876,20 +3927,20 @@ export default function EduAIMusicPlayer({
         .neon-title-gradient {
           background: linear-gradient(
             90deg,
-            #25f4ff 0%,
+            #12eaff 0%,
             #67d9ff 20%,
-            #9b6cff 40%,
-            #ff42cf 50%,
-            #9b6cff 60%,
+            #536dff 40%,
+            #9dff36 50%,
+            #536dff 60%,
             #67d9ff 80%,
-            #25f4ff 100%
+            #12eaff 100%
           );
           background-size: 200% 100%;
           background-position: 0% 50%;
           -webkit-background-clip: text;
           background-clip: text;
           color: transparent;
-          text-shadow: 0 0 24px rgba(37,244,255,.14);
+          text-shadow: 0 0 24px rgba(18,234,255,.14);
           animation: neon-title-flow 4.5s linear infinite;
           will-change: background-position;
         }
@@ -3922,7 +3973,7 @@ export default function EduAIMusicPlayer({
           box-shadow:
             inset 0 1px 0 rgba(255,255,255,.035),
             0 18px 42px rgba(0,0,0,.28),
-            0 0 28px rgba(37,244,255,.035);
+            0 0 28px rgba(18,234,255,.035);
           backdrop-filter: blur(16px) saturate(1.08);
           -webkit-backdrop-filter: blur(16px) saturate(1.08);
         }
@@ -3933,12 +3984,12 @@ export default function EduAIMusicPlayer({
         }
         .neon-main {
           background:
-            radial-gradient(circle at 72% 8%, rgba(37,244,255,.07), transparent 30%),
+            radial-gradient(circle at 72% 8%, rgba(18,234,255,.07), transparent 30%),
             linear-gradient(160deg, rgba(3, 12, 24, .90), rgba(2, 8, 18, .80) 54%, rgba(20, 5, 29, .70));
         }
         .neon-right-panel {
           background:
-            radial-gradient(circle at 50% 18%, rgba(155,108,255,.09), transparent 34%),
+            radial-gradient(circle at 50% 18%, rgba(83,109,255,.09), transparent 34%),
             linear-gradient(165deg, rgba(3, 12, 24, .91), rgba(2, 8, 18, .83) 56%, rgba(20, 5, 29, .74));
         }
         .neon-youtube-player iframe {
@@ -3950,28 +4001,28 @@ export default function EduAIMusicPlayer({
         .neon-nav-button {
           position: relative;
           background: rgba(3, 13, 25, .72);
-          border: 1px solid rgba(37,244,255,.12);
+          border: 1px solid rgba(18,234,255,.12);
           box-shadow: inset 0 1px 0 rgba(255,255,255,.02);
         }
         .neon-nav-button:hover {
           background: rgba(7, 28, 44, .88);
-          border-color: rgba(37,244,255,.28);
+          border-color: rgba(18,234,255,.28);
           transform: translateX(2px);
         }
         .neon-nav-button.is-active {
           background:
-            linear-gradient(90deg, rgba(37,244,255,.30), rgba(37,244,255,.12) 68%, rgba(3,13,25,.76));
+            linear-gradient(90deg, rgba(18,234,255,.30), rgba(18,234,255,.12) 68%, rgba(3,13,25,.76));
           border-color: rgba(87,236,255,.48);
           box-shadow:
-            inset 3px 0 0 #25f4ff,
-            0 0 18px rgba(37,244,255,.14);
+            inset 3px 0 0 #12eaff,
+            0 0 18px rgba(18,234,255,.14);
         }
         .neon-search {
           background: rgba(2, 9, 19, .84) !important;
           border-color: rgba(139, 92, 246, .58) !important;
           box-shadow:
-            inset 0 0 22px rgba(155,108,255,.08),
-            0 0 20px rgba(155,108,255,.10);
+            inset 0 0 22px rgba(83,109,255,.08),
+            0 0 20px rgba(83,109,255,.10);
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
         }
@@ -3980,10 +4031,10 @@ export default function EduAIMusicPlayer({
           box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
         }
         .neon-filter-chip.is-active {
-          background: #25f4ff !important;
+          background: #12eaff !important;
           color: #02131d !important;
           border-color: rgba(165, 251, 255, .86) !important;
-          box-shadow: 0 0 18px rgba(37,244,255,.24), inset 0 1px 0 rgba(255,255,255,.28);
+          box-shadow: 0 0 18px rgba(18,234,255,.24), inset 0 1px 0 rgba(255,255,255,.28);
         }
         .neon-filter-chip:focus-visible {
           outline: 2px solid rgba(244, 114, 255, .9);
@@ -4001,7 +4052,7 @@ export default function EduAIMusicPlayer({
           align-items: center;
           justify-content: center;
           border-radius: 999px;
-          border: 1px solid rgba(37,244,255,.10);
+          border: 1px solid rgba(18,234,255,.10);
           background: rgba(5,18,31,.72);
         }
         .neon-share-network {
@@ -4011,7 +4062,7 @@ export default function EduAIMusicPlayer({
           justify-content: center;
           gap: 6px;
           border-radius: 12px;
-          border: 1px solid rgba(37,244,255,.14);
+          border: 1px solid rgba(18,234,255,.14);
           background: linear-gradient(145deg, rgba(5,18,31,.88), rgba(11,7,25,.88));
           padding: 8px 10px;
           color: #dbeafe;
@@ -4019,9 +4070,9 @@ export default function EduAIMusicPlayer({
           font-weight: 900;
         }
         .neon-share-network:hover {
-          border-color: rgba(37,244,255,.38);
+          border-color: rgba(18,234,255,.38);
           background: linear-gradient(145deg, rgba(8,32,48,.96), rgba(26,9,41,.92));
-          box-shadow: 0 0 18px rgba(37,244,255,.08);
+          box-shadow: 0 0 18px rgba(18,234,255,.08);
         }
         .neon-share-modal {
           animation: neon-share-enter .2s ease-out both;
@@ -4033,7 +4084,7 @@ export default function EduAIMusicPlayer({
         .neon-catalog-surface {
           overflow: hidden;
           background: linear-gradient(180deg, rgba(2, 10, 20, .93), rgba(2, 8, 18, .84));
-          border: 1px solid rgba(37,244,255,.13);
+          border: 1px solid rgba(18,234,255,.13);
           box-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 12px 30px rgba(0,0,0,.16);
         }
         .neon-catalog {
@@ -4057,7 +4108,7 @@ export default function EduAIMusicPlayer({
           border-radius: 14px;
           padding: 7px;
           background: linear-gradient(155deg, rgba(5,18,31,.94), rgba(2,9,18,.90));
-          border: 1px solid rgba(37,244,255,.15);
+          border: 1px solid rgba(18,234,255,.15);
           box-shadow: inset 0 1px 0 rgba(255,255,255,.025), 0 10px 26px rgba(0,0,0,.18);
           transition: transform .2s ease, border-color .2s ease, background .2s ease, box-shadow .2s ease;
         }
@@ -4067,9 +4118,9 @@ export default function EduAIMusicPlayer({
         .neon-recent-card:hover,
         .neon-recent-card.is-active {
           transform: translateY(-3px);
-          border-color: rgba(37,244,255,.40);
+          border-color: rgba(18,234,255,.40);
           background: linear-gradient(155deg, rgba(7,28,45,.97), rgba(14,12,35,.94));
-          box-shadow: 0 10px 24px rgba(0,0,0,.20), 0 0 20px rgba(37,244,255,.09);
+          box-shadow: 0 10px 24px rgba(0,0,0,.20), 0 0 20px rgba(18,234,255,.09);
         }
         @media (max-width: 1180px) {
           .neon-catalog-slide {
@@ -4084,19 +4135,19 @@ export default function EduAIMusicPlayer({
           }
         }
         .neon-track-row {
-          border: 1px solid rgba(37,244,255,.08);
+          border: 1px solid rgba(18,234,255,.08);
           background: rgba(2, 10, 20, .72);
           box-shadow: inset 0 1px 0 rgba(255,255,255,.018);
           transition: background .18s ease, border-color .18s ease, transform .18s ease;
         }
         .neon-track-row:hover {
           background: rgba(6, 25, 40, .88);
-          border-color: rgba(37,244,255,.24);
+          border-color: rgba(18,234,255,.24);
         }
         .neon-track-row.is-active {
-          background: linear-gradient(90deg, rgba(37,244,255,.22), rgba(155,108,255,.13), rgba(3,12,24,.78));
-          border-color: rgba(37,244,255,.42);
-          box-shadow: inset 2px 0 0 rgba(37,244,255,.95), 0 0 16px rgba(37,244,255,.05);
+          background: linear-gradient(90deg, rgba(18,234,255,.22), rgba(83,109,255,.13), rgba(3,12,24,.78));
+          border-color: rgba(18,234,255,.42);
+          box-shadow: inset 2px 0 0 rgba(18,234,255,.95), 0 0 16px rgba(18,234,255,.05);
         }
         .neon-track-row > button:last-child {
           display: inline-flex;
@@ -4104,13 +4155,13 @@ export default function EduAIMusicPlayer({
           width: 28px;
           align-items: center;
           justify-content: center;
-          border: 1px solid rgba(37,244,255,.10);
+          border: 1px solid rgba(18,234,255,.10);
           border-radius: 999px;
           background: rgba(4, 16, 29, .82);
         }
         .neon-queue-list {
           scrollbar-width: thin;
-          scrollbar-color: rgba(37,244,255,.42) rgba(2,10,20,.28);
+          scrollbar-color: rgba(18,234,255,.42) rgba(2,10,20,.28);
           scrollbar-gutter: stable;
           -webkit-overflow-scrolling: touch;
         }
@@ -4123,20 +4174,20 @@ export default function EduAIMusicPlayer({
         }
         .neon-queue-list::-webkit-scrollbar-thumb {
           border-radius: 999px;
-          background: linear-gradient(180deg, rgba(37,244,255,.62), rgba(155,108,255,.48));
+          background: linear-gradient(180deg, rgba(18,234,255,.62), rgba(83,109,255,.48));
         }
         .neon-queue-row {
-          border: 1px solid rgba(37,244,255,.07);
+          border: 1px solid rgba(18,234,255,.07);
           background: rgba(2, 10, 20, .58);
           transition: background .18s ease, border-color .18s ease;
         }
         .neon-queue-row:hover {
           background: rgba(6, 24, 39, .82);
-          border-color: rgba(37,244,255,.18);
+          border-color: rgba(18,234,255,.18);
         }
         .neon-queue-row.is-active {
-          background: linear-gradient(90deg, rgba(37,244,255,.20), rgba(155,108,255,.10), rgba(3,12,24,.65));
-          border-color: rgba(37,244,255,.30);
+          background: linear-gradient(90deg, rgba(18,234,255,.20), rgba(83,109,255,.10), rgba(3,12,24,.65));
+          border-color: rgba(18,234,255,.30);
         }
         .neon-spectrum {
           min-width: 0;
@@ -4150,16 +4201,16 @@ export default function EduAIMusicPlayer({
           transform: scaleY(.16);
           transform-origin: bottom;
           opacity: .42;
-          background: linear-gradient(to top,#25f4ff 0%,#3bb8ff 34%,#9b6cff 67%,#ff42cf 100%);
-          box-shadow: 0 0 6px rgba(37,244,255,.22);
+          background: linear-gradient(to top,#12eaff 0%,#3bb8ff 34%,#536dff 67%,#9dff36 100%);
+          box-shadow: 0 0 6px rgba(18,234,255,.22);
           transition: opacity .09s linear;
           will-change: transform, opacity;
         }
         .neon-bottom-player {
           background:
             linear-gradient(180deg, rgba(3, 12, 23, .94), rgba(1, 6, 14, .98));
-          border-top: 1px solid rgba(37,244,255,.28);
-          box-shadow: 0 -14px 36px rgba(0,0,0,.34), 0 -1px 18px rgba(37,244,255,.035);
+          border-top: 1px solid rgba(18,234,255,.28);
+          box-shadow: 0 -14px 36px rgba(0,0,0,.34), 0 -1px 18px rgba(18,234,255,.035);
           backdrop-filter: blur(18px) saturate(1.12);
           -webkit-backdrop-filter: blur(18px) saturate(1.12);
         }
@@ -4172,23 +4223,23 @@ export default function EduAIMusicPlayer({
           border-radius: 999px;
           color: rgba(226,232,240,.88);
           background: rgba(5, 18, 31, .92);
-          border: 1px solid rgba(37,244,255,.15);
+          border: 1px solid rgba(18,234,255,.15);
           box-shadow: inset 0 1px 0 rgba(255,255,255,.025);
           transition: all .18s ease;
         }
         .neon-control-button:hover,
         .neon-control-button.is-active {
           color: #c8fbff;
-          border-color: rgba(37,244,255,.24);
-          background: rgba(37,244,255,.11);
-          box-shadow: 0 0 14px rgba(37,244,255,.10);
+          border-color: rgba(18,234,255,.24);
+          background: rgba(18,234,255,.11);
+          box-shadow: 0 0 14px rgba(18,234,255,.10);
         }
         .neon-main-play {
-          background: linear-gradient(135deg,#25f4ff 0%,#60ddff 50%,#ff42cf 130%);
+          background: linear-gradient(135deg,#12eaff 0%,#60ddff 50%,#9dff36 130%);
           box-shadow:
             0 0 0 1px rgba(255,255,255,.12),
-            0 0 22px rgba(37,244,255,.30),
-            0 0 30px rgba(255,66,207,.12);
+            0 0 22px rgba(18,234,255,.30),
+            0 0 30px rgba(157,255,54,.12);
           transition: transform .18s ease, box-shadow .18s ease;
         }
         .neon-main-play:hover {
@@ -4199,10 +4250,10 @@ export default function EduAIMusicPlayer({
         }
         @keyframes neon-play-breathe {
           0%,100% {
-            box-shadow: 0 0 0 1px rgba(255,255,255,.12),0 0 20px rgba(37,244,255,.28),0 0 28px rgba(255,66,207,.10);
+            box-shadow: 0 0 0 1px rgba(255,255,255,.12),0 0 20px rgba(18,234,255,.28),0 0 28px rgba(157,255,54,.10);
           }
           50% {
-            box-shadow: 0 0 0 2px rgba(37,244,255,.18),0 0 32px rgba(37,244,255,.50),0 0 42px rgba(255,66,207,.20);
+            box-shadow: 0 0 0 2px rgba(18,234,255,.18),0 0 32px rgba(18,234,255,.50),0 0 42px rgba(157,255,54,.20);
           }
         }
         .eduai-music-cyber button {
@@ -4211,19 +4262,19 @@ export default function EduAIMusicPlayer({
           transition-timing-function: ease;
         }
         .eduai-music-cyber button:hover {
-          filter: drop-shadow(0 0 8px rgba(37,244,255,.16));
+          filter: drop-shadow(0 0 8px rgba(18,234,255,.16));
         }
         .eduai-music-cyber button:active {
           transform: scale(.985);
         }
         .eduai-music-cyber input:focus {
-          box-shadow: 0 0 0 1px rgba(37,244,255,.16), 0 0 22px rgba(37,244,255,.08);
+          box-shadow: 0 0 0 1px rgba(18,234,255,.16), 0 0 22px rgba(18,234,255,.08);
         }
         .eduai-music-cyber input[type="range"] {
-          accent-color: #25f4ff;
+          accent-color: #12eaff;
         }
         .eduai-music-cyber ::selection {
-          background: rgba(255,66,207,.36);
+          background: rgba(157,255,54,.36);
           color: white;
         }
         @media (max-width: 1199px) {
@@ -4395,6 +4446,108 @@ export default function EduAIMusicPlayer({
           .cyber-playerbar::before {
             animation: none !important;
           }
+        }
+
+        /* Emerald RGB Gaming Edition — structural borders remain independent of artwork. */
+        .eduai-music-cyber {
+          --gaming-cyan: #12eaff;
+          --gaming-blue: #3975ff;
+          --gaming-green: #39f5a3;
+          --gaming-lime: #a5ff39;
+          --gaming-violet: #8b78ff;
+          --gaming-spectrum: linear-gradient(100deg,#3975ff,#12eaff,#39f5a3,#a5ff39,#12eaff,#536dff,#3975ff);
+          background: #020711;
+        }
+        .eduai-music-cyber .cyber-static-backdrop {
+          background: radial-gradient(ellipse at 76% 12%,#073d4d 0,transparent 38%),radial-gradient(ellipse at 12% 80%,#0b173e,transparent 45%),linear-gradient(145deg,#020611,#061420 60%,#020710);
+          transform: none;
+        }
+        .eduai-music-cyber .cyber-dj-scene { display:none; }
+        .eduai-music-cyber .neon-sidebar,
+        .eduai-music-cyber .neon-main,
+        .eduai-music-cyber .neon-right-panel,
+        .eduai-music-cyber .neon-bottom-player {
+          border:1px solid transparent;
+          background:linear-gradient(155deg,#071321 0%,#030b16 60%,#061424 100%) padding-box,var(--gaming-spectrum) border-box;
+          background-size:100% 100%,250% 100%;
+          border-radius:14px;
+          box-shadow:inset 0 0 22px #0a40ab26,0 0 12px #157dff30,0 12px 30px #0008;
+          animation:gaming-frame-flow 11s linear infinite;
+        }
+        .eduai-music-cyber .neon-main { background-image:linear-gradient(155deg,#061421,#020a15 67%,#06111d),var(--gaming-spectrum); }
+        .eduai-music-cyber .neon-bottom-player { border-radius:14px 14px 0 0; box-shadow:0 -3px 20px #0b66ff45; }
+        @keyframes gaming-frame-flow { 0%{background-position:0 0,0% 50%} 100%{background-position:0 0,250% 50%} }
+        @keyframes gaming-gradient-flow { 0%{background-position:0% 50%} 100%{background-position:250% 50%} }
+        @keyframes gaming-halo { 0%,100%{opacity:.48;transform:scale(.97)} 50%{opacity:.82;transform:scale(1.035)} }
+        @keyframes gaming-city-glow { 0%,100%{opacity:.45} 50%{opacity:.95} }
+        .gaming-hero { isolation:isolate; }
+        .gaming-hero-scene { position:absolute;inset:-12px -10px 0;overflow:hidden;z-index:-1;pointer-events:none;mask-image:linear-gradient(to bottom,#000 0%,#000 56%,transparent 92%); }
+        .gaming-hero-scene > svg { top:-8px;right:0;opacity:.75;max-height:210px;pointer-events:none; }
+        .gaming-hero-halo { position:absolute;right:9%;top:-40px;width:230px;height:230px;border-radius:50%;border:2px solid #47ffae;box-shadow:0 0 32px #17efaf60,inset 0 0 24px #13bfff33;animation:gaming-halo 6s ease-in-out infinite; }
+        .gaming-skyline { position:absolute;left:35%;right:0;top:22px;height:112px;display:flex;align-items:flex-end;gap:3px;opacity:.75;mask-image:linear-gradient(90deg,transparent,#000 20%); }
+        .gaming-skyline span { flex:1;height:var(--building-height);background:repeating-linear-gradient(0deg,transparent 0 5px,#16e8ff35 5px 6px),linear-gradient(90deg,#071e35,#0b3452 70%,#12eaff6b);border-top:1px solid #2dffae99;box-shadow:0 0 9px #12eaff33;animation:gaming-city-glow 4s ease-in-out infinite;animation-delay:var(--building-delay); }
+        .gaming-skyline span:nth-child(4n) { border-top-color:#a5ff39;box-shadow:0 0 12px #a5ff3938; }
+        .gaming-hero-line { position:absolute;left:0;right:0;top:125px;height:1px;background:var(--gaming-spectrum);background-size:250% 100%;box-shadow:0 0 15px #12eaff;animation:gaming-gradient-flow 5s linear infinite; }
+        .gaming-hero-kicker { position:relative; }
+        .gaming-lighting-control { position:relative;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;padding:5px 9px;border-radius:999px;border:1px solid #39f5a36b;background:#061321e8;color:#c4ffcb;font-size:9px;font-weight:800; }
+        .gaming-status-dot { height:6px;width:6px;border-radius:50%;background:var(--gaming-lime);box-shadow:0 0 8px var(--gaming-lime); }
+        .eduai-music-cyber .neon-title-gradient { background-image:linear-gradient(90deg,#12eaff,#39f5a3,#a5ff39,#12eaff,#536dff,#12eaff);background-size:250% 100%;animation:gaming-gradient-flow 8s linear infinite; }
+        .eduai-music-cyber .neon-nav-button.is-active,
+        .eduai-music-cyber .neon-search,
+        .eduai-music-cyber .neon-queue-row.is-active,
+        .eduai-music-cyber .neon-track-row.is-active,
+        .eduai-music-cyber .neon-recent-card.is-active {
+          border:1px solid transparent !important;
+          background:linear-gradient(120deg,#093347,#061523 65%,#092b21) padding-box,var(--gaming-spectrum) border-box !important;
+          background-size:100% 100%,250% 100% !important;
+          box-shadow:0 0 15px #12eaff38,inset 0 0 14px #39f5a317;
+          animation:gaming-frame-flow 6s linear infinite;
+        }
+        .eduai-music-cyber .neon-nav-button.is-active { box-shadow:inset 3px 0 0 var(--gaming-lime),0 0 15px #12eaff50; }
+        .eduai-music-cyber .neon-filter-chip.is-active,
+        .eduai-music-cyber .gaming-search-button { background:linear-gradient(105deg,#12eaff,#39f5a3,#a5ff39,#39f5a3,#12eaff) !important;background-size:250% 100% !important;color:#02140b !important;border-color:#83ff9e !important;box-shadow:0 0 14px #39f5a350;animation:gaming-gradient-flow 7s linear infinite; }
+        .eduai-music-cyber .neon-recent-card { border-color:#1e8edc70;background:linear-gradient(150deg,#081b2e,#030c17); }
+        .eduai-music-cyber .neon-recent-card:hover { border-color:#5fffac;box-shadow:0 0 20px #39f5a344;transform:translateY(-2px); }
+        .eduai-music-cyber .neon-catalog-surface { border-color:#2e86e84d;background:#030b16cc; }
+        .eduai-music-cyber .neon-right-panel h2,
+        .eduai-music-cyber .neon-right-panel h3,
+        .eduai-music-cyber .neon-main h2 { border-left:3px solid var(--gaming-lime);padding-left:8px; }
+        .eduai-music-cyber .neon-youtube-player { border-color:#38eead65;box-shadow:0 0 22px #12eaff30; }
+        .eduai-music-cyber .neon-spectrum-bar { background:linear-gradient(to top,#3975ff,#12eaff 45%,#39f5a3 76%,#a5ff39);box-shadow:0 0 8px #12eaff5c; }
+        .eduai-music-cyber .neon-spectrum-bar:nth-child(3n) { background:linear-gradient(to top,#3975ff,#8b78ff 55%,#12eaff); }
+        .eduai-music-cyber .gaming-progress-fill { background:var(--gaming-spectrum);background-size:250% 100%;animation:gaming-gradient-flow 7s linear infinite;box-shadow:0 0 9px #12eaff85;position:relative; }
+        .eduai-music-cyber .gaming-progress-fill::after { content:"";position:absolute;right:0;top:0;width:7px;height:100%;border-radius:50%;background:#eaffd9;box-shadow:0 0 7px #a5ff39; }
+        .eduai-music-cyber .gaming-progress:focus-within { outline:2px solid var(--gaming-lime);outline-offset:3px;border-radius:5px; }
+        .eduai-music-cyber .neon-main-play { background:linear-gradient(#051b2b,#06101c) padding-box,var(--gaming-spectrum) border-box; background-size:100% 100%,250% 100%;border:3px solid transparent;color:#efffff;box-shadow:0 0 22px #12eaff65; }
+        .eduai-music-cyber .neon-main-play.is-playing { animation:gaming-frame-flow 3s linear infinite,neon-play-breathe 2s ease-in-out infinite; }
+        .eduai-music-cyber .neon-control-button:hover,.eduai-music-cyber .neon-control-button.is-active { border-color:#39f5a3;color:#c4ffdb;box-shadow:0 0 12px #39f5a344; }
+        .eduai-music-cyber .neon-bottom-grid { position:relative;z-index:1; }
+        .gaming-dock-waves { position:absolute;left:26%;right:26%;bottom:20px;display:grid;grid-template-columns:1fr 1fr;gap:48%;pointer-events:none;opacity:.33; }
+        .eduai-music-cyber input[type="range"] { accent-color:var(--gaming-green); }
+        .eduai-music-cyber button:focus-visible,.eduai-music-cyber a:focus-visible { outline:2px solid var(--gaming-lime);outline-offset:2px; }
+        .eduai-music-cyber[data-playing="false"] .gaming-hero-halo,
+        .eduai-music-cyber[data-playing="false"] .gaming-skyline span { animation-play-state:paused; }
+        .eduai-music-cyber[data-lighting="calm"] .gaming-skyline span,
+        .eduai-music-cyber[data-lighting="calm"] .gaming-hero-halo,
+        .eduai-music-cyber[data-lighting="calm"] .rhythm-pentagon,
+        .eduai-music-cyber[data-lighting="calm"] .music-back-contour { animation:none !important; }
+        .eduai-music-cyber[data-lighting="calm"] .neon-sidebar,
+        .eduai-music-cyber[data-lighting="calm"] .neon-main,
+        .eduai-music-cyber[data-lighting="calm"] .neon-right-panel,
+        .eduai-music-cyber[data-lighting="calm"] .neon-bottom-player { animation-duration:28s; }
+        .eduai-music-cyber[data-lighting="off"] *, .eduai-music-cyber[data-lighting="off"] *::before,.eduai-music-cyber[data-lighting="off"] *::after { animation:none !important;transition:none !important; }
+        .eduai-music-cyber[data-lighting="off"] .gaming-dock-waves,.eduai-music-cyber[data-lighting="off"] .cyber-rhythm-field { display:none; }
+        @media (max-width:767px) {
+          .eduai-music-cyber .neon-main { border:0;border-radius:0;background:#040d18;animation:none; }
+          .eduai-music-cyber .neon-bottom-player { border-radius:0; }
+          .gaming-hero-scene { opacity:.4; }
+          .gaming-hero-scene > svg { min-width:220px;width:65%;max-height:150px; }
+          .gaming-dock-waves,.gaming-search-spectrum { display:none !important; }
+          .gaming-lighting-control { font-size:8px;padding:4px 6px; }
+          .gaming-hero-kicker p { letter-spacing:.24em; }
+        }
+        @media (prefers-reduced-motion:reduce) {
+          .eduai-music-cyber *, .eduai-music-cyber *::before,.eduai-music-cyber *::after { animation:none !important;transition:none !important; }
         }
       `}</style>
       <NeonMusicOverlay
