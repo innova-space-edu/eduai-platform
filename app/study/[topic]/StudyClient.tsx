@@ -53,6 +53,14 @@ export default function StudyClient({ topic, subtopic, initialSession }: Props) 
   const [finished, setFinished] = useState(initialSession?.status === "completed")
   const [studyNotice, setStudyNotice] = useState("")
 
+  useEffect(() => {
+    if (!session?.id || initialSession) return
+    const url = new URL(window.location.href)
+    if (!url.searchParams.has("session")) {
+      url.searchParams.set("session",session.id)
+      window.history.replaceState(null,"",url.pathname+url.search+url.hash)
+    }
+  }, [session?.id, initialSession])
   useEffect(() => { if (step === "suggest") void loadSuggestions() }, [step])
   useEffect(() => { if (messages.length) bottomRef.current?.scrollIntoView({ behavior: "auto" }) }, [messages, streaming])
   useEffect(() => {
@@ -101,6 +109,7 @@ export default function StudyClient({ topic, subtopic, initialSession }: Props) 
 
   function selectSubtopic(title: string) {
     setSelectedSubtopic(title); setStep("type")
+    void updateSession({subtopic:title})
   }
 
   function selectType(typeId: string) {
@@ -111,7 +120,9 @@ export default function StudyClient({ topic, subtopic, initialSession }: Props) 
   }
 
   async function sendMessage(userText: string, history: ChatMessage[], isFirst = false, mode = selectedType) {
+    if (streaming) return
     setError("")
+    if (session?.status === "paused") void updateSession({status:"active"})
     const recentHistory = history.slice(-2)
     if (!isFirst) setMessages(prev => [...prev, { role: "user", content: userText }])
     setStreaming(true); setSuggestedFollowups([])
@@ -128,7 +139,7 @@ export default function StudyClient({ topic, subtopic, initialSession }: Props) 
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const reader  = res.body?.getReader()
       const decoder = new TextDecoder()
-      if (!reader) return
+      if (!reader) throw Error("No se recibió una respuesta del tutor.")
       let buffer = ""
       while (true) {
         const { done, value } = await reader.read(); if (done) break
@@ -137,7 +148,7 @@ export default function StudyClient({ topic, subtopic, initialSession }: Props) 
         let aiContent = buffer
         if (buffer.includes(splitMarker)) {
           const parts = buffer.split(splitMarker); aiContent = parts[0]
-          try { setSuggestedFollowups(JSON.parse(parts[1])) } catch {}
+          try { const options=JSON.parse(parts[1]); if(Array.isArray(options))setSuggestedFollowups(options.filter((item:unknown):item is string=>typeof item==="string").slice(0,4)) } catch {}
         }
         setMessages(prev => {
           const updated = [...prev]
@@ -145,7 +156,10 @@ export default function StudyClient({ topic, subtopic, initialSession }: Props) 
           return updated
         })
       }
-
+      buffer += decoder.decode()
+      const finalText = buffer.split("\n---FOLLOWUPS---\n")[0]
+      if (!finalText.trim()) throw Error("El tutor no devolvió contenido. Intenta nuevamente.")
+      setMessages(prev=>prev.map((message,index)=>index===prev.length-1?{role:"ai",content:finalText}:message))
     } catch (e: any) { setError(e.message); setMessages(prev=>prev.filter(m=>m.content.trim())) }
     finally { setStreaming(false) }
   }
@@ -161,6 +175,7 @@ export default function StudyClient({ topic, subtopic, initialSession }: Props) 
     setQuizResults(results); setStep("results")
     const correct=results.filter(r=>r.isCorrect).length
     const ok=await completeSession(correct,results.length,messages.filter(m=>m.content.trim()))
+    if(!ok) setStudyNotice("No se pudo guardar el resultado. Puedes reintentar desde esta pantalla.")
     if (ok) setFinished(true)
     if (!results.length) return
     const score=Math.round(correct/results.length*100)
@@ -293,19 +308,20 @@ export default function StudyClient({ topic, subtopic, initialSession }: Props) 
   // ── PASO 4: Resultados ────────────────────────────────────────────────────
   if (step === "results") {
     return (
+      <div>{saveError&&<div role="alert" className="mx-auto mt-4 max-w-2xl rounded-xl border border-red-400/30 p-3 text-sm text-red-600">{saveError}<button type="button" className="ml-2 underline" onClick={async()=>{if(await completeSession(quizResults.filter(r=>r.isCorrect).length,quizResults.length,messages.filter(m=>m.content.trim())))setFinished(true)}}>Reintentar guardar resultado</button></div>}
       <QuizResults
         topic={selectedSubtopic || topic}
         results={quizResults}
         onStudyMore={() => setStep("study")}
         onRetry={() => setStep("quiz")}
-      />
+      /></div>
     )
   }
 
   // ── PASO 5: Conversación ──────────────────────────────────────────────────
   return (
     <>
-      <div className="max-w-4xl mx-auto px-6 py-6">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-5">
 
         <div className="mb-5 rounded-3xl border border-violet-400/20 bg-card-theme p-4 shadow-sm" style={{backgroundImage:"linear-gradient(115deg,rgba(167,139,250,.13),rgba(96,165,250,.07),rgba(45,212,191,.10))"}}>
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -341,7 +357,7 @@ export default function StudyClient({ topic, subtopic, initialSession }: Props) 
               ) : (
                 <div className="flex justify-end">
                   <div className="chat-bubble-user max-w-lg">
-                    <p className="text-main text-sm text-left">{msg.content}</p>
+                    <p className="whitespace-pre-wrap break-words text-main text-sm text-left">{msg.content}</p>
                   </div>
                 </div>
               )}
@@ -375,7 +391,7 @@ export default function StudyClient({ topic, subtopic, initialSession }: Props) 
           </div>
         )}
 
-        <SummaryDownload topic={selectedSubtopic || topic} messages={messages} quizResults={quizResults} />
+        {messages.length>0&&<SummaryDownload topic={selectedSubtopic || topic} messages={messages} quizResults={quizResults} />}
 
         {error && (
           <div className="rounded-xl p-4 mb-4 border border-red-500/25" style={{ background: "rgba(239,68,68,0.08)" }}>
