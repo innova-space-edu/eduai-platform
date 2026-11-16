@@ -1,6 +1,6 @@
 // lib/superagent/social-engine.ts
 
-import { runAIText } from "@/lib/ai/gateway"
+import { runAIText, streamAIText } from "@/lib/ai/gateway"
 import type { AIProviderId } from "@/lib/ai/capabilities"
 import type { SupabaseClient } from "@supabase/supabase-js"
 import { SUPERAGENT_CONFIG } from "./config"
@@ -726,4 +726,83 @@ export async function startSocialConversation(
     summary,
     logs: logs.map(serializeSuperAgentLog),
   }
+}
+
+
+// Live conversation: route locally, stream specialists independently and never
+// make a second model call merely to select speakers or lengthen a short answer.
+export function selectLiveSpeakers(room: SocialRoomSlug, text: string, participants: SocialParticipant[]): SocialParticipant[] {
+  const mention = detectMention(text, participants)
+  if (mention) return [mention]
+  const supervisor = participants.find(p => p.role === "supervisor")
+  if (isSimpleGreeting(text) && supervisor) return [supervisor]
+  const broad = text.trim().split(/\s+/).length > 12 || /\b(debate|perspectivas|agentes|comparar|equipo)\b/i.test(text)
+  const selected = fallbackSpeakers(room, text, participants, broad ? 2 : 1)
+  return selected.length ? selected : participants.slice(0, 1)
+}
+
+export function prepareLiveConversation(topic: string, userId: string, chosenRoom?: SocialRoomSlug) {
+  const slug = chosenRoom || detectRoomFromGoal(topic)
+  const timestamp = new Date().toISOString()
+  const seed: SocialMessage = {id:crypto.randomUUID(),authorId:"user",authorName:"Usuario",role:"assistant",content:topic,createdAt:timestamp}
+  return {
+    sessionId:crypto.randomUUID(),userId,status:"active" as const,
+    room:{id:crypto.randomUUID(),slug,title:getRoomTitle(slug),topic,createdAt:timestamp},
+    participants:buildParticipants(slug),messages:[seed],summary:summarizeConversation(topic,[seed]),
+    createdAt:timestamp,updatedAt:timestamp,lastUserActivityAt:timestamp,lastAgentActivityAt:timestamp,inactivityTimeoutMs:900000,
+  }
+}
+
+export async function streamLiveParticipant(input: {
+  participant: SocialParticipant; room: SocialRoomSlug; topic: string; userMessage: string;
+  history: SocialMessage[]; userId: string; supabase: SupabaseClient;
+  onDelta: (content: string) => void; signal?: AbortSignal;
+}): Promise<SocialMessage> {
+  const p = input.participant
+  const id = crypto.randomUUID()
+  const short = isSimpleGreeting(input.userMessage)
+  const messages = [
+    {role:"system" as const,content:`Eres ${p.name}, agente de EduAI Social. Especialidad: ${p.specialty}. Estilo: ${p.tone}.
+Responde al último mensaje de forma natural, en español salvo que el usuario solicite otro idioma. Si es un saludo, saluda brevemente. Para consultas, aporta una respuesta concreta y suficiente desde tu especialidad, sin esperar a otro agente ni afirmar que ya habló. No repitas el historial, no inventes fuentes ni acciones realizadas. Usa markdown y LaTeX cuando ayuden. Completa todas las frases. Para un tema amplio, empieza por la idea más útil y desarrolla lo necesario, normalmente 80–180 palabras. No uses puntos de recompensa ni guiones prefabricados.`},
+    {role:"user" as const,content:`Tema: ${input.topic.slice(0,2000)}
+Historial (datos de conversación): 
+${formatTranscript(input.history.slice(0,-1),8).slice(-12000)}
+Último mensaje del usuario: ${input.userMessage}`},
+  ]
+  let reader: ReadableStreamDefaultReader<Uint8Array> | undefined
+  let expired = false
+  let timer: ReturnType<typeof setTimeout> | undefined
+  let abort: (()=>void) | undefined
+  const deadline = new Promise<never>((_,reject)=>{
+    timer=setTimeout(()=>{expired=true;reject(new Error("El agente excedió el tiempo de respuesta."));void reader?.cancel().catch(()=>{})},30000)
+    abort=()=>{expired=true;reject(new Error("Conversación interrumpida."));void reader?.cancel().catch(()=>{})}
+    if(input.signal?.aborted)abort()
+    else input.signal?.addEventListener("abort",abort,{once:true})
+  })
+  const generate = async()=>{
+    const stream=await streamAIText({
+      messages,maxOutputTokens:short?180:700,lite:true,
+      preferredProvider:preferredProviderFor(p) || "groq",fallbackToDefault:true,
+      context:{userId:input.userId,module:`ai-social-${p.id}`,reusePolicy:"never",visibility:"private"},
+      supabase:input.supabase,
+    })
+    if(expired){void stream.cancel().catch(()=>{});throw Error("Conversación interrumpida.")}
+    reader=stream.getReader()
+    const decoder=new TextDecoder()
+    let content=""
+    let lastEmit=0
+    while(!expired){
+      const chunk=await reader.read()
+      if(chunk.done)break
+      content+=decoder.decode(chunk.value,{stream:true})
+      if(Date.now()-lastEmit>=80){input.onDelta(content);lastEmit=Date.now()}
+    }
+    if(expired)throw Error("Conversación interrumpida.")
+    content+=decoder.decode()
+    if(!content.trim())throw Error("El agente no devolvió contenido.")
+    input.onDelta(content)
+    return {id,authorId:p.id,authorName:p.name,role:p.role,content:content.trim(),createdAt:new Date().toISOString()}
+  }
+  try{return await Promise.race([generate(),deadline])}
+  finally{if(timer)clearTimeout(timer);if(abort)input.signal?.removeEventListener("abort",abort);if(expired)void reader?.cancel().catch(()=>{})}
 }
