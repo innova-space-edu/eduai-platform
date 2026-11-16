@@ -1,7 +1,7 @@
 "use client"
 
 import TrainingFeedback from "@/components/ai/TrainingFeedback"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import Link from "next/link"
 import MiraVoicePopup from "@/components/mira/MiraVoicePopup"
 import MathRenderer from "@/components/ui/MathRenderer"
@@ -269,12 +269,7 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
   const [input, setInput] = useState("")
   const [teacherCourse, setTeacherCourse] = useState("")
   const [teacherSubject, setTeacherSubject] = useState("")
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: "assistant",
-      content: "Hola, me alegra verte de nuevo. Podemos planificar, crear, investigar, revisar materiales, preparar evaluaciones, organizar ideas o simplemente conversar. Cuéntame qué necesitas y avanzamos desde ahí.",
-    },
-  ])
+  const [messages, setMessages] = useState<Message[]>([])
   const [suggestions, setSuggestions] = useState<Suggestion[]>([])
   const [loading, setLoading] = useState(false)
   const [toolsOpen, setToolsOpen] = useState(false)
@@ -300,19 +295,6 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
   const messagesRef = useRef<Message[]>(messages)
   const loadingRef = useRef(false)
 
-  const contextualPrompt = useMemo(() => {
-    const contextBits = [
-      teacherCourse ? `Curso: ${teacherCourse}` : "",
-      teacherSubject ? `Asignatura: ${teacherSubject}` : "",
-    ].filter(Boolean)
-
-    const base = isAdmin
-      ? "Modo trabajo + administración activo. Claw puede ayudarte con tareas educativas, creación, gestión y herramientas EduAI cuando corresponda."
-      : "Espacio de trabajo activo. Claw conversa, crea, organiza, revisa y usa herramientas EduAI cuando realmente aportan valor."
-
-    return contextBits.length ? `${base} · ${contextBits.join(" · ")}` : base
-  }, [isAdmin, teacherCourse, teacherSubject])
-
   const syncCapabilities = async () => {
     try {
       const response = await fetch("/api/agents/claw-chat", { method: "GET", cache: "no-store" })
@@ -337,7 +319,7 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
     const transcript = transcriptRef.current
     if (!transcript) return
     requestAnimationFrame(() => {
-      transcript.scrollTop = messages.length <= 1 ? 0 : transcript.scrollHeight
+      transcript.scrollTop = messages.length === 0 ? 0 : transcript.scrollHeight
     })
   }, [messages, loading, suggestions])
 
@@ -813,13 +795,8 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
         data-eduai-chat-scroll="true"
         className="claw-refresh-transcript min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-app/40 px-2.5 py-3 lg:space-y-4 lg:px-5 lg:py-5 min-[2048px]:space-y-5 min-[2048px]:px-8 min-[2048px]:py-7"
       >
-        <div className="claw-refresh-context mx-auto flex w-full max-w-none items-center gap-2 rounded-xl border border-violet-100 bg-violet-50/70 px-2.5 py-2 text-[10px] text-violet-800 lg:max-w-[980px] lg:rounded-2xl lg:px-3 lg:text-xs min-[2048px]:max-w-[1280px] min-[2048px]:px-4 min-[2048px]:py-2.5 min-[2048px]:text-sm">
-          <Sparkles size={13} className="shrink-0" />
-          <span>{contextualPrompt}</span>
-        </div>
-
         <div className="mx-auto w-full max-w-none space-y-3 lg:max-w-[980px] lg:space-y-4 min-[2048px]:max-w-[1280px] min-[2048px]:space-y-5">
-          {messages.length === 1 && (
+          {messages.length === 0 && (
             <div className="claw-refresh-start rounded-2xl border border-soft bg-card-soft-theme p-2.5 lg:rounded-3xl lg:p-3">
               <ClawQuickActions onAction={handleCreateAction} />
               <div className="mt-2 flex flex-wrap items-center gap-1.5" aria-label="Continuar trabajando">
@@ -852,11 +829,6 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
                   </button>
                 )}
                 {message.role === "assistant" ? renderContent(message.content) : <p className="whitespace-pre-wrap">{message.content}</p>}
-                {message.role === "assistant" && message.content.trim().length > 100 && (
-                  <button type="button" onClick={() => { void copyAssistantMessage(message.content, index); window.open("https://www.canva.com/", "_blank", "noopener,noreferrer") }} className="mt-1 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[10px] font-semibold text-blue-700 hover:bg-blue-500/10" title="Copia el texto y abre Canva; no publica automáticamente">
-                    <ImageIcon size={12} /> Copiar y abrir Canva
-                  </button>
-                )}
                 {message.role === "assistant" && index > 0 && !loading && <TrainingFeedback comparisonOnly answer={message.content} prompt={messages.slice(0,index).reverse().find(m=>m.role==="user")?.content} module="claw" />}
               </div>
             </div>
