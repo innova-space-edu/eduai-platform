@@ -204,3 +204,5 @@ for (const [path, replacements] of Object.entries(patches)) {
   writeFileSync(path, source)
 }
 console.log("[exam-verified-entry] public cover, verified entry and server clock connected")
+
+await import("./apply-exam-durable-autosave.mjs")
