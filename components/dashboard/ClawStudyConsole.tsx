@@ -11,6 +11,8 @@ import {
   Bot,
   BookOpen,
   Check,
+  ChevronLeft,
+  ChevronRight,
   Copy,
   FileQuestion,
   FileText,
@@ -18,7 +20,9 @@ import {
   Loader2,
   Mic,
   Paperclip,
+  Pause,
   PenLine,
+  Play,
   Plus,
   Send,
   Sparkles,
@@ -108,6 +112,112 @@ const CREATE_ACTIONS = [
     hint: "Infografía, apoyo visual o recurso para la clase",
   },
 ]
+
+function ClawQuickActions({ onAction }: { onAction: (prompt: string) => void }) {
+  const viewport = useRef<HTMLDivElement>(null)
+  const touch = useRef<{ x: number; y: number } | null>(null)
+  const lastSwipe = useRef(0)
+  const [visible, setVisible] = useState(1)
+  const [page, setPage] = useState(0)
+  const [playing, setPlaying] = useState(true)
+  const [hovered, setHovered] = useState(false)
+  const [focused, setFocused] = useState(false)
+  const [reducedMotion, setReducedMotion] = useState(true)
+
+  useEffect(() => {
+    const el = viewport.current
+    if (!el) return
+    const observer = new ResizeObserver(([entry]) => {
+      const width = entry.contentRect.width
+      setVisible(width >= 810 ? 3 : width >= 520 ? 2 : 1)
+    })
+    observer.observe(el)
+    return () => observer.disconnect()
+  }, [])
+  useEffect(() => {
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)")
+    const update = () => setReducedMotion(media.matches)
+    update()
+    media.addEventListener("change", update)
+    return () => media.removeEventListener("change", update)
+  }, [])
+
+  const pages = Array.from({ length: Math.ceil(CREATE_ACTIONS.length / visible) }, (_, i) =>
+    CREATE_ACTIONS.slice(i * visible, (i + 1) * visible),
+  )
+  const count = pages.length
+  const active = page % count
+  const move = (delta: number) => setPage((previous) => (previous % count + delta + count) % count)
+  useEffect(() => {
+    if (!playing || hovered || focused || reducedMotion || count < 2) return
+    const timer = window.setInterval(() => {
+      if (!document.hidden) setPage((previous) => (previous + 1) % count)
+    }, 7000)
+    return () => window.clearInterval(timer)
+  }, [count, playing, hovered, focused, reducedMotion])
+  const control = "grid h-8 w-8 shrink-0 place-items-center rounded-full border border-soft bg-card-theme text-sub shadow-sm transition hover:border-violet-400 focus-visible:outline-2 focus-visible:outline-violet-500"
+  return (
+    <section aria-label="Acciones rápidas de Claw" aria-roledescription="carrusel"
+      onPointerEnter={(event) => { if (event.pointerType === "mouse") setHovered(true) }}
+      onPointerLeave={() => setHovered(false)}
+      onFocusCapture={() => setFocused(true)}
+      onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setFocused(false) }}
+      onKeyDown={(event) => {
+        if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return
+        event.preventDefault()
+        if (viewport.current?.contains(document.activeElement)) event.currentTarget.querySelector<HTMLButtonElement>("[data-claw-carousel-prev]")?.focus()
+        move(event.key === "ArrowLeft" ? -1 : 1)
+      }}>
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-1.5">
+        <div className="min-w-0">
+          <h2 className="text-base font-bold tracking-tight text-main lg:text-lg">¿Qué vamos a crear hoy?</h2>
+          <p className="text-[10px] text-muted2 lg:text-xs">Elige una tarea y completa el tema en el mensaje.</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1" aria-label="Navegación del carrusel">
+          {!reducedMotion && <button type="button" className={control} aria-label={playing ? "Pausar carrusel" : "Reanudar carrusel"} onClick={() => setPlaying((value) => !value)}>{playing ? <Pause size={13} /> : <Play size={13} />}</button>}
+          <button type="button" data-claw-carousel-prev className={control} aria-label="Acciones anteriores" onClick={() => move(-1)}><ChevronLeft size={17} /></button>
+          {pages.map((_, i) => (
+            <button type="button" key={i} aria-label={`Mostrar grupo ${i + 1} de ${count}`} aria-current={active === i ? "true" : undefined}
+              onClick={() => setPage(i)} className="grid h-8 w-5 place-items-center rounded-full focus-visible:outline-2 focus-visible:outline-violet-500">
+              <span className={`h-2 rounded-full transition-all motion-reduce:transition-none ${active === i ? "w-4 bg-violet-600" : "w-2 bg-violet-300 dark:bg-violet-700"}`} />
+            </button>
+          ))}
+          <button type="button" className={control} aria-label="Acciones siguientes" onClick={() => move(1)}><ChevronRight size={17} /></button>
+        </div>
+      </div>
+      <div ref={viewport} data-claw-carousel-viewport className="overflow-hidden touch-pan-y"
+        onTouchStart={(event) => { const first = event.touches[0]; if (first) touch.current = { x: first.clientX, y: first.clientY } }}
+        onTouchCancel={() => { touch.current = null }}
+        onTouchEnd={(event) => {
+          const start = touch.current
+          const end = event.changedTouches[0]
+          touch.current = null
+          if (!start || !end) return
+          const dx = end.clientX - start.x
+          const dy = end.clientY - start.y
+          if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy) * 1.3) { lastSwipe.current = Date.now(); move(dx < 0 ? 1 : -1) }
+        }}>
+        <div className="flex transition-transform duration-300 ease-out motion-reduce:transition-none" style={{ transform: `translateX(-${active * 100}%)` }}>
+          {pages.map((group, i) => (
+            <div key={i} inert={i !== active} aria-hidden={i !== active} className="grid w-full shrink-0 gap-2 px-1 py-1" style={{ gridTemplateColumns: `repeat(${visible}, minmax(0, 1fr))` }}>
+              {group.map((action) => {
+                const Icon = action.icon
+                return (
+                  <button key={action.label} type="button" onClick={() => { if (Date.now() - lastSwipe.current > 350) onAction(action.prompt) }}
+                    className="claw-refresh-action group flex min-w-0 items-center gap-2.5 rounded-2xl border border-soft bg-card-theme px-2.5 py-2 text-left transition focus-visible:outline-2 focus-visible:outline-violet-500"
+                    style={{ borderColor: action.accent + "24", backgroundImage: "linear-gradient(145deg, transparent, " + action.accent + "0b)" }}>
+                    <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl" style={{ background: action.accent + "18", color: action.accent }}><Icon size={18} /></div>
+                    <div className="min-w-0"><p className="text-xs font-bold leading-tight text-main lg:text-sm">{action.label}</p><p className="mt-0.5 text-[10px] leading-snug text-muted2 lg:text-[11px]">{action.hint}</p></div>
+                  </button>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
 
 function renderContent(text: string) {
   const clean = normalizeChatText(text)
@@ -227,7 +337,7 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
     const transcript = transcriptRef.current
     if (!transcript) return
     requestAnimationFrame(() => {
-      transcript.scrollTop = transcript.scrollHeight
+      transcript.scrollTop = messages.length <= 1 ? 0 : transcript.scrollHeight
     })
   }, [messages, loading, suggestions])
 
@@ -710,42 +820,9 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
 
         <div className="mx-auto w-full max-w-none space-y-3 lg:max-w-[980px] lg:space-y-4 min-[2048px]:max-w-[1280px] min-[2048px]:space-y-5">
           {messages.length === 1 && (
-            <div className="claw-refresh-start rounded-2xl border border-soft bg-card-soft-theme p-3 lg:rounded-3xl lg:p-4">
-              <div className="claw-refresh-welcome mb-3 rounded-2xl border border-soft p-3 lg:p-4">
-                <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-violet-700 dark:text-violet-300"><Sparkles size={13} /> Tu espacio de trabajo inteligente</p>
-                <h2 className="mt-1 text-lg font-bold tracking-tight text-main lg:text-2xl">¿Qué vamos a crear hoy?</h2>
-                <p className="mt-1 text-xs text-muted2 lg:text-sm">Planifica, investiga, enseña y crea con Claw.</p>
-              </div>
-              <div className="mb-2.5 flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-bold text-main lg:text-base">¿Qué quieres hacer?</p>
-                  <p className="mt-0.5 text-[10px] text-muted2 lg:text-[11px]">Elige una tarea y completa el tema o material en el cuadro de mensaje.</p>
-                </div>
-                <span className="rounded-full bg-blue-50 px-2 py-1 text-[9px] font-bold text-blue-700 lg:text-[10px]">EduAI</span>
-              </div>
-              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                {CREATE_ACTIONS.map((action) => {
-                  const Icon = action.icon
-                  return (
-                    <button
-                      key={`quick-${action.label}`}
-                      type="button"
-                      onClick={() => handleCreateAction(action.prompt)}
-                      className="claw-refresh-action group flex min-w-0 items-center gap-2.5 rounded-2xl border border-soft bg-card-theme px-2.5 py-2 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 lg:px-3 lg:py-3"
-                      style={{ borderColor: action.accent + "24", backgroundImage: "linear-gradient(145deg, transparent, " + action.accent + "0b)" }}
-                    >
-                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl transition motion-safe:group-hover:scale-105" style={{ background: action.accent + "18", color: action.accent }}>
-                        <Icon size={19} />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold leading-tight text-main lg:text-sm">{action.label}</p>
-                        <p className="mt-0.5 text-[10px] leading-snug text-muted2 lg:text-[11px]">{action.hint}</p>
-                      </div>
-                    </button>
-                  )
-                })}
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Continuar trabajando">
+            <div className="claw-refresh-start rounded-2xl border border-soft bg-card-soft-theme p-2.5 lg:rounded-3xl lg:p-3">
+              <ClawQuickActions onAction={handleCreateAction} />
+              <div className="mt-2 flex flex-wrap items-center gap-1.5" aria-label="Continuar trabajando">
                 <span className="mr-1 text-xs font-semibold text-muted2">Continúa trabajando:</span>
                 {[{ href: "/sessions", label: "Sesiones", icon: BookOpen }, { href: "/workspace", label: "Mis proyectos", icon: FileText }, { href: "/agentes", label: "Explorar agentes", icon: Bot }].map((item) => (
                   <Link key={item.href} href={item.href} prefetch={false} className="claw-refresh-shortcut inline-flex items-center gap-1.5 rounded-full border border-soft bg-card-theme px-3 py-1.5 text-xs font-medium text-sub focus-visible:outline-2 focus-visible:outline-violet-500"><item.icon size={14} />{item.label}<ArrowRight size={12} /></Link>
@@ -780,7 +857,7 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
                     <ImageIcon size={12} /> Copiar y abrir Canva
                   </button>
                 )}
-                {message.role === "assistant" && !loading && <TrainingFeedback answer={message.content} prompt={messages.slice(0,index).reverse().find(m=>m.role==="user")?.content} module="claw" />}
+                {message.role === "assistant" && index > 0 && !loading && <TrainingFeedback comparisonOnly answer={message.content} prompt={messages.slice(0,index).reverse().find(m=>m.role==="user")?.content} module="claw" />}
               </div>
             </div>
           ))}
