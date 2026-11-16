@@ -35,6 +35,7 @@ function elapsed(since: string, now: number) {
 }
 export default function AdminIncidentBell() {
   const pathname = usePathname();
+  const inPublicExam = pathname?.startsWith("/examen/p/") === true;
   const [admin, setAdmin] = useState(false);
   const [snapshot, setSnapshot] = useState<Snapshot | null>(null);
   const [open, setOpen] = useState(false);
@@ -67,15 +68,16 @@ export default function AdminIncidentBell() {
   }, []);
 
   useEffect(() => {
+    if(inPublicExam){setOpen(false);return;}
     void refresh(); // reload on every admin navigation and sign-in/out SPA transition
-  }, [pathname, refresh]);
+  }, [pathname, refresh, inPublicExam]);
   useEffect(() => {
-    if (!admin) return; // Never poll for students or other non-administrator users.
+    if (!admin || inPublicExam) return; // Do not poll or show admin tools during exams.
     const onVisibility = () => { if (!document.hidden) void refresh(); };
     const interval = window.setInterval(() => { if (!document.hidden) void refresh(); }, 120_000);
     document.addEventListener("visibilitychange", onVisibility);
     return () => { window.clearInterval(interval); document.removeEventListener("visibilitychange", onVisibility); };
-  }, [refresh, admin]);
+  }, [refresh, admin, inPublicExam]);
   useEffect(() => {
     if (!open) return;
     const listener = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
@@ -119,7 +121,7 @@ export default function AdminIncidentBell() {
 
   const total = snapshot ? snapshot.counts.open + snapshot.counts.acknowledged + snapshot.counts.pendingTasks : 0;
   const sorted = useMemo(() => snapshot?.incidents || [], [snapshot]);
-  if (!admin) return null;
+  if (!admin || inPublicExam) return null;
   return (
     <div className="fixed right-4 top-[76px] z-[95] print:hidden">
       <button type="button" onClick={() => setOpen((value) => !value)}
