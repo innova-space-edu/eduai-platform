@@ -1888,7 +1888,7 @@ export default function ExamenPublicoPage() {
             <div className="flex shrink-0 items-center gap-1">
               <button type="button" aria-label="Pregunta anterior" onClick={()=>void goToQuestion(curQ-1)} disabled={curQ===0||developmentSaving} className="rounded-lg border border-soft px-3 py-2 text-sm disabled:opacity-30">←</button>
               <span className="px-1 text-xs font-bold tabular-nums">{curQ+1}/{totalQ}</span>
-              <button type="button" aria-label="Pregunta siguiente" onClick={()=>void goToQuestion(curQ+1)} disabled={curQ>=totalQ-1||developmentSaving} className="rounded-lg border border-soft px-3 py-2 text-sm disabled:opacity-30">→</button>
+              {curQ<totalQ-1?<button type="button" aria-label="Pregunta siguiente" onClick={()=>void goToQuestion(curQ+1)} disabled={developmentSaving} className="rounded-lg border border-soft px-3 py-2 text-sm disabled:opacity-30">→</button>:<button type="button" disabled={developmentSaving} onClick={()=>{setConfirmSubmit(true);document.getElementById("exam-question-navigation")?.scrollIntoView({block:"center",behavior:"smooth"});}} className="rounded-lg bg-red-600 px-2 py-2 text-xs font-bold text-white disabled:opacity-30">Entregar</button>}
             </div>
           </div>
           <div className="mx-auto grid w-full grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_320px] lg:items-start">
@@ -2009,7 +2009,7 @@ export default function ExamenPublicoPage() {
                     </p>
                     <p
                       className="font-mono text-2xl font-black tabular-nums leading-none"
-                      style={{ color: "var(--exam-accent)" }}
+                      style={{ color: timeLeft <= 300 ? "#b91c1c" : "var(--exam-accent)" }}
                     >
                       {fmt(timeLeft)}
                     </p>
@@ -2051,7 +2051,7 @@ export default function ExamenPublicoPage() {
                 </div>
               </div>
 
-              <div className="exam-themed-soft rounded-2xl border p-3 shadow-sm lg:p-4">
+              <div id="exam-question-navigation" className="exam-themed-soft scroll-mt-20 rounded-2xl border p-3 shadow-sm lg:p-4">
                 <div className="mb-2 flex items-center justify-between gap-2 lg:mb-4">
                   <div>
                     <h3 className="text-sm font-black text-main">Navegación</h3>
@@ -2087,6 +2087,7 @@ export default function ExamenPublicoPage() {
                       <button
                         key={i}
                         onClick={() => void goToQuestion(i)}
+                        disabled={developmentSaving}
                         className={`h-9 rounded-lg text-sm font-bold border transition ${
                           curQ === i
                             ? "border-[var(--exam-accent)] bg-[var(--exam-accent-soft)] text-[var(--exam-accent)]"
@@ -2114,7 +2115,7 @@ export default function ExamenPublicoPage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => void goToQuestion(Math.max(0, curQ - 1))}
-                      disabled={curQ === 0}
+                      disabled={curQ === 0 || developmentSaving}
                       className="flex-1 py-2.5 rounded-2xl bg-card-soft-theme border border-soft text-main text-sm disabled:opacity-30 transition-all"
                     >
                       ← Anterior
@@ -2123,7 +2124,7 @@ export default function ExamenPublicoPage() {
                       onClick={() =>
                         void goToQuestion(Math.min(totalQ - 1, curQ + 1))
                       }
-                      disabled={curQ === totalQ - 1}
+                      disabled={curQ === totalQ - 1 || developmentSaving}
                       className="flex-1 py-2.5 rounded-2xl text-white font-bold text-sm transition-all disabled:opacity-30"
                       style={{
                         background:
