@@ -1,10 +1,15 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { useRouter, useParams } from "next/navigation"
 import Link from "next/link"
 import ExamMathText from "@/components/ui/ExamMathText"
+import ExamVisualEditor from "@/components/exam/ExamVisualEditor"
+import ExamCorrectionPanel from "@/components/exam/ExamCorrectionPanel"
+import {useExamPythonVerification,type PythonResult,type CorrectionReview} from "@/lib/exam/use-exam-python-verification"
+import {correctionSignature,needsCorrectionConfirmation} from "@/lib/exam/correction-review.mjs"
+import {examAnswerConsistencyIssues} from "@/lib/exam/answer-consistency.mjs"
 import CourseAssignmentPicker from "@/components/exam/CourseAssignmentPicker"
 import { assignedCourses } from "@/lib/exam/course-assignment.mjs"
 import { ArrowLeft, Save, RefreshCw, Loader2, Copy, Check, Trash2, Plus } from "lucide-react"
@@ -16,7 +21,16 @@ type ScoreMode = "auto" | "manual"
 type Ability   = "recuerdo" | "comprension" | "aplicacion" | "analisis" | "argumentacion"
 
 type ExamQuestion = {
-  type: "multiple_choice" | "true_false" | "development"
+  id?: string
+  type: "multiple_choice" | "true_false" | "development" | "mixed_choice_development"
+  correctionReview?: CorrectionReview
+  responseMode?: string
+  stimulusTitle?: string
+  stimulusText?: string
+  showStimulusToStudent?: boolean
+  imageUrl?: string
+  developmentMaxPoints?: number
+  showRubricToStudent?: boolean
   question: string
   options?: string[]
   correctAnswer?: number
@@ -51,6 +65,7 @@ function clampPositive(n: number, fallback = 1) {
 
 function questionTypeLabel(type: ExamQuestion["type"]) {
   if (type === "multiple_choice") return "Alternativas"
+  if (type === "mixed_choice_development") return "Alternativa + desarrollo"
   if (type === "true_false")      return "V/F"
   return "Desarrollo"
 }
@@ -119,6 +134,47 @@ export default function EditarExamenPage() {
   const [settings,     setSettings]     = useState<any>(null)
   const [examCode,     setExamCode]     = useState("")
   const [status,       setStatus]       = useState("")
+  const [openQuestion,setOpenQuestion]=useState<number|null>(0)
+  const {verify:verifyPython,busy:pythonBusy}=useExamPythonVerification()
+  const [pythonResults,setPythonResults]=useState<Record<string,{signature:string;data:PythonResult}>>({})
+  const [pythonError,setPythonError]=useState("")
+  const questionsRef=useRef(questions);questionsRef.current=questions
+  const attempted=useRef<Record<string,string>>({})
+  const inFlight=useRef(false)
+  const mathExam=/matem[aá]tica|f[ií]sica|qu[ií]mica|ciencias|tales/i.test(String(settings?.curriculum?.subject||settings?.curriculum?.asignatura||settings?.subject||topic))
+  const needsPython=(q:ExamQuestion)=>mathExam||["math","text_math","math_steps"].includes(q.responseMode||"")||Boolean(q.correctionReview?.required)||examAnswerConsistencyIssues(q).length>0
+  const verifyQuestions=async(items:ExamQuestion[])=>{
+    if(inFlight.current)return null
+    inFlight.current=true;setPythonError("")
+    for(const q of items)attempted.current[q.id!]=correctionSignature(q)
+    try{
+      const results:PythonResult[]=[]
+      for(let i=0;i<items.length;i+=100)results.push(...await verifyPython(items.slice(i,i+100)))
+      if(results.some((result,i)=>result.id!==items[i].id))throw Error("Python devolvió una respuesta que no corresponde a la pregunta.")
+      const records=Object.fromEntries(results.map((data,i)=>[items[i].id!,{signature:correctionSignature(items[i]),data}]))
+      setPythonResults(old=>({...old,...records}))
+      setQuestions(old=>old.map(q=>records[q.id!]?.signature===correctionSignature(q)&&records[q.id!].data.status==="incorrect"&&!needsCorrectionConfirmation(q)?{...q,correctionReview:{required:true as const}}:q))
+      return results
+    }catch(e){setPythonError(e instanceof Error?e.message:"No se pudo comprobar con Python.");return null}
+    finally{inFlight.current=false}
+  }
+  useEffect(()=>{
+    if(loadingInit||saving||pythonBusy||inFlight.current)return
+    const timer=window.setTimeout(()=>{
+      const pending=questionsRef.current.filter(q=>needsPython(q)&&q.question.trim()&&attempted.current[q.id!]!==correctionSignature(q))
+      if(pending.length)void verifyQuestions(pending)
+    },850)
+    return ()=>window.clearTimeout(timer)
+  },[questions,loadingInit,saving,pythonBusy,mathExam])
+  function applyProposal(q:ExamQuestion,fields:NonNullable<PythonResult["proposal"]>["fields"]){
+    if(pythonResults[q.id!]?.signature!==correctionSignature(q)||!window.confirm("¿Aplicar la propuesta de Python? Se conservará la rúbrica y el enunciado."))return
+    setQuestions(old=>old.map(item=>item.id===q.id&&correctionSignature(item)===correctionSignature(q)?enrichQuestionAnswerKey({...item,...fields,correctionReview:{required:true}}):item))
+  }
+  function confirmCorrection(q:ExamQuestion){
+    const record=pythonResults[q.id!],signature=correctionSignature(q)
+    if(!record||record.signature!==signature||record.data.status==="incorrect"||examAnswerConsistencyIssues(q).length||q.qualityStatus==="review")return
+    setQuestions(old=>old.map(item=>item.id===q.id&&correctionSignature(item)===signature?{...item,correctionReview:{required:true,confirmedSignature:signature}}:item))
+  }
 
   // ── Cargar examen ──────────────────────────────────────────────────────────
   useEffect(() => {
@@ -138,7 +194,7 @@ export default function EditarExamenPage() {
       setTitle(exam.title || "")
       setTopic(exam.topic || "")
       setInstructions(exam.instructions || "")
-      setQuestions(Array.isArray(exam.questions) ? exam.questions.map((q: any) => enrichQuestionAnswerKey(q) as ExamQuestion) : [])
+      setQuestions(Array.isArray(exam.questions) ? exam.questions.map((q: any,i:number) => enrichQuestionAnswerKey({...q,id:typeof q.id==="string"&&q.id?q.id:`edit-${i+1}`}) as ExamQuestion) : [])
       setSettings(exam.settings || {})
       setExamCode(exam.code || "")
       setStatus(exam.status || "active")
@@ -200,9 +256,20 @@ export default function EditarExamenPage() {
     finally{setSaving(false)}
   }
   async function saveChanges() {
-    if (!user) return
+    if (!user || inFlight.current || pythonBusy) return
     setSaving(true); setError(""); setSaved(false)
     try {
+      const snapshot=questionsRef.current
+      const pending=snapshot.findIndex(q=>needsCorrectionConfirmation(q,examAnswerConsistencyIssues(q)))
+      if(pending>=0){setOpenQuestion(pending);throw Error("Pregunta "+(pending+1)+": revisa la corrección y presiona Corregido antes de guardar.")}
+      const candidates=snapshot.filter(needsPython)
+      if(candidates.length){
+        const checked=await verifyQuestions(candidates)
+        if(!checked)throw Error("No se pudo ejecutar Python. Reintenta la verificación antes de guardar.")
+        const wrong=checked.find(result=>result.status==="incorrect")
+        if(wrong){setOpenQuestion(snapshot.findIndex(q=>q.id===wrong.id));throw Error("Python detectó errores. Revisa las preguntas marcadas antes de guardar.")}
+        if(JSON.stringify(snapshot.map(correctionSignature))!==JSON.stringify(questionsRef.current.map(correctionSignature)))throw Error("Las preguntas cambiaron durante la revisión. Guarda nuevamente.")
+      }
       const res  = await fetch("/api/agents/examen-docente", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -232,17 +299,18 @@ export default function EditarExamenPage() {
     setQuestions(prev => prev.map((q, i) => {
       if (i !== idx) return q
       const merged = { ...q, ...patch }
+      if(q.correctionReview?.required||examAnswerConsistencyIssues(q).length||examAnswerConsistencyIssues(merged).length){merged.correctionReview={required:true,confirmedSignature:correctionSignature(q)===correctionSignature(merged)?q.correctionReview?.confirmedSignature:undefined}}
 
       if (merged.type === "true_false") {
         const sel = clampPositive(Number(merged.selectionPoints), 1) || 1
         const max = clampPositive(Number(merged.maxPoints), sel)
         return enrichQuestionAnswerKey({ ...merged, selectionPoints: sel, maxPoints: max, justificationMaxPoints: Math.max(0, max - sel) }) as ExamQuestion
       }
-      if (merged.type === "development") {
+      if (merged.type === "development" || merged.type === "mixed_choice_development") {
         const rubric = Array.isArray(merged.rubric) ? merged.rubric : []
         if (rubric.length > 0) {
           const sum = rubric.reduce((acc, r) => acc + clampPositive(Number(r.points), 0), 0)
-          return enrichQuestionAnswerKey({ ...merged, rubric, maxPoints: sum || clampPositive(Number(merged.maxPoints), 1) }) as ExamQuestion
+          return enrichQuestionAnswerKey({ ...merged, rubric, ...(merged.type==="mixed_choice_development"?{developmentMaxPoints:sum,maxPoints:sum+(merged.selectionPoints||1)}:{maxPoints:sum||clampPositive(Number(merged.maxPoints),1)}) }) as ExamQuestion
         }
       }
       return enrichQuestionAnswerKey({ ...merged, maxPoints: clampPositive(Number(merged.maxPoints), 1) }) as ExamQuestion
@@ -250,7 +318,9 @@ export default function EditarExamenPage() {
   }
 
   function removeQuestion(idx: number) {
+    if(!window.confirm("¿Eliminar esta pregunta? Los cambios se aplicarán al guardar."))return
     setQuestions(prev => prev.filter((_, i) => i !== idx))
+    setOpenQuestion(null)
   }
 
   // ── Regenerar con IA ──────────────────────────────────────────────────────
@@ -301,7 +371,8 @@ Reglas:
 
       // Normalizar manteniendo el maxPoints original
       const normalizedQ: ExamQuestion = {
-        type:        rawQ.type        || current.type,
+        ...current,
+        type:        current.type,
         question:    rawQ.question    || current.question,
         answerText:   rawQ.answerText || rawQ.correctAnswerText || "",
         explanation: rawQ.explanation || "",
@@ -332,7 +403,7 @@ Reglas:
         normalizedQ.justificationMaxPoints = rawQ.justificationMaxPoints || 2
       }
 
-      if (normalizedQ.type === "development") {
+      if (normalizedQ.type === "development" || normalizedQ.type === "mixed_choice_development") {
         normalizedQ.modelAnswer = rawQ.modelAnswer || ""
         normalizedQ.expectedLatex = rawQ.expectedLatex || rawQ.expected_latex || ""
         normalizedQ.rubric      = Array.isArray(rawQ.rubric) ? rawQ.rubric : []
@@ -379,7 +450,7 @@ Reglas:
 
       {/* Header sticky */}
       <header className="sticky top-0 z-20 border-b border-soft bg-header-theme backdrop-blur-xl">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
+        <div className="max-w-6xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
           <Link href="/examen/docente"
             className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main transition-all flex-shrink-0">
             <ArrowLeft size={15} />
@@ -413,8 +484,8 @@ Reglas:
               {copied ? <Check size={12} /> : <Copy size={12} />}
               {copied ? "¡Copiado!" : "Copiar link"}
             </button>
-            <button onClick={saveChanges} disabled={saving}
-              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-semibold text-main transition-all disabled:opacity-50"
+            <button onClick={saveChanges} disabled={saving||pythonBusy}
+              className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl text-xs font-semibold text-white transition-all disabled:opacity-50"
               style={{ background: saved ? "#16a34a" : "#2563eb", boxShadow: "0 2px 8px rgba(37,99,235,0.3)" }}>
               {saving
                 ? <><Loader2 size={12} className="animate-spin" /> Guardando...</>
@@ -426,18 +497,18 @@ Reglas:
         </div>
       </header>
 
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-4">
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-4 pb-12">
 
         {/* Instrucciones */}
         <div className="rounded-2xl p-4 border" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
           <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-2">
             Instrucciones para los estudiantes
           </label>
-          <input
+          <ExamVisualEditor
             value={instructions}
             onChange={e => setInstructions(e.target.value)}
             placeholder="Ej: Justifica tus respuestas y muestra procedimiento..."
-            className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500/30"
+            className="w-full min-h-24 bg-card-soft-theme border border-soft rounded-xl px-4 py-3 text-base"
           />
         </div>
 
@@ -446,6 +517,7 @@ Reglas:
           <button type="button" disabled={saving||!assignedCourses(settings).length} onClick={()=>void saveCourseAssignments()} className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-40">Guardar cursos sin modificar preguntas</button>
           <p className="text-xs text-muted2">Se conserva el mismo enlace, preguntas y entregas existentes.</p>
         </section>
+        <details className="rounded-2xl border border-soft bg-card-soft-theme p-4"><summary className="cursor-pointer font-semibold text-sm">Configuración adicional · recursos y diseño</summary><div className="mt-3 space-y-3">
         {/* Configuración del examen */}
         <div className="rounded-2xl p-4 border" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -546,6 +618,7 @@ Reglas:
           </div>
         </div>
 
+        </div></details>
         {/* Error global */}
         {error && (
           <div className="flex items-center gap-2 px-4 py-3 rounded-xl border border-red-500/25" style={{ background: "rgba(239,68,68,0.08)" }}>
@@ -553,266 +626,46 @@ Reglas:
           </div>
         )}
 
-        {/* Lista de preguntas */}
-        {questions.map((q, i) => (
-          <div key={i}
-            className="rounded-2xl border p-4 space-y-3"
-            style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
-
-            {/* Badges + acciones */}
+        <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-lg font-bold">Preguntas y pauta</h2><button type="button" disabled={pythonBusy||saving} onClick={()=>void verifyQuestions(questionsRef.current)} className="rounded-xl border border-blue-200 px-3 py-2 text-sm font-semibold text-blue-700 disabled:opacity-40">{pythonBusy?"Verificando…":"Verificar todas con Python"}</button></div>
+        {pythonError&&<p role="alert" className="rounded-xl bg-red-50 p-3 text-sm text-red-700">{pythonError}</p>}
+        {questions.map((q,i)=>{
+          const editing=openQuestion===i
+          const constructed=q.type==="development"||q.type==="mixed_choice_development"
+          const issues=examAnswerConsistencyIssues(q)
+          const required=needsCorrectionConfirmation(q,issues)
+          const field="w-full min-h-20 rounded-xl border border-soft bg-card-soft-theme px-4 py-3 text-base text-main"
+          const label="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted2"
+          return <article key={q.id} className="space-y-4 rounded-2xl border border-soft bg-card-theme p-4 sm:p-6" id={"edit-question-"+i}>
             <div className="flex flex-wrap items-center gap-2">
-              <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
-                q.type === "multiple_choice" ? "bg-blue-500/10 text-blue-400"
-                : q.type === "true_false"    ? "bg-green-500/10 text-green-400"
-                : "bg-orange-500/10 text-orange-400"}`}>
-                {questionTypeLabel(q.type)}
-              </span>
-              <span className={`text-[10px] ${difficultyColor(q.difficulty)}`}>
-                {difficultyLabel(q.difficulty)}
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/10 text-purple-700">
-                {abilityOptions.find(a => a.id === q.ability)?.label || "Aplicación"}
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/10 text-blue-700 ml-auto">
-                {q.maxPoints || 0} pts
-              </span>
-              <button onClick={() => removeQuestion(i)}
-                className="text-muted2 hover:text-red-400 transition-colors" title="Eliminar pregunta">
-                <Trash2 size={13} />
-              </button>
+              <span className="text-sm font-bold">Pregunta {i+1}</span><span className="text-xs text-muted2">{questionTypeLabel(q.type)} · {getQuestionMaxPoints(q)} pts</span>
+              {required&&<span className="rounded-md bg-amber-50 px-2 py-1 text-xs text-amber-900">Revisión pendiente</span>}
+              <div className="ml-auto flex gap-2"><button type="button" onClick={()=>setOpenQuestion(editing?null:i)} aria-expanded={editing} className="rounded-xl border border-soft px-3 py-2 text-xs font-semibold">{editing?"Plegar ↑":"Editar ↓"}</button><button type="button" disabled={saving||busyQuestion!==null} onClick={()=>removeQuestion(i)} title="Eliminar pregunta" className="rounded-xl border border-red-200 px-3 py-2 text-red-600"><Trash2 size={15}/></button></div>
             </div>
+            {!editing?<div className="rounded-xl bg-card-soft-theme p-3 text-sm"><ExamMathText text={q.question}/></div>:<div className="space-y-4">
+              <ExamCorrectionPanel q={q} issues={issues} required={required} result={pythonResults[q.id!]} busy={pythonBusy||saving} qualityReady={q.qualityStatus!=="review"} onVerify={()=>void verifyQuestions([q])} onApply={fields=>applyProposal(q,fields)} onConfirm={()=>confirmCorrection(q)}/>
+              <div><label className={label}>Enunciado</label><ExamVisualEditor value={q.question} onChange={e=>updateQuestion(i,{question:e.target.value})} placeholder="Enunciado de la pregunta" className={field+" min-h-36"}/></div>
+              {q.type!=="development"&&<div className="space-y-2"><label className={label}>Alternativas · marca la correcta</label>{(q.options||[]).map((opt,j)=><div key={j} className="grid grid-cols-[40px_minmax(0,1fr)] items-start gap-2"><button type="button" onClick={()=>updateQuestion(i,{correctAnswer:j})} className={"mt-6 rounded-lg border p-2 text-sm font-bold "+(j===q.correctAnswer?"border-emerald-400 bg-emerald-50 text-emerald-700":"border-soft")} aria-label={"Marcar alternativa "+(j+1)+" como correcta"}>{j===q.correctAnswer?"✓":String.fromCharCode(65+j)}</button><ExamVisualEditor value={opt} disabled={q.type==="true_false"} onChange={e=>{const options=[...(q.options||[])];options[j]=e.target.value;updateQuestion(i,{options})}} className={field} placeholder={"Alternativa "+(j+1)}/></div>)}</div>}
+              {constructed&&<><div><label className={label}>Respuesta esperada</label><ExamVisualEditor value={q.modelAnswer||""} onChange={e=>updateQuestion(i,{modelAnswer:e.target.value})} placeholder="Desarrolla la solución esperada" className={field+" min-h-44"}/></div><div><label className={label}>Resultado final (opcional)</label><ExamVisualEditor value={q.expectedLatex||""} onChange={e=>updateQuestion(i,{expectedLatex:e.target.value})} placeholder="Resultado final de la pregunta" className={field+" min-h-24"}/></div></>}
+              <details className="rounded-xl border border-soft p-3"><summary className="cursor-pointer text-sm font-semibold">Pauta ampliada · editar explicación y procedimiento</summary><div className="mt-3 space-y-3"><div><label className={label}>Explicación de la pauta</label><ExamVisualEditor value={q.explanation||""} onChange={e=>updateQuestion(i,{explanation:e.target.value})} placeholder="Explica el fundamento de la solución" className={field+" min-h-32"}/></div><div><label className={label}>Pasos esperados</label><ExamVisualEditor value={(q.solutionSteps||[]).join("\n")} onChange={e=>updateQuestion(i,{solutionSteps:e.target.value.split("\n")})} placeholder="Un paso por línea" className={field+" min-h-40"}/></div></div></details>
+              {constructed&&<div className="space-y-3 rounded-xl border border-soft p-3"><label className={label}>Rúbrica</label>{(q.rubric||[]).map((item,j)=><div key={j} className="grid grid-cols-[minmax(0,1fr)_64px_auto] items-start gap-2"><ExamVisualEditor value={item.criteria} onChange={e=>updateQuestion(i,{rubric:(q.rubric||[]).map((r,k)=>k===j?{...r,criteria:e.target.value}:r)})} placeholder="Criterio de evaluación" className={field}/><label className="text-xs text-muted2">Pts<input type="number" min={0} step={0.5} value={item.points} onChange={e=>updateQuestion(i,{rubric:(q.rubric||[]).map((r,k)=>k===j?{...r,points:clampPositive(Number(e.target.value),0)}:r)})} className="mt-1 w-full rounded-xl border border-soft bg-card-soft-theme p-2 text-sm"/></label><button type="button" className="mt-5 rounded-lg border border-red-200 px-2 py-2 text-xs text-red-600" onClick={()=>updateQuestion(i,{rubric:(q.rubric||[]).filter((_,k)=>k!==j)})}>Quitar</button></div>)}<button type="button" onClick={()=>updateQuestion(i,{rubric:[...(q.rubric||[]),{criteria:"Nuevo criterio",points:1}]})} className="rounded-lg bg-emerald-700 px-3 py-2 text-xs font-semibold text-white">+ Agregar criterio</button><p className="text-xs text-muted2">Puntaje total: {getQuestionMaxPoints(q)}</p></div>}
+              <details className="rounded-xl border border-soft p-3"><summary className="cursor-pointer text-sm font-semibold">Opciones adicionales · material y configuración</summary><div className="mt-3 space-y-3">
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={q.showStimulusToStudent===true} onChange={e=>updateQuestion(i,{showStimulusToStudent:e.target.checked})}/> Mostrar material de apoyo al estudiante</label>
+                <ExamVisualEditor value={q.stimulusTitle||""} onChange={e=>updateQuestion(i,{stimulusTitle:e.target.value})} placeholder="Título del material de apoyo" className={field}/>
+                <ExamVisualEditor value={q.stimulusText||""} onChange={e=>updateQuestion(i,{stimulusText:e.target.value})} placeholder="Texto o datos de apoyo" className={field+" min-h-28"}/>
+                <label className="block text-xs font-semibold">Imagen (URL)<input value={q.imageUrl||""} onChange={e=>updateQuestion(i,{imageUrl:e.target.value})} className="mt-1 w-full rounded-xl border border-soft bg-card-soft-theme p-3 text-sm" placeholder="https://..."/></label>
+                {constructed&&<label className="block text-xs font-semibold">Forma de respuesta<select value={q.responseMode||"long_text"} onChange={e=>updateQuestion(i,{responseMode:e.target.value})} className="mt-1 w-full rounded-xl border border-soft bg-card-soft-theme p-3 text-sm">{[["short_text","Respuesta breve"],["long_text","Respuesta abierta"],["math","Matemática"],["text_math","Texto + matemática"],["math_steps","Procedimiento"]].map(([value,name])=><option key={value} value={value}>{name}</option>)}</select></label>}
+                <div className="grid gap-3 sm:grid-cols-3"><label className="text-xs font-semibold">Dificultad<select value={q.difficulty||2} onChange={e=>updateQuestion(i,{difficulty:Number(e.target.value) as 1|2|3})} className="mt-1 w-full rounded-xl border border-soft bg-card-soft-theme p-3 text-sm"><option value={1}>Fácil</option><option value={2}>Medio</option><option value={3}>Difícil</option></select></label><label className="text-xs font-semibold">Habilidad<select value={q.ability||"aplicacion"} onChange={e=>updateQuestion(i,{ability:e.target.value as Ability})} className="mt-1 w-full rounded-xl border border-soft bg-card-soft-theme p-3 text-sm">{abilityOptions.map(a=><option key={a.id} value={a.id}>{a.label}</option>)}</select></label><label className="text-xs font-semibold">Puntaje<input type="number" min={0} step={0.5} value={getQuestionMaxPoints(q)} disabled={constructed&&Boolean(q.rubric?.length)} onChange={e=>updateQuestion(i,{maxPoints:clampPositive(Number(e.target.value),0)})} className="mt-1 w-full rounded-xl border border-soft bg-card-soft-theme p-3 text-sm"/></label></div>
+                {q.type==="true_false"&&<label className="block text-xs font-semibold">Puntaje de selección<input type="number" min={0} step={0.5} value={q.selectionPoints||1} onChange={e=>updateQuestion(i,{selectionPoints:clampPositive(Number(e.target.value),1)})} className="mt-1 w-full rounded-xl border border-soft bg-card-soft-theme p-3 text-sm"/></label>}
+                <button type="button" disabled={busyQuestion!==null||saving} onClick={()=>{if(window.confirm("¿Regenerar esta pregunta con IA? Se reemplazará su contenido."))void regenerateQuestion(i)}} className="rounded-xl border border-soft px-3 py-2 text-xs font-semibold disabled:opacity-50">{busyQuestion===i?"Generando…":"Regenerar con IA (opcional)"}</button>
+              </div></details>
+            </div>}
+          </article>
+        })}
 
-            {/* Texto pregunta */}
-            <div>
-              <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-1">
-                {i + 1}. Pregunta
-              </label>
-              <textarea
-                value={q.question}
-                onChange={e => updateQuestion(i, { question: e.target.value })}
-                rows={2}
-                className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-blue-500/30 resize-vertical"
-              />
-              {q.question && (q.question.includes("$") || q.question.includes("\\")) && (
-                <div className="mt-1 px-3 py-1.5 rounded-lg bg-blue-500/5 border border-blue-500/10">
-                  <p className="text-[10px] text-blue-400 mb-0.5">Vista previa LaTeX:</p>
-                  <ExamMathText text={q.question} className="text-sm text-sub" />
-                </div>
-              )}
-            </div>
-
-            {/* Alternativas editables */}
-            {q.type !== "development" && (
-              <div>
-                <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-2">
-                  {q.type === "true_false" ? "Opciones" : "Alternativas"}
-                  <span className="text-muted2 font-normal ml-2">— clic en la letra para marcar correcta</span>
-                </label>
-                <div className="space-y-1.5">
-                  {(q.options || []).map((opt, j) => (
-                    <div key={j} className="flex items-center gap-2">
-                      <button
-                        onClick={() => updateQuestion(i, { correctAnswer: j })}
-                        className={`w-7 h-7 rounded-lg flex-shrink-0 text-xs font-bold transition-all ${
-                          j === q.correctAnswer
-                            ? "bg-green-500/20 border border-green-500/40 text-green-400"
-                            : "bg-card-soft-theme border border-soft text-muted2 hover:text-sub"}`}
-                        title={j === q.correctAnswer ? "Correcta" : "Marcar como correcta"}>
-                        {j === q.correctAnswer ? "✓" : q.type === "true_false" ? (j === 0 ? "V" : "F") : String.fromCharCode(65 + j)}
-                      </button>
-                      <input
-                        value={opt}
-                        disabled={q.type === "true_false"}
-                        onChange={e => {
-                          const options = [...(q.options || [])]
-                          options[j] = e.target.value
-                          updateQuestion(i, { options })
-                        }}
-                        className={`flex-1 bg-card-soft-theme border rounded-xl px-3 py-2 text-xs focus:outline-none transition-all ${
-                          j === q.correctAnswer
-                            ? "border-green-500/30 text-green-700 focus:border-green-500/50"
-                            : "border-medium text-sub focus:border-blue-500/30"
-                        } ${q.type === "true_false" ? "opacity-60 cursor-not-allowed" : ""}`}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Explicación */}
-            {q.type !== "development" && (
-              <div>
-                <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-1">Explicación (opcional)</label>
-                <input
-                  value={q.explanation || ""}
-                  onChange={e => updateQuestion(i, { explanation: e.target.value })}
-                  className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500/30"
-                  placeholder="Explica por qué esta respuesta es correcta..."
-                />
-              </div>
-            )}
-
-            {/* Desarrollo: respuesta modelo */}
-            {q.type === "development" && (
-              <div className="space-y-3">
-                <div>
-                  <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-1">Respuesta modelo</label>
-                  <textarea
-                    value={q.modelAnswer || ""}
-                    onChange={e => updateQuestion(i, { modelAnswer: e.target.value })}
-                    rows={3}
-                    className="w-full bg-orange-500/[0.04] border border-orange-500/20 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-orange-500/40 resize-vertical"
-                    placeholder="Respuesta modelo para que la IA evalúe..."
-                  />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-1">Resultado final LaTeX</label>
-                    <input
-                      value={q.expectedLatex || ""}
-                      onChange={e => updateQuestion(i, { expectedLatex: e.target.value })}
-                      className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500/30"
-                      placeholder="$$x=4$$"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-muted2 text-[10px] font-semibold uppercase tracking-widest block mb-1">Explicación de pauta</label>
-                    <input
-                      value={q.explanation || ""}
-                      onChange={e => updateQuestion(i, { explanation: e.target.value })}
-                      className="w-full bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500/30"
-                    />
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Rúbrica desarrollo */}
-            {q.type === "development" && q.rubric && q.rubric.length > 0 && (
-              <div className="bg-card-soft-theme rounded-xl border border-soft p-3">
-                <p className="text-muted2 text-[10px] font-semibold uppercase tracking-widest mb-2">Rúbrica</p>
-                <div className="space-y-2">
-                  {q.rubric.map((item, rIdx) => (
-                    <div key={rIdx} className="grid grid-cols-[1fr_80px] gap-2">
-                      <input
-                        value={item.criteria}
-                        onChange={e => {
-                          const rubric = [...(q.rubric || [])]
-                          rubric[rIdx] = { ...rubric[rIdx], criteria: e.target.value }
-                          updateQuestion(i, { rubric })
-                        }}
-                        className="bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500/30"
-                      />
-                      <input
-                        type="number" min={0} step={0.5}
-                        value={item.points}
-                        onChange={e => {
-                          const rubric = [...(q.rubric || [])]
-                          rubric[rIdx] = { ...rubric[rIdx], points: clampPositive(Number(e.target.value), 0) }
-                          updateQuestion(i, { rubric })
-                        }}
-                        className="bg-card-soft-theme border border-soft rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-blue-500/30"
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Controles: dificultad, habilidad, puntaje */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              <div>
-                <label className="text-muted2 text-[10px] font-semibold block mb-1">Dificultad</label>
-                <select value={q.difficulty || 2}
-                  onChange={e => updateQuestion(i, { difficulty: Number(e.target.value) as 1|2|3 })}
-                  className="w-full bg-card-soft-theme border border-soft rounded-xl px-2 py-2 text-xs focus:outline-none">
-                  <option value={1}>Fácil</option>
-                  <option value={2}>Medio</option>
-                  <option value={3}>Difícil</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-muted2 text-[10px] font-semibold block mb-1">Habilidad</label>
-                <select value={q.ability || "aplicacion"}
-                  onChange={e => updateQuestion(i, { ability: e.target.value as Ability })}
-                  className="w-full bg-card-soft-theme border border-soft rounded-xl px-2 py-2 text-xs focus:outline-none">
-                  {abilityOptions.map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="text-muted2 text-[10px] font-semibold block mb-1">Puntaje</label>
-                <input type="number" min={0} step={0.5}
-                  value={q.maxPoints || 0}
-                  onChange={e => updateQuestion(i, { maxPoints: clampPositive(Number(e.target.value), 0) })}
-                  className="w-full bg-card-soft-theme border border-soft rounded-xl px-2 py-2 text-xs focus:outline-none focus:border-blue-500/30"
-                />
-              </div>
-              <div>
-                <label className="text-muted2 text-[10px] font-semibold block mb-1">IA</label>
-                <button
-                  onClick={() => regenerateQuestion(i)}
-                  disabled={busyQuestion === i}
-                  className="w-full bg-card-soft-theme border border-soft hover:bg-input-theme rounded-xl px-2 py-2 text-xs disabled:opacity-50 flex items-center justify-center gap-1.5 transition-all">
-                  {busyQuestion === i
-                    ? <><Loader2 size={11} className="animate-spin" /> Generando...</>
-                    : <><RefreshCw size={11} /> Regenerar</>}
-                </button>
-              </div>
-            </div>
-
-            {/* Botones rápidos de regeneración */}
-            {busyQuestion !== i && (
-              <div className="flex flex-wrap gap-1.5">
-                {[
-                  { label: "Más fácil",   diff: 1, cls: "bg-green-500/10 border-green-500/20 text-green-700"  },
-                  { label: "Nivel medio", diff: 2, cls: "bg-yellow-500/10 border-yellow-500/20 text-yellow-700"},
-                  { label: "Más difícil", diff: 3, cls: "bg-red-500/10 border-red-500/20 text-red-700"        },
-                ].map(btn => (
-                  <button key={btn.label}
-                    onClick={() => regenerateQuestion(i, { difficulty: btn.diff as 1|2|3 })}
-                    disabled={busyQuestion !== null}
-                    className={`px-2.5 py-1.5 rounded-xl border text-[10px] font-medium disabled:opacity-40 transition-all ${btn.cls}`}>
-                    {btn.label}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        ))}
-
-        <section className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4">
-          <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-emerald-700">Clave de respuestas</p>
-          <h2 className="mt-1 text-base font-bold text-emerald-950">Pauta separada para corrección</h2>
-          <div className="mt-3 space-y-2">
-            {questions.map((q, index) => {
-              const answer = q.type === "multiple_choice"
-                ? q.options?.[q.correctAnswer ?? 0] || q.answerText || ""
-                : q.type === "true_false"
-                  ? (q.correctAnswer ?? 0) === 0 ? "Verdadero" : "Falso"
-                  : q.modelAnswer || ""
-              return (
-                <details key={`edit-key-${index}`} className="rounded-xl border border-emerald-200 bg-white px-3 py-2">
-                  <summary className="cursor-pointer text-xs font-bold text-emerald-950">Pregunta {index + 1} · {questionTypeLabel(q.type)}</summary>
-                  <div className="mt-2 space-y-1.5 text-xs text-emerald-900">
-                    <ExamMathText text={answer} />
-                    {q.explanation && <ExamMathText text={q.explanation} className="text-emerald-800" />}
-                    {Array.isArray(q.solutionSteps) && q.solutionSteps.length > 0 && (
-                      <ol className="list-decimal space-y-1 pl-5">
-                        {q.solutionSteps.map((step, stepIndex) => <li key={stepIndex}><ExamMathText text={step} /></li>)}
-                      </ol>
-                    )}
-                  </div>
-                </details>
-              )
-            })}
-          </div>
-        </section>
-
-        {/* Botón guardar flotante al fondo */}
-        <div className="sticky bottom-4 flex justify-center pt-2">
-          <button onClick={saveChanges} disabled={saving}
-            className="flex items-center gap-2 px-8 py-3 rounded-2xl text-sm font-bold text-main shadow-xl transition-all disabled:opacity-50"
+        {/* Guardar al final, sin tapar campos */}
+        <div className="flex justify-end pt-2">
+          <button onClick={saveChanges} disabled={saving||pythonBusy}
+            className="flex items-center gap-2 px-8 py-3 rounded-2xl text-sm font-bold text-white shadow-xl transition-all disabled:opacity-50"
             style={{ background: saved ? "#16a34a" : "#2563eb", boxShadow: "0 4px 20px rgba(37,99,235,0.4)" }}>
             {saving
               ? <><Loader2 size={15} className="animate-spin" /> Guardando...</>
