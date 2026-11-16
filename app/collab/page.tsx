@@ -1,111 +1,30 @@
 "use client"
-
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import {useEffect,useState} from "react"
+import {useRouter} from "next/navigation"
 import Link from "next/link"
-import { ArrowLeft, Users, Plus, LogIn, Loader2, AlertCircle } from "lucide-react"
-
-export default function CollabPage() {
-  const [topic,   setTopic]   = useState("")
-  const [code,    setCode]    = useState("")
-  const [loading, setLoading] = useState(false)
-  const [error,   setError]   = useState("")
-  const router = useRouter()
-
-  async function createRoom() {
-    if (!topic.trim()) return
-    setLoading(true); setError("")
-    try {
-      const res = await fetch("/api/rooms", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic: topic.trim() }) })
-      if (!res.ok) throw new Error(await res.text())
-      const room = await res.json()
-      router.push(`/collab/${room.code}`)
-    } catch (e: any) { setError(e.message); setLoading(false) }
-  }
-
-  async function joinRoom() {
-    if (!code.trim()) return
-    setLoading(true); setError("")
-    try {
-      const res = await fetch("/api/rooms", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code: code.trim() }) })
-      if (!res.ok) throw new Error(await res.text())
-      const room = await res.json()
-      router.push(`/collab/${room.code}`)
-    } catch (e: any) { setError(e.message); setLoading(false) }
-  }
-
-  return (
-    <main className="min-h-screen bg-app flex flex-col">
-      <header className="border-b border-soft bg-app backdrop-blur-xl px-4 py-3">
-        <div className="max-w-md mx-auto flex items-center gap-3">
-          <Link href="/dashboard" className="w-8 h-8 flex items-center justify-center rounded-xl bg-card-soft-theme text-sub hover:text-main transition-all">
-            <ArrowLeft size={15} />
-          </Link>
-          <div className="w-9 h-9 rounded-2xl flex items-center justify-center shadow-md"
-               style={{ background: "linear-gradient(135deg, #0d9488, #14b8a6)", boxShadow: "0 4px 12px rgba(13,148,136,0.3)" }}>
-            <Users size={17} className="text-main" />
-          </div>
-          <div>
-            <h1 className="text-main font-bold text-sm">Estudio Colaborativo</h1>
-            <p className="text-muted2 text-[11px]">Estudia en tiempo real con otro estudiante</p>
-          </div>
-        </div>
-      </header>
-
-      <div className="flex-1 flex items-center justify-center px-4 py-8">
-        <div className="w-full max-w-md flex flex-col gap-4">
-
-          {/* Crear sala */}
-          <div className="rounded-2xl p-5 border" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: "rgba(13,148,136,0.15)", border: "1px solid rgba(13,148,136,0.25)" }}>
-                <Plus size={14} className="text-teal-400" />
-              </div>
-              <h3 className="text-main font-semibold text-sm">Crear nueva sala</h3>
-            </div>
-            <input type="text" value={topic} onChange={e => setTopic(e.target.value)} onKeyDown={e => e.key === "Enter" && createRoom()}
-              placeholder="Tema a estudiar juntos..."
-              className="w-full bg-card-soft-theme border border-soft rounded-xl px-4 py-3 text-main placeholder-gray-400 text-sm focus:outline-none focus:border-teal-500/40 focus:bg-input-theme transition-all mb-3" />
-            <button onClick={createRoom} disabled={loading || !topic.trim()}
-              className="w-full py-3 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-40 flex items-center justify-center gap-2"
-              style={{ background: "linear-gradient(135deg, #0d9488, #14b8a6)", boxShadow: topic.trim() ? "0 4px 16px rgba(13,148,136,0.3)" : "none" }}>
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />} Crear sala
-            </button>
-          </div>
-
-          {/* Separador */}
-          <div className="flex items-center gap-3">
-            <div className="flex-1 h-px" style={{ background: "var(--bg-card-soft)" }} />
-            <span className="text-muted2 text-xs">o</span>
-            <div className="flex-1 h-px" style={{ background: "var(--bg-card-soft)" }} />
-          </div>
-
-          {/* Unirse */}
-          <div className="rounded-2xl p-5 border" style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-7 h-7 rounded-xl flex items-center justify-center" style={{ background: "rgba(59,130,246,0.15)", border: "1px solid rgba(59,130,246,0.25)" }}>
-                <LogIn size={14} className="text-blue-400" />
-              </div>
-              <h3 className="text-main font-semibold text-sm">Unirse a sala existente</h3>
-            </div>
-            <input type="text" value={code} onChange={e => setCode(e.target.value.toUpperCase())} onKeyDown={e => e.key === "Enter" && joinRoom()}
-              placeholder="CÓDIGO (ej: AB12CD)" maxLength={6}
-              className="w-full bg-card-soft-theme border border-soft rounded-xl px-4 py-3 text-main placeholder-gray-400 text-sm focus:outline-none focus:border-blue-500/40 focus:bg-input-theme transition-all mb-3 tracking-[0.3em] text-center font-bold uppercase" />
-            <button onClick={joinRoom} disabled={loading || code.length < 6}
-              className="w-full py-3 rounded-xl font-semibold text-sm text-white transition-all disabled:opacity-40 flex items-center justify-center gap-2"
-              style={{ background: code.length >= 6 ? "linear-gradient(135deg, #1d4ed8, #3b82f6)" : "var(--bg-card-soft)", boxShadow: code.length >= 6 ? "0 4px 16px rgba(59,130,246,0.25)" : "none" }}>
-              {loading ? <Loader2 size={16} className="animate-spin" /> : <LogIn size={16} />} Unirse
-            </button>
-          </div>
-
-          {error && (
-            <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl border border-red-500/20" style={{ background: "rgba(239,68,68,0.08)" }}>
-              <AlertCircle size={14} className="text-red-400 flex-shrink-0" />
-              <p className="text-red-400 text-sm">{error}</p>
-            </div>
-          )}
-        </div>
-      </div>
-    </main>
-  )
+import {ArrowLeft,ArrowRight,BookOpen,CalendarDays,FileText,Link2,LogIn,MessageCircle,Plus,Sparkles,Users,Video} from "lucide-react"
+type Room={id:string;code:string;topic:string;access_mode:string;status:string;created_at:string}
+const control="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-soft bg-card-theme px-4 py-2 text-sm font-semibold text-sub hover:border-violet-400 focus-visible:outline-2 focus-visible:outline-violet-500 disabled:opacity-40"
+const primary="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-md shadow-violet-500/20 transition disabled:opacity-50"
+const field="w-full rounded-xl border border-soft bg-card-theme px-4 py-3 text-sm text-main outline-none focus:ring-2 focus:ring-violet-400"
+export default function CollabPage(){
+ const router=useRouter()
+ const [topic,setTopic]=useState(""),[code,setCode]=useState(""),[rooms,setRooms]=useState<Room[]>([]),[loading,setLoading]=useState(false),[error,setError]=useState(""),[login,setLogin]=useState(false),[page,setPage]=useState(1)
+ useEffect(()=>{let canceled=false;void fetch("/api/rooms",{cache:"no-store"}).then(async res=>{const data=await res.json();if(canceled)return;if(res.status===401){setLogin(true);return}if(!res.ok)throw Error(data.error);setRooms(data.rooms||[])}).catch(()=>{if(!canceled)setError("No se pudieron cargar tus salas.")});return()=>{canceled=true}},[])
+ async function create(){if(loading||!topic.trim())return;setLoading(true);setError("");try{const res=await fetch("/api/rooms",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"create",topic:topic.trim()})});const data=await res.json();if(!res.ok)throw Error(data.error||"No se pudo crear.");router.push("/collab/"+encodeURIComponent(data.code))}catch(e){setError(e instanceof Error?e.message:"No se pudo crear.");setLoading(false)}}
+ function join(){const value=code.trim().toUpperCase();if(/^[A-Z0-9]{6,8}$/.test(value))router.push("/collab/"+encodeURIComponent(value))}
+ const pages=Math.max(1,Math.ceil(rooms.length/6))
+ return <main className="min-h-screen bg-app text-main" style={{backgroundImage:"radial-gradient(ellipse at 5% 0%,rgba(167,139,250,.16),transparent 50%),radial-gradient(ellipse at 98% 10%,rgba(45,212,191,.12),transparent 50%)"}}>
+ <div className="mx-auto max-w-6xl space-y-4 px-4 py-5 sm:px-6">
+  <header className="rounded-3xl border border-violet-400/20 bg-card-theme p-5 shadow-sm sm:p-6" style={{backgroundImage:"linear-gradient(115deg,rgba(167,139,250,.17),rgba(96,165,250,.09),rgba(45,212,191,.11))"}}><div className="flex items-center gap-3"><Link href="/dashboard" className={control} aria-label="Volver a EduAI"><ArrowLeft size={18}/></Link><div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-500 text-white shadow-md"><Users size={26}/></div><div><p className="text-xs font-bold uppercase tracking-widest text-violet-600">Tu equipo en EduAI</p><h1 className="text-2xl font-bold tracking-tight">Estudio Colaborativo</h1><p className="mt-1 text-sm text-muted2">Mensajería, videollamada y herramientas compartidas para estudiar en equipo.</p></div></div></header>
+  {login&&<div className="flex items-center gap-2 rounded-xl border border-violet-400/20 bg-card-theme p-3 text-sm"><span className="flex-1">Inicia sesión para crear o unirte a una sala.</span><Link href="/login" className={primary}>Iniciar sesión</Link></div>}
+  <div className="grid gap-3 md:grid-cols-2">
+   <form onSubmit={e=>{e.preventDefault();void create()}} className="space-y-3 rounded-3xl border border-teal-400/20 bg-card-theme p-5 shadow-sm"><div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl bg-teal-500/10 text-teal-600"><Plus size={23}/></div><div><h2 className="font-bold">Nueva sala</h2><p className="text-xs text-muted2">Crea tu espacio privado de colaboración.</p></div></div><input required maxLength={200} value={topic} onChange={e=>setTopic(e.target.value)} placeholder="Tema o nombre del equipo" aria-label="Tema de la sala" className={field}/><button type="submit" disabled={loading||login||!topic.trim()} className={primary+" w-full"}>{loading?"Creando…":"Crear sala"}<ArrowRight size={16}/></button></form>
+   <form onSubmit={e=>{e.preventDefault();join()}} className="space-y-3 rounded-3xl border border-violet-400/20 bg-card-theme p-5 shadow-sm"><div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl bg-violet-500/10 text-violet-600"><LogIn size={23}/></div><div><h2 className="font-bold">Unirse con código</h2><p className="text-xs text-muted2">Accede a una sala de tu equipo.</p></div></div><input required maxLength={8} value={code} onChange={e=>setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g,""))} placeholder="Código de la sala" aria-label="Código de sala" className={field+" tracking-widest uppercase"}/><button type="submit" disabled={loading||!/^[A-Z0-9]{6,8}$/.test(code)} className={control+" w-full"}>Unirse a la sala <ArrowRight size={16}/></button></form>
+  </div>
+  {error&&<p role="alert" className="rounded-xl border border-rose-400/25 bg-card-theme p-3 text-sm text-rose-600">{error}</p>}
+  <section className="rounded-3xl border border-soft bg-card-theme p-4 shadow-sm"><h2 className="mb-3 font-bold">Mis salas</h2>{!rooms.length?<p className="py-3 text-sm text-muted2">Tus salas compartidas aparecerán aquí.</p>:<div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">{rooms.slice((page-1)*6,page*6).map(room=><Link key={room.id} href={"/collab/"+room.code} className="flex min-w-0 items-center gap-3 rounded-2xl border border-soft bg-violet-500/5 p-3 transition hover:border-violet-400"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-violet-500/10 text-violet-600"><Users size={20}/></div><div className="min-w-0 flex-1"><p className="truncate font-semibold">{room.topic}</p><p className="text-xs text-muted2">{room.status==="pending"?"Esperando autorización":room.access_mode==="open"?"Acceso abierto":"Sala privada"} · {room.code}</p></div><ArrowRight size={15}/></Link>)}</div>}{pages>1&&<div className="mt-3 flex items-center justify-center gap-2"><button className={control} type="button" disabled={page===1} onClick={()=>setPage(page-1)}>Anterior</button><span className="text-xs text-muted2">{page} / {pages}</span><button className={control} type="button" disabled={page===pages} onClick={()=>setPage(page+1)}>Siguiente</button></div>}</section>
+  <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">{[{label:"Chat de equipo",icon:MessageCircle},{label:"Videollamadas",icon:Video},{label:"Agenda",icon:CalendarDays},{label:"Notas compartidas",icon:FileText},{label:"IA a petición",icon:Sparkles}].map(x=><div key={x.label} className="flex items-center gap-2 rounded-xl border border-soft bg-card-theme p-3 text-xs text-sub"><x.icon size={18} className="text-violet-600"/>{x.label}</div>)}</div>
+ </div>
+ </main>
 }
