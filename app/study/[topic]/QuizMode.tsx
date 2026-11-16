@@ -24,16 +24,16 @@ interface QuizResult {
 }
 
 interface Props {
-  onXP?: (amount: number, reason: string) => void
+  learningContext?: {profile:string;objective:string;area:string}
   topic: string
   initialLevel: number
-  onFinish: (results: QuizResult[], xpEarned: number) => void
+  onFinish: (results: QuizResult[]) => void
   onExit: () => void
 }
 
 const TOTAL_QUESTIONS = 5
 
-export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }: Props) {
+export default function QuizMode({ topic, initialLevel, onFinish, onExit, learningContext }: Props) {
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null)
   const [loading, setLoading] = useState(true)
   const [selectedAnswer, setSelectedAnswer] = useState<string>("")
@@ -41,31 +41,29 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }
   const [feedback, setFeedback] = useState<string>("")
   const [feedbackLoading, setFeedbackLoading] = useState(false)
   const [isCorrect, setIsCorrect] = useState<boolean | null>(null)
-  const [levelChange, setLevelChange] = useState<string>("")
 
   const [questionNumber, setQuestionNumber] = useState(1)
   const [currentLevel, setCurrentLevel] = useState(initialLevel)
   const [streak, setStreak] = useState(0)
   const [results, setResults] = useState<QuizResult[]>([])
-  const [totalXP, setTotalXP] = useState(0)
 
   useEffect(() => {
     loadQuestion()
   }, [])
 
-  async function loadQuestion() {
+  async function loadQuestion(nextNumber = questionNumber) {
     setLoading(true)
+    setCurrentQuestion(null)
     setSelectedAnswer("")
     setSubmitted(false)
     setFeedback("")
     setIsCorrect(null)
-    setLevelChange("")
 
     try {
       const res = await fetch("/api/agents/evaluate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic, level: currentLevel, questionNumber }),
+        body: JSON.stringify({ topic, level: currentLevel, questionNumber: nextNumber, learningContext }),
       })
       if (!res.ok) throw new Error("Error generando pregunta")
       const q = await res.json()
@@ -78,7 +76,7 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }
   }
 
   async function submitAnswer() {
-    if (!selectedAnswer || !currentQuestion) return
+    if (!selectedAnswer || !currentQuestion || submitted || feedbackLoading) return
     setFeedbackLoading(true)
     setSubmitted(true)
 
@@ -98,17 +96,16 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }
           isCorrect: correct,
           currentLevel,
           streak: correct ? streak + 1 : 0,
+          learningContext, rewardPoints:false,
         }),
       })
 
+      if (!res.ok) throw Error("No se pudo generar retroalimentación")
       const data = await res.json()
-      setFeedback(data.feedback)
-      setLevelChange(data.levelChange || "")
-      setTotalXP(prev => prev + (data.xpGained || 0))
-      if (data.xpGained > 0) onXP?.(data.xpGained, correct ? "respuesta correcta" : "")
+      setFeedback(data.feedback || currentQuestion.explanation)
 
       // Actualizar nivel y racha
-      setCurrentLevel(data.newLevel)
+      setCurrentLevel(Number.isFinite(data.newLevel) ? Math.max(1,Math.min(6,data.newLevel)) : currentLevel)
       setStreak(correct ? streak + 1 : 0)
 
       // Guardar resultado
@@ -117,11 +114,12 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }
         userAnswer: selectedAnswer,
         correct: currentQuestion.options.find(o => o.startsWith(currentQuestion.correct)) || "",
         isCorrect: correct,
-        feedback: data.feedback,
+        feedback: data.feedback || currentQuestion.explanation,
       }])
 
     } catch (e) {
       setFeedback(currentQuestion.explanation)
+      setResults(prev=>[...prev,{question:currentQuestion.question,userAnswer:selectedAnswer,correct:currentQuestion.options.find(o=>o.startsWith(currentQuestion.correct))||"",isCorrect:correct,feedback:currentQuestion.explanation}])
     } finally {
       setFeedbackLoading(false)
     }
@@ -129,14 +127,15 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }
 
   function nextQuestion() {
     if (questionNumber >= TOTAL_QUESTIONS) {
-      onFinish(results, totalXP)
+      onFinish(results)
       return
     }
-    setQuestionNumber(prev => prev + 1)
-    loadQuestion()
+    const next = questionNumber + 1
+    setQuestionNumber(next)
+    void loadQuestion(next)
   }
 
-  const progressPercent = ((questionNumber - 1) / TOTAL_QUESTIONS) * 100
+  const progressPercent = (results.length / TOTAL_QUESTIONS) * 100
 
   if (loading) {
     return (
@@ -147,7 +146,7 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }
     )
   }
 
-  if (!currentQuestion) return null
+  if (!currentQuestion) return <div className="mx-auto max-w-lg p-8 text-center"><p role="alert">No se pudo preparar la pregunta.</p><button type="button" onClick={()=>void loadQuestion()} className="mt-3 rounded-xl bg-violet-600 px-4 py-2 text-white">Reintentar</button><button type="button" onClick={onExit} className="ml-3 underline">Volver al estudio</button></div>
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-8">
@@ -159,7 +158,6 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }
             <div className="w-1.5 h-1.5 bg-purple-400 rounded-full" />
             <span className="text-purple-400 text-xs font-medium">AEv — Evaluación</span>
           </div>
-          <span className="text-muted2 text-xs">Nivel {currentLevel}/6</span>
         </div>
         <button
           onClick={onExit}
@@ -173,7 +171,6 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }
       <div className="mb-6">
         <div className="flex justify-between text-xs text-muted2 mb-2">
           <span>Pregunta {questionNumber} de {TOTAL_QUESTIONS}</span>
-          <span className="text-amber-400">+{totalXP} XP</span>
         </div>
         <div className="w-full bg-card-soft-theme rounded-full h-2">
           <div
@@ -236,9 +233,6 @@ export default function QuizMode({ topic, initialLevel, onFinish, onExit, onXP }
             <span className={`font-semibold text-sm ${isCorrect ? "text-green-400" : "text-red-400"}`}>
               {isCorrect ? "¡Correcto!" : "Incorrecto"}
             </span>
-            {levelChange && (
-              <span className="text-xs text-amber-400 ml-auto">{levelChange}</span>
-            )}
           </div>
           {feedbackLoading ? (
             <div className="flex items-center gap-2">
