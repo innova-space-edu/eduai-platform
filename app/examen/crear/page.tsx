@@ -7,6 +7,8 @@ import { requestExamGeneration, type ExamGenerationCache, type ExamGenerationPro
 import { useMemo, useState, useRef, useEffect } from "react";
 import ExamMathText from "@/components/ui/ExamMathText";
 import ExamConsentDialog from "@/components/legal/ExamConsentDialog";
+import CourseAssignmentPicker from "@/components/exam/CourseAssignmentPicker";
+import { cleanCourses } from "@/lib/exam/course-assignment.mjs";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getOAs, getAvailableAsignaturas, getCurriculumVerification, getParvulariaNucleoItems, type NivelKey, type OA } from "@/lib/mineduc-oa";
@@ -757,7 +759,7 @@ export default function CrearExamenPage() {
   // ── Validación ────────────────────────────────────────────────────────────
   const validateExam = (): string => {
     if (!curriculumCurso || !subject) return "Selecciona el curso y la asignatura en el paso 1.";
-    if (!rosterCourse.trim()) return "Indica el curso y sección tal como figuran en la nómina.";
+    if (!cleanCourses(rosterCourse).length) return "Agrega al menos un curso y sección de la nómina.";
     if (!title.trim()) return "Debes ingresar un título.";
     if (!topic.trim()) return "Debes ingresar un tema.";
     if (questions.length === 0) return "Debes agregar al menos una pregunta.";
@@ -900,7 +902,8 @@ export default function CrearExamenPage() {
               maxPagesPerQuestion: 5,
             },
             securityMode,
-            rosterCourse: rosterCourse.trim(),
+            rosterCourse: cleanCourses(rosterCourse)[0] || "",
+            rosterCourses: cleanCourses(rosterCourse),
             theme: examTheme,
             font: examFont,
             customColorsEnabled,
@@ -1336,15 +1339,7 @@ Usa el mismo esquema de calidad que antes.`;
                     ))}
                   </select>
                 </div>
-                <div>
-                  <label htmlFor="exam-roster-course" className="text-xs text-sub font-semibold block mb-2">
-                    CURSO Y SECCIÓN EN LA NÓMINA
-                  </label>
-                  <input id="exam-roster-course" value={rosterCourse} maxLength={60}
-                    onChange={(event) => setRosterCourse(event.target.value)}
-                    placeholder={curriculumCurso ? `${curriculumCurso} A` : "Ej.: 4° medio A"}
-                    className="w-full rounded-2xl bg-card-soft-theme border border-soft px-4 py-3 text-sm text-main" />
-                </div>
+                <CourseAssignmentPicker value={cleanCourses(rosterCourse)} onChange={courses=>setRosterCourse(courses.join("; "))}/>
                 <div>
                   <label htmlFor="exam-subject" className="text-xs text-sub font-semibold block mb-2">
                     {curriculumNivel === "parvularia" && curriculumCurso ? "NÚCLEO" : "ASIGNATURA"}
