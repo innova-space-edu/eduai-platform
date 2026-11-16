@@ -235,6 +235,7 @@ export default function ExamenPublicoPage() {
   const [feedbackDone, setFeedbackDone] = useState(false);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const [notebookOpen, setNotebookOpen] = useState(false);
+  const openedNotebookQuestions = useRef(new Set<number>());
   const attemptIdRef = useRef(createAttemptId());
   const notebookRef = useRef<ExamQuestionNotebookHandle>(null);
   const [developmentArtifacts, setDevelopmentArtifacts] = useState<
@@ -789,6 +790,12 @@ export default function ExamenPublicoPage() {
     async (finalized = true): Promise<ExamNotebookArtifact | null> => {
       if (!exam || !currentNotebookEnabled || !notebookRef.current) return null;
 
+      // A typed response does not need a blank notebook upload.
+      const currentArtifact = notebookRef.current.getArtifact();
+      const hasNotebookContent = Boolean(currentArtifact.latex?.trim() || currentArtifact.ocrText?.trim() || currentArtifact.pages.some(page=>page.strokes.length>0));
+      if (!openedNotebookQuestions.current.has(curQ) && !hasNotebookContent) {
+        return latestExamStateRef.current.developmentArtifacts[curQ] || currentArtifact;
+      }
       setDevelopmentSaving(true);
       setDevelopmentSaveStatus("Guardando desarrollo...");
       try {
@@ -1950,7 +1957,7 @@ export default function ExamenPublicoPage() {
 
                 {currentNotebookEnabled ? (
                   <div className="mx-auto w-full max-w-[1040px] min-w-0 rounded-2xl border border-[var(--exam-border)] bg-[var(--exam-surface)] p-2">
-                    <button type="button" aria-expanded={notebookOpen} aria-controls="exam-notebook-body" onClick={()=>setNotebookOpen(v=>!v)} className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-3 text-sm font-bold text-main hover:bg-card-soft-theme">
+                    <button type="button" aria-expanded={notebookOpen} aria-controls="exam-notebook-body" onClick={()=>{if(!notebookOpen)openedNotebookQuestions.current.add(curQ);setNotebookOpen(!notebookOpen)}} className="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-3 text-sm font-bold text-main hover:bg-card-soft-theme">
                       <span>✍️ Cuaderno de desarrollo <span className="ml-1 text-xs font-normal text-muted2">· Opcional</span></span>
                       <span style={{color:"var(--exam-accent)"}}>{notebookOpen?"Contraer ↑":"Abrir ↓"}</span>
                     </button>
