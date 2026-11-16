@@ -48,7 +48,7 @@ export default function CallPanel({code,userId,userName,enabled,onExit}:{code:st
   if(!v.description)return
   await p.pc.setRemoteDescription(v.description)
   for(const candidate of p.pending.splice(0))await p.pc.addIceCandidate(candidate).catch(()=>{})
-  if(v.type==="offer"){await applyTracks(p);await p.pc.setLocalDescription(await p.pc.createAnswer());await api("signal",{to:sig.sender,payload:{type:"answer",description:p.pc.localDescription?.toJSON()}})}
+  if(v.type==="offer"){for(const t of p.pc.getTransceivers())t.direction="sendrecv";await applyTracks(p);await p.pc.setLocalDescription(await p.pc.createAnswer());await api("signal",{to:sig.sender,payload:{type:"answer",description:p.pc.localDescription?.toJSON()}})}
  }
  useEffect(()=>{
   if(!joined)return
@@ -79,7 +79,7 @@ export default function CallPanel({code,userId,userName,enabled,onExit}:{code:st
     const stream=await navigator.mediaDevices.getUserMedia(kind==="audio"?{audio:{echoCancellation:true,noiseSuppression:true}}:{video:{width:{ideal:640},height:{ideal:360},frameRate:{ideal:20,max:24}}})
     if(!alive.current){stream.getTracks().forEach(t=>t.stop());return}
     if(!local.current)local.current=new MediaStream()
-    for(const t of stream.getTracks()){local.current.addTrack(t);t.onended=()=>{local.current?.removeTrack(t);syncMedia()}}
+    for(const t of stream.getTracks()){local.current.addTrack(t);t.onended=()=>{local.current?.removeTrack(t);syncMedia();void Promise.all(Array.from(peers.current.values()).map(applyTracks)).catch(()=>{})}}
    }
    syncMedia();await Promise.all(Array.from(peers.current.values()).map(applyTracks))
   }catch{setError("No se pudo acceder al micrófono o cámara. Revisa los permisos del navegador.")}finally{mediaBusy.current=false}
