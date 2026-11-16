@@ -2575,7 +2575,6 @@ function NeonMain({
                 placeholder={music.view === "radio" ? "Buscar emisora..." : "Buscar canciones, artistas, álbumes o playlists..."}
                 className="min-w-0 flex-1 bg-transparent text-[11px] text-white outline-none placeholder:text-slate-500"
               />
-              <NeonSpectrum active={music.playing} bars={22} currentTime={music.currentTime} trackId={music.currentTrack.id} className="gaming-search-spectrum hidden h-5 w-24 shrink-0 lg:flex" />
             </div>
             <button
               type="button"
@@ -4522,7 +4521,7 @@ export default function EduAIMusicPlayer({
           .eduai-music-cyber .neon-bottom-grid > div:first-child img { width:30px;height:30px; }
           .eduai-music-cyber .neon-main-play { height:42px !important;width:42px !important; }
           .eduai-music-cyber .neon-control-button { height:28px;width:28px; }
-          .eduai-music-cyber .gaming-search-spectrum,.gaming-dock-waves { display:none !important; }
+          .eduai-music-cyber .gaming-dock-waves { display:none !important; }
         }
         @media (max-height:650px) and (max-width:767px) {
           .eduai-music-cyber .neon-main { overflow-y:auto !important; }
