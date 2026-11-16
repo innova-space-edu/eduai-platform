@@ -1,6 +1,6 @@
 import assert from "node:assert/strict"
 import {readFileSync} from "node:fs"
-import {cleanCourses,assignedCourses,hasCourseScope,courseAllowed,resolveCourseEntry,normalizeCourse} from "../lib/exam/course-assignment.mjs"
+import {cleanCourses,assignedCourses,hasCourseScope,courseAllowed,resolveCourseEntry,normalizeCourse,rosterNameMatches} from "../lib/exam/course-assignment.mjs"
 const original={rosterCourse:"1° medio A",curriculum:{curso:"1° medio"}}
 const multi={...original,rosterCourses:["1° medio A","1° medio B","4° medio A"]}
 assert.equal(courseAllowed(original,"1° Medio A"),true)
@@ -31,3 +31,18 @@ assert.match(results,/visibleSubmissions\.map/)
 assert.match(route,/EXAM_COURSE_MISMATCH/)
 assert.match(route,/resolveCourseEntry/)
 console.log("OK: cursos múltiples, acceso exclusivo, identidad, compatibilidad y resultados separados")
+
+const registered="Pérez Soto Ana María"
+for(const name of ["Ana Pérez","ANA PEREZ","Pérez Ana","Ana María Pérez Soto","  Ana   Pérez  "])assert.equal(rosterNameMatches(registered,name),true,name)
+for(const name of ["Ana","Pérez","Ana Ana","Ana de","An Pérez","Ana Pere","Ana López","Ana Pérez López","Ana Pérez 123",""])assert.equal(rosterNameMatches(registered,name),false,name)
+assert.equal(rosterNameMatches("María José De la Cruz Soto","María Cruz"),true)
+assert.equal(rosterNameMatches("Ana Pérez Soto","Ana Pérez Pérez"),false)
+const sharedPrefix=[{id:"s1",student_name:"Pérez Soto Ana María",course:"4° Medio A"},{id:"s2",student_name:"Pérez Rojas Ana Isabel",course:"1° Medio A"}]
+const matchesName=name=>student=>rosterNameMatches(student.student_name,name)
+assert.equal(resolveCourseEntry(sharedPrefix,multi,matchesName("Ana Pérez")).status,"identity","ambiguous prefix and name must not enter")
+assert.equal(resolveCourseEntry(sharedPrefix,original,matchesName("Ana Pérez")).status,"identity","course must not resolve an ambiguous identity")
+assert.equal(resolveCourseEntry(sharedPrefix,multi,matchesName("Ana Soto")).student.id,"s1")
+assert.equal(resolveCourseEntry(sharedPrefix,original,matchesName("Ana Soto")).status,"course")
+assert.equal(resolveCourseEntry(sharedPrefix,multi,matchesName("Ana López")).status,"identity")
+assert.match(route,/rosterNameMatches\(item.student_name, body.studentName\)/)
+console.log("OK: flexible whole-word names, accent and order independence, ambiguity rejected")
