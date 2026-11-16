@@ -1,79 +1,28 @@
-import { createClient } from "@/lib/supabase/server"
-import { runAIText } from "@/lib/ai/gateway"
-
-export async function POST(req: Request) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 })
-
-  const { topic, messages, isWelcome = false } = await req.json()
-
-  const recentMessages = Array.isArray(messages)
-    ? messages.slice(-8).map((m: { user_name?: string; content?: string }) =>
-        `${String(m?.user_name || "Participante")}: ${String(m?.content || "")}`
-      ).join("\n")
-    : ""
-
-  const systemPrompt = isWelcome
-    ? `Eres ACo, un profesor experto y dinámico. Dos estudiantes acaban de unirse a una sesión colaborativa sobre "${topic}".
-
-MISIÓN DE BIENVENIDA:
-1. Saluda con entusiasmo a ambos estudiantes
-2. Presenta brevemente el tema y su importancia
-3. Haz UNA pregunta inicial poderosa y abierta para activar su conocimiento previo
-4. Indica que irán progresando juntos paso a paso
-
-Tono: energético, motivador, como un buen profesor universitario.
-Máximo 5 líneas. Usa emojis con moderación.`
-    : `Eres ACo, un profesor-moderador experto en "${topic}" en una sala de estudio colaborativa con VARIOS estudiantes.
-
-TU MISIÓN:
-1) Lee la conversación y detecta preguntas explícitas y dudas implícitas.
-2) Elige LA DUDA PRINCIPAL del grupo y resuélvela con claridad.
-3) Si hay errores conceptuales, corrígelos con tacto.
-4) Conecta lo que dijeron entre sí cuando sea útil.
-5) Termina SIEMPRE con una pregunta breve o mini-tarea para que el grupo continúe.
-
-REGLAS:
-- Máximo 7 líneas.
-- Usa bullets cortos si ayuda.
-- Usa LaTeX para fórmulas: $...$ o $$...$$
-- No inventes datos; usa nombres solo si aparecen en los mensajes.`
-
-  try {
-    const result = await runAIText({
-      messages: [
-        { role: "system", content: systemPrompt },
-        {
-          role: "user",
-          content: isWelcome
-            ? `Inicia la sesión sobre: ${topic}`
-            : `Conversación reciente:\n${recentMessages}\n\nComo profesor, ¿cuál es tu intervención pedagógica ahora?`,
-        },
-      ],
-      capability: "text",
-      maxOutputTokens: 350,
-      context: {
-        userId: user.id,
-        module: "collab",
-        // El chat colaborativo puede contener intervenciones de terceros;
-        // no lo persistimos en la cache de generaciones.
-        reusePolicy: "never",
-        visibility: "private",
-      },
-      supabase,
-    })
-
-    return Response.json({
-      message: result.data,
-      provider: result.provider,
-      model: result.model,
-    })
-  } catch (error) {
-    const typed = error as Error & { status?: number; code?: string }
-    return Response.json(
-      { error: typed.message || "Error", code: typed.code },
-      { status: typed.status || 500 },
-    )
-  }
+import {createClient} from "@/lib/supabase/server"
+import {createClient as createAdmin} from "@supabase/supabase-js"
+import {runAIText} from "@/lib/ai/gateway"
+export const maxDuration=60
+export async function POST(req:Request){
+ const auth=await createClient()
+ const {data:{user}}=await auth.auth.getUser()
+ if(!user)return Response.json({error:"Inicia sesión."},{status:401})
+ const body=await req.json().catch(()=>null)
+ const code=typeof body?.code==="string"?body.code.toUpperCase():""
+ const question=typeof body?.question==="string"?body.question.trim().slice(0,4000):""
+ if(!/^[A-Z0-9]{6,8}$/.test(code)||!question)return Response.json({error:"Escribe una pregunta explícita."},{status:400})
+ const url=process.env.SUPABASE_URL||process.env.NEXT_PUBLIC_SUPABASE_URL,key=process.env.SUPABASE_SERVICE_ROLE_KEY
+ if(!url||!key)return Response.json({error:"Servicio no configurado."},{status:503})
+ const db=createAdmin(url,key,{auth:{persistSession:false,autoRefreshToken:false}})
+ const {data:room}=await db.from("collab_spaces").select("id,topic,host_id").eq("code",code).maybeSingle()
+ if(!room)return Response.json({error:"Sala no encontrada."},{status:404})
+ const {data:member}=await db.from("collab_people").select("status").eq("room_id",room.id).eq("user_id",user.id).maybeSingle()
+ if(member?.status!=="approved")return Response.json({error:"Acceso no autorizado."},{status:403})
+ try{
+  const result=await runAIText({messages:[{role:"system",content:"Eres ACo, asistente de estudio colaborativo EduAI. Responde solo a la pregunta explícita, con claridad, sin asumir edad escolar, sin inventar fuentes y con LaTeX si aporta. No solicites datos personales. El grupo verá tu respuesta."},{role:"user",content:"Tema de la sala: "+room.topic+"\nPregunta: "+question}],capability:"text",maxOutputTokens:650,lite:true,preferredProvider:"groq",fallbackToDefault:true,captureTraining:false,context:{userId:user.id,module:"collab",reusePolicy:"never",visibility:"private"},supabase:auth})
+  const {data:still}=await db.from("collab_people").select("status").eq("room_id",room.id).eq("user_id",user.id).maybeSingle()
+  if(still?.status!=="approved")return Response.json({error:"Acceso revocado."},{status:403})
+  const {data,error}=await db.from("collab_chat").insert({room_id:room.id,user_id:user.id,user_name:"ACo · EduAI",type:"agent",content:result.data}).select("*").single()
+  if(error)throw Error("No se pudo guardar la respuesta.")
+  return Response.json({message:data})
+ }catch{return Response.json({error:"La IA no pudo responder. Intenta nuevamente."},{status:503})}
 }
