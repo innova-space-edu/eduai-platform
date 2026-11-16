@@ -69,105 +69,105 @@ export default function Dashboard() {
   const displayName = user?.user_metadata?.name || user?.email?.split("@")[0] || "Usuario"
 
   return (
-    <div className="eduai-dashboard-refresh flex h-[calc(100dvh-var(--legacy-consent-banner-height,0px))] min-h-0 overflow-hidden bg-app [--sidebar-closed:56px] [--sidebar-open:184px] lg:[--sidebar-closed:68px] lg:[--sidebar-open:220px] min-[2048px]:[--sidebar-closed:84px] min-[2048px]:[--sidebar-open:280px]">
-      <style>{`
+    <div className="flex h-[calc(100dvh-var(--legacy-consent-banner-height,0px))] min-h-0 overflow-hidden bg-app [--sidebar-closed:56px] [--sidebar-open:184px] lg:[--sidebar-closed:68px] lg:[--sidebar-open:220px] min-[2048px]:[--sidebar-closed:84px] min-[2048px]:[--sidebar-open:280px]">
+      <style data-eduai-dashboard-refresh>{`
 /* Scoped to the dashboard; existing theme tokens remain the source of text/surface contrast. */
-.eduai-dashboard-refresh {
+div:has(> style[data-eduai-dashboard-refresh]) {
   --claw-lavender: rgba(139,92,246,.12);
   --claw-blue: rgba(96,165,250,.10);
   --claw-mint: rgba(45,212,191,.09);
   background-image: radial-gradient(ellipse at 7% 3%, var(--claw-lavender), transparent 43%), radial-gradient(ellipse at 98% 95%, var(--claw-blue), transparent 52%);
 }
-.eduai-dashboard-refresh aside > div:first-child {
+div:has(> style[data-eduai-dashboard-refresh]) aside > div:first-child {
   background-image: linear-gradient(165deg, var(--claw-lavender), transparent 45%, var(--claw-blue)) !important;
 }
-.eduai-dashboard-refresh aside nav a > div:first-child,
-.eduai-dashboard-refresh aside button > div:first-child {
+div:has(> style[data-eduai-dashboard-refresh]) aside nav a > div:first-child,
+div:has(> style[data-eduai-dashboard-refresh]) aside button > div:first-child {
   border-radius: 14px;
   box-shadow: 0 3px 10px rgba(76,58,145,.08);
 }
-.eduai-dashboard-refresh .eduai-dashboard-topbar {
+div:has(> style[data-eduai-dashboard-refresh]) .eduai-dashboard-topbar {
   background-image: linear-gradient(100deg, var(--claw-lavender), transparent 45%, var(--claw-blue)) !important;
 }
-.eduai-dashboard-refresh .eduai-dashboard-topbar a {
+div:has(> style[data-eduai-dashboard-refresh]) .eduai-dashboard-topbar a {
   border-radius: 999px;
   flex-shrink: 0;
   box-shadow: 0 2px 7px rgba(79,70,229,.07);
 }
-.eduai-dashboard-refresh .claw-refresh {
+div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh {
   background: color-mix(in srgb, var(--bg-card) 84%, transparent);
   border-color: color-mix(in srgb, #a78bfa 22%, var(--border-soft));
   box-shadow: 0 8px 32px rgba(85,65,155,.09);
 }
-.eduai-dashboard-refresh .claw-refresh-header {
+div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header {
   align-items: center;
   background-image: radial-gradient(ellipse at 94% 100%, var(--claw-mint), transparent 48%), linear-gradient(110deg, var(--claw-lavender), var(--claw-blue), transparent);
 }
-.eduai-dashboard-refresh .claw-refresh-transcript {
+div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-transcript {
   background: radial-gradient(ellipse at 2% 2%, var(--claw-lavender), transparent 55%), radial-gradient(ellipse at 100% 100%, var(--claw-blue), transparent 55%);
 }
-.eduai-dashboard-refresh .claw-refresh-context {
+div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-context {
   background: color-mix(in srgb, var(--bg-card) 85%, #a78bfa 15%);
   border-color: rgba(139,92,246,.20);
   color: var(--text-primary);
 }
-.eduai-dashboard-refresh .claw-refresh-start {
+div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-start {
   background: linear-gradient(125deg, var(--claw-lavender), var(--claw-blue) 56%, var(--claw-mint)), var(--bg-card);
   border-color: rgba(139,92,246,.19);
   box-shadow: 0 6px 22px rgba(85,65,155,.07);
 }
-.eduai-dashboard-refresh .claw-refresh-welcome {
+div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-welcome {
   background: radial-gradient(ellipse at 100% 50%, rgba(45,212,191,.17), transparent 52%), linear-gradient(120deg, rgba(167,139,250,.17), rgba(96,165,250,.10)), var(--bg-card);
   border-color: rgba(139,92,246,.15);
 }
-.eduai-dashboard-refresh .claw-refresh-action {
+div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action {
   min-height: 60px;
   box-shadow: 0 4px 14px rgba(79,70,229,.06);
 }
-.eduai-dashboard-refresh .claw-refresh-action:hover,
-.eduai-dashboard-refresh .claw-refresh-shortcut:hover {
+div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action:hover,
+div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-shortcut:hover {
   border-color: #a78bfa !important;
   box-shadow: 0 5px 18px rgba(124,58,237,.15);
 }
-.eduai-dashboard-refresh .claw-refresh-assistant {
+div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-assistant {
   background: linear-gradient(135deg, var(--claw-blue), transparent 60%, var(--claw-lavender)), var(--bg-card);
   border-color: rgba(139,92,246,.15);
   box-shadow: 0 4px 14px rgba(85,65,155,.07);
   overflow-wrap: anywhere;
 }
-.eduai-dashboard-refresh .claw-refresh-user,
-.eduai-dashboard-refresh .claw-refresh-send {
+div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-user,
+div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-send {
   background: linear-gradient(120deg,#4f46e5,#7c3aed);
   box-shadow: 0 3px 12px rgba(99,70,210,.20);
 }
-.eduai-dashboard-refresh .claw-refresh-footer {
+div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-footer {
   background: color-mix(in srgb, var(--bg-card) 90%, transparent);
 }
-.eduai-dashboard-refresh .claw-refresh-composer {
+div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-composer {
   background: linear-gradient(120deg, var(--claw-lavender), transparent 45%, var(--claw-blue)), var(--bg-card);
   border-color: rgba(139,92,246,.30);
   box-shadow: 0 0 0 3px rgba(139,92,246,.07), 0 6px 20px rgba(85,65,155,.09);
 }
-.eduai-dashboard-refresh .claw-refresh-composer:focus-within {
+div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-composer:focus-within {
   border-color: #8b5cf6;
   box-shadow: 0 0 0 3px rgba(139,92,246,.17);
 }
-.eduai-dashboard-refresh .claw-refresh-send:hover:not(:disabled) { background: linear-gradient(120deg,#4338ca,#6d28d9); }
-.eduai-dashboard-refresh .claw-refresh-send:disabled { opacity: .5; }
-.eduai-dashboard-refresh :is(a,button):focus-visible { outline: 2px solid #8b5cf6; outline-offset: 2px; }
-.dark .eduai-dashboard-refresh .claw-refresh-action > div:first-child { color: #e0e7ff !important; }
+div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-send:hover:not(:disabled) { background: linear-gradient(120deg,#4338ca,#6d28d9); }
+div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-send:disabled { opacity: .5; }
+div:has(> style[data-eduai-dashboard-refresh]) :is(a,button):focus-visible { outline: 2px solid #8b5cf6; outline-offset: 2px; }
+.dark div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action > div:first-child { color: #e0e7ff !important; }
 @media (min-width: 1280px) {
-  .eduai-dashboard-refresh .claw-refresh-transcript > div,
-  .eduai-dashboard-refresh .claw-refresh-composer { max-width: 1120px; }
+  div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-transcript > div,
+  div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-composer { max-width: 1120px; }
 }
 @media (min-width: 2048px) {
-  .eduai-dashboard-refresh .claw-refresh-transcript > div,
-  .eduai-dashboard-refresh .claw-refresh-composer { max-width: 1450px; }
+  div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-transcript > div,
+  div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-composer { max-width: 1450px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .eduai-dashboard-refresh aside, .eduai-dashboard-refresh main,
-  .eduai-dashboard-refresh .claw-refresh-action,
-  .eduai-dashboard-refresh .claw-refresh-action > div { transition: none; }
+  div:has(> style[data-eduai-dashboard-refresh]) aside, div:has(> style[data-eduai-dashboard-refresh]) main,
+  div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action,
+  div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action > div { transition: none; }
 }
 `}</style>
       <aside
