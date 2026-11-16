@@ -36,6 +36,7 @@ import {
   type EduMusicTrack,
 } from "@/lib/music/eduai-music-catalog";
 import { YOUTUBE_PLAYER_ID, useEduAIMusic } from "@/components/music/MusicProvider";
+import { MusicParticleOrb } from "@/components/music/MusicParticleOrb";
 import { MusicLikeButton } from "@/components/music/MusicLikeButton";
 
 type PlayerMode = "panel" | "mini" | "page";
@@ -2043,6 +2044,7 @@ function NeonSidebar({
   onNavigate: () => void;
 }) {
   const music = useEduAIMusic();
+  const { effective: orbLighting } = useContext(GamingLightingContext);
 
   return (
     <aside className="neon-sidebar flex min-h-0 flex-col px-[clamp(12px,1.25vw,22px)] pb-4 pt-5">
@@ -2185,7 +2187,7 @@ function NeonSidebar({
           }}
           className="flex w-full items-center gap-2 rounded-xl px-2 py-2 text-left transition hover:bg-white/5"
         >
-          <span className="h-8 w-8 rounded-full border border-fuchsia-300/30 bg-[radial-gradient(circle_at_35%_30%,#12eaff,#6d4cff_48%,#9dff36_82%,#030713)] shadow-[0_0_16px_rgba(83,109,255,.28)]" />
+          <MusicParticleOrb active={music.playing} currentTime={music.currentTime} lighting={orbLighting} />
           <span className="min-w-0">
             <span className="block truncate text-[11px] font-black text-white">Mi biblioteca</span>
             <span className="block truncate text-[9px] text-cyan-300/80">{music.uploadedTracks.length} audios propios</span>
