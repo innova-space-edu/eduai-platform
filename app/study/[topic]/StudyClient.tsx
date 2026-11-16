@@ -1,26 +1,20 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { useRouter } from "next/navigation"
 import MathRenderer from "@/components/ui/MathRenderer"
 import QuizMode from "./QuizMode"
 import QuizResults from "./QuizResults"
-import { useStudySession } from "@/hooks/useStudySession"
-import { useXP } from "@/hooks/useXP"
-import XPToast from "@/components/ui/XPToast"
-import StudyBanner from "@/components/ui/StudyBanner"
+import { useStudySession, type StudySession } from "@/hooks/useStudySession"
 import VoiceNarrator from "@/components/ui/VoiceNarrator"
 import SummaryDownload from "./SummaryDownload"
 import VisualBlock from "./VisualBlock"
-import AchievementToast from "@/components/ui/AchievementToast"
-import { useAchievements } from "@/hooks/useAchievements"
 
 // ── Tipos IDÉNTICOS al original ───────────────────────────────────────────────
 interface Suggestion  { id: number; title: string; description: string; emoji: string }
 interface ChatMessage { role: "ai" | "user"; content: string }
 interface StudyType   { id: string; label: string; description: string; emoji: string }
 interface QuizResult  { question: string; userAnswer: string; correct: string; isCorrect: boolean; feedback: string }
-interface Props        { topic: string; subtopic: string | null; level: number; initialXP: number }
+interface Props { topic: string; subtopic: string | null; initialSession: StudySession | null }
 
 const STUDY_TYPES: StudyType[] = [
   { id: "theory",    label: "Teoría",     description: "Explicación del concepto",        emoji: "📖" },
@@ -30,35 +24,65 @@ const STUDY_TYPES: StudyType[] = [
   { id: "socratic",  label: "Sócrates",   description: "Descubre la respuesta tú mismo",  emoji: "🏛️" },
 ]
 
-export default function StudyClient({ topic, subtopic, level, initialXP }: Props) {
-  const router = useRouter()
+export default function StudyClient({ topic, subtopic, initialSession }: Props) {
+  const restored = Array.isArray(initialSession?.messages) ? initialSession.messages.filter(m => m && ["ai", "user"].includes(m.role) && typeof m.content === "string") : []
+  const initialMode = initialSession?.study_mode && STUDY_TYPES.some(t => t.id === initialSession.study_mode) ? initialSession.study_mode : ""
+  const profileLabels: Record<string, string> = {personal:"Aprendizaje personal",school:"Escolar",university:"Universitario",teacher:"Docente",professional:"Profesional",languages:"Idiomas",certification:"Certificaciones"}
+  const profile = initialSession?.study_profile || "personal"
+  const learningContext = { profile, objective: initialSession?.objective || "", area: initialSession?.area || "" }
+  const difficulty = ["university", "teacher", "professional", "certification"].includes(profile) ? 4 : 2
 
   // ── State IDÉNTICO al original ────────────────────────────────────────────
-  const [step,               setStep]               = useState<"suggest"|"type"|"study"|"quiz"|"results">(subtopic ? "type" : "suggest")
-  const [selectedSubtopic,   setSelectedSubtopic]   = useState(subtopic || "")
-  const [selectedType,       setSelectedType]       = useState("")
+  const [step,               setStep]               = useState<"suggest"|"type"|"study"|"quiz"|"results">(restored.length ? "study" : subtopic ? "type" : "suggest")
+  const [selectedSubtopic,   setSelectedSubtopic]   = useState(subtopic || (restored.length ? topic : ""))
+  const [selectedType,       setSelectedType]       = useState(initialMode || (restored.length ? "theory" : ""))
   const [suggestions,        setSuggestions]        = useState<Suggestion[]>([])
   const [loadingSuggestions, setLoadingSuggestions] = useState(false)
-  const [messages,           setMessages]           = useState<ChatMessage[]>([])
+  const [messages,           setMessages]           = useState<ChatMessage[]>(restored)
   const [streaming,          setStreaming]          = useState(false)
   const [userInput,          setUserInput]          = useState("")
   const [suggestedFollowups, setSuggestedFollowups] = useState<string[]>([])
   const [quizResults,        setQuizResults]        = useState<QuizResult[]>([])
-  const [quizXP,             setQuizXP]             = useState(0)
-  const [currentXP,          setCurrentXP]          = useState<number | null>(initialXP)
-  const [currentLevel,       setCurrentLevel]       = useState(level)
   const [error,              setError]              = useState("")
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef  = useRef<HTMLInputElement>(null)
 
-  const { session, completeSession } = useStudySession(topic, selectedType || "normal")
-  const { pending: achievementsPending, checkAchievements, dismiss: dismissAchievement } = useAchievements()
-  const { events: xpEvents, gainXP }  = useXP((newXP, newLevel) => {
-    setCurrentXP(newXP); setCurrentLevel(newLevel)
-  })
+  const { session, updateSession, completeSession, saving, saveError } = useStudySession(topic, selectedType || "normal", initialSession)
+  const durationRef = useRef(initialSession?.duration_seconds || 0)
+  const lastSaved = useRef(JSON.stringify(restored))
+  const [finished, setFinished] = useState(initialSession?.status === "completed")
+  const [studyNotice, setStudyNotice] = useState("")
 
-  useEffect(() => { if (step === "suggest") loadSuggestions() }, [])
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: "smooth" }) }, [messages, streaming])
+  useEffect(() => { if (step === "suggest") void loadSuggestions() }, [step])
+  useEffect(() => { if (messages.length) bottomRef.current?.scrollIntoView({ behavior: "auto" }) }, [messages, streaming])
+  useEffect(() => {
+    if (streaming || !messages.length) return
+    const clean = messages.filter(m => m.content.trim())
+    const serialized = JSON.stringify(clean)
+    if (serialized === lastSaved.current) return
+    const timer = window.setTimeout(() => {
+      void updateSession({ messages: clean, study_mode: selectedType || "theory", subtopic: selectedSubtopic || topic, duration_seconds: durationRef.current }).then(ok => { if (ok) lastSaved.current = serialized })
+    }, 350)
+    return () => window.clearTimeout(timer)
+  }, [messages, streaming, selectedType, selectedSubtopic, topic, updateSession])
+  useEffect(() => {
+    if (!session?.id || (step !== "study" && step !== "quiz") || finished) return
+    let last = Date.now(), pending = 0
+    const timer = window.setInterval(() => {
+      const now = Date.now()
+      if (document.visibilityState === "visible" && document.hasFocus()) {
+        const delta = Math.min(5, Math.max(0, Math.round((now-last)/1000)))
+        durationRef.current += delta; pending += delta
+        if (pending >= 30) { pending = 0; void updateSession({ duration_seconds: durationRef.current }) }
+      }
+      last = now
+    }, 5000)
+    return () => { window.clearInterval(timer); if (pending > 0) void updateSession({ duration_seconds: durationRef.current }) }
+  }, [session?.id, step, finished, updateSession])
+  async function finishStudy() {
+    const ok = await updateSession({status:"completed", messages:messages.filter(m=>m.content.trim()), duration_seconds:durationRef.current})
+    if (ok) { setFinished(true); setStudyNotice("Sesión completada y guardada. Puedes volver a revisarla cuando quieras.") }
+  }
 
   // ── Toda la lógica IDÉNTICA al original ──────────────────────────────────
   async function loadSuggestions() {
@@ -66,10 +90,11 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
     try {
       const res  = await fetch("/api/agents/suggest", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ topic }),
+        body: JSON.stringify({ topic, learningContext }),
       })
+      if (!res.ok) throw Error("No se pudieron sugerir temas. Puedes escribir tu propio subtema.")
       const data = await res.json()
-      setSuggestions(data.suggestions || [])
+      setSuggestions(Array.isArray(data.suggestions) ? data.suggestions : [])
     } catch (e: any) { setError(e.message) }
     finally { setLoadingSuggestions(false) }
   }
@@ -79,24 +104,25 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
   }
 
   function selectType(typeId: string) {
-    setSelectedType(typeId); setStep("study")
+    setSelectedType(typeId); setStep("study"); setFinished(false); setStudyNotice("")
     const typeLabel = STUDY_TYPES.find(t => t.id === typeId)?.label || typeId
-    sendMessage(`Quiero aprender sobre "${selectedSubtopic}" — modo: ${typeLabel}`, [], true)
-    gainXP(5, "sesión iniciada")
+    void updateSession({ study_mode:typeId, subtopic:selectedSubtopic || topic, status:"active" })
+    void sendMessage(`Quiero aprender sobre "${selectedSubtopic || topic}" — modo: ${typeLabel}`, messages, false, typeId)
   }
 
-  async function sendMessage(userText: string, history: ChatMessage[], isFirst = false) {
+  async function sendMessage(userText: string, history: ChatMessage[], isFirst = false, mode = selectedType) {
+    setError("")
     const recentHistory = history.slice(-2)
     if (!isFirst) setMessages(prev => [...prev, { role: "user", content: userText }])
     setStreaming(true); setSuggestedFollowups([])
     setMessages(prev => [...prev, { role: "ai", content: "" }])
     try {
-      const isSocratic = selectedType === "socratic"
+      const isSocratic = mode === "socratic"
       const res = await fetch(isSocratic ? "/api/agents/socratic" : "/api/agents/chat", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          topic: selectedSubtopic || topic, studyType: selectedType,
-          userMessage: userText, history: recentHistory, level: currentLevel,
+          topic: selectedSubtopic || topic, studyType: mode,
+          userMessage: userText, history: recentHistory, level: difficulty, learningContext,
         }),
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -106,7 +132,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
       let buffer = ""
       while (true) {
         const { done, value } = await reader.read(); if (done) break
-        buffer += decoder.decode(value)
+        buffer += decoder.decode(value, {stream:true})
         const splitMarker = "\n---FOLLOWUPS---\n"
         let aiContent = buffer
         if (buffer.includes(splitMarker)) {
@@ -119,8 +145,8 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
           return updated
         })
       }
-      if (!isFirst) { gainXP(5, "pregunta respondida"); checkAchievements() }
-    } catch (e: any) { setError(e.message) }
+
+    } catch (e: any) { setError(e.message); setMessages(prev=>prev.filter(m=>m.content.trim())) }
     finally { setStreaming(false) }
   }
 
@@ -131,26 +157,28 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
     sendMessage(text, messages)
   }
 
-  async function handleQuizFinish(results: QuizResult[], xp: number) {
-    setQuizResults(results); setQuizXP(xp); setStep("results")
-    const correct = results.filter(r => r.isCorrect).length
-    await completeSession(correct, results.length, currentLevel, xp)
-    if (xp > 0) gainXP(xp, "quiz completado"); checkAchievements()
-    fetch("/api/missions", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event: "quiz_completed" }) }).catch(console.error)
-    fetch("/api/missions", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event: "session_completed" }) }).catch(console.error)
-    const score = Math.round((results.filter(r => r.isCorrect).length / results.length) * 100)
-    fetch("/api/memory",            { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic: selectedSubtopic || topic, messages, quizResults: results }) }).catch(console.error)
-    fetch("/api/spaced-repetition", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ topic: selectedSubtopic || topic, score }) }).catch(console.error)
+  async function handleQuizFinish(results: QuizResult[]) {
+    setQuizResults(results); setStep("results")
+    const correct=results.filter(r=>r.isCorrect).length
+    const ok=await completeSession(correct,results.length,messages.filter(m=>m.content.trim()))
+    if (ok) setFinished(true)
+    if (!results.length) return
+    const score=Math.round(correct/results.length*100)
+    fetch("/api/memory",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topic:selectedSubtopic||topic,messages,quizResults:results})}).catch(console.error)
+    fetch("/api/spaced-repetition",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({topic:selectedSubtopic||topic,score})}).catch(console.error)
   }
 
   // ── PASO 1: Sugerencias ───────────────────────────────────────────────────
   if (step === "suggest") {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-12">
-        <div className="text-center mb-10">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        <div className="text-center mb-6">
           <h2 className="text-3xl font-bold text-main mb-2">¿Qué quieres aprender sobre</h2>
           <h3 className="text-3xl font-bold text-blue-400 mb-3">{topic}?</h3>
           <p className="text-muted2 text-sm">Elige un subtema para una explicación más precisa</p>
+          <p className="mt-3 inline-flex rounded-full bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-600">{profileLabels[profile] || profileLabels.personal}</p>
+          {learningContext.objective && <p className="mx-auto mt-2 max-w-xl text-sm text-muted2">Objetivo: {learningContext.objective}</p>}
+          {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
         </div>
 
         {loadingSuggestions ? (
@@ -163,7 +191,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {suggestions.map(s => (
                 <button key={s.id} onClick={() => selectSubtopic(s.title)}
-                  className="rounded-2xl p-6 text-left transition-all group border"
+                  className="rounded-3xl p-5 text-left transition-all group border shadow-sm"
                   style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}
                   onMouseEnter={e => {
                     ;(e.currentTarget as HTMLElement).style.background   = "rgba(59,130,246,0.06)"
@@ -210,8 +238,8 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
   // ── PASO 2: Tipo de estudio ───────────────────────────────────────────────
   if (step === "type") {
     return (
-      <div className="max-w-4xl mx-auto px-6 py-12">
-        <div className="text-center mb-10">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6">
+        <div className="text-center mb-6">
           <p className="text-muted2 text-sm mb-1">{topic} →</p>
           <h2 className="text-3xl font-bold text-main mb-2">{selectedSubtopic}</h2>
           <p className="text-muted2 text-sm">¿Qué tipo de contenido quieres?</p>
@@ -220,7 +248,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
         <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {STUDY_TYPES.map(t => (
             <button key={t.id} onClick={() => selectType(t.id)}
-              className="rounded-2xl p-5 text-center transition-all group border"
+              className="rounded-3xl p-4 text-center transition-all group border shadow-sm"
               style={{ background: "var(--bg-card-soft)", borderColor: "var(--bg-card-soft)" }}
               onMouseEnter={e => {
                 ;(e.currentTarget as HTMLElement).style.background   = "rgba(59,130,246,0.06)"
@@ -251,14 +279,12 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
   if (step === "quiz") {
     return (
       <>
-        <XPToast events={xpEvents} />
-        <AchievementToast achievements={achievementsPending} onDismiss={dismissAchievement} />
         <QuizMode
           topic={selectedSubtopic || topic}
-          initialLevel={currentLevel}
+          initialLevel={difficulty}
+          learningContext={learningContext}
           onFinish={handleQuizFinish}
           onExit={() => setStep("study")}
-          onXP={gainXP}
         />
       </>
     )
@@ -270,7 +296,6 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
       <QuizResults
         topic={selectedSubtopic || topic}
         results={quizResults}
-        xpEarned={quizXP}
         onStudyMore={() => setStep("study")}
         onRetry={() => setStep("quiz")}
       />
@@ -280,42 +305,16 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
   // ── PASO 5: Conversación ──────────────────────────────────────────────────
   return (
     <>
-      <XPToast events={xpEvents} />
-      <AchievementToast achievements={achievementsPending} onDismiss={dismissAchievement} />
       <div className="max-w-4xl mx-auto px-6 py-6">
 
-        <StudyBanner
-          topic={topic}
-          subtopic={selectedSubtopic}
-          level={currentLevel}
-          currentXP={currentXP}
-          showEvaluate={messages.length >= 1 && !streaming}
-          onEvaluate={() => setStep("quiz")}
-        />
-
-        {/* Breadcrumb + XP */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2 text-xs text-muted2">
-            <button onClick={() => setStep("suggest")} className="hover:text-sub transition-colors">{topic}</button>
-            <span>→</span>
-            <button onClick={() => setStep("type")} className="hover:text-sub transition-colors">{selectedSubtopic}</button>
-            <span>→</span>
-            <span className="text-blue-400">{STUDY_TYPES.find(t => t.id === selectedType)?.label}</span>
+        <div className="mb-5 rounded-3xl border border-violet-400/20 bg-card-theme p-4 shadow-sm" style={{backgroundImage:"linear-gradient(115deg,rgba(167,139,250,.13),rgba(96,165,250,.07),rgba(45,212,191,.10))"}}>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="min-w-0"><p className="text-xs font-semibold text-violet-600">{profileLabels[profile] || profileLabels.personal}</p><h2 className="text-lg font-bold">{selectedSubtopic || topic}</h2><p className="text-xs text-muted2">{STUDY_TYPES.find(t=>t.id===selectedType)?.label || "Estudio libre"} · {saving?"Guardando…":saveError?"Error de guardado":finished?"Completada":"En curso"}</p></div>
+            <div className="flex flex-wrap gap-2"><button type="button" onClick={()=>setStep("type")} className="rounded-xl border border-soft bg-card-theme px-3 py-2 text-xs font-semibold">Cambiar modo</button>{messages.length>0&&!streaming&&<button type="button" onClick={()=>setStep("quiz")} className="rounded-xl bg-violet-600 px-3 py-2 text-xs font-semibold text-white">Comprobar comprensión</button>}{!finished&&!streaming&&<button type="button" onClick={()=>void finishStudy()} className="rounded-xl border border-violet-400/30 bg-card-theme px-3 py-2 text-xs font-semibold">Finalizar sesión</button>}</div>
           </div>
-          <div className="flex items-center gap-3">
-            {currentXP !== null && (
-              <span className="text-amber-400 text-xs font-medium">⚡ {currentXP} XP</span>
-            )}
-            {messages.length >= 1 && !streaming && (
-              <button
-                onClick={() => setStep("quiz")}
-                className="text-white text-xs font-semibold px-4 py-2 rounded-full transition-all"
-                style={{ background: "linear-gradient(135deg, #7c3aed, #8b5cf6)", boxShadow: "0 2px 8px rgba(124,58,237,0.3)" }}
-              >
-                🎯 Evalúame
-              </button>
-            )}
-          </div>
+          {learningContext.objective&&<p className="mt-2 text-sm text-muted2">Objetivo: {learningContext.objective}</p>}
+          {studyNotice&&<p role="status" className="mt-2 text-sm text-emerald-700">{studyNotice}</p>}
+          {saveError&&<p role="alert" className="mt-2 text-sm text-red-600">{saveError} <button type="button" className="underline" onClick={()=>void updateSession({messages:messages.filter(m=>m.content.trim()),duration_seconds:durationRef.current,study_mode:selectedType||"theory",subtopic:selectedSubtopic||topic})}>Reintentar guardado</button></p>}
         </div>
 
         {/* Mensajes */}
@@ -333,7 +332,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
                     <VisualBlock topic={selectedSubtopic || topic} context={msg.content} />
                   )}
                   {!streaming && msg.content && (
-                    <VoiceNarrator text={msg.content} autoPlay={i === messages.length - 1} addMotivation={i === messages.length - 1} />
+                    <VoiceNarrator text={msg.content} autoPlay={false} addMotivation={false} />
                   )}
                   {streaming && i === messages.length - 1 && (
                     <span className="inline-block w-0.5 h-5 bg-blue-400 animate-pulse ml-1 align-middle" />
@@ -385,7 +384,7 @@ export default function StudyClient({ topic, subtopic, level, initialXP }: Props
         )}
 
         {/* Input */}
-        {!streaming && messages.length > 0 && (
+        {!streaming && (
           <form onSubmit={handleUserSubmit} className="flex gap-3 sticky bottom-6">
             <input
               ref={inputRef}
