@@ -29,7 +29,7 @@ const NAV_LINKS = [
   { href: "/collab", icon: Users, label: "Colaborar", color: "#0d9488" },
   { href: "/workspace", icon: FolderKanban, label: "Workspace", color: "#4338ca" },
   { href: "/qr-studio", icon: QrCode, label: "QR Studio", color: "#0891b2" },
-  { href: "/profile", icon: UserCircle2, label: "Perfil", color: "var(--text-muted)" },
+  { href: "/profile", icon: UserCircle2, label: "Perfil", color: "#64748b" },
 ]
 
 export default function Dashboard() {
@@ -69,12 +69,115 @@ export default function Dashboard() {
   const displayName = user?.user_metadata?.name || user?.email?.split("@")[0] || "Usuario"
 
   return (
-    <div className="flex h-[calc(100dvh-var(--legacy-consent-banner-height,0px))] min-h-0 overflow-hidden bg-app [--sidebar-closed:56px] [--sidebar-open:184px] lg:[--sidebar-closed:68px] lg:[--sidebar-open:220px] min-[2048px]:[--sidebar-closed:84px] min-[2048px]:[--sidebar-open:280px]">
+    <div className="eduai-dashboard-refresh flex h-[calc(100dvh-var(--legacy-consent-banner-height,0px))] min-h-0 overflow-hidden bg-app [--sidebar-closed:56px] [--sidebar-open:184px] lg:[--sidebar-closed:68px] lg:[--sidebar-open:220px] min-[2048px]:[--sidebar-closed:84px] min-[2048px]:[--sidebar-open:280px]">
+      <style>{`
+/* Scoped to the dashboard; existing theme tokens remain the source of text/surface contrast. */
+.eduai-dashboard-refresh {
+  --claw-lavender: rgba(139,92,246,.12);
+  --claw-blue: rgba(96,165,250,.10);
+  --claw-mint: rgba(45,212,191,.09);
+  background-image: radial-gradient(ellipse at 7% 3%, var(--claw-lavender), transparent 43%), radial-gradient(ellipse at 98% 95%, var(--claw-blue), transparent 52%);
+}
+.eduai-dashboard-refresh aside > div:first-child {
+  background-image: linear-gradient(165deg, var(--claw-lavender), transparent 45%, var(--claw-blue)) !important;
+}
+.eduai-dashboard-refresh aside nav a > div:first-child,
+.eduai-dashboard-refresh aside button > div:first-child {
+  border-radius: 14px;
+  box-shadow: 0 3px 10px rgba(76,58,145,.08);
+}
+.eduai-dashboard-refresh .eduai-dashboard-topbar {
+  background-image: linear-gradient(100deg, var(--claw-lavender), transparent 45%, var(--claw-blue)) !important;
+}
+.eduai-dashboard-refresh .eduai-dashboard-topbar a {
+  border-radius: 999px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 7px rgba(79,70,229,.07);
+}
+.eduai-dashboard-refresh .claw-refresh {
+  background: color-mix(in srgb, var(--bg-card) 84%, transparent);
+  border-color: color-mix(in srgb, #a78bfa 22%, var(--border-soft));
+  box-shadow: 0 8px 32px rgba(85,65,155,.09);
+}
+.eduai-dashboard-refresh .claw-refresh-header {
+  align-items: center;
+  background-image: radial-gradient(ellipse at 94% 100%, var(--claw-mint), transparent 48%), linear-gradient(110deg, var(--claw-lavender), var(--claw-blue), transparent);
+}
+.eduai-dashboard-refresh .claw-refresh-transcript {
+  background: radial-gradient(ellipse at 2% 2%, var(--claw-lavender), transparent 55%), radial-gradient(ellipse at 100% 100%, var(--claw-blue), transparent 55%);
+}
+.eduai-dashboard-refresh .claw-refresh-context {
+  background: color-mix(in srgb, var(--bg-card) 85%, #a78bfa 15%);
+  border-color: rgba(139,92,246,.20);
+  color: var(--text-primary);
+}
+.eduai-dashboard-refresh .claw-refresh-start {
+  background: linear-gradient(125deg, var(--claw-lavender), var(--claw-blue) 56%, var(--claw-mint)), var(--bg-card);
+  border-color: rgba(139,92,246,.19);
+  box-shadow: 0 6px 22px rgba(85,65,155,.07);
+}
+.eduai-dashboard-refresh .claw-refresh-welcome {
+  background: radial-gradient(ellipse at 100% 50%, rgba(45,212,191,.17), transparent 52%), linear-gradient(120deg, rgba(167,139,250,.17), rgba(96,165,250,.10)), var(--bg-card);
+  border-color: rgba(139,92,246,.15);
+}
+.eduai-dashboard-refresh .claw-refresh-action {
+  min-height: 60px;
+  box-shadow: 0 4px 14px rgba(79,70,229,.06);
+}
+.eduai-dashboard-refresh .claw-refresh-action:hover,
+.eduai-dashboard-refresh .claw-refresh-shortcut:hover {
+  border-color: #a78bfa !important;
+  box-shadow: 0 5px 18px rgba(124,58,237,.15);
+}
+.eduai-dashboard-refresh .claw-refresh-assistant {
+  background: linear-gradient(135deg, var(--claw-blue), transparent 60%, var(--claw-lavender)), var(--bg-card);
+  border-color: rgba(139,92,246,.15);
+  box-shadow: 0 4px 14px rgba(85,65,155,.07);
+  overflow-wrap: anywhere;
+}
+.eduai-dashboard-refresh .claw-refresh-user,
+.eduai-dashboard-refresh .claw-refresh-send {
+  background: linear-gradient(120deg,#4f46e5,#7c3aed);
+  box-shadow: 0 3px 12px rgba(99,70,210,.20);
+}
+.eduai-dashboard-refresh .claw-refresh-footer {
+  background: color-mix(in srgb, var(--bg-card) 90%, transparent);
+}
+.eduai-dashboard-refresh .claw-refresh-composer {
+  background: linear-gradient(120deg, var(--claw-lavender), transparent 45%, var(--claw-blue)), var(--bg-card);
+  border-color: rgba(139,92,246,.30);
+  box-shadow: 0 0 0 3px rgba(139,92,246,.07), 0 6px 20px rgba(85,65,155,.09);
+}
+.eduai-dashboard-refresh .claw-refresh-composer:focus-within {
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139,92,246,.17);
+}
+.eduai-dashboard-refresh .claw-refresh-send:hover:not(:disabled) { background: linear-gradient(120deg,#4338ca,#6d28d9); }
+.eduai-dashboard-refresh .claw-refresh-send:disabled { opacity: .5; }
+.eduai-dashboard-refresh :is(a,button):focus-visible { outline: 2px solid #8b5cf6; outline-offset: 2px; }
+.dark .eduai-dashboard-refresh .claw-refresh-action > div:first-child { color: #e0e7ff !important; }
+@media (min-width: 1280px) {
+  .eduai-dashboard-refresh .claw-refresh-transcript > div,
+  .eduai-dashboard-refresh .claw-refresh-composer { max-width: 1120px; }
+}
+@media (min-width: 2048px) {
+  .eduai-dashboard-refresh .claw-refresh-transcript > div,
+  .eduai-dashboard-refresh .claw-refresh-composer { max-width: 1450px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .eduai-dashboard-refresh aside, .eduai-dashboard-refresh main,
+  .eduai-dashboard-refresh .claw-refresh-action,
+  .eduai-dashboard-refresh .claw-refresh-action > div { transition: none; }
+}
+`}</style>
       <aside
         style={{ width: expanded ? "var(--sidebar-open)" : "var(--sidebar-closed)" }}
         className="fixed left-0 top-[var(--legacy-consent-banner-height,0px)] z-20 flex h-[calc(100dvh-var(--legacy-consent-banner-height,0px))] min-h-0 flex-col overflow-hidden transition-[width] duration-300"
         onMouseEnter={() => setExpanded(true)}
-        onMouseLeave={() => setExpanded(false)}
+        onMouseLeave={(event) => { if (!event.currentTarget.contains(document.activeElement)) setExpanded(false) }}
+        onFocusCapture={() => setExpanded(true)}
+        onBlurCapture={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setExpanded(false) }}
+        aria-label="Navegación EduAI"
       >
         <div
           className="absolute inset-0 border-r backdrop-blur-xl"
@@ -104,6 +207,7 @@ export default function Dashboard() {
                 <Link
                   key={item.href}
                   href={item.href}
+                  aria-label={item.label}
                   title={!expanded ? item.label : undefined}
                   className="group flex items-center gap-2 rounded-xl border border-transparent px-1.5 py-2 transition-all lg:gap-3 lg:rounded-2xl lg:px-2.5 lg:py-2.5 min-[2048px]:py-3"
                   onMouseEnter={(event) => (event.currentTarget.style.background = `${item.color}0d`)}
@@ -127,6 +231,7 @@ export default function Dashboard() {
             {isAdmin && (
               <Link
                 href="/admin"
+                aria-label="Administración"
                 title={!expanded ? "Administración" : undefined}
                 className="group mt-1 flex items-center gap-2 rounded-xl border border-transparent px-1.5 py-2 transition-all lg:gap-3 lg:rounded-2xl lg:px-2.5 lg:py-2.5 min-[2048px]:py-3"
                 onMouseEnter={(event) => (event.currentTarget.style.background = "rgba(124,58,237,0.07)")}
@@ -157,6 +262,7 @@ export default function Dashboard() {
                 router.push("/login")
               }}
               className="group flex w-full items-center gap-2 rounded-xl border border-transparent px-1.5 py-2 transition-all hover:border-red-100 hover:bg-red-50 lg:gap-3 lg:rounded-2xl lg:px-2.5 lg:py-2.5 min-[2048px]:py-3"
+              aria-label="Cerrar sesión"
               title={!expanded ? "Salir" : undefined}
             >
               <div
@@ -180,7 +286,7 @@ export default function Dashboard() {
         className="flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden transition-[margin] duration-300"
       >
         <div
-          className="z-10 shrink-0 border-b backdrop-blur-xl"
+          className="eduai-dashboard-topbar z-10 shrink-0 border-b backdrop-blur-xl"
           style={{ background: "var(--bg-header)", borderColor: "var(--border-soft)" }}
         >
           <div className="mx-auto flex h-12 w-full max-w-[1480px] items-center justify-between px-3 lg:h-14 lg:px-6 min-[2048px]:h-16 min-[2048px]:max-w-[1960px] min-[2048px]:px-10">
@@ -188,9 +294,10 @@ export default function Dashboard() {
               <p className="text-[10px] font-semibold uppercase tracking-widest text-muted2 lg:text-xs min-[2048px]:text-[13px]">EduAI</p>
               <p className="hidden text-xs text-sub lg:block min-[2048px]:text-sm">Claw es tu espacio principal de trabajo en EduAI</p>
             </div>
-            <div className="flex items-center gap-2 lg:gap-2.5 min-[2048px]:gap-3">
+            <div className="flex min-w-0 items-center gap-2 overflow-x-auto lg:gap-2.5 min-[2048px]:gap-3">
               <Link
                 href="/biblioteca"
+                aria-label="Biblioteca"
                 className="group flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition-all hover:-translate-y-0.5 lg:rounded-xl lg:px-3 lg:text-xs min-[2048px]:px-4 min-[2048px]:py-2 min-[2048px]:text-sm"
                 style={{
                   background: "rgba(124,58,237,0.08)",
@@ -203,6 +310,7 @@ export default function Dashboard() {
               </Link>
               <Link
                 href="/music"
+                aria-label="Música"
                 data-eduai-header-action="music"
                 className="group flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition-all hover:-translate-y-0.5 lg:rounded-xl lg:px-3 lg:text-xs min-[2048px]:px-4 min-[2048px]:py-2 min-[2048px]:text-sm"
                 style={{
@@ -217,6 +325,7 @@ export default function Dashboard() {
               </Link>
               <Link
                 href="/soporte"
+                aria-label="Reportar una falla"
                 data-eduai-header-action="report"
                 className="group flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] font-semibold transition-all hover:-translate-y-0.5 lg:rounded-xl lg:px-3 lg:text-xs min-[2048px]:px-4 min-[2048px]:py-2 min-[2048px]:text-sm"
                 style={{
