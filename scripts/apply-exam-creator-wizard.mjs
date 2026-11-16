@@ -30,7 +30,7 @@ function patchWizard(s){
 
 `+s.slice(k);
  R('    setAiModeIds(getSubjectPedagogyProfile(subject).preferredModes);','    if(restoredSubjectRef.current===subject){restoredSubjectRef.current=null;return;}\n    setAiModeIds(getSubjectPedagogyProfile(subject).preferredModes);');
- R('  const applyDocumentImport = ',`  const stepDataError = () => !curriculumCurso || !subject ? "Selecciona curso y asignatura." : !rosterCourse.trim() ? "Indica curso y sección." : !title.trim() ? "Ingresa el título." : !topic.trim() ? "Ingresa el tema." : "";
+ R('  const applyDocumentImport = ',`  const stepDataError = () => !curriculumCurso || !subject ? "Selecciona curso y asignatura." : !cleanCourses(rosterCourse).length ? "Agrega al menos un curso y sección." : !title.trim() ? "Ingresa el título." : !topic.trim() ? "Ingresa el tema." : "";
   const goStep = (next: number, chosenMethod = creationMethod) => {
     if(saving)return;
     if(next>activeStep){
