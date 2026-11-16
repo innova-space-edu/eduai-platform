@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { hasAttemptCredential } from "@/lib/exam/verified-entry";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,6 +24,7 @@ type SaveDevelopmentBody = {
   examId?: string;
   submissionId?: string | null;
   clientAttemptId?: string;
+  attemptCredential?: string;
   questionId?: string;
   questionIndex?: number;
   artifactVersion?: number;
@@ -127,7 +129,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Faltan identificadores válidos del examen o la pregunta." }, { status: 400 });
     }
 
+    if(!hasAttemptCredential(examId,clientAttemptId,body.attemptCredential))return NextResponse.json({error:"Vuelve a identificarte para guardar el cuaderno."},{status:401});
     const supabase = getAdminClient();
+    const {data:attempt,error:attemptError}=await supabase.from("exam_attempt_drafts").select("status").eq("exam_id",examId).eq("client_attempt_id",clientAttemptId).maybeSingle();
+    if(attemptError)throw attemptError;
+    if(!attempt||attempt.status!=="in_progress")return NextResponse.json({error:"El intento no está activo."},{status:409});
     const basePath = `${safeSegment(examId, "exam")}/${safeSegment(clientAttemptId, "attempt")}/${questionIndex}`;
     const jsonPath = `${basePath}/artifact.json`;
     const pngPath = `${basePath}/preview.png`;
