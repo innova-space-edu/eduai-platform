@@ -85,7 +85,7 @@ async function handle(req:Request,method:string){
    if(!uuid(body.id))return response({error:"Recurso inválido."},400)
    let q=db.from("collab_tools").delete().eq("room_id",room.id).eq("id",body.id)
    if(!host)q=q.eq("created_by",user.id)
-   requireOk(await q);return response({ok:true})
+   const {data:deleted,error}=await q.select("content,kind").maybeSingle();if(error)throw Error("No se pudo eliminar.");if(!deleted)return response({error:"No tienes permiso para eliminar este recurso."},403);if(deleted.kind==="file"&&deleted.content.startsWith("storage:"+room.id+"/"))await db.storage.from("collab-private-files").remove([deleted.content.slice(8)]);return response({ok:true})
   }
   if(action==="call-join"){
    if(!uuid(body.peer))return response({error:"Identificador inválido."},400)
