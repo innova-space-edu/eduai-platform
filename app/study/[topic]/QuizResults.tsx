@@ -22,18 +22,17 @@ interface Diagnosis {
 interface Props {
   topic: string
   results: QuizResult[]
-  xpEarned: number
   onStudyMore: () => void
   onRetry: () => void
 }
 
-export default function QuizResults({ topic, results, xpEarned, onStudyMore, onRetry }: Props) {
+export default function QuizResults({ topic, results, onStudyMore, onRetry }: Props) {
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null)
   const [loadingDiagnosis, setLoadingDiagnosis] = useState(false)
 
   const correct = results.filter(r => r.isCorrect).length
   const total = results.length
-  const percent = Math.round((correct / total) * 100)
+  const percent = total ? Math.round((correct / total) * 100) : 0
 
   useEffect(() => {
     runDiagnosis()
@@ -58,10 +57,10 @@ export default function QuizResults({ topic, results, xpEarned, onStudyMore, onR
   }
 
   const getMessage = () => {
-    if (percent === 100) return { text: "¡Perfecto! Dominas este tema 🏆", color: "text-amber-400" }
-    if (percent >= 80)  return { text: "¡Muy bien! Casi lo tienes 🎯",     color: "text-green-400" }
-    if (percent >= 60)  return { text: "Buen intento, sigue practicando 💪", color: "text-blue-400" }
-    return { text: "Necesitas repasar este tema 📚", color: "text-red-400" }
+    if (percent === 100) return { text: "Todas las respuestas correctas", color: "text-amber-400" }
+    if (percent >= 80)  return { text: "Comprensión sólida en esta práctica",     color: "text-green-400" }
+    if (percent >= 60)  return { text: "Conviene reforzar algunos conceptos", color: "text-blue-400" }
+    return { text: "Revisa los conceptos que presentan dificultades", color: "text-red-400" }
   }
 
   const msg = getMessage()
@@ -72,7 +71,7 @@ export default function QuizResults({ topic, results, xpEarned, onStudyMore, onR
       {/* Resultado principal */}
       <div className="bg-card-theme border border-soft rounded-2xl p-8 text-center mb-6">
         <div className="text-6xl mb-4">
-          {percent === 100 ? "🏆" : percent >= 80 ? "🎯" : percent >= 60 ? "💪" : "📚"}
+          📋
         </div>
         <h2 className={`text-2xl font-bold mb-1 ${msg.color}`}>{msg.text}</h2>
         <p className="text-muted2 text-sm mb-6">{topic}</p>
@@ -84,13 +83,8 @@ export default function QuizResults({ topic, results, xpEarned, onStudyMore, onR
           </div>
           <div className="w-px h-12 bg-card-soft-theme" />
           <div>
-            <p className="text-4xl font-bold text-amber-400">+{xpEarned}</p>
-            <p className="text-muted2 text-xs mt-1">XP ganado</p>
-          </div>
-          <div className="w-px h-12 bg-card-soft-theme" />
-          <div>
             <p className="text-4xl font-bold text-blue-400">{percent}%</p>
-            <p className="text-muted2 text-xs mt-1">puntuación</p>
+            <p className="text-muted2 text-xs mt-1">respuestas correctas</p>
           </div>
         </div>
       </div>
