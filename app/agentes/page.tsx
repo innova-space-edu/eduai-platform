@@ -368,8 +368,8 @@ function normalize(value: string) {
   return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
 }
 
-const control = "inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-medium bg-card-theme px-3.5 text-sm font-medium text-sub shadow-sm transition hover:border-violet-400 hover:text-violet-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 dark:hover:text-violet-300";
-const selected = "border-violet-600 bg-violet-600 text-white hover:bg-violet-700 hover:text-white dark:hover:text-white";
+const control = "inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-full border border-medium px-3.5 text-sm font-medium text-sub shadow-sm transition hover:border-violet-400 hover:text-violet-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 dark:hover:text-violet-300";
+const selected = "border-violet-600! bg-violet-600! text-white! hover:bg-violet-700!";
 
 function AgentCard({ agent, favorite, onFavorite, onOpen, featured = false }: {
   agent: AgentItem; favorite: boolean; onFavorite: (id: string) => void;
@@ -550,7 +550,7 @@ export default function AgentesPage() {
 
         <nav aria-label="Categorías de agentes" className="flex gap-2 overflow-x-auto rounded-2xl border border-medium bg-card-theme p-2 shadow-sm [scrollbar-width:thin]">
           {["Todos", ...TAGS].map((tag) => (
-            <button key={tag} type="button" aria-pressed={category === tag} onClick={() => { setCategory(tag); setPage(1); }} className={control + " whitespace-nowrap " + (category === tag ? selected : "")}>
+            <button key={tag} type="button" aria-pressed={category === tag} onClick={() => { setCategory(tag); setPage(1); }} className={control + " whitespace-nowrap " + (category === tag ? selected : "")} style={category === tag ? undefined : { backgroundColor: AGENTS.find((agent) => agent.tag === tag)?.glow, borderColor: AGENTS.find((agent) => agent.tag === tag)?.border }}>
               {tag === "Todos" && <LayoutGrid size={15} />}
               {tag} <span className="text-xs opacity-75">{tag === "Todos" ? AGENTS.length : AGENTS.filter((agent) => agent.tag === tag).length}</span>
             </button>
