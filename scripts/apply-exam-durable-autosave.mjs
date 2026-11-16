@@ -111,7 +111,7 @@ edit("app/examen/p/[code]/page.tsx",(r,s)=>{
  r('        Number(exam?.settings?.timeLimit || 30) * 60,','        Number(attempt.durationSeconds) || Number(exam?.settings?.timeLimit || 30) * 60,');
  r('      setTimeLeft(safeTimeLeft);','      deadlineRef.current=Date.now()+safeTimeLeft*1000;\n      setTimeLeft(safeTimeLeft);');
  r('      setAutosaveStatus(data.resumed ? "saved" : "idle");','      setAutosaveStatus(recovered?"saving":data.resumed?"saved":"idle");');
- r('        data.resumed\n          ? "Avance anterior recuperado"','        recovered ? "Avance local recuperado. Sincronizando…" : data.resumed\n          ? "Avance anterior recuperado"');
+ r('        data.resumed\n          ? `Identidad verificada:','        recovered ? "Avance local recuperado. Sincronizando…" : data.resumed\n          ? `Identidad verificada:');
  r('      setTimeLeft((prev) => {\n        if (prev <= 1) {\n          if (timerRef.current) clearInterval(timerRef.current);\n          return 0;\n        }\n        return prev - 1;\n      });','      setTimeLeft(Math.max(0,Math.ceil((deadlineRef.current-Date.now())/1000)));');
  r('                      attemptId={attemptIdRef.current}','                      attemptId={attemptIdRef.current}\n                      initialArtifact={developmentArtifacts[curQ]}');
  r('        setDevelopmentArtifacts((current) => ({\n          ...current,\n          [curQ]: artifact,\n        }));','        const next={...latestExamStateRef.current.developmentArtifacts,[curQ]:artifact};\n        setDevelopmentArtifacts(next);\n        stageCheckpoint({developmentArtifacts:next});');
