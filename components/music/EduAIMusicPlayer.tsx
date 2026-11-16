@@ -2548,7 +2548,7 @@ function NeonMain({
   }
 
   return (
-    <main className="neon-main min-h-0 overflow-hidden px-[clamp(12px,1.2vw,20px)] pb-3 pt-5">
+    <main data-embedded-radio={music.view === "radio" && isEmbedTrack(music.currentTrack) && Boolean(getEmbedUrl(music.currentTrack))} className="neon-main min-h-0 overflow-hidden px-[clamp(12px,1.2vw,20px)] pb-3 pt-5">
       <div className="gaming-main-stack flex h-full min-h-0 flex-col">
         <div className="gaming-hero relative shrink-0 px-[clamp(12px,2vw,30px)] pt-[clamp(6px,1vh,14px)]">
           <GamingHeroScene />
@@ -4530,6 +4530,15 @@ export default function EduAIMusicPlayer({
           .eduai-music-cyber .gaming-results { overflow:visible !important;flex:none; }
           .eduai-music-cyber .gaming-results-stack { height:auto; }
           .eduai-music-cyber .gaming-table-section { min-height:160px; }
+        }
+        /* Embedded radio can expand the header at any mobile/tablet height. */
+        @media (max-width:1279px) {
+          .eduai-music-cyber .neon-main[data-embedded-radio="true"] { overflow-y:auto !important; }
+          .eduai-music-cyber .neon-main[data-embedded-radio="true"] .gaming-main-stack { height:auto;min-height:100%; }
+          .eduai-music-cyber .neon-main[data-embedded-radio="true"] .gaming-results { overflow:visible !important;flex:none; }
+          .eduai-music-cyber .neon-main[data-embedded-radio="true"] .gaming-results-stack { height:auto; }
+          .eduai-music-cyber .neon-main[data-embedded-radio="true"] .gaming-table-section { flex:none;min-height:160px; }
+          .eduai-music-cyber .neon-main[data-embedded-radio="true"] .gaming-song-list { overflow:visible;flex:none;max-height:none; }
         }
         @media (prefers-reduced-motion:reduce) {
           .eduai-music-cyber :is(.neon-sidebar,.neon-main,.neon-right-panel,.neon-bottom-player,.neon-title-gradient,.neon-main-play) { animation:none !important; }
