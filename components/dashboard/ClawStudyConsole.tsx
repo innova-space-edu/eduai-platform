@@ -67,36 +67,42 @@ const CHAT_FILE_ACCEPT = ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.md,.csv,.j
 const CREATE_ACTIONS = [
   {
     label: "Planificar clase",
+    accent: "#2563eb",
     icon: PenLine,
     prompt: "Quiero planificar una clase. Tema: ",
     hint: "Objetivo, inicio, desarrollo, cierre y evaluación",
   },
   {
     label: "Crear actividad",
+    accent: "#7c3aed",
     icon: BookOpen,
     prompt: "Quiero crear una actividad de aprendizaje. Tema: ",
     hint: "Actividad aplicable en aula con instrucciones claras",
   },
   {
     label: "Crear evaluación",
+    accent: "#0891b2",
     icon: FileQuestion,
     prompt: "Quiero crear una evaluación. Tema: ",
     hint: "Preguntas, pauta, niveles de logro y retroalimentación",
   },
   {
     label: "Crear rúbrica",
+    accent: "#b45309",
     icon: FileQuestion,
     prompt: "Quiero crear una rúbrica para evaluar ",
     hint: "Criterios, indicadores y niveles de desempeño",
   },
   {
     label: "Adaptar para PIE",
+    accent: "#047857",
     icon: Sparkles,
     prompt: "Necesito adaptar para PIE el siguiente material o actividad: ",
     hint: "Ajustes de acceso, instrucciones y carga cognitiva",
   },
   {
     label: "Crear material visual",
+    accent: "#be185d",
     icon: ImageIcon,
     prompt: "Quiero crear un material visual educativo sobre ",
     hint: "Infografía, apoyo visual o recurso para la clase",
@@ -674,8 +680,8 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
   }
 
   return (
-    <section className="flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-soft bg-card-theme shadow-sm animate-fade-in lg:rounded-[1.75rem] min-[2048px]:rounded-[2.25rem]">
-      <div className="flex shrink-0 items-start justify-between gap-2 border-b border-soft px-3 py-3 lg:gap-4 lg:px-5 lg:py-4 min-[2048px]:px-8 min-[2048px]:py-5">
+    <section className="claw-refresh flex h-full min-h-0 flex-col overflow-hidden rounded-xl border border-soft bg-card-theme shadow-sm animate-fade-in lg:rounded-[1.75rem] min-[2048px]:rounded-[2.25rem]">
+      <div className="claw-refresh-header flex shrink-0 items-start justify-between gap-2 border-b border-soft px-3 py-3 lg:gap-4 lg:px-5 lg:py-4 min-[2048px]:px-8 min-[2048px]:py-5">
         <div className="flex min-w-0 items-start gap-2 lg:gap-3 min-[2048px]:gap-4">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-violet-600 text-white shadow-lg shadow-blue-500/20 lg:h-10 lg:w-10 lg:rounded-2xl min-[2048px]:h-12 min-[2048px]:w-12">
             <Bot size={18} className="min-[2048px]:h-6 min-[2048px]:w-6" />
@@ -688,31 +694,36 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
           </div>
         </div>
         <span className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700 lg:inline-flex min-[2048px]:px-4 min-[2048px]:py-1.5 min-[2048px]:text-xs">
-          activo
+          <span aria-hidden="true" className="mr-1.5 inline-block h-2 w-2 rounded-full bg-emerald-500" /> Activo
         </span>
       </div>
 
       <div
         ref={transcriptRef}
         data-eduai-chat-scroll="true"
-        className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-app/40 px-2.5 py-3 lg:space-y-4 lg:px-5 lg:py-5 min-[2048px]:space-y-5 min-[2048px]:px-8 min-[2048px]:py-7"
+        className="claw-refresh-transcript min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-app/40 px-2.5 py-3 lg:space-y-4 lg:px-5 lg:py-5 min-[2048px]:space-y-5 min-[2048px]:px-8 min-[2048px]:py-7"
       >
-        <div className="mx-auto flex w-full max-w-none items-center gap-2 rounded-xl border border-violet-100 bg-violet-50/70 px-2.5 py-2 text-[10px] text-violet-800 lg:max-w-[980px] lg:rounded-2xl lg:px-3 lg:text-xs min-[2048px]:max-w-[1280px] min-[2048px]:px-4 min-[2048px]:py-2.5 min-[2048px]:text-sm">
+        <div className="claw-refresh-context mx-auto flex w-full max-w-none items-center gap-2 rounded-xl border border-violet-100 bg-violet-50/70 px-2.5 py-2 text-[10px] text-violet-800 lg:max-w-[980px] lg:rounded-2xl lg:px-3 lg:text-xs min-[2048px]:max-w-[1280px] min-[2048px]:px-4 min-[2048px]:py-2.5 min-[2048px]:text-sm">
           <Sparkles size={13} className="shrink-0" />
           <span>{contextualPrompt}</span>
         </div>
 
         <div className="mx-auto w-full max-w-none space-y-3 lg:max-w-[980px] lg:space-y-4 min-[2048px]:max-w-[1280px] min-[2048px]:space-y-5">
           {messages.length === 1 && (
-            <div className="rounded-2xl border border-soft bg-card-soft-theme p-3 lg:rounded-3xl lg:p-4">
+            <div className="claw-refresh-start rounded-2xl border border-soft bg-card-soft-theme p-3 lg:rounded-3xl lg:p-4">
+              <div className="claw-refresh-welcome mb-3 rounded-2xl border border-soft p-3 lg:p-4">
+                <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-violet-700 dark:text-violet-300"><Sparkles size={13} /> Tu espacio de trabajo inteligente</p>
+                <h2 className="mt-1 text-lg font-bold tracking-tight text-main lg:text-2xl">¿Qué vamos a crear hoy?</h2>
+                <p className="mt-1 text-xs text-muted2 lg:text-sm">Planifica, investiga, enseña y crea con Claw.</p>
+              </div>
               <div className="mb-2.5 flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-black text-main lg:text-sm">¿Qué quieres hacer?</p>
+                  <p className="text-sm font-bold text-main lg:text-base">¿Qué quieres hacer?</p>
                   <p className="mt-0.5 text-[10px] text-muted2 lg:text-[11px]">Elige una tarea y completa el tema o material en el cuadro de mensaje.</p>
                 </div>
                 <span className="rounded-full bg-blue-50 px-2 py-1 text-[9px] font-bold text-blue-700 lg:text-[10px]">EduAI</span>
               </div>
-              <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
                 {CREATE_ACTIONS.map((action) => {
                   const Icon = action.icon
                   return (
@@ -720,18 +731,25 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
                       key={`quick-${action.label}`}
                       type="button"
                       onClick={() => handleCreateAction(action.prompt)}
-                      className="flex min-w-0 items-center gap-2 rounded-xl border border-soft bg-card-theme px-2.5 py-2 text-left transition hover:border-blue-200 hover:bg-blue-50/50 lg:rounded-2xl lg:px-3 lg:py-2.5"
+                      className="claw-refresh-action group flex min-w-0 items-center gap-2.5 rounded-2xl border border-soft bg-card-theme px-2.5 py-2 text-left transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-violet-500 lg:px-3 lg:py-3"
+                      style={{ borderColor: action.accent + "24", backgroundImage: "linear-gradient(145deg, transparent, " + action.accent + "0b)" }}
                     >
-                      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
-                        <Icon size={15} />
+                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl transition motion-safe:group-hover:scale-105" style={{ background: action.accent + "18", color: action.accent }}>
+                        <Icon size={19} />
                       </div>
                       <div className="min-w-0">
-                        <p className="truncate text-[11px] font-bold text-main lg:text-xs">{action.label}</p>
-                        <p className="truncate text-[9px] text-muted2 lg:text-[10px]">{action.hint}</p>
+                        <p className="text-xs font-bold leading-tight text-main lg:text-sm">{action.label}</p>
+                        <p className="mt-0.5 text-[10px] leading-snug text-muted2 lg:text-[11px]">{action.hint}</p>
                       </div>
                     </button>
                   )
                 })}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2" aria-label="Continuar trabajando">
+                <span className="mr-1 text-xs font-semibold text-muted2">Continúa trabajando:</span>
+                {[{ href: "/sessions", label: "Sesiones", icon: BookOpen }, { href: "/workspace", label: "Mis proyectos", icon: FileText }, { href: "/agentes", label: "Explorar agentes", icon: Bot }].map((item) => (
+                  <Link key={item.href} href={item.href} prefetch={false} className="claw-refresh-shortcut inline-flex items-center gap-1.5 rounded-full border border-soft bg-card-theme px-3 py-1.5 text-xs font-medium text-sub focus-visible:outline-2 focus-visible:outline-violet-500"><item.icon size={14} />{item.label}<ArrowRight size={12} /></Link>
+                ))}
               </div>
             </div>
           )}
@@ -741,8 +759,8 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
               <div
                 className={`group relative max-w-[94%] rounded-2xl px-3 py-2.5 text-[13px] leading-5 shadow-sm lg:max-w-[86%] lg:rounded-3xl lg:px-4 lg:py-3 lg:text-sm lg:leading-6 min-[2048px]:max-w-[80%] min-[2048px]:px-5 min-[2048px]:py-4 min-[2048px]:text-base min-[2048px]:leading-7 ${
                   message.role === "user"
-                    ? "rounded-br-md bg-blue-600 text-white lg:rounded-br-lg"
-                    : "rounded-bl-md border border-soft bg-card-soft-theme pr-10 text-main lg:rounded-bl-lg lg:pr-11"
+                    ? "claw-refresh-user rounded-br-md bg-blue-600 text-white lg:rounded-br-lg"
+                    : "claw-refresh-assistant rounded-bl-md border border-soft bg-card-soft-theme pr-10 text-main lg:rounded-bl-lg lg:pr-11"
                 }`}
               >
                 {message.role === "assistant" && message.content.trim() && (
@@ -791,7 +809,7 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
         </div>
       </div>
 
-      <div className="relative shrink-0 border-t border-soft bg-card-theme px-2 py-2 lg:px-5 lg:py-4 min-[2048px]:px-8 min-[2048px]:py-5">
+      <div className="claw-refresh-footer relative shrink-0 border-t border-soft bg-card-theme px-2 py-2 lg:px-5 lg:py-4 min-[2048px]:px-8 min-[2048px]:py-5">
         {toolsOpen && (
           <div className="absolute bottom-[calc(100%-4px)] left-2 z-30 w-[min(340px,calc(100vw-76px))] overflow-hidden rounded-2xl border border-soft bg-card-theme p-2 shadow-2xl lg:left-6 lg:w-[380px] lg:rounded-3xl min-[2048px]:w-[440px] min-[2048px]:p-3">
             <div className="px-2 pb-1 pt-1 text-[10px] font-bold uppercase tracking-wider text-muted2 lg:text-[11px] min-[2048px]:text-xs">Contexto educativo</div>
@@ -889,7 +907,7 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
           </div>
         )}
 
-        <div className="mx-auto w-full max-w-none rounded-2xl border border-soft bg-card-soft-theme p-1.5 shadow-sm transition focus-within:border-blue-200 focus-within:shadow-md lg:max-w-[980px] lg:rounded-[1.5rem] lg:p-2 min-[2048px]:max-w-[1280px] min-[2048px]:rounded-[1.8rem] min-[2048px]:p-2.5">
+        <div className="claw-refresh-composer mx-auto w-full max-w-none rounded-2xl border border-soft bg-card-soft-theme p-1.5 shadow-sm transition focus-within:border-blue-200 focus-within:shadow-md lg:max-w-[980px] lg:rounded-[1.5rem] lg:p-2 min-[2048px]:max-w-[1280px] min-[2048px]:rounded-[1.8rem] min-[2048px]:p-2.5">
           {selectedTool && (
             <div className="mx-2 mt-1 flex items-center justify-between gap-2 rounded-xl border border-blue-100 bg-blue-50 px-2.5 py-1.5 text-[10px] text-blue-800 lg:text-[11px]">
               <span className="min-w-0 truncate">
@@ -1058,7 +1076,7 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
                 type="button"
                 onClick={() => send()}
                 disabled={loading || voiceState !== "idle" || !input.trim()}
-                className="inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-blue-600 px-3 text-[11px] font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 lg:h-10 lg:px-4 lg:text-xs min-[2048px]:h-11 min-[2048px]:px-5 min-[2048px]:text-sm"
+                className="claw-refresh-send inline-flex h-9 shrink-0 items-center gap-2 rounded-full bg-blue-600 px-3 text-[11px] font-black text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40 lg:h-10 lg:px-4 lg:text-xs min-[2048px]:h-11 min-[2048px]:px-5 min-[2048px]:text-sm"
               >
                 {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
                 <span className="hidden lg:inline">Enviar</span>
