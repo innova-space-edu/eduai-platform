@@ -166,7 +166,7 @@ export default function AISocialPage(){
     setError(controller.signal.aborted?"La respuesta tardó demasiado. Puedes recuperar la conversación desde el historial.":e instanceof Error?e.message:"No se pudo responder.")
     if(!accepted&&creating){setPhase("start");setTopic(userText)}
     if(!accepted&&body.action==="turn")setInput(userText)
-    if(accepted)setWarning("Si la ronda sigue activa, actualiza la conversación antes de volver a enviar.")
+    if(accepted){setRemoteBusy(true);setWarning("Actualiza la conversación para recuperar las respuestas guardadas.")}
   }finally{window.clearTimeout(timer);streamAbort.current=null;operation.current=false;setWaiting(false);setOptimistic("");setSpeakers([]);setPartials({});setFinished([]);void loadRecent()}
  }
  const start=(value:string,room=selectedRoom)=>{const text=value.trim();if(text)void run({action:"create",topic:text,room},text)}
@@ -191,16 +191,16 @@ export default function AISocialPage(){
   operation.current=true;setLoading(true);setError("")
   try{const res=await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({action:"execute-suggested-action",sessionId:session.sessionId})});const data=await res.json();if(!res.ok||!data.ok)throw Error(data.error||"No se pudo ejecutar.");setResult(data.result);if(data.result?.draft)setDraft(data.result.draft);setAction(null)}catch(e){setError(e instanceof Error?e.message:"No se pudo ejecutar.")}finally{operation.current=false;setLoading(false)}
  }
- const goHome=()=>{if(waiting)return;setPhase("start");setSession(null);setRemoteBusy(false);setError("");setWarning("");void loadRecent()}
+ const goHome=()=>{if(waiting||loading)return;setPhase("start");setSession(null);setRemoteBusy(false);setTopic("");setSelectedRoom(undefined);setInput("");setError("");setWarning("");void loadRecent()}
  const lastUser=session?.messages.filter(m=>m.authorId==="user").at(-1)
  const pendingLast=session?.messages.at(-1)?.authorId==="user"
  return <main className={phase==="chat"?"flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-app text-main":"min-h-screen bg-app text-main"} style={backdrop}>
   <header className="shrink-0 border-b border-soft bg-card-theme/90 backdrop-blur-xl">
    <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3 sm:px-6">
-    {phase==="chat"?<button type="button" onClick={goHome} disabled={waiting} aria-label="Volver a salas" className={control}><ArrowLeft size={17}/></button>:<Link href="/dashboard" aria-label="Volver a EduAI" className={control}><ArrowLeft size={17}/></Link>}
+    {phase==="chat"?<button type="button" onClick={goHome} disabled={waiting||loading} aria-label="Volver a salas" className={control}><ArrowLeft size={17}/></button>:<Link href="/dashboard" aria-label="Volver a EduAI" className={control}><ArrowLeft size={17}/></Link>}
     <div className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-cyan-500 to-violet-600 text-white shadow-md"><Users size={21}/></div>
     <div className="min-w-0 flex-1"><h1 className="truncate text-base font-bold">{phase==="chat"?session?.room.title||"EduAI Social":"EduAI Social"}</h1><p className="truncate text-xs text-muted2">{phase==="chat"?session?.room.topic||optimistic:"Conversaciones con especialistas de IA"}</p></div>
-    {phase==="chat"&&<button type="button" onClick={goHome} disabled={waiting} className={control}><Plus size={15}/><span className="hidden sm:inline">Nueva conversación</span></button>}
+    {phase==="chat"&&<button type="button" onClick={goHome} disabled={waiting||loading} className={control}><Plus size={15}/><span className="hidden sm:inline">Nueva conversación</span></button>}
     <Link href="/dashboard" className={control}><Bot size={15}/> Claw</Link>
    </div>
   </header>
