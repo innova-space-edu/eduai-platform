@@ -390,10 +390,12 @@ def main():
  if not named or any("lora_" not in n for n,p in named):raise RuntimeError("BASE_NOT_FROZEN")
  state["trainable_parameters"]=sum(p.numel() for n,p in named)
  optimizer=torch.optim.AdamW([p for n,p in named],lr=CFG["lr"],weight_decay=0.0)
- scaler=torch.amp.GradScaler("cuda")
+ scaler=torch.amp.GradScaler("cuda",init_scale=1024.0)
  if checkpoint:
   optimizer.load_state_dict(torch.load(checkpoint/"optimizer.pt",map_location="cpu",weights_only=True))
-  scaler.load_state_dict(torch.load(checkpoint/"scaler.pt",map_location="cpu",weights_only=True))
+  scaler_state=torch.load(checkpoint/"scaler.pt",map_location="cpu",weights_only=True)
+  scaler_state["scale"]=min(float(scaler_state["scale"]),1024.0)
+  scaler.load_state_dict(scaler_state)
   rng=torch.load(checkpoint/"rng.pt",map_location="cpu",weights_only=True)
   torch.set_rng_state(rng["torch"]);torch.cuda.set_rng_state(rng["cuda"],0);random.setstate(rng["python"])
   ns=rng["numpy"];np.random.set_state((ns[0],np.array(ns[1],dtype="uint32"),ns[2],ns[3],ns[4]))
@@ -435,24 +437,39 @@ def main():
   state["status"]="running";state.pop("error",None);state["phase"]="training";persist(state,lookup)
   model.train();model.config.use_cache=False
   for step in range(state["new_steps"],8):
-   budget();optimizer.zero_grad(set_to_none=True);weighted=[];ordinary=[]
-   for item in encoded[step*16:(step+1)*16]:
-    budget()
-    x=torch.tensor([item["input_ids"]],device="cuda")
-    labels=torch.tensor(item["labels"][1:],device="cuda");w=torch.tensor(item["weights"][1:],device="cuda")
-    active=labels!=-100
-    with torch.autocast("cuda",dtype=torch.float16):
-     logits=model(input_ids=x,attention_mask=torch.ones_like(x),use_cache=False).logits[0,:-1]
-     ce=torch.nn.functional.cross_entropy(logits[active].float(),labels[active],reduction="none")
-     loss=(ce*w[active]).sum()/w[active].sum()
-    if not torch.isfinite(loss):raise RuntimeError("NONFINITE_LOSS")
-    weighted.append(float(loss.detach()));ordinary.append(float(ce.mean().detach()))
-    scaler.scale(loss/16).backward()
-   scaler.unscale_(optimizer)
-   norm=torch.nn.utils.clip_grad_norm_([p for n,p in named],1.0)
-   if not torch.isfinite(norm) or float(norm)==0:raise RuntimeError("INVALID_GRADIENT")
-   scaler.step(optimizer);scaler.update();optimizer.zero_grad(set_to_none=True)
-   state["training_log"].append({"step":step+1,"weighted_loss":sum(weighted)/16,"unweighted_loss":sum(ordinary)/16,"grad_norm":float(norm),"examples":16})
+   # Retry the same accumulation after FP16 overflow; never advance on a skipped update.
+   for attempt in range(12):
+    budget();optimizer.zero_grad(set_to_none=True);weighted=[];ordinary=[]
+    scale_before=float(scaler.get_scale())
+    for item in encoded[step*16:(step+1)*16]:
+     budget()
+     x=torch.tensor([item["input_ids"]],device="cuda")
+     labels=torch.tensor(item["labels"][1:],device="cuda");w=torch.tensor(item["weights"][1:],device="cuda")
+     active=labels!=-100
+     with torch.autocast("cuda",dtype=torch.float16):
+      logits=model(input_ids=x,attention_mask=torch.ones_like(x),use_cache=False).logits[0,:-1]
+      ce=torch.nn.functional.cross_entropy(logits[active].float(),labels[active],reduction="none")
+      loss=(ce*w[active]).sum()/w[active].sum()
+     if not torch.isfinite(loss):raise RuntimeError("NONFINITE_LOSS")
+     weighted.append(float(loss.detach()));ordinary.append(float(ce.mean().detach()))
+     scaler.scale(loss/16).backward()
+    scaler.unscale_(optimizer)
+    grads=[p.grad for n,p in named if p.grad is not None]
+    if not grads:raise RuntimeError("MISSING_GRADIENT")
+    finite=all(bool(torch.isfinite(g).all()) for g in grads)
+    norm=torch.nn.utils.clip_grad_norm_([p for n,p in named],1.0) if finite else None
+    if not finite or not bool(torch.isfinite(norm)):
+     lower=max(1.0,scale_before*0.5)
+     scaler.update(new_scale=lower)
+     optimizer.zero_grad(set_to_none=True)
+     print("FP16_OVERFLOW",step+1,"retry",attempt+1,"scale",scale_before,"->",lower,flush=True)
+     if scale_before<=1.0:raise RuntimeError("NONFINITE_GRADIENT_AT_MIN_SCALE")
+     continue
+    if float(norm)==0:raise RuntimeError("ZERO_GRADIENT")
+    scaler.step(optimizer);scaler.update();optimizer.zero_grad(set_to_none=True)
+    state["training_log"].append({"step":step+1,"weighted_loss":sum(weighted)/16,"unweighted_loss":sum(ordinary)/16,"grad_norm":float(norm),"examples":16,"fp16_scale":scale_before,"overflow_retries":attempt})
+    break
+   else:raise RuntimeError("GRADIENT_RETRY_LIMIT")
    save_step(step+1);print("CHECKPOINT_GUARDADO",step+1,"/8 nuevas actualizaciones",flush=True)
   state["phase"]="validation";persist(state,lookup);evaluate(validation,"validation","candidate")
   persist(state,lookup);state["validation_passed"]=gate(state["summary"],"validation")
