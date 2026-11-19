@@ -210,7 +210,7 @@ div:has(> style[data-eduai-dashboard-refresh]) :is(a,button):focus-visible { out
           </div>
 
           <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden px-1.5 py-2 lg:px-2 lg:py-3 min-[2048px]:gap-1 min-[2048px]:px-3 min-[2048px]:py-4">
-            {(canManageTeaching ? [...NAV_LINKS, { href: "/gestion-docente", icon: GraduationCap, label: "Gestión docente", color: "#4f46e5" }] : NAV_LINKS).map((item) => {
+            {(canManageTeaching ? [...NAV_LINKS, { href: "https://gestion-docente.innova-space-edu.cl", icon: GraduationCap, label: "Gestión docente", color: "#4f46e5" }] : NAV_LINKS).map((item) => {
               const Icon = item.icon
               return (
                 <Link
@@ -355,7 +355,7 @@ div:has(> style[data-eduai-dashboard-refresh]) :is(a,button):focus-visible { out
 
         {canManageTeaching && (
           <div className="mx-auto w-full max-w-[1480px] shrink-0 px-2 pt-2 lg:px-5 lg:pt-3 min-[2048px]:max-w-[1960px] min-[2048px]:px-10">
-            <Link href="/gestion-docente" className="group flex min-w-0 items-center gap-3 rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-500/10 via-violet-500/10 to-blue-500/5 px-3 py-2.5 transition-colors hover:border-indigo-500/50 lg:px-4" aria-label="Ingresar a Gestión Docente">
+            <Link href="https://gestion-docente.innova-space-edu.cl" className="group flex min-w-0 items-center gap-3 rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-500/10 via-violet-500/10 to-blue-500/5 px-3 py-2.5 transition-colors hover:border-indigo-500/50 lg:px-4" aria-label="Ingresar a Gestión Docente">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm"><GraduationCap size={22} aria-hidden="true" /></div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold text-main">EDUAI Gestión Docente</p>
