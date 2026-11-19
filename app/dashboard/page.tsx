@@ -9,6 +9,8 @@ import {
   BookOpen,
   Bot,
   FolderKanban,
+  GraduationCap,
+  ArrowUpRight,
   LibraryBig,
   LogOut,
   MessageCircle,
@@ -36,6 +38,7 @@ export default function Dashboard() {
   const [user, setUser] = useState<any>(null)
   const [expanded, setExpanded] = useState(false)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [canManageTeaching, setCanManageTeaching] = useState(false)
 
   const router = useRouter()
   const supabase = createClient()
@@ -59,6 +62,12 @@ export default function Dashboard() {
         .eq("email", user.email)
         .maybeSingle()
       setIsAdmin(Boolean(adminData))
+      const { data: access, error: accessError } = await supabase
+        .from("eduai_user_access")
+        .select("account_type,age_band,access_tier")
+        .eq("user_id", user.id)
+        .maybeSingle()
+      setCanManageTeaching(!accessError && access?.account_type === "teacher" && access?.age_band === "adult" && ["standard", "teacher", "admin"].includes(access?.access_tier || ""))
 
     }
 
@@ -201,7 +210,7 @@ div:has(> style[data-eduai-dashboard-refresh]) :is(a,button):focus-visible { out
           </div>
 
           <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto overflow-x-hidden px-1.5 py-2 lg:px-2 lg:py-3 min-[2048px]:gap-1 min-[2048px]:px-3 min-[2048px]:py-4">
-            {NAV_LINKS.map((item) => {
+            {(canManageTeaching ? [...NAV_LINKS, { href: "/gestion-docente", icon: GraduationCap, label: "Gestión docente", color: "#4f46e5" }] : NAV_LINKS).map((item) => {
               const Icon = item.icon
               return (
                 <Link
@@ -344,6 +353,18 @@ div:has(> style[data-eduai-dashboard-refresh]) :is(a,button):focus-visible { out
           </div>
         </div>
 
+        {canManageTeaching && (
+          <div className="mx-auto w-full max-w-[1480px] shrink-0 px-2 pt-2 lg:px-5 lg:pt-3 min-[2048px]:max-w-[1960px] min-[2048px]:px-10">
+            <Link href="/gestion-docente" className="group flex min-w-0 items-center gap-3 rounded-2xl border border-indigo-500/20 bg-gradient-to-r from-indigo-500/10 via-violet-500/10 to-blue-500/5 px-3 py-2.5 transition-colors hover:border-indigo-500/50 lg:px-4" aria-label="Ingresar a Gestión Docente">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-600 text-white shadow-sm"><GraduationCap size={22} aria-hidden="true" /></div>
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-bold text-main">EDUAI Gestión Docente</p>
+                <p className="hidden text-xs text-sub sm:block">Organiza tus cursos, evaluaciones, planificaciones y recursos en un solo lugar.</p>
+              </div>
+              <span className="flex shrink-0 items-center gap-1 text-xs font-semibold text-indigo-600 dark:text-indigo-300">Ingresar <ArrowUpRight size={15} aria-hidden="true" /></span>
+            </Link>
+          </div>
+        )}
         <div className="mx-auto flex min-h-0 w-full max-w-[1480px] flex-1 gap-3 overflow-hidden px-2 py-2 lg:gap-5 lg:px-5 lg:py-4 min-[2048px]:max-w-[1960px] min-[2048px]:gap-8 min-[2048px]:px-10 min-[2048px]:py-6">
           <div className="h-full min-h-0 min-w-0 flex-1">
             <ClawStudyConsole displayName={displayName} isAdmin={isAdmin} />
