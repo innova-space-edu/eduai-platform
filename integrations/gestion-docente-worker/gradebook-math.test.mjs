@@ -1,0 +1,15 @@
+import test from 'node:test';import assert from 'node:assert/strict';import {gradeTenths,formatTenths,summarize} from './gradebook-math.mjs';
+const a=(id,weight_bps=10000)=>({id,weight_bps}), e=(assessment_id,grade,state='validated')=>({assessment_id,grade,state});
+test('comma and decimal',()=>{assert.equal(gradeTenths('6,5'),65);assert.equal(gradeTenths(4),40);assert.equal(formatTenths(65),'6,5');});
+test('invalid and nonfinite',()=>{for(const x of [0,7.1,1.01,NaN,Infinity,'',null,'6e0','3.33'])assert.throws(()=>gradeTenths(x));});
+test('empty has no average',()=>assert.equal(summarize([],[]).average_tenths,null));
+test('simple average',()=>assert.equal(summarize([a('1'),a('2')],[e('1',5),e('2',6)]).average_tenths,55));
+test('half up exact',()=>assert.equal(summarize([a('1'),a('2')],[e('1',3.9),e('2',4)]).average_tenths,40));
+test('relative weights',()=>assert.equal(summarize([a('1',2000),a('2',8000)],[e('1',4),e('2',6)]).average_tenths,56));
+test('draft excluded',()=>{const r=summarize([a('1'),a('2')],[e('1',6),e('2',1,'draft')]);assert.equal(r.average_tenths,60);assert.equal(r.draft,1);assert.equal(r.provisional,true);});
+test('absence excluded, no implicit grade',()=>{const r=summarize([a('1'),a('2')],[e('1',6),e('2',null,'absent')]);assert.equal(r.average_tenths,60);assert.equal(r.absent,1);assert.equal(r.provisional,true);});
+test('missing entry is pending',()=>{const r=summarize([a('1')],[]);assert.equal(r.pending,1);assert.equal(r.average_tenths,null);});
+test('exempt does not block completion',()=>{const r=summarize([a('1'),a('2')],[e('1',5),e('2',null,'exempt')]);assert.equal(r.provisional,false);assert.equal(r.average_tenths,50);});
+test('duplicate or foreign entries rejected',()=>{assert.throws(()=>summarize([a('1')],[e('2',5)]));assert.throws(()=>summarize([a('1')],[e('1',5),e('1',6)]));});
+test('invalid state and grade rejected',()=>{assert.throws(()=>summarize([a('1')],[e('1',4,'absent')]));assert.throws(()=>summarize([a('1')],[e('1',null,'validated')]));});
+test('invalid weights rejected',()=>{for(const w of [0,-1,10001,1.2])assert.throws(()=>summarize([a('1',w)],[]));});
