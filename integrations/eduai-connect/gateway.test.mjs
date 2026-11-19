@@ -1,0 +1,20 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createHandler } from './gateway.mjs';
+const base='https://external.example/api/connect/v1/';
+const auth={authorization:'Bearer a.b.c'};
+const id='00000000-0000-4000-8000-000000000001';
+function setup(response={items:[]},status=200){let calls=[];const handler=createHandler({publishableKey:'sb_publishable_test',fetchImpl:async(url,opts)=>{calls.push({url,opts,args:JSON.parse(opts.body)});return new Response(JSON.stringify(response),{status});}});return {handler,calls};}
+const req=(p,options={})=>new Request(base+p,{headers:auth,...options});
+test('authentication required',async()=>{const {handler,calls}=setup();assert.equal((await handler(new Request(base+'exams'))).status,401);assert.equal(calls.length,0);});
+test('catalog projection and bearer delegation',async()=>{const {handler,calls}=setup();const r=await handler(req('exams?offset=25&limit=20'));assert.equal(r.status,200);assert.deepEqual(calls[0].args,{p_kind:'exam',p_offset:25,p_limit:20});assert.equal(calls[0].opts.headers.authorization,'Bearer a.b.c');assert.match(r.headers.get('cache-control'),/no-store/);});
+test('arbitrary filter and owner ID rejected',async()=>{const {handler,calls}=setup();assert.equal((await handler(req('exams?teacher_id='+id))).status,400);assert.equal(calls.length,0);});
+test('resource content',async()=>{const {handler,calls}=setup();assert.equal((await handler(req('plannings/'+id+'?offset=12&limit=200'))).status,200);assert.equal(calls[0].args.p_id,id);assert.equal(calls[0].args.p_kind,'planning');});
+test('unknown resource rejected',async()=>{const {handler,calls}=setup();assert.equal((await handler(req('documents/not-a-uuid'))).status,400);assert.equal(calls.length,0);});
+test('requests do not accept other teacher id',async()=>{const {handler,calls}=setup();const r=await handler(req('requests',{method:'POST',headers:{...auth,'content-type':'application/json'},body:JSON.stringify({scopes:['exams:read'],teacher_id:id})}));assert.equal(r.status,400);assert.equal(calls.length,0);});
+test('request uses RPC',async()=>{const {handler,calls}=setup(id);const r=await handler(req('requests',{method:'POST',headers:{...auth,'content-type':'application/json'},body:JSON.stringify({scopes:['exams:read']})}));assert.equal(r.status,201);assert.deepEqual(calls[0].args,{p_kind:'access',p_scopes:['exams:read']});});
+test('database MFA denial mapped without upstream details',async()=>{const {handler}=setup({code:'42501',message:'private details'},403);const r=await handler(req('admin/requests'));assert.equal(r.status,403);assert.deepEqual(await r.json(),{error:'Acceso no autorizado'});});
+test('approval sends only requested decision fields',async()=>{const {handler,calls}=setup({ok:true});const r=await handler(req('admin/decisions',{method:'POST',headers:{...auth,'content-type':'application/json'},body:JSON.stringify({action:'approve',request_id:id,days:30,scopes:['exams:read']})}));assert.equal(r.status,200);assert.deepEqual(calls[0].args,{p_action:'approve',p_request_id:id,p_days:30,p_scopes:['exams:read']});});
+test('reject privileged key and unexpected origin',()=>{assert.throws(()=>createHandler({publishableKey:'sb_secret_test'}));assert.throws(()=>createHandler({publishableKey:'sb_publishable_test',supabaseUrl:'https://evil.example'}));});
+test('rate limit',async()=>{const {handler}=setup();for(let i=0;i<60;i++)assert.equal((await handler(req('exams'))).status,200);assert.equal((await handler(req('exams'))).status,429);});
+test('body limit',async()=>{const {handler,calls}=setup();const r=await handler(req('requests',{method:'POST',headers:{...auth,'content-type':'application/json'},body:JSON.stringify({scopes:['x'.repeat(17000)]})}));assert.equal(r.status,413);assert.equal(calls.length,0);});
