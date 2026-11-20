@@ -141,3 +141,13 @@ export default {async fetch(req,env){
   return isApi?json({error:'Ruta no disponible'},404):html('No disponible','<section class="panel"><h2>Página no disponible</h2><a href="/">Volver</a></section>',{status:404,logged:true});
  }catch(e){const status=e instanceof E?e.status:500,msg=e instanceof E?e.message:'Error interno';if(isApi)return json({error:msg},status);if(status===401)return redirect('/login','');return html('Aviso','<section class="panel"><h2>No fue posible completar la operación</h2><p class="err">'+escape(msg)+'</p><a href="/">Volver</a> · <a href="'+EDU+'/login">Ir a EduAI</a></section>',{status,logged:true});}
 }};
+
+/** Verified EDUAI identity for the single Gestión Docente application.
+ * Institution/role privileges MUST additionally be checked against Dell.
+ */
+export async function requireEduaiIdentity(req,env){
+ const token=tokenOf(req);
+ if(!token)return null;
+ const s=await userState(env,token);
+ return {id:s.user.id,teacher:s.teacher,eduaiAdmin:s.admin,accessToken:token};
+}
