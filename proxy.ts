@@ -20,7 +20,9 @@ const PROTECTED_ROUTES = [
   "/dashboard", "/study", "/profile", "/admin",
   "/creator-hub", "/audio-lab", "/image-studio", "/workspace",
   "/educador", "/superagent", "/chat-global", "/music", "/exam-focus",
-  "/pizarra-interactiva", "/formularios",
+  "/pizarra-interactiva",
+  "/repositorio",
+  "/formularios",
 ]
 
 const AUTH_ROUTES = ["/login", "/register"]
