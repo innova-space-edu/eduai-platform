@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import {useParams} from 'next/navigation';
 import {useEffect,useState, type FormEvent} from 'react';
-import {ArrowLeft, CheckCircle2, ClipboardList, LockKeyhole, Send, Sparkles} from 'lucide-react';
+import {ArrowLeft, CheckCircle2, ClipboardList, FileDown, LockKeyhole, Send, Sparkles} from 'lucide-react';
 import type {Answer,FormRecord,FormQuestion} from '@/lib/forms/model';
 
 const inputClass = 'w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:focus:ring-violet-900';
@@ -25,6 +25,8 @@ export default function PublicFormPage() {
   const [done,setDone]=useState(false);
   const [error,setError]=useState('');
   const [message,setMessage]=useState('');
+  const [submissionId,setSubmissionId]=useState('');
+  const [submittedAt,setSubmittedAt]=useState('');
   useEffect(()=>{
     if(!slug)return;
     const controller=new AbortController();
@@ -70,9 +72,25 @@ export default function PublicFormPage() {
       });
       const data=await r.json();
       if(!r.ok)throw new Error(data.error||'No se pudo guardar.');
-      setMessage(data.message);setDone(true);
+      setMessage(data.message);setSubmissionId(data.id);setSubmittedAt(new Date().toISOString());setDone(true);
     }catch(e){setError(e instanceof Error?e.message:'Error al enviar.');}
     finally{setSaving(false);}
+  }
+  async function downloadMyTicket() {
+    if(!form||form.kind!=='ticket'||!submissionId)return;
+    try {
+      const {downloadTicketPdf}=await import('@/lib/forms/ticket-pdf');
+      downloadTicketPdf(form,{
+        id:submissionId,form_id:form.id,answers,
+        identity:{
+          ...(form.settings.collectName?{name:identity.name}:{}),
+          ...(form.settings.collectEmail?{email:identity.email}:{})
+        },
+        submitted_at:submittedAt
+      });
+    } catch(e) {
+      setError(e instanceof Error?e.message:'No fue posible descargar el PDF.');
+    }
   }
   const total=form?.questions.filter(q=>q.type!=='section').length??0;
   const completed=form?.questions.filter(q=>q.type!=='section'&&answers[q.id]!==undefined&&answers[q.id]!==''&&(!Array.isArray(answers[q.id])||(answers[q.id] as string[]).length>0)).length??0;
@@ -92,7 +110,7 @@ export default function PublicFormPage() {
           {form.description&&<p className="mt-3 leading-relaxed text-violet-100">{form.description}</p>}
           {!done&&<div className="mt-7"><div className="mb-2 flex justify-between text-xs text-violet-100"><span>Tu avance</span><span>{completed} de {total} preguntas</span></div><div className="h-2 overflow-hidden rounded-full bg-white/20"><div className="h-full rounded-full bg-white transition-all" style={{width:(total?completed/total*100:0)+'%'}}/></div></div>}
         </div>
-        {done?<div className="p-10 text-center"><CheckCircle2 size={54} className="mx-auto mb-3 text-emerald-500"/><h2 className="text-xl font-bold">Respuesta enviada</h2><p className="mt-3 text-slate-600 dark:text-slate-300">{message||form.settings.confirmationMessage}</p><p className="mt-4 text-xs text-slate-500">Puedes cerrar esta pestaña.</p></div>:
+        {done?<div className="p-10 text-center"><CheckCircle2 size={54} className="mx-auto mb-3 text-emerald-500"/><h2 className="text-xl font-bold">Respuesta enviada</h2><p className="mt-3 text-slate-600 dark:text-slate-300">{message||form.settings.confirmationMessage}</p>{form.kind==='ticket'&&submissionId&&<button type="button" onClick={()=>void downloadMyTicket()} className="mx-auto mt-6 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-violet-700"><FileDown size={18}/> Descargar mi ticket en PDF</button>}{error&&<p role="alert" className="mt-3 text-sm text-rose-600">{error}</p>}<p className="mt-4 text-xs text-slate-500">Puedes cerrar esta pestaña.</p></div>:
         <form onSubmit={send} className="space-y-7 p-5 sm:p-9">
           {(form.settings.collectName||form.settings.collectEmail)&&<div className="space-y-4 rounded-3xl border border-violet-200 bg-violet-50/50 p-5 dark:border-violet-900 dark:bg-violet-950/30">
             <h2 className="font-bold">Datos solicitados por el creador</h2>
