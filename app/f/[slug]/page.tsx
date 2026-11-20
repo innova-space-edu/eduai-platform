@@ -3,14 +3,14 @@
 import Link from 'next/link';
 import {useParams} from 'next/navigation';
 import {useEffect,useState, type FormEvent} from 'react';
-import {ArrowLeft, CheckCircle2, ClipboardList, FileDown, LockKeyhole, Send, Sparkles} from 'lucide-react';
-import type {Answer,FormRecord,FormQuestion} from '@/lib/forms/model';
+import {ArrowLeft, CheckCircle2, ClipboardList, FileDown, LockKeyhole, Plus, Send, Sparkles, Trash2} from 'lucide-react';
+import {MAX_TABLE_CELL_LENGTH,MAX_TABLE_ROWS,isTableAnswer,type Answer,type FormRecord,type FormQuestion,type TableAnswer} from '@/lib/forms/model';
 
 const inputClass = 'w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-50 dark:focus:ring-violet-900';
 const questionTypes:Record<string,string> = {
   single:'Selección única',multi:'Selección múltiple',dropdown:'Lista desplegable',
   short:'Respuesta corta',long:'Desarrollo',number:'Respuesta numérica',
-  scale:'Escala',date:'Fecha',yesno:'Sí o no',checklist:'Lista de cotejo',email:'Correo',section:'Sección'
+  scale:'Escala',date:'Fecha',yesno:'Sí o no',checklist:'Lista de cotejo',email:'Correo',table:'Tabla con filas',section:'Sección'
 };
 
 export default function PublicFormPage() {
@@ -38,6 +38,27 @@ export default function PublicFormPage() {
     return ()=>controller.abort();
   },[slug]);
   const setAnswer=(id:string,value:Answer)=>setAnswers(prev=>({...prev,[id]:value}));
+  function setTableCell(q:FormQuestion,rowIndex:number,colIndex:number,text:string){
+    setAnswers(prev=>{
+      const old=isTableAnswer(prev[q.id])?prev[q.id] as TableAnswer:[];
+      const rows=old.length?old.map(row=>[...row]):[q.options.map(()=>'')];
+      rows[rowIndex][colIndex]=text;
+      return {...prev,[q.id]:rows};
+    });
+  }
+  function appendTableRow(q:FormQuestion){
+    setAnswers(prev=>{
+      const rows=isTableAnswer(prev[q.id])?prev[q.id] as TableAnswer:[];
+      if(rows.length>=MAX_TABLE_ROWS)return prev;
+      return {...prev,[q.id]:[...rows,q.options.map(()=>'')]};
+    });
+  }
+  function removeTableRow(q:FormQuestion,index:number){
+    setAnswers(prev=>{
+      const rows=isTableAnswer(prev[q.id])?prev[q.id] as TableAnswer:[];
+      return {...prev,[q.id]:rows.filter((_,i)=>i!==index)};
+    });
+  }
   const toggle=(id:string,option:string)=>{
     const existing=answers[id];
     const list=Array.isArray(existing)?existing:[];
@@ -46,6 +67,27 @@ export default function PublicFormPage() {
   const question=(q:FormQuestion)=>{
     const v=answers[q.id];
     const options=q.type==='yesno'?['Sí','No']:q.options;
+    if(q.type==='table'){
+      const rows=isTableAnswer(v)&&v.length?(v as TableAnswer):[q.options.map(()=>'')];
+      return <div className="space-y-3">
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700">
+          <table className="w-full min-w-[580px] border-collapse text-left text-sm">
+            <thead className="bg-violet-100 text-violet-900 dark:bg-violet-950 dark:text-violet-100">
+              <tr><th scope="col" className="w-12 border-b border-violet-200 p-3 text-xs">N.º</th>{q.options.map((column,i)=><th key={i} scope="col" className="min-w-32 border-b border-violet-200 p-3 text-xs font-bold">{column}</th>)}<th scope="col" className="w-14 border-b border-violet-200 p-2"><span className="sr-only">Eliminar fila</span></th></tr>
+            </thead>
+            <tbody>{rows.map((cells,r)=><tr key={r} className="border-t border-slate-200 dark:border-slate-700">
+              <td className="px-3 py-2 text-xs font-semibold text-violet-600">{r+1}</td>
+              {q.options.map((column,c)=><td key={c} className="p-2"><input aria-label={column+' - fila '+(r+1)} value={cells[c]??''} maxLength={MAX_TABLE_CELL_LENGTH} inputMode={/^cantidad$/i.test(column)?'decimal':'text'} className={inputClass+' !min-w-28 !rounded-lg !px-3 !py-2'} placeholder={column} onChange={e=>setTableCell(q,r,c,e.target.value)}/></td>)}
+              <td className="p-2"><button type="button" title="Eliminar fila" aria-label={'Eliminar fila '+(r+1)} onClick={()=>removeTableRow(q,r)} className="rounded-lg p-2 text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950"><Trash2 size={17}/></button></td>
+            </tr>)}</tbody>
+          </table>
+        </div>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-xs text-slate-500">{rows.length} de {MAX_TABLE_ROWS} filas disponibles. Completa todas las columnas de cada fila utilizada.</p>
+          <button type="button" disabled={rows.length>=MAX_TABLE_ROWS} onClick={()=>appendTableRow(q)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-violet-300 bg-violet-50 px-4 py-2 text-sm font-bold text-violet-700 hover:bg-violet-100 disabled:opacity-50 dark:border-violet-700 dark:bg-violet-950 dark:text-violet-200"><Plus size={17}/> Agregar fila</button>
+        </div>
+      </div>;
+    }
     if(q.type==='section')return <div className="rounded-2xl bg-violet-50 p-4 text-lg font-bold text-violet-800 dark:bg-violet-950 dark:text-violet-200">{q.label}{q.description&&<p className="mt-1 text-sm font-normal">{q.description}</p>}</div>;
     if(['single','yesno','multi','checklist'].includes(q.type))return <div className="space-y-2">{options.map((option,i)=>{
       const checked=Array.isArray(v)?v.includes(option):v===option;
@@ -93,7 +135,12 @@ export default function PublicFormPage() {
     }
   }
   const total=form?.questions.filter(q=>q.type!=='section').length??0;
-  const completed=form?.questions.filter(q=>q.type!=='section'&&answers[q.id]!==undefined&&answers[q.id]!==''&&(!Array.isArray(answers[q.id])||(answers[q.id] as string[]).length>0)).length??0;
+  const completed=form?.questions.filter(q=>{
+    if(q.type==='section')return false;
+    const answer=answers[q.id];
+    if(q.type==='table')return isTableAnswer(answer)&&answer.some(row=>row.some(cell=>cell.trim()));
+    return answer!==undefined&&answer!==''&&(!Array.isArray(answer)||answer.length>0);
+  }).length??0;
   const needsConsent=!!form&&(form.settings.collectName||form.settings.collectEmail||form.questions.some(q=>q.type==='email'));
   return <main className="min-h-screen bg-slate-50 px-4 py-6 text-slate-900 dark:bg-slate-950 dark:text-slate-100 sm:py-10" style={{backgroundImage:'radial-gradient(ellipse at 50% 0%, rgba(139,92,246,.13), transparent 58%)'}}>
     <div className="mx-auto max-w-3xl">
