@@ -1,4 +1,5 @@
 import {isTableAnswer,type FormQuestion,type FormResponse,type Answer} from './model';
+import {groupQuestionsByVersion,questionsAtSubmission,questionSignature} from './history';
 
 export type SeriesItem = { label: string; count: number; percentage: number };
 export type NumericStats = { n: number; mean: number; median: number; min: number; max: number; sd: number };
@@ -89,12 +90,17 @@ export function escapeCsv(value: unknown) {
 }
 
 export function responseCsv(questions: FormQuestion[], responses: FormResponse[]) {
-  const cols = questions.filter(q=>q.type !== 'section');
-  const rows = [
-    ['ID','Fecha','Nombre','Correo',...cols.map(q=>q.label)],
-    ...responses.map(r=>[r.id,r.submitted_at,r.identity?.name||'',r.identity?.email||'',...cols.map(q=>r.answers?.[q.id]??'')])
+  const groups=groupQuestionsByVersion(questions,responses);
+  const memberIds=groups.map(g=>new Set(g.responses.map(r=>r.id)));
+  const headers=groups.map(g=>g.question.label+(g.current?'':' [versión anterior]'));
+  const rows=[
+    ['ID','Fecha','Nombre','Correo',...headers],
+    ...responses.map(r=>[
+      r.id,r.submitted_at,r.identity?.name||'',r.identity?.email||'',
+      ...groups.map((g,i)=>memberIds[i].has(r.id)?r.answers?.[g.question.id]??'':'')
+    ])
   ];
-  return '\uFEFF' + rows.map(row=>row.map(escapeCsv).join(',')).join('\r\n');
+  return '\uFEFF'+rows.map(row=>row.map(escapeCsv).join(',')).join('\r\n');
 }
 
 /**
@@ -102,12 +108,14 @@ export function responseCsv(questions: FormQuestion[], responses: FormResponse[]
  * question name, row order and configured column headers.
  */
 export function tableRowsCsv(questions: FormQuestion[], responses: FormResponse[]) {
-  const tableQuestions=questions.filter(q=>q.type==='table');
-  const columns=[...new Set(tableQuestions.flatMap(q=>q.options))];
+  const allQuestions=groupQuestionsByVersion(questions,responses)
+    .map(g=>g.question).filter(q=>q.type==='table');
+  const columns=[...new Set(allQuestions.flatMap(q=>q.options))];
   const rows:(string|number)[][]=[
     ['ID respuesta','Fecha','Nombre','Correo','Tabla','Fila',...columns]
   ];
-  for(const response of responses)for(const q of tableQuestions){
+  for(const response of responses)for(const q of questionsAtSubmission(response,questions)){
+    if(q.type!=='table')continue;
     const values=response.answers?.[q.id];
     if(!isTableAnswer(values))continue;
     for(const [idx,row] of values.entries()){
