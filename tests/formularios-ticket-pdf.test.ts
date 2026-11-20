@@ -14,7 +14,7 @@ function ticket(): FormRecord {
 
 test('exports an A4 printable exit ticket as valid PDF without submission',()=>{
   const pdf=buildTicketPdf(ticket());
-  assert.ok(pdf.internal.getNumberOfPages()>=1);
+  assert.ok(pdf.getNumberOfPages()>=1);
   assert.equal(Math.round(pdf.internal.pageSize.getWidth()),210);
   assert.equal(Math.round(pdf.internal.pageSize.getHeight()),297);
   const bytes=new Uint8Array(pdf.output('arraybuffer'));
@@ -34,7 +34,7 @@ test('exports submitted answers and handles thousands of characters across pages
     answers:{[longQuestion.id]:'Aprendí a simplificar fracciones.', 'long-1':'En este ejercicio analicé el procedimiento. '.repeat(120)}
   };
   const pdf=buildTicketPdf(modified,response);
-  assert.ok(pdf.internal.getNumberOfPages()>1,'Long responses must create additional pages');
+  assert.ok(pdf.getNumberOfPages()>1,'Long responses must create additional pages');
   assert.ok(new Uint8Array(pdf.output('arraybuffer')).length>1800);
 });
 
