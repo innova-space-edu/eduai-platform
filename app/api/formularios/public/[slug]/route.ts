@@ -51,7 +51,8 @@ export async function POST(request: NextRequest,{params}:RouteContext) {
     const {answers,identity} = validateSubmission(form,body);
     const fingerprint = form.settings.oneResponse && identity.email ? respondentFingerprint(form.id,identity.email) : null;
     const {data,error} = await formsAdmin().from('eduai_form_responses').insert({
-      form_id:form.id, answers, identity, respondent_fingerprint:fingerprint
+      form_id:form.id, answers, identity, respondent_fingerprint:fingerprint,
+      questions_snapshot:form.questions
     }).select('id').single();
     if(error?.code==='23505') return fail('Este correo ya registró una respuesta.',409);
     if(error) throw error;
