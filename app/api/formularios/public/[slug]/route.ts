@@ -36,9 +36,10 @@ export async function POST(request: NextRequest,{params}:RouteContext) {
   const {slug} = await params;
   if(!isSlug(slug)) return fail('Enlace inválido.',404);
   const contentLength = Number(request.headers.get('content-length')||0);
-  if(contentLength > 35000) return fail('Respuestas demasiado extensas.',413);
+  // Tables may contain up to 40 rows of 8 columns; still cap anonymous payloads.
+  if(contentLength > 120000) return fail('Respuestas demasiado extensas.',413);
   const bodyText = await request.text().catch(()=>null);
-  if(!bodyText || bodyText.length > 35000) return fail('Solicitud inválida o demasiado extensa.',413);
+  if(!bodyText || bodyText.length > 120000) return fail('Solicitud inválida o demasiado extensa.',413);
   let body: unknown;
   try {body=JSON.parse(bodyText);}catch{return fail('JSON inválido.',400);}
   const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() || 'unknown';
@@ -58,7 +59,7 @@ export async function POST(request: NextRequest,{params}:RouteContext) {
   } catch(e) {
     if(e instanceof Error && !('code' in e) && !String(e.message).includes('Supabase')) {
       const message = e.message;
-      if(/(inválid|falta|ingresa|debes|demasiado|opción|número|fecha|correo|rango)/i.test(message))
+      if(/(inválid|falta|ingresa|debes|demasiado|opción|número|fecha|correo|rango|completa|tabla|fila)/i.test(message))
         return fail(message,400);
     }
     console.error('[form-public] submit',e);
