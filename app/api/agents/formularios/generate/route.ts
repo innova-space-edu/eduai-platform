@@ -5,7 +5,7 @@ import {normalizeForm} from '@/lib/forms/model';
 export const runtime = 'nodejs';
 export const maxDuration = 45;
 const headers = {'Cache-Control':'no-store'};
-const TYPES = ['single','multi','dropdown','short','long','number','scale','date','yesno','checklist','email','section'];
+const TYPES = ['single','multi','dropdown','short','long','number','scale','date','yesno','checklist','email','table','section'];
 const schema = {
   type:'object',
   properties:{
@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
         system_instruction:{parts:[{text:'Eres diseñador de instrumentos de levantamiento de información para EDUAI. Devuelve SOLO JSON válido, en español de Chile. Redacta preguntas neutras, sin sesgo, claras y no redundantes. No solicites datos personales sensibles, contraseñas, RUT o información de menores salvo autorización explícita del usuario. No inventes resultados ni participantes. Usa diversos tipos de preguntas pertinentes al instrumento.'}]},
-        contents:[{role:'user',parts:[{text:'Instrumento: '+kind+'\nObjetivo: '+topic+'\nNúmero aproximado de preguntas: '+count+'\nPara opciones múltiples genera de 2 a 6 alternativas. Para escala fija min=1 y max=5. Para otros tipos usa min=0 y max=0; opciones vacías cuando no correspondan. No incluyas IDs.'}]}],
+        contents:[{role:'user',parts:[{text:'Instrumento: '+kind+'\nObjetivo: '+topic+'\nNúmero aproximado de preguntas: '+count+'\nPara opciones múltiples genera de 2 a 6 alternativas. Para escala fija min=1 y max=5. Si se requiere un inventario, listado o registro de múltiples materiales o actividades, puedes usar type=table con 2 a 8 columnas en options (por ejemplo: Cantidad, Material, Asignatura, OA). Para otros tipos usa min=0 y max=0; opciones vacías cuando no correspondan. No incluyas IDs.'}]}],
         generationConfig:{temperature:0.45,maxOutputTokens:5000,responseMimeType:'application/json',responseSchema:schema}
       }),signal:AbortSignal.timeout(40000)
     });
