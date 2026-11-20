@@ -61,7 +61,7 @@ export default function PublicFormPage() {
   }
   const toggle=(id:string,option:string)=>{
     const existing=answers[id];
-    const list=Array.isArray(existing)?existing:[];
+    const list=Array.isArray(existing)&&existing.every(item=>typeof item==='string')?existing as string[]:[];
     setAnswer(id,list.includes(option)?list.filter(v=>v!==option):[...list,option]);
   };
   const question=(q:FormQuestion)=>{
