@@ -53,7 +53,7 @@ test('percentages, numeric mean, median and variance are deterministic',()=>{
 test('CSV export neutralizes spreadsheet formulas and LaTeX remains a document',()=>{
   const csv=responseCsv([{id:'a',type:'short',label:'Detalle',options:[],required:false}],
     [{id:'1',form_id:'f',identity:{},answers:{a:'=HYPERLINK("bad")'},submitted_at:''}]);
-  assert.match(csv,/'\x27=HYPERLINK/);
+  assert.ok(csv.includes("'=HYPERLINK"));
   const latex=reportLatex('Resultados',[],0);
   assert.ok(latex.includes('\\documentclass'));
   assert.ok(latex.includes('\\end{document}'));
