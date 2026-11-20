@@ -10,6 +10,7 @@
  */
 import eduaiWorker,{requireEduaiIdentity} from '../gestion-docente-worker/worker.mjs';
 import {createHubRouter} from './hub-router.mjs';
+import {getConfigurationStatus} from './configuration-probes.mjs';
 
 const SITE='https://gestion-docente.innova-space-edu.cl';
 const HEADERS={
@@ -63,7 +64,7 @@ export function createUnifiedApp({
  sourceRegistry=null,
  legacy=eduaiWorker,
  validateEduai=requireEduaiIdentity,
- probeConfiguration=async()=>defaultStatus(),
+ probeConfiguration=getConfigurationStatus,
  origin=SITE
 }={}){
  if(!hub||typeof verifyInstitutionalAccess!=='function'||typeof storeAndScan!=='function'||typeof validateEduai!=='function')throw new Error('Trusted backend adapters missing');
