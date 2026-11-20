@@ -107,6 +107,50 @@ export function buildTicketPdf(form: TicketForm, response?: FormResponse): jsPDF
     }
     y += 1;
   }
+  function drawTable(question:FormQuestion, answer:Answer|undefined) {
+    const columns=question.options;
+    if(!columns.length)return;
+    const width=CONTENT_W/columns.length;
+    const savedRows=Array.isArray(answer)&&answer.every(row=>Array.isArray(row)) ? answer as string[][] : [];
+    // Printable tickets have four empty rows; submitted tickets retain every entered row.
+    const rows=savedRows.length?savedRows:Array.from({length:4},()=>columns.map(()=>''));
+    function cellLines(value:string,header=false):string[]{
+      pdf.setFont('helvetica',header?'bold':'normal');
+      pdf.setFontSize(header?8:8.5);
+      return (pdf.splitTextToSize(clean(value),width-5) as string[]).length
+        ? pdf.splitTextToSize(clean(value),width-5) as string[] : [''];
+    }
+    const headerLines=columns.map(c=>cellLines(c,true));
+    const headerHeight=Math.max(10,...headerLines.map(ls=>ls.length*4.2+5));
+    function header(){
+      ensure(headerHeight+10);
+      pdf.setFillColor(239,233,253);
+      columns.forEach((column,i)=>{
+        const x=MARGIN+i*width;
+        pdf.setDrawColor(186,172,217);pdf.setLineWidth(0.28);
+        pdf.rect(x,y,width,headerHeight,'FD');
+        pdf.setFont('helvetica','bold');pdf.setFontSize(8);pdf.setTextColor(...PURPLE);
+        headerLines[i].forEach((line,k)=>pdf.text(line,x+2.5,y+5.4+k*4.2));
+      });
+      y+=headerHeight;
+    }
+    y+=3;
+    header();
+    rows.forEach((row)=>{
+      const cellTexts=columns.map((_,i)=>cellLines(row[i]??''));
+      const height=Math.max(10,...cellTexts.map(ls=>ls.length*4.4+5));
+      if(y+height>BOTTOM){pdf.addPage();pageHeader();header();}
+      columns.forEach((_,i)=>{
+        const x=MARGIN+i*width;
+        pdf.setDrawColor(201,204,217);pdf.setLineWidth(0.25);
+        pdf.rect(x,y,width,height);
+        pdf.setFont('helvetica','normal');pdf.setFontSize(8.5);pdf.setTextColor(...INK);
+        cellTexts[i].forEach((line,k)=>pdf.text(line,x+2.5,y+5.4+k*4.4));
+      });
+      y+=height;
+    });
+    y+=5;
+  }
   pageHeader();
   paragraph(clean(form.title) || 'Ticket de salida', {size:17,bold:true,gap:3});
   if (form.description) paragraph(form.description,{size:9.5,color:GRAY,gap:3});
@@ -138,9 +182,11 @@ export function buildTicketPdf(form: TicketForm, response?: FormResponse): jsPDF
     if(q.description)paragraph(q.description,{size:9,color:GRAY,gap:1});
     const answer = response?.answers?.[q.id];
     const answered = answer !== undefined && answer !== null && answerText(answer).length > 0;
-    if (['single','multi','dropdown','checklist','yesno'].includes(q.type)) {
+    if (q.type === 'table') {
+      drawTable(q,answer);
+    } else if (['single','multi','dropdown','checklist','yesno'].includes(q.type)) {
       const choices=q.type==='yesno'?['Sí','No']:q.options;
-      const selected=Array.isArray(answer)?answer:[answer];
+      const selected:string[]=Array.isArray(answer)&&answer.every(v=>typeof v==='string')?answer as string[]:typeof answer==='string'?[answer]:[];
       for (const choice of choices) checkbox(choice, answered && selected.includes(choice));
     } else if (q.type === 'scale') {
       const min=q.min??1,max=q.max??5;

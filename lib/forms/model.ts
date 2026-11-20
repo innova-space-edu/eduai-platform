@@ -1,11 +1,17 @@
 export const QUESTION_TYPES = [
   'single', 'multi', 'dropdown', 'short', 'long', 'number',
-  'scale', 'date', 'yesno', 'checklist', 'email', 'section'
+  'scale', 'date', 'yesno', 'checklist', 'email', 'table', 'section'
 ] as const;
 
 export type QuestionType = (typeof QUESTION_TYPES)[number];
 export type FormKind = 'encuesta' | 'entrevista' | 'registro' | 'checklist' | 'ticket' | 'evaluacion';
-export type Answer = string | string[] | number;
+export type TableAnswer = string[][];
+export type Answer = string | string[] | number | TableAnswer;
+export const MAX_TABLE_ROWS = 40;
+export const MAX_TABLE_COLUMNS = 8;
+export const MAX_TABLE_CELL_LENGTH = 180;
+export const DEFAULT_TABLE_COLUMNS = ['Cantidad', 'Material', 'Asignatura', 'OA'];
+export const isTableAnswer = (value: unknown): value is TableAnswer => Array.isArray(value) && value.every(row => Array.isArray(row));
 export type FormQuestion = {
   id: string;
   type: QuestionType;
@@ -77,7 +83,12 @@ export function normalizeForm(raw: unknown): { title: string; description: strin
     if (!types.has(type)) throw new Error('Tipo de pregunta no admitido.');
     const label = text(q.label, 500);
     if (!label) throw new Error('Completa el enunciado de la pregunta ' + (index + 1) + '.');
-    const options = Array.isArray(q.options) ? q.options.map(v => text(v, 180)).filter(Boolean).slice(0, 24) : [];
+    const rawOptions = Array.isArray(q.options) ? q.options : [];
+    const options = rawOptions.map(v => text(v, 180)).filter(Boolean).slice(0, 24);
+    if (type === 'table' && (options.length < 2 || options.length > MAX_TABLE_COLUMNS || rawOptions.length > MAX_TABLE_COLUMNS))
+      throw new Error('La tabla ' + (index + 1) + ' necesita entre 2 y ' + MAX_TABLE_COLUMNS + ' columnas.');
+    if (type === 'table' && new Set(options.map(c => c.toLocaleLowerCase('es'))).size !== options.length)
+      throw new Error('Los nombres de las columnas de la tabla deben ser diferentes.');
     if (choiceTypes.has(type as QuestionType) && options.length < 2) throw new Error('La pregunta ' + (index + 1) + ' necesita al menos dos opciones.');
     const min = typeof q.min === 'number' && Number.isFinite(q.min) ? q.min : undefined;
     const max = typeof q.max === 'number' && Number.isFinite(q.max) ? q.max : undefined;
@@ -123,6 +134,24 @@ export function validateSubmission(form: FormRecord, raw: unknown): { answers: R
     const blank = value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0);
     if (blank) {
       if (q.required) throw new Error('Falta responder: ' + q.label);
+      continue;
+    }
+    if (q.type === 'table') {
+      if (!Array.isArray(value) || value.length > MAX_TABLE_ROWS)
+        throw new Error('Tabla inválida: ' + q.label + '. Máximo ' + MAX_TABLE_ROWS + ' filas.');
+      const rows: TableAnswer = [];
+      for (const rawRow of value) {
+        if (!Array.isArray(rawRow) || rawRow.length !== q.options.length ||
+            rawRow.some(cell => typeof cell !== 'string' || cell.length > MAX_TABLE_CELL_LENGTH)) {
+          throw new Error('Fila inválida en la tabla: ' + q.label);
+        }
+        const cells = (rawRow as string[]).map(cell => cell.trim());
+        if (cells.every(cell => !cell)) continue;
+        if (cells.some(cell => !cell)) throw new Error('Completa todas las columnas de cada fila: ' + q.label);
+        rows.push(cells);
+      }
+      if (!rows.length && q.required) throw new Error('Falta responder: ' + q.label);
+      if (rows.length) answers[q.id] = rows;
       continue;
     }
     if (q.type === 'multi' || q.type === 'checklist') {
