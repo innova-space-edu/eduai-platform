@@ -186,7 +186,7 @@ export function buildTicketPdf(form: TicketForm, response?: FormResponse): jsPDF
       drawTable(q,answer);
     } else if (['single','multi','dropdown','checklist','yesno'].includes(q.type)) {
       const choices=q.type==='yesno'?['Sí','No']:q.options;
-      const selected=Array.isArray(answer)?answer:[answer];
+      const selected:string[]=Array.isArray(answer)&&answer.every(v=>typeof v==='string')?answer as string[]:typeof answer==='string'?[answer]:[];
       for (const choice of choices) checkbox(choice, answered && selected.includes(choice));
     } else if (q.type === 'scale') {
       const min=q.min??1,max=q.max??5;
