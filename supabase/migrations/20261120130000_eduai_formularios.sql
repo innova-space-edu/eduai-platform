@@ -33,6 +33,8 @@ revoke all on public.eduai_forms from public,anon,authenticated;
 revoke all on public.eduai_form_responses from public,anon,authenticated;
 grant select,insert,update,delete on public.eduai_forms to authenticated;
 grant select,delete on public.eduai_form_responses to authenticated;
+grant select,insert,update,delete on public.eduai_forms to service_role;
+grant select,insert,update,delete on public.eduai_form_responses to service_role;
 
 drop policy if exists eduai_forms_own_read on public.eduai_forms;
 create policy eduai_forms_own_read on public.eduai_forms
