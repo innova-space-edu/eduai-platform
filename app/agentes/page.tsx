@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { ArrowLeft, BookOpen, Bot, Calculator, ChevronLeft, ChevronRight, Clock, Cloud, Clapperboard, FilePenLine, FileText, FolderOpen, Globe, GraduationCap, Image, LayoutGrid, Microscope, Mic, Music, Palette, Presentation, Search, Sparkles, Star, Trophy, Wrench, X } from "lucide-react";
+import { ArrowLeft, BookOpen, Bot, Calculator, ClipboardList, ChevronLeft, ChevronRight, Clock, Cloud, Clapperboard, FilePenLine, FileText, FolderOpen, Globe, GraduationCap, Image, LayoutGrid, Microscope, Mic, Music, Palette, Presentation, Search, Sparkles, Star, Trophy, Wrench, X } from "lucide-react";
 
 type AgentItem = {
   id: string;
@@ -142,6 +142,19 @@ const AGENTS: AgentItem[] = [
     href: "/examen/docente",
     tag: "Docentes",
     status: "active",
+  },
+  {
+    id: "formularios",
+    icon: "📊",
+    name: "Formularios Studio",
+    description: "Encuestas, entrevistas, registros y listas de cotejo con IA, enlaces públicos y análisis de resultados",
+    color: "from-violet-500 to-indigo-600",
+    glow: "rgba(139,92,246,0.16)",
+    border: "rgba(139,92,246,0.24)",
+    href: "/formularios",
+    tag: "Organización",
+    status: "active",
+    ctaLabel: "Crear formulario",
   },
   {
     id: "superagent-chat",
@@ -308,7 +321,7 @@ const AGENT_ICONS = {
   educador: GraduationCap, investigador: Microscope, redactor: FilePenLine,
   matematico: Calculator, "pizarra-interactiva": Presentation, "cuaderno-creativo": Palette,
   traductor: Globe, paper: FileText, examen: FilePenLine, "examen-docente": FilePenLine,
-  "superagent-chat": Bot, "music-focus": Music, "creator-hub": Sparkles,
+  "superagent-chat": Bot, formularios: ClipboardList, "music-focus": Music, "creator-hub": Sparkles,
   "multimedia-studio": Clapperboard, "audio-lab": Mic, "image-studio": Image,
   "video-studio": Clapperboard, galeria: Image, ranking: Trophy,
   workspace: FolderOpen, biblioteca: BookOpen, repositorio: Cloud,
