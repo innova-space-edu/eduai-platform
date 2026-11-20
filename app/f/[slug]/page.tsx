@@ -90,7 +90,7 @@ export default function PublicFormPage() {
     }
     if(q.type==='section')return <div className="rounded-2xl bg-violet-50 p-4 text-lg font-bold text-violet-800 dark:bg-violet-950 dark:text-violet-200">{q.label}{q.description&&<p className="mt-1 text-sm font-normal">{q.description}</p>}</div>;
     if(['single','yesno','multi','checklist'].includes(q.type))return <div className="space-y-2">{options.map((option,i)=>{
-      const checked=Array.isArray(v)?v.includes(option):v===option;
+      const checked=Array.isArray(v)&&v.every(item=>typeof item==='string')?(v as string[]).includes(option):v===option;
       return <label key={i} className={'flex cursor-pointer items-start gap-3 rounded-2xl border p-3.5 text-sm transition '+(checked?'border-violet-500 bg-violet-50 text-violet-900 dark:bg-violet-950 dark:text-violet-100':'border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900')}>
         <input className="mt-0.5 accent-violet-600" type={['multi','checklist'].includes(q.type)?'checkbox':'radio'} checked={checked} onChange={()=>['multi','checklist'].includes(q.type)?toggle(q.id,option):setAnswer(q.id,option)} />
         <span>{option}</span></label>;
@@ -102,7 +102,7 @@ export default function PublicFormPage() {
       const steps=Math.max(1,Math.min(15,Math.floor(max-min)+1));
       return <div className="flex flex-wrap gap-2">{Array.from({length:steps},(_,i)=>min+i).map(n=><button key={n} type="button" aria-pressed={Number(v)===n} onClick={()=>setAnswer(q.id,n)} className={'min-h-12 min-w-12 rounded-xl border px-3 font-semibold transition '+(Number(v)===n?'border-violet-600 bg-violet-600 text-white':'border-slate-200 bg-white text-slate-700 hover:border-violet-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200')}>{n}</button>)}</div>;
     }
-    return <input className={inputClass} required={q.required} type={q.type==='number'?'number':q.type==='date'?'date':q.type==='email'?'email':'text'} maxLength={q.type==='short'?500:undefined} min={q.type==='number'?q.min:undefined} max={q.type==='number'?q.max:undefined} value={v??''} onChange={e=>setAnswer(q.id,e.target.value)}/>;
+    return <input className={inputClass} required={q.required} type={q.type==='number'?'number':q.type==='date'?'date':q.type==='email'?'email':'text'} maxLength={q.type==='short'?500:undefined} min={q.type==='number'?q.min:undefined} max={q.type==='number'?q.max:undefined} value={typeof v==='string'||typeof v==='number'?v:''} onChange={e=>setAnswer(q.id,e.target.value)}/>;
   };
   async function send(event:FormEvent) {
     event.preventDefault();if(!form||saving)return;
