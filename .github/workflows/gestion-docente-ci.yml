@@ -1,0 +1,43 @@
+name: Gestión Docente unificada — pruebas (sin despliegue)
+
+on:
+  pull_request:
+    paths:
+      - "integrations/gestion-docente-unified/**"
+      - "integrations/gestion-docente-worker/**"
+      - ".github/workflows/gestion-docente-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "integrations/gestion-docente-unified/**"
+      - "integrations/gestion-docente-worker/**"
+      - ".github/workflows/gestion-docente-ci.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Python 3
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Pruebas de acceso único, HUB, archivos y antivirus (simulados)
+        run: bash integrations/gestion-docente-unified/run-unified-tests.sh
+      - name: Confirmar que no existe dependencia de Netlify
+        run: |
+          test ! -e integrations/gestion-docente-unified/netlify.toml
+          test ! -e integrations/gestion-docente-worker/netlify.toml
+          if grep -r -n -E 'netlify\.com|netlify-cli|@netlify' integrations/gestion-docente-unified/*.mjs integrations/gestion-docente-worker/*.mjs; then
+            echo 'Dependencia Netlify encontrada en Gestión Docente'
+            exit 1
+          fi
