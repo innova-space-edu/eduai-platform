@@ -1,4 +1,4 @@
-import type { FormQuestion, FormResponse, Answer } from './model';
+import {isTableAnswer,type FormQuestion,type FormResponse,type Answer} from './model';
 
 export type SeriesItem = { label: string; count: number; percentage: number };
 export type NumericStats = { n: number; mean: number; median: number; min: number; max: number; sd: number };
@@ -9,6 +9,7 @@ export type QuestionSummary = {
   series: SeriesItem[];
   numeric?: NumericStats;
   textValues?: string[];
+  table?: { rowCount: number; columns: {label:string; values:number; numericTotal?:number; top:SeriesItem[]}[] };
 };
 
 const round = (v: number) => Math.round(v * 100) / 100;
@@ -50,6 +51,24 @@ export function summarizeResponses(questions: FormQuestion[], responses: FormRes
       }
     }
     const labels = question.type === 'yesno' ? ['Sí','No'] : question.options.length ? question.options : [...counts.keys()].sort((a,b)=>Number(a)-Number(b));
+    const tableRows = question.type === 'table' ? values.filter(isTableAnswer).flat() : [];
+    const table = question.type === 'table' ? {
+      rowCount:tableRows.length,
+      columns:question.options.map((label,index)=>{
+        const cellValues=tableRows.map(row=>row[index]).filter(Boolean);
+        const frequencies=new Map<string,number>();
+        for(const cell of cellValues)frequencies.set(cell,(frequencies.get(cell)||0)+1);
+        const numbers=cellValues.map(cell=>Number(cell));
+        const numericTotal=cellValues.length&&numbers.every(Number.isFinite)
+          ? round(numbers.reduce((sum,n)=>sum+n,0)):undefined;
+        return {
+          label,values:cellValues.length,
+          ...(numericTotal!==undefined?{numericTotal}:{}),
+          top:[...frequencies.entries()].sort((a,b)=>b[1]-a[1]).slice(0,5)
+            .map(([value,count])=>({label:value,count,percentage:round(100*count/(cellValues.length||1))}))
+        };
+      })
+    }:undefined;
     const base = values.length || 1;
     return {
       question,
@@ -57,13 +76,14 @@ export function summarizeResponses(questions: FormQuestion[], responses: FormRes
       missing: responses.length - values.length,
       series: (labels.length ? labels : [...counts.keys()]).map(label => ({label,count:counts.get(label)||0,percentage:round(100*(counts.get(label)||0)/base)})),
       ...(numeric ? { numeric } : {}),
+      ...(table ? { table } : {}),
       ...(['short','long','email','date'].includes(question.type) ? {textValues:values.filter((v):v is string=>typeof v==='string').slice(0,500)} : {})
     };
   });
 }
 
 export function escapeCsv(value: unknown) {
-  const s = Array.isArray(value) ? value.join('; ') : String(value ?? '');
+  const s = Array.isArray(value) ? (isTableAnswer(value) ? JSON.stringify(value) : value.join('; ')) : String(value ?? '');
   const safe = /^[=+\-@\t\r]/.test(s) ? "'" + s : s;
   return '"' + safe.replace(/"/g,'""') + '"';
 }
@@ -75,6 +95,28 @@ export function responseCsv(questions: FormQuestion[], responses: FormResponse[]
     ...responses.map(r=>[r.id,r.submitted_at,r.identity?.name||'',r.identity?.email||'',...cols.map(q=>r.answers?.[q.id]??'')])
   ];
   return '\uFEFF' + rows.map(row=>row.map(escapeCsv).join(',')).join('\r\n');
+}
+
+/**
+ * Long-format CSV: one row per material/item, preserving respondent identity,
+ * question name, row order and configured column headers.
+ */
+export function tableRowsCsv(questions: FormQuestion[], responses: FormResponse[]) {
+  const tableQuestions=questions.filter(q=>q.type==='table');
+  const columns=[...new Set(tableQuestions.flatMap(q=>q.options))];
+  const rows:(string|number)[][]=[
+    ['ID respuesta','Fecha','Nombre','Correo','Tabla','Fila',...columns]
+  ];
+  for(const response of responses)for(const q of tableQuestions){
+    const values=response.answers?.[q.id];
+    if(!isTableAnswer(values))continue;
+    for(const [idx,row] of values.entries()){
+      const byName=new Map(q.options.map((name,i)=>[name,row[i]||'']));
+      rows.push([response.id,response.submitted_at,response.identity?.name||'',response.identity?.email||'',q.label,idx+1,
+        ...columns.map(c=>byName.get(c)||'')]);
+    }
+  }
+  return '\uFEFF'+rows.map(row=>row.map(escapeCsv).join(',')).join('\r\n');
 }
 
 function escapeLatex(value: string) {
@@ -91,6 +133,14 @@ export function reportLatex(title: string, summaries: QuestionSummary[], total: 
   for (const s of summaries) {
     lines.push('\\subsection*{' + escapeLatex(s.question.label) + '}');
     lines.push('Respondidas: ' + s.answered + '; sin respuesta: ' + s.missing + '.');
+    if(s.table) {
+      lines.push('Filas registradas: ' + s.table.rowCount + '.');
+      for(const column of s.table.columns){
+        lines.push('\\textbf{' + escapeLatex(column.label) + '} ('+column.values+' valores).'+
+          (column.numericTotal!==undefined?' Total numérico: '+column.numericTotal+'.':''));
+        for(const entry of column.top) lines.push(escapeLatex(entry.label)+' ('+entry.count+'; '+entry.percentage+'\\%).');
+      }
+    }
     if(s.numeric) lines.push('Media: $\\bar{x}=' + s.numeric.mean + '$; mediana: $\\tilde{x}=' + s.numeric.median + '$; desviación estándar: $\\sigma=' + s.numeric.sd + '$; rango: [' + s.numeric.min + ', ' + s.numeric.max + '].');
     if(s.series.length) {
       lines.push('\\begin{tabular}{lrr}', '\\toprule', 'Opción & Frecuencia & Porcentaje \\\\', '\\midrule');
