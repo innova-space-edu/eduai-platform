@@ -49,6 +49,7 @@ export type FormResponse = {
   answers: Record<string, Answer>;
   identity: { name?: string; email?: string };
   submitted_at: string;
+  questions_snapshot?: FormQuestion[];
 };
 export const DEFAULT_SETTINGS: FormSettings = {
   collectName: false,
