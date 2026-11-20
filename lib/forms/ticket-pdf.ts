@@ -159,7 +159,7 @@ export function buildTicketPdf(form: TicketForm, response?: FormResponse): jsPDF
     ensure(13);y+=5;
     paragraph('Gracias por participar.', {size:8.5,color:GRAY});
   }
-  const pages=pdf.internal.getNumberOfPages();
+  const pages=pdf.getNumberOfPages();
   for(let page=1;page<=pages;page++) {
     pdf.setPage(page);
     pdf.setDrawColor(226,229,237);pdf.line(MARGIN,285,PAGE_W-MARGIN,285);
