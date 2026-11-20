@@ -62,3 +62,23 @@ for delete to authenticated using (
 
 comment on table public.eduai_forms is 'Formularios privados por propietario; acceso público exclusivamente por endpoint validado.';
 comment on table public.eduai_form_responses is 'Respuestas privadas; inserción exclusiva del servidor con llave de servicio, sin Data API pública.';
+
+
+-- Keep each historical answer associated with the question wording it answered.
+-- Once the first response exists, the owner must duplicate the form to revise its questions.
+create or replace function public.eduai_lock_form_questions_after_response()
+returns trigger language plpgsql security invoker set search_path = ''
+as $$
+begin
+  if old.questions is distinct from new.questions
+     and exists (select 1 from public.eduai_form_responses r where r.form_id = old.id) then
+    raise exception 'Este formulario tiene respuestas; duplícalo para cambiar las preguntas.';
+  end if;
+  return new;
+end;
+$$;
+revoke all on function public.eduai_lock_form_questions_after_response() from public, anon, authenticated;
+drop trigger if exists eduai_forms_lock_questions_trg on public.eduai_forms;
+create trigger eduai_forms_lock_questions_trg
+before update of questions on public.eduai_forms
+for each row execute function public.eduai_lock_form_questions_after_response();
