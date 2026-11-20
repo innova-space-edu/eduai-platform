@@ -88,7 +88,8 @@ export function buildTicketPdf(form: TicketForm, response?: FormResponse): jsPDF
   }
   function checkbox(label: string, active: boolean) {
     const optionLines=lines(label,CONTENT_W-13,9.8);
-    ensure(4.8);
+    // Keep the square aligned with its first answer line after a page break.
+    ensure(Math.min(optionLines.length * 5.5 + 1, BOTTOM - 24));
     const boxX=MARGIN+2;
     pdf.setDrawColor(110,118,140);
     pdf.setLineWidth(0.32);
