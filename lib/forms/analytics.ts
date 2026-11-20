@@ -33,6 +33,22 @@ export function summarizeResponses(questions: FormQuestion[], responses: FormRes
         }
       }
     }
+    if (question.type === 'number' && numeric) {
+      const low = numeric.min, high = numeric.max;
+      const bins = low === high ? 1 : 5;
+      const step = bins === 1 ? 1 : (high - low) / bins;
+      const histogram = Array.from({length:bins},(_,i)=>({
+        low:low+i*step, high:i===bins-1?high:low+(i+1)*step, count:0
+      }));
+      for (const n of numericValues) {
+        const idx = bins === 1 ? 0 : Math.min(bins-1,Math.floor((n-low)/step));
+        histogram[idx].count++;
+      }
+      for (const bin of histogram) {
+        const label = bin.low.toFixed(2) + ' a ' + bin.high.toFixed(2);
+        counts.set(label,bin.count);
+      }
+    }
     const labels = question.type === 'yesno' ? ['Sí','No'] : question.options.length ? question.options : [...counts.keys()].sort((a,b)=>Number(a)-Number(b));
     const base = values.length || 1;
     return {
