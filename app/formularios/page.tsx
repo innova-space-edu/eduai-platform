@@ -5,6 +5,7 @@ import {useEffect,useMemo,useState} from 'react';
 import {createClient} from '@/lib/supabase/client';
 import {DEFAULT_SETTINGS,DEFAULT_TABLE_COLUMNS,QUESTION_TYPES,isTableAnswer,normalizeForm,templateQuestions,type Answer,type FormKind,type FormQuestion,type FormRecord,type FormResponse,type QuestionType} from '@/lib/forms/model';
 import {downloadText,reportLatex,responseCsv,summarizeResponses,tableRowsCsv} from '@/lib/forms/analytics';
+import {groupQuestionsByVersion,questionsAtSubmission} from '@/lib/forms/history';
 import {ArrowDown,ArrowLeft,ArrowUp,BarChart3,Check,ChevronRight,ClipboardList,Copy,Download,ExternalLink,FileDown,FilePlus2,Files,Link2,Table2,Loader2,Mail,Plus,Save,Search,Settings2,Share2,Sparkles,Trash2,WandSparkles,X} from 'lucide-react';
 
 const field='min-h-11 w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-sm text-slate-900 outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:focus:ring-violet-950';
@@ -18,6 +19,13 @@ const kinds=Object.keys(kindLabels) as FormKind[];
 const makeQuestion=(type:QuestionType='short'):FormQuestion=>({id:crypto.randomUUID(),type,label:type==='section'?'Nueva sección':type==='table'?'Listado de materiales':'Nueva pregunta',description:'',required:type!=='section',options:type==='table'?[...DEFAULT_TABLE_COLUMNS]:choiceTypes.has(type)?['Opción 1','Opción 2']:[],...(type==='scale'?{min:1,max:5}:{})});
 const emptyForm=(kind:FormKind='encuesta'):FormRecord=>({id:'',slug:'',title:kindLabels[kind]+' sin título',description:'',kind,status:'draft',questions:[],settings:{...DEFAULT_SETTINGS}});
 const nameFile=(value:string)=>value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-zA-Z0-9_-]+/g,'_').slice(0,45)||'formulario';
+const errorMessage=(error:unknown):string=>{
+  if(error&&typeof error==='object'&&'message' in error){
+    const message=(error as {message?:unknown}).message;
+    if(typeof message==='string'&&message.trim())return message;
+  }
+  return 'No se pudo guardar. Revisa la conexión y vuelve a intentarlo.';
+};
 const responseLabel=(value:Answer|undefined)=>isTableAnswer(value)
   ? value.map((row,i)=>(i+1)+'. '+row.join(' | ')).join('\n')
   : Array.isArray(value)?value.join('; '):String(value??'');
@@ -92,8 +100,8 @@ export default function FormulariosPage() {
       const {data,error}=await action.select('*').single();
       if(error)throw error;
       await refreshForms(data as FormRecord);
-      setNotice(newStatus==='published'?'Formulario publicado. Ya puedes compartir su enlace.':newStatus==='closed'?'Formulario cerrado.':'Cambios guardados correctamente.');
-    }catch(e){setError(e instanceof Error?e.message:'No se pudo guardar.');}
+      setNotice(newStatus==='published'?'Formulario publicado. Ya puedes compartir su enlace.':newStatus==='closed'?'Formulario cerrado.':'Cambios guardados correctamente. Las respuestas anteriores conservan el historial de sus preguntas.');
+    }catch(e){setError(errorMessage(e));}
     finally{setSaving(false);}
   }
   async function remove(form:FormRecord){
@@ -111,7 +119,7 @@ export default function FormulariosPage() {
     try{
       const all:FormResponse[]=[];
       for(let page=0;page<5;page++){
-        const {data,error}=await supabase.from('eduai_form_responses').select('id,form_id,answers,identity,submitted_at')
+        const {data,error}=await supabase.from('eduai_form_responses').select('id,form_id,answers,identity,submitted_at,questions_snapshot')
           .eq('form_id',form.id).order('submitted_at',{ascending:false}).range(page*1000,page*1000+999);
         if(error)throw error;
         all.push(...(data||[]) as FormResponse[]);
@@ -141,14 +149,17 @@ export default function FormulariosPage() {
     const days=range==='7'?7:range==='30'?30:0;
     return days?responses.filter(r=>new Date(r.submitted_at).getTime()>=Date.now()-days*86400000):responses;
   },[responses,range]);
-  const summaries=useMemo(()=>summarizeResponses(editor?.questions||[],filteredResponses),[editor,filteredResponses]);
-  const completion=filteredResponses.length&&summaries.length?Math.round(100*summaries.reduce((s,q)=>s+q.answered,0)/(filteredResponses.length*summaries.length)):0;
+  const questionGroups=useMemo(()=>groupQuestionsByVersion(editor?.questions||[],filteredResponses),[editor,filteredResponses]);
+  const summaries=useMemo(()=>questionGroups.map(group=>summarizeResponses([group.question],group.responses)[0]),[questionGroups]);
+  const groupMembership=useMemo(()=>questionGroups.map(group=>new Set(group.responses.map(response=>response.id))),[questionGroups]);
+  const completionDenominator=summaries.reduce((s,q)=>s+q.answered+q.missing,0);
+  const completion=completionDenominator?Math.round(100*summaries.reduce((s,q)=>s+q.answered,0)/completionDenominator):0;
   async function exportTicket(response?: FormResponse) {
     if(!editor || editor.kind!=='ticket')return;
     setError('');
     try {
       const {downloadTicketPdf}=await import('@/lib/forms/ticket-pdf');
-      downloadTicketPdf(editor,response);
+      downloadTicketPdf(response?{...editor,questions:questionsAtSubmission(response,editor.questions)}:editor,response);
       setNotice(response?'PDF de la respuesta descargado.':'Ticket de salida en PDF descargado.');
     } catch(e) {
       setError(e instanceof Error?e.message:'No fue posible crear el PDF.');
@@ -156,7 +167,7 @@ export default function FormulariosPage() {
   }
   function exportTables(){
     if(!editor)return;
-    const tables=editor.questions.filter(q=>q.type==='table');
+    const tables=questionGroups.filter(group=>group.question.type==='table');
     if(!tables.length)return;
     downloadText(nameFile(editor.title)+'_filas_tabla.csv',tableRowsCsv(editor.questions,filteredResponses),'text/csv;charset=utf-8');
     setNotice('Listado de tablas exportado en filas, listo para Excel.');
@@ -254,13 +265,13 @@ export default function FormulariosPage() {
       </div>:
       view==='results'&&editor?<section className="space-y-5">
         <div className={panel}><div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-wider text-violet-600">Resultados privados</p><h2 className="mt-1 text-xl font-bold">{editor.title}</h2></div><div className="flex flex-wrap gap-2"><button className={button} onClick={()=>select(editor)}>Editar</button><button className={button} onClick={()=>showResults(editor)}><BarChart3 size={16}/> Actualizar</button>{editor.status==='published'&&<button className={button} onClick={()=>copyPublicLink(editor)}><Link2 size={16}/> Enlace</button>}</div></div>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-2"><div className="flex gap-2"><button onClick={()=>setTab('charts')} className={tab==='charts'?primary:button}><BarChart3 size={16}/> Gráficos</button><button onClick={()=>setTab('responses')} className={tab==='responses'?primary:button}><ClipboardList size={16}/> Respuestas</button></div><div className="flex flex-wrap gap-2"><select aria-label="Período" className={field+' !w-auto'} value={range} onChange={e=>setRange(e.target.value)}><option value="all">Todo el período</option><option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option></select><button onClick={()=>exportFile('csv')} className={button}><Download size={15}/> CSV</button>{editor.questions.some(q=>q.type==='table')&&<button onClick={exportTables} className={button}><Table2 size={15}/> Filas de tabla (CSV)</button>}<button onClick={()=>exportFile('json')} className={button}>JSON</button><button onClick={()=>exportFile('tex')} className={button}>LaTeX</button>{editor.kind==='ticket'&&<button onClick={()=>void exportTicket()} className={button}><FileDown size={15}/> Ticket en PDF</button>}</div></div>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-2"><div className="flex gap-2"><button onClick={()=>setTab('charts')} className={tab==='charts'?primary:button}><BarChart3 size={16}/> Gráficos</button><button onClick={()=>setTab('responses')} className={tab==='responses'?primary:button}><ClipboardList size={16}/> Respuestas</button></div><div className="flex flex-wrap gap-2"><select aria-label="Período" className={field+' !w-auto'} value={range} onChange={e=>setRange(e.target.value)}><option value="all">Todo el período</option><option value="7">Últimos 7 días</option><option value="30">Últimos 30 días</option></select><button onClick={()=>exportFile('csv')} className={button}><Download size={15}/> CSV</button>{questionGroups.some(group=>group.question.type==='table')&&<button onClick={exportTables} className={button}><Table2 size={15}/> Filas de tabla (CSV)</button>}<button onClick={()=>exportFile('json')} className={button}>JSON</button><button onClick={()=>exportFile('tex')} className={button}>LaTeX</button>{editor.kind==='ticket'&&<button onClick={()=>void exportTicket()} className={button}><FileDown size={15}/> Ticket en PDF</button>}</div></div>
           {truncated&&<p className="mt-3 rounded-xl bg-amber-50 p-3 text-xs text-amber-700">Se muestran hasta 5.000 respuestas recientes. Los porcentajes y exportaciones corresponden solo a este conjunto.</p>}
         </div>
         {resultLoading?<div className={panel+' text-center'}><Loader2 className="mx-auto mb-3 animate-spin"/>Calculando resultados...</div>:<>
           <div className="grid gap-3 sm:grid-cols-3"><div className={panel}><p className="text-sm text-slate-500">Respuestas</p><p className="mt-2 text-3xl font-extrabold text-violet-600">{filteredResponses.length.toLocaleString('es-CL')}</p></div><div className={panel}><p className="text-sm text-slate-500">Preguntas</p><p className="mt-2 text-3xl font-extrabold">{summaries.length}</p></div><div className={panel}><p className="text-sm text-slate-500">Preguntas respondidas</p><p className="mt-2 text-3xl font-extrabold">{completion}%</p></div></div>
-          {tab==='charts'?<div className="grid items-start gap-4 lg:grid-cols-2">{summaries.map((summary,i)=><article key={summary.question.id} className={panel}>
-            <div className="flex items-start gap-3"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-violet-100 text-sm font-bold text-violet-700 dark:bg-violet-900 dark:text-violet-200">{i+1}</span><div className="min-w-0"><h3 className="font-bold">{summary.question.label}</h3><p className="mt-1 text-xs text-slate-500">{summary.answered} respuestas · {summary.missing} sin respuesta</p></div></div>
+          {tab==='charts'?<div className="grid items-start gap-4 lg:grid-cols-2">{summaries.map((summary,i)=><article key={questionGroups[i]?.signature||summary.question.id} className={panel}>
+            <div className="flex items-start gap-3"><span className="grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-violet-100 text-sm font-bold text-violet-700 dark:bg-violet-900 dark:text-violet-200">{i+1}</span><div className="min-w-0"><h3 className="font-bold">{summary.question.label}{!questionGroups[i]?.current&&<span className="ml-2 inline-flex rounded-md bg-amber-100 px-2 py-0.5 text-[10px] font-bold text-amber-800">Versión anterior</span>}</h3><p className="mt-1 text-xs text-slate-500">{summary.answered} respuestas · {summary.missing} sin respuesta</p></div></div>
             {summary.table&&<div className="mt-4 space-y-3"><div className="rounded-xl bg-violet-50 p-3 text-sm font-semibold text-violet-800 dark:bg-violet-950 dark:text-violet-200">{summary.table.rowCount} filas de tabla registradas</div>
               <div className="grid gap-2 sm:grid-cols-2">{summary.table.columns.map((c,j)=><div key={j} className="rounded-xl border border-slate-200 p-3 dark:border-slate-700">
                 <h4 className="text-sm font-bold">{c.label}</h4><p className="text-xs text-slate-500">{c.values} valores{c.numericTotal!==undefined?' · Total: '+c.numericTotal:''}</p>
@@ -270,8 +281,8 @@ export default function FormulariosPage() {
             {summary.series.length>0&&<div className="mt-5 space-y-3">{summary.series.map((bar,j)=><div key={j}><div className="mb-1 flex justify-between gap-3 text-sm"><span className="min-w-0 break-words text-slate-700 dark:text-slate-200">{bar.label}</span><span className="shrink-0 font-semibold">{bar.count} · {bar.percentage}%</span></div><div className="h-3.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div role="img" aria-label={bar.label+': '+bar.percentage+' por ciento'} className="h-full rounded-full bg-gradient-to-r from-violet-500 to-blue-500 transition-all" style={{width:bar.percentage+'%'}}/></div></div>)}</div>}
             {summary.textValues&&<div className="mt-4 max-h-52 space-y-2 overflow-y-auto">{summary.textValues.length?summary.textValues.slice(0,15).map((t,j)=><p key={j} className="rounded-xl bg-slate-50 p-3 text-sm text-slate-700 dark:bg-slate-950 dark:text-slate-300">{t}</p>):<p className="text-sm text-slate-500">Sin respuestas abiertas.</p>}</div>}
             {!summary.series.length&&!summary.textValues&&!summary.numeric&&<p className="mt-4 text-sm text-slate-500">No hay datos suficientes para calcular estadísticas.</p>}
-          </article>)}</div>:<div className={panel+' overflow-x-auto'}><table className="w-full min-w-[680px] border-collapse text-left text-sm"><thead><tr className="border-b border-slate-200 text-xs uppercase text-slate-500 dark:border-slate-700">{editor.kind==='ticket'&&<th className="p-3">PDF</th>}<th className="p-3">Fecha</th><th className="p-3">Nombre</th><th className="p-3">Correo</th>{editor.questions.filter(q=>q.type!=='section').map(q=><th key={q.id} className="min-w-40 p-3">{q.label}</th>)}</tr></thead><tbody>{filteredResponses.map(r=><tr key={r.id} className="border-b border-slate-100 align-top dark:border-slate-800">{editor.kind==='ticket'&&<td className="p-3"><button title="Descargar esta respuesta en PDF" aria-label="Descargar respuesta en PDF" className={button} onClick={()=>void exportTicket(r)}><FileDown size={15}/> PDF</button></td>}<td className="whitespace-nowrap p-3">{new Date(r.submitted_at).toLocaleString('es-CL')}</td><td className="p-3">{r.identity?.name||'—'}</td><td className="p-3">{r.identity?.email||'—'}</td>{editor.questions.filter(q=>q.type!=='section').map(q=><td className="max-w-72 whitespace-pre-line break-words p-3" key={q.id}>{q.type==='table'&&isTableAnswer(r.answers[q.id])?<div className="max-h-56 overflow-auto rounded-lg border border-slate-200 dark:border-slate-700"><table className="min-w-96 text-xs"><thead><tr>{q.options.map((header,i)=><th key={i} className="bg-violet-50 p-2 text-left dark:bg-violet-950">{header}</th>)}</tr></thead><tbody>{(r.answers[q.id] as string[][]).map((cells,i)=><tr key={i}>{cells.map((cell,j)=><td key={j} className="border-t border-slate-100 p-2 dark:border-slate-800">{cell}</td>)}</tr>)}</tbody></table></div>:responseLabel(r.answers[q.id])||'—'}</td>)}</tr>)}</tbody></table>{!filteredResponses.length&&<p className="py-8 text-center text-sm text-slate-500">No se han recibido respuestas para este período.</p>}</div>}
-          <p className="text-xs text-slate-500">Los porcentajes usan como denominador las respuestas válidas de cada pregunta. En selección múltiple pueden sumar más del 100%. La desviación estándar mostrada es poblacional.</p>
+          </article>)}</div>:<div className={panel+' overflow-x-auto'}><table className="w-full min-w-[680px] border-collapse text-left text-sm"><thead><tr className="border-b border-slate-200 text-xs uppercase text-slate-500 dark:border-slate-700">{editor.kind==='ticket'&&<th className="p-3">PDF</th>}<th className="p-3">Fecha</th><th className="p-3">Nombre</th><th className="p-3">Correo</th>{questionGroups.map(group=><th key={group.signature} className="min-w-40 p-3">{group.question.label}{!group.current&&<span className="ml-2 text-amber-600">(anterior)</span>}</th>)}</tr></thead><tbody>{filteredResponses.map(r=><tr key={r.id} className="border-b border-slate-100 align-top dark:border-slate-800">{editor.kind==='ticket'&&<td className="p-3"><button title="Descargar esta respuesta en PDF" aria-label="Descargar respuesta en PDF" className={button} onClick={()=>void exportTicket(r)}><FileDown size={15}/> PDF</button></td>}<td className="whitespace-nowrap p-3">{new Date(r.submitted_at).toLocaleString('es-CL')}</td><td className="p-3">{r.identity?.name||'—'}</td><td className="p-3">{r.identity?.email||'—'}</td>{questionGroups.map((group,index)=><td className="max-w-72 whitespace-pre-line break-words p-3" key={group.signature}>{groupMembership[index].has(r.id)?group.question.type==='table'&&isTableAnswer(r.answers[group.question.id])?<div className="max-h-56 overflow-auto rounded-lg border border-slate-200 dark:border-slate-700"><table className="min-w-96 text-xs"><thead><tr>{group.question.options.map((header,i)=><th key={i} className="bg-violet-50 p-2 text-left dark:bg-violet-950">{header}</th>)}</tr></thead><tbody>{(r.answers[group.question.id] as string[][]).map((cells,i)=><tr key={i}>{cells.map((cell,j)=><td key={j} className="border-t border-slate-100 p-2 dark:border-slate-800">{cell}</td>)}</tr>)}</tbody></table></div>:responseLabel(r.answers[group.question.id])||'—':'—'}</td>)}</tr>)}</tbody></table>{!filteredResponses.length&&<p className="py-8 text-center text-sm text-slate-500">No se han recibido respuestas para este período.</p>}</div>}
+          <p className="text-xs text-slate-500">Las preguntas editadas se separan por versión; las respuestas antiguas conservan el enunciado original. Los porcentajes usan como denominador las respuestas válidas de cada pregunta. En selección múltiple pueden sumar más del 100%. La desviación estándar mostrada es poblacional.</p>
         </>}
       </section>:null}
       <p className="pb-3 text-center text-xs text-slate-500">EDUAI Formularios Studio · Crea, comparte y analiza en un mismo espacio</p>
