@@ -39,6 +39,9 @@ jobs:
       - name: Install dependencies
         run: npm install --registry=https://registry.npmjs.org/
 
+      - name: Formularios Studio validations and statistics
+        run: npx tsx --test tests/formularios.test.ts
+
       - name: Comprobar comparación A/B con LaTeX y consentimiento
         run: node scripts/test-training-contributions.mjs
 

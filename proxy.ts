@@ -21,6 +21,8 @@ const PROTECTED_ROUTES = [
   "/creator-hub", "/audio-lab", "/image-studio", "/workspace",
   "/educador", "/superagent", "/chat-global", "/music", "/exam-focus",
   "/pizarra-interactiva",
+  "/repositorio",
+  "/formularios",
 ]
 
 const AUTH_ROUTES = ["/login", "/register"]
@@ -88,6 +90,12 @@ export async function proxy(request: NextRequest) {
   const { pathname, searchParams } = request.nextUrl
   let isManualExamPublish = false
   if (isPublicRepositoryRead(pathname, request.method) || isPublicRepositorySubmission(pathname, request.method)) {
+    return NextResponse.next({ request })
+  }
+  // Public survey links are intentionally accessible without an EDUAI session.
+  // The isolated API verifies publication, limits submissions, and never exposes results.
+  if ((request.method === "GET" && /^\/f\/[a-f0-9-]{36}\/?$/i.test(pathname)) ||
+      (["GET","POST"].includes(request.method) && /^\/api\/formularios\/public\/[a-f0-9-]{36}\/?$/i.test(pathname))) {
     return NextResponse.next({ request })
   }
   if (request.method === "GET" && /^\/examen\/p\/[^/]+\/?$/.test(pathname)) {
