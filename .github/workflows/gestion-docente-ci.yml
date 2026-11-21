@@ -41,3 +41,31 @@ jobs:
             echo 'Dependencia Netlify encontrada en Gestión Docente'
             exit 1
           fi
+
+  postgres-schema-smoke:
+    name: Dell PostgreSQL 17 — pruebas aisladas sin desplegar
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: gestion_ci
+          POSTGRES_PASSWORD: disposable_ci_only
+          POSTGRES_DB: gestion_ci
+        options: >-
+          --health-cmd "pg_isready -U gestion_ci -d gestion_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Crear esquema en PostgreSQL desechable y comprobar RLS
+        shell: bash
+        run: |
+          set -euo pipefail
+          PG_CONTAINER="${{ job.services.postgres.id }}"
+          docker exec -i "$PG_CONTAINER" psql -X -U gestion_ci -d gestion_ci -v ON_ERROR_STOP=1 < integrations/gestion-docente-unified/DELL_POSTGRES_GESTION_DRAFT.sql
+          docker exec -i "$PG_CONTAINER" psql -X -U gestion_ci -d gestion_ci -v ON_ERROR_STOP=1 < integrations/gestion-docente-unified/DELL_POSTGRES_RESERVAS_STAGE.sql
+          docker exec -i "$PG_CONTAINER" psql -X -U gestion_ci -d gestion_ci -v ON_ERROR_STOP=1 < integrations/gestion-docente-unified/postgres-smoke.sql
