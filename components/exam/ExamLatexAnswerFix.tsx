@@ -24,26 +24,16 @@ function getArtifactFromStorage(examId: string, attemptId: string, index: number
   if (typeof window === "undefined") return null
   const exactKey = `eduai-exam-notebook:${examId}:${attemptId}:${index}`
   const exact = parseJsonSafe(window.localStorage.getItem(exactKey))
-  if (exact) return exact
-
-  const suffix = `:${index}`
-  const candidates: any[] = []
-  for (let i = 0; i < window.localStorage.length; i++) {
-    const key = window.localStorage.key(i) || ""
-    if (!key.startsWith("eduai-exam-notebook:") || !key.endsWith(suffix)) continue
-    const parsed = parseJsonSafe(window.localStorage.getItem(key))
-    if (parsed) candidates.push(parsed)
-  }
-
-  candidates.sort((a, b) => Date.parse(String(b?.updatedAt || 0)) - Date.parse(String(a?.updatedAt || 0)))
-  return candidates[0] || null
+  return exact || null
 }
 
 function getArtifactsForSubmit(body: any) {
   const examId = String(body?.examId || "")
   const attemptId = String(body?.clientAttemptId || "")
   const answers = Array.isArray(body?.answers) ? body.answers : []
-  return answers.map((_answer: any, index: number) => getArtifactFromStorage(examId, attemptId, index))
+  return answers.map((answer: any, index: number) => Array.isArray(answer?.developmentPages)
+    ? { pages: answer.developmentPages, latex: answer.developmentLatex || answer.developmentLatexSource || "", previewPngDataUrl: answer.developmentPreviewPngDataUrl || "" }
+    : getArtifactFromStorage(examId, attemptId, index))
 }
 
 function normalizeAnswer(answer: any, artifact?: any) {
@@ -150,17 +140,7 @@ function findArtifactForQuestion(index: number) {
   const latest = getLatestArtifactsFromWindow()
   if (latest[index]) return latest[index]
 
-  if (typeof window === "undefined") return null
-  const candidates: any[] = []
-  const suffix = `:${index}`
-  for (let i = 0; i < window.localStorage.length; i++) {
-    const key = window.localStorage.key(i) || ""
-    if (!key.startsWith("eduai-exam-notebook:") || !key.endsWith(suffix)) continue
-    const parsed = parseJsonSafe(window.localStorage.getItem(key))
-    if (parsed) candidates.push(parsed)
-  }
-  candidates.sort((a, b) => Date.parse(String(b?.updatedAt || 0)) - Date.parse(String(a?.updatedAt || 0)))
-  return candidates[0] || null
+  return null
 }
 
 function findSmallestQuestionCard(questionNumber: number) {

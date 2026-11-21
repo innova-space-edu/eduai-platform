@@ -102,6 +102,9 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next({ request })
   }
 
+  // Notebook writes have their own verified active-attempt credential guard.
+  if (pathname === "/api/examen/developments" && request.method === "POST") return NextResponse.next({ request })
+
   // The public exam flow validates its own roster and attempt credentials.
   // Teacher actions continue through the ordinary account and permission checks.
   if (pathname === "/api/agents/examen-docente") {
