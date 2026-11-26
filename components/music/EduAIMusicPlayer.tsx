@@ -2973,7 +2973,7 @@ function NeonRightPanel() {
                     <span className={cn("block truncate text-[9px] font-black", active ? "text-cyan-200" : "text-white")}>{musicDisplayText(item.title)}</span>
                     <span className="block truncate text-[8px] text-slate-500">{musicDisplayText(item.artist)}</span>
                   </button>
-                  {active && <NeonSpectrum active={music.playing} bars={4} currentTime={music.currentTime} trackId={track.id} className="h-5 w-5" />}
+                  {active && <span aria-label={music.playing ? "Reproduciendo" : "En pausa"} className="h-2 w-2 shrink-0 rounded-full bg-cyan-300" />}
                   <Menu className="h-3 w-3 text-slate-600" />
                 </div>
               );
