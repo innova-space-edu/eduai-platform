@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { trackMixKey } from "@/lib/music/mix-favorite";
+import type { EduMusicTrack } from "@/lib/music/eduai-music-catalog";
 
 export const maxDuration = 25;
 
-type RequestSong = { artist: string; title: string };
+type RequestSong = { artist: string; title: string; mode?: "artist" | "song" };
 type YouTubeItem = {
   id?: { videoId?: string };
   snippet?: { title?: string; channelTitle?: string; description?: string; thumbnails?: { high?: { url?: string }; medium?: { url?: string } } };
@@ -16,7 +18,7 @@ type VideoDetail = {
 };
 
 function normalized(value: string) {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 }
 function seconds(value = "") {
   const m = /^P(?:([0-9]+)D)?T?(?:([0-9]+)H)?(?:([0-9]+)M)?(?:([0-9]+)S)?$/.exec(value);
@@ -38,6 +40,10 @@ function rankVideo(title: string, channel: string, requested: RequestSong) {
   const artistMatch = t.includes(artist) || c.includes(artist) ||
     artistWords.some((word) => t.includes(word) || c.includes(word));
   const titleOverlap = titleWords.length ? titleWords.filter((word) => t.includes(word)).length / titleWords.length : 0;
+  if (requested.mode === "artist") {
+    if (!artistMatch || /\b(?:reaction|tutorial|interview|entrevista|karaoke|compilation|playlist|megamix)\b/.test(t)) return -100;
+    return 20 + (t.includes(artist) ? 8 : 0) + (c.includes(artist) ? 12 : 0) + (/\b(?:official|oficial|vevo)\b/.test(t + " " + c) ? 8 : 0);
+  }
   if (!artistMatch && titleOverlap < 0.75) return -100;
   return titleOverlap * 22 + (artistMatch ? 18 : 0) +
     (t.includes(artist) ? 6 : 0) + (c.includes(artist) ? 5 : 0) +
@@ -47,24 +53,25 @@ function rankVideo(title: string, channel: string, requested: RequestSong) {
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.YOUTUBE_API_KEY;
-  if (!apiKey) return NextResponse.json({ ok: false, error: "Falta configurar YOUTUBE_API_KEY en Vercel." }, { status: 503 });
   const body = await req.json().catch(() => ({}));
   const list = Array.isArray(body.requests) ? body.requests : [];
   const requests: RequestSong[] = list.slice(0, 10).map((s: any) => ({
     artist: String(s?.artist || "").trim().slice(0, 100),
     title: String(s?.title || "").trim().slice(0, 140),
+    mode: s?.mode === "artist" ? "artist" as const : "song" as const,
   })).filter((s: RequestSong) => s.artist && s.title);
   if (!requests.length) return NextResponse.json({ ok: false, error: "Faltan artistas o canciones." }, { status: 400 });
   const excluded = new Set(
     (Array.isArray(body.excludeIds) ? body.excludeIds : [])
-      .slice(-500).filter((v: unknown): v is string => typeof v === "string"),
+      .slice(-1500).filter((v: unknown): v is string => typeof v === "string" && /^[a-zA-Z0-9_-]{11}$/.test(v)),
   );
+  const excludedSongs = new Set<string>((Array.isArray(body.excludeSongKeys) ? body.excludeSongKeys : []).slice(-1500).filter((v: unknown): v is string => typeof v === "string" && v.length <= 300));
   const adminUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const cache = adminUrl && adminKey
     ? createAdminClient(adminUrl, adminKey, { auth: { autoRefreshToken: false, persistSession: false } })
     : null;
-  const songKey = (song: RequestSong) => normalized(song.artist) + "|" + normalized(song.title);
+  const songKey = (song: RequestSong) => normalized(song.artist) + "|" + (song.mode === "artist" ? "discovery v2" : normalized(song.title));
   type MixTrack = {
     id: string; title: string; artist: string; album: string; mood: string;
     duration: string; src: string; cover: string; artworkUrl: string;
@@ -78,7 +85,7 @@ export async function POST(req: NextRequest) {
   const cached: Candidate[] = [];
   const requestKeys = requests.map(songKey);
 
-  if (cache) {
+  if (cache) try {
     const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
     const { data } = await cache.from("eduai_music_mix_video_cache")
       .select("song_key,track").in("song_key", requestKeys).gte("verified_at", cutoff);
@@ -87,56 +94,61 @@ export async function POST(req: NextRequest) {
       if (!song) continue;
       const tracks: unknown[] = Array.isArray(row.track) ? row.track : [row.track];
       for (const track of tracks.filter(isTrack)) {
-        if (!excluded.has(track.youtubeVideoId)) cached.push({ song, score: 20, track });
+        if (!excluded.has(track.youtubeVideoId) && !excludedSongs.has(trackMixKey(track as unknown as EduMusicTrack)) && track.playable && !track.externalOnly) cached.push({ song, score: 30, track });
       }
     }
-  }
+  } catch { /* Cache unavailable: continue with YouTube. */ }
 
-  const inCache = new Set(cached.map(({ song }) => songKey(song)));
+  const cacheCounts = new Map<string, number>();
+  for (const item of cached) cacheCounts.set(songKey(item.song), (cacheCounts.get(songKey(item.song)) || 0) + 1);
+  const inCache = new Set([...cacheCounts].filter(([,count]) => count >= 3).map(([key]) => key));
   const unresolved = requests.filter((song) => !inCache.has(songKey(song)));
   const found: Array<{ song: RequestSong; item: YouTubeItem; score: number }> = [];
   let failures = 0;
-  if (unresolved.length) {
-    // Sin videoEmbeddable / videoSyndicated: mostrar incluso las canciones
-    // que solo pueden escucharse en youtube.com (nunca evadir el bloqueo).
+  let failureKind = "";
+  // Bound cost: up to three independent searches per batch. Unlike a ten-term
+  // OR query, each artist gets a distinct search and partial failures survive.
+  const searchOne = async (song: RequestSong) => {
+    if (!apiKey) { failures++; failureKind = "quota_or_access"; return; }
     const params = new URLSearchParams({
       key: apiKey, part: "snippet", type: "video",
-      q: unresolved.map((song) => song.artist + " " + song.title).join("|").slice(0, 800),
-      safeSearch: "moderate", maxResults: "50",
+      q: song.mode === "artist" ? song.artist + " official music" : song.artist + " " + song.title,
+      safeSearch: "moderate", maxResults: "25", videoCategoryId: "10",
     });
     try {
       const response = await fetch("https://www.googleapis.com/youtube/v3/search?" + params, {
-        next: { revalidate: 3600 },
+        next: { revalidate: 3600 }, signal: AbortSignal.timeout(8500),
       });
-      if (!response.ok) failures++;
-      else {
-        const data = await response.json();
-        for (const item of (data.items || []) as YouTubeItem[]) {
-          if (!item.id?.videoId || !item.snippet?.title || excluded.has(item.id.videoId)) continue;
-          const matches = unresolved.map((song) => ({
-            song, score: rankVideo(item.snippet!.title!, item.snippet!.channelTitle || "", song),
-          })).sort((a, b) => b.score - a.score);
-          if (matches[0]?.score >= 0) found.push({ ...matches[0], item });
-        }
+      if (!response.ok) {
+        failures++;
+        failureKind = response.status === 403 || response.status === 429 ? "quota_or_access" : "provider";
+        return;
       }
-    } catch { failures++; }
-  }
+      const data = await response.json();
+      for (const item of (data.items || []) as YouTubeItem[]) {
+        if (!item.id?.videoId || !item.snippet?.title || excluded.has(item.id.videoId)) continue;
+        const score = rankVideo(item.snippet.title, item.snippet.channelTitle || "", song);
+        if (score >= 0) found.push({ song, item, score });
+      }
+    } catch { failures++; if (!failureKind) failureKind = "network"; }
+  };
+  await Promise.all(unresolved.slice(0, 3).map(searchOne));
 
   const ids = [...new Set(found.map((entry) => entry.item.id!.videoId!))].slice(0, 50);
   const detailMap = new Map<string, VideoDetail>();
   if (ids.length) {
-    const params = new URLSearchParams({ part: "status,contentDetails,snippet", id: ids.join(","), key: apiKey });
+    const params = new URLSearchParams({ part: "status,contentDetails,snippet", id: ids.join(","), key: apiKey || "" });
     try {
       const response = await fetch("https://www.googleapis.com/youtube/v3/videos?" + params, {
-        next: { revalidate: 1800 },
+        next: { revalidate: 1800 }, signal: AbortSignal.timeout(7500),
       });
       if (response.ok) {
         const data = await response.json();
         for (const detail of (data.items || []) as VideoDetail[]) {
           if (detail.id) detailMap.set(detail.id, detail);
         }
-      }
-    } catch { failures++; }
+      } else { failures++; if (!failureKind) failureKind = "verification"; }
+    } catch { failures++; if (!failureKind) failureKind = "verification"; }
   }
 
   const candidates: Candidate[] = [...cached];
@@ -147,6 +159,7 @@ export async function POST(req: NextRequest) {
     // una URL ficticia para ellos.
     if (!detail || detail.status?.privacyStatus !== "public") continue;
     const duration = seconds(detail.contentDetails?.duration);
+    if (duration < 55 || duration > 1200 || detail.snippet?.liveBroadcastContent === "live" || detail.snippet?.liveBroadcastContent === "upcoming") continue;
     const embeddable = detail.status?.embeddable === true;
     const thumb = item.snippet?.thumbnails?.high?.url || item.snippet?.thumbnails?.medium?.url || "";
     candidates.push({
@@ -172,14 +185,17 @@ export async function POST(req: NextRequest) {
   candidates.sort((a, b) => b.score - a.score);
   const grouped = new Map<string, Candidate[]>();
   const usedIds = new Set<string>();
+  const usedSongs = new Set<string>(excludedSongs);
   for (const candidate of candidates) {
     const key = normalized(candidate.song.artist);
-    if (!key || usedIds.has(candidate.track.youtubeVideoId)) continue;
+    const canonical = trackMixKey(candidate.track as unknown as EduMusicTrack);
+    if (!key || !candidate.track.playable || candidate.track.externalOnly || excluded.has(candidate.track.youtubeVideoId) || usedIds.has(candidate.track.youtubeVideoId) || usedSongs.has(canonical)) continue;
     const group = grouped.get(key) || [];
     if (group.length >= 6) continue;
     group.push(candidate);
     grouped.set(key, group);
     usedIds.add(candidate.track.youtubeVideoId);
+    usedSongs.add(canonical);
   }
   const tracks: MixTrack[] = [];
   while (tracks.length < 60 && [...grouped.values()].some((group) => group.length)) {
@@ -192,7 +208,7 @@ export async function POST(req: NextRequest) {
 
   // Solo conservar resultados por canción en la caché si la búsqueda realmente
   // devolvió videos; no sobrescribirlos con un error temporal de API.
-  if (cache && found.length) {
+  if (cache && found.length) try {
     const bySong = new Map<string, MixTrack[]>();
     for (const candidate of candidates.filter((v) => !cached.includes(v))) {
       const key = songKey(candidate.song);
@@ -210,10 +226,10 @@ export async function POST(req: NextRequest) {
         .upsert(rows, { onConflict: "song_key" });
       if (error) console.warn("[EDUAI Music] Caché YouTube no disponible:", error.message);
     }
-  }
+  } catch { /* A cache write must never invalidate a successful search. */ }
 
   return NextResponse.json({
-    ok: true, tracks, searched: unresolved.length, cached: cached.length,
+    ok: true, tracks, searched: Math.min(3, unresolved.length), cached: cached.length, failureKind,
     failures, verifiedCount: detailMap.size, candidates: candidates.length,
     embeddable: tracks.filter((track) => track.playable).length,
     external: tracks.filter((track) => track.externalOnly).length,
