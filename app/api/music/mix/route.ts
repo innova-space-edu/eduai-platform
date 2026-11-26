@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient as createAdminClient } from "@supabase/supabase-js";
+import { trackMixKey } from "@/lib/music/mix-favorite";
+import type { EduMusicTrack } from "@/lib/music/eduai-music-catalog";
 
 export const maxDuration = 25;
 
@@ -51,7 +53,6 @@ function rankVideo(title: string, channel: string, requested: RequestSong) {
 
 export async function POST(req: NextRequest) {
   const apiKey = process.env.YOUTUBE_API_KEY;
-  if (!apiKey) return NextResponse.json({ ok: false, error: "Falta configurar YOUTUBE_API_KEY en Vercel." }, { status: 503 });
   const body = await req.json().catch(() => ({}));
   const list = Array.isArray(body.requests) ? body.requests : [];
   const requests: RequestSong[] = list.slice(0, 10).map((s: any) => ({
@@ -62,8 +63,9 @@ export async function POST(req: NextRequest) {
   if (!requests.length) return NextResponse.json({ ok: false, error: "Faltan artistas o canciones." }, { status: 400 });
   const excluded = new Set(
     (Array.isArray(body.excludeIds) ? body.excludeIds : [])
-      .slice(-500).filter((v: unknown): v is string => typeof v === "string"),
+      .slice(-1500).filter((v: unknown): v is string => typeof v === "string" && /^[a-zA-Z0-9_-]{11}$/.test(v)),
   );
+  const excludedSongs = new Set<string>((Array.isArray(body.excludeSongKeys) ? body.excludeSongKeys : []).slice(-1500).filter((v: unknown): v is string => typeof v === "string" && v.length <= 300));
   const adminUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
   const adminKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const cache = adminUrl && adminKey
@@ -92,7 +94,7 @@ export async function POST(req: NextRequest) {
       if (!song) continue;
       const tracks: unknown[] = Array.isArray(row.track) ? row.track : [row.track];
       for (const track of tracks.filter(isTrack)) {
-        if (!excluded.has(track.youtubeVideoId)) cached.push({ song, score: 20, track });
+        if (!excluded.has(track.youtubeVideoId) && !excludedSongs.has(trackMixKey(track as unknown as EduMusicTrack)) && track.playable && !track.externalOnly) cached.push({ song, score: 30, track });
       }
     }
   } catch { /* Cache unavailable: continue with YouTube. */ }
@@ -107,6 +109,7 @@ export async function POST(req: NextRequest) {
   // Bound cost: up to three independent searches per batch. Unlike a ten-term
   // OR query, each artist gets a distinct search and partial failures survive.
   const searchOne = async (song: RequestSong) => {
+    if (!apiKey) { failures++; failureKind = "quota_or_access"; return; }
     const params = new URLSearchParams({
       key: apiKey, part: "snippet", type: "video",
       q: song.mode === "artist" ? song.artist + " official music" : song.artist + " " + song.title,
@@ -134,7 +137,7 @@ export async function POST(req: NextRequest) {
   const ids = [...new Set(found.map((entry) => entry.item.id!.videoId!))].slice(0, 50);
   const detailMap = new Map<string, VideoDetail>();
   if (ids.length) {
-    const params = new URLSearchParams({ part: "status,contentDetails,snippet", id: ids.join(","), key: apiKey });
+    const params = new URLSearchParams({ part: "status,contentDetails,snippet", id: ids.join(","), key: apiKey || "" });
     try {
       const response = await fetch("https://www.googleapis.com/youtube/v3/videos?" + params, {
         next: { revalidate: 1800 }, signal: AbortSignal.timeout(7500),
@@ -182,14 +185,17 @@ export async function POST(req: NextRequest) {
   candidates.sort((a, b) => b.score - a.score);
   const grouped = new Map<string, Candidate[]>();
   const usedIds = new Set<string>();
+  const usedSongs = new Set<string>(excludedSongs);
   for (const candidate of candidates) {
     const key = normalized(candidate.song.artist);
-    if (!key || usedIds.has(candidate.track.youtubeVideoId)) continue;
+    const canonical = trackMixKey(candidate.track as unknown as EduMusicTrack);
+    if (!key || !candidate.track.playable || candidate.track.externalOnly || excluded.has(candidate.track.youtubeVideoId) || usedIds.has(candidate.track.youtubeVideoId) || usedSongs.has(canonical)) continue;
     const group = grouped.get(key) || [];
     if (group.length >= 6) continue;
     group.push(candidate);
     grouped.set(key, group);
     usedIds.add(candidate.track.youtubeVideoId);
+    usedSongs.add(canonical);
   }
   const tracks: MixTrack[] = [];
   while (tracks.length < 60 && [...grouped.values()].some((group) => group.length)) {
