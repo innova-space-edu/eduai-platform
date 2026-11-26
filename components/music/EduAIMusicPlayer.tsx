@@ -1940,12 +1940,14 @@ function NeonSpectrum({
   className,
   currentTime = 0,
   trackId = "",
+  animateInCalm = false,
 }: {
   active: boolean;
   bars?: number;
   className?: string;
   currentTime?: number;
   trackId?: string;
+  animateInCalm?: boolean;
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const { effective } = useContext(GamingLightingContext);
@@ -1959,7 +1961,7 @@ function NeonSpectrum({
     const nodes = Array.from(root.querySelectorAll<HTMLElement>(".neon-spectrum-bar"));
     if (!nodes.length) return;
 
-    if (!active || effective !== "dynamic") {
+    if (!active || effective === "off" || (effective === "calm" && !animateInCalm)) {
       nodes.forEach((node, index) => {
         const idle = 0.12 + ((index * 13) % 9) / 100;
         node.style.transform = `scaleY(${idle})`;
@@ -2021,7 +2023,7 @@ function NeonSpectrum({
     document.addEventListener("visibilitychange", sync);
     sync();
     return () => { cancelAnimationFrame(frame); document.removeEventListener("visibilitychange", sync); };
-  }, [active, bars, trackId, effective]);
+  }, [active, bars, trackId, effective, animateInCalm]);
 
   return (
     <div ref={rootRef} className={cn("neon-spectrum flex items-end gap-[2px]", className)} aria-hidden="true">
@@ -2941,7 +2943,7 @@ function NeonRightPanel() {
             )}
           </div>
 
-          <NeonSpectrum active={music.playing && !idle} bars={30} currentTime={music.currentTime} trackId={track.id} className="mt-2 h-10 w-full" />
+          <NeonSpectrum active={music.playing && !idle} bars={30} currentTime={music.currentTime} trackId={track.id} animateInCalm className="mt-2 h-10 w-full" />
 
           {!idle && (
             <div className="mt-1 flex items-center gap-2 text-[8px] font-bold tabular-nums text-slate-500">
