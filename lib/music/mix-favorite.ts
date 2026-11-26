@@ -9,13 +9,15 @@ export type MixSong = MixFavoriteSeedSong & {
   duration?: string;
   externalOnly?: boolean;
   origin?: "search" | "played" | "discovered";
+  playCount?: number;
+  lastPlayedAt?: number;
 };
 
 export function normalizeArtist(value: string) {
-  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 }
 export function mixSongKey(song: MixSong) {
-  return normalizeArtist(song.artist) + ":" + normalizeArtist(song.title);
+  return normalizeArtist(song.artist) + ":" + normalizeArtist(cleanTitle(song.title).replace(/\s*[\[(][^\])]*(?:remix|live|cover|version|edit|remaster|instrumental|sped up|slowed|dance practice|performance|m\/?v)[^\])]*[\])]/gi, "").replace(/\s+(?:[-–—|]\s*)?(?:official music video|official video|official audio|lyrics?|m\/?v|remastered|live|remix)\s*$/gi, ""));
 }
 const KNOWN_ARTISTS = [...MIX_FAVORITE_SEED_ARTISTS].sort((a, b) => b.length - a.length);
 
@@ -84,7 +86,7 @@ export function inferredMixSong(track: EduMusicTrack, searchQuery = ""): MixSong
       } else if (query && normalizedTitle.startsWith(query + " ") && searchQuery.trim().length <= 85) {
         artist = searchQuery.trim();
         title = raw.slice(searchQuery.trim().length).replace(/^\s*[-–—:]\s*/, "").trim();
-      } else if (topicChannel && validArtist(channel)) {
+      } else if ((topicChannel || normalizedTitle.length > 1) && validArtist(channel)) {
         artist = channel;
         title = raw;
       }
@@ -119,32 +121,44 @@ export function learnedVideoTrack(song: MixSong): EduMusicTrack | null {
   } as EduMusicTrack;
 }
 
-export function chooseMixRequests(learned: MixSong[], artists: string[], avoidArtists: string[], count = 3): MixSong[] {
-  const seen = new Set<string>();
-  const avoid = new Set(avoidArtists.map(normalizeArtist));
-  const personalized = learned.filter((s) => validArtist(s.artist) && validSong(s.title));
-  const artistSet = new Set(artists.map(normalizeArtist));
-  const shuffle = <T,>(items: T[]) => {
-    const shuffled = [...items];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
+export type MixRequest = { artist: string; title: string; mode?: "artist" | "song" };
+
+export function trackMixKey(track: EduMusicTrack): string {
+  const song = inferredMixSong(track);
+  return song ? mixSongKey(song) : mixSongKey({ artist: track.artist || "", title: track.title || "" });
+}
+
+export function chooseMixRequests(learned: MixSong[], artists: string[], avoidArtists: string[], count = 3, favorites: EduMusicTrack[] = [], recentlyRequested: string[] = []): MixRequest[] {
+  const affinity = new Map<string, { artist: string; weight: number }>();
+  const add = (artist: string, weight: number) => {
+    if (!validArtist(artist)) return;
+    const key = normalizeArtist(artist);
+    if (!key) return;
+    const old = affinity.get(key);
+    affinity.set(key, { artist: old?.artist || artist, weight: (old?.weight || 0) + weight });
   };
-  const pool = [
-    ...shuffle(personalized.filter((s) => s.origin === "played")).slice(0, 8),
-    ...shuffle(personalized.filter((s) => s.origin !== "played")).slice(0, 12),
-    ...shuffle(MIX_FAVORITE_SEED_SONGS.filter((s) => artistSet.has(normalizeArtist(s.artist)))),
-    ...shuffle([...personalized, ...MIX_FAVORITE_SEED_SONGS]),
-  ];
-  const chosen: MixSong[] = [];
-  for (const song of pool) {
-    const key = normalizeArtist(song.artist);
-    if (!key || seen.has(key) || avoid.has(key)) continue;
-    seen.add(key);
-    chosen.push(song);
-    if (chosen.length >= count) break;
+  for (const artist of MIX_FAVORITE_SEED_ARTISTS) add(artist, 1);
+  for (const artist of artists) add(artist, 0.4);
+  for (const song of learned) {
+    const played = song.origin === "played";
+    const recency = played && song.lastPlayedAt && Date.now() - song.lastPlayedAt < 30 * 86400000 ? 2 : 0;
+    add(song.artist, played ? 4 + Math.min(12, Math.max(0, song.playCount || 0)) + recency : song.origin === "search" ? 0.7 : 0.12);
+  }
+  for (const track of favorites) {
+    const song = inferredMixSong(track);
+    if (song) add(song.artist, 12);
+    else if (track.source === "youtube" && track.artist) add(track.artist, 8);
+  }
+  const avoid = new Set(avoidArtists.map(normalizeArtist));
+  const recent = new Set(recentlyRequested.map(normalizeArtist));
+  const ranked = [...affinity.values()].map(item => ({
+    ...item, rank: -Math.log(Math.max(0.000001, Math.random())) / Math.max(.1, Math.sqrt(item.weight) * (avoid.has(normalizeArtist(item.artist)) ? .12 : 1) * (recent.has(normalizeArtist(item.artist)) ? .15 : 1))
+  })).sort((a,b) => a.rank-b.rank);
+  const chosen: MixRequest[] = [];
+  const limit = Math.max(1, Math.min(10, count));
+  for (const item of ranked) {
+    if (chosen.length >= limit) break;
+    chosen.push({ artist: item.artist, title: "canciones", mode: "artist" });
   }
   return chosen;
 }
