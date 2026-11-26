@@ -169,10 +169,10 @@ function ClawQuickActions({ onAction }: { onAction: (prompt: string) => void }) 
         move(event.key === "ArrowLeft" ? -1 : 1)
       }}>
       <div className="mb-2 flex flex-wrap items-center justify-between gap-1.5">
-        <div className="min-w-0">
+        <div className="flex min-w-0 items-center gap-3"><div className="claw-sparkle" aria-hidden="true"><Sparkles size={26}/></div><div className="min-w-0">
           <h2 className="text-base font-bold tracking-tight text-main lg:text-lg">¿Qué vamos a crear hoy?</h2>
           <p className="text-[10px] text-muted2 lg:text-xs">Elige una tarea y completa el tema en el mensaje.</p>
-        </div>
+        </div></div>
         <div className="flex shrink-0 items-center gap-1" aria-label="Navegación del carrusel">
           {!reducedMotion && <button type="button" className={control} aria-label={playing ? "Pausar carrusel" : "Reanudar carrusel"} onClick={() => setPlaying((value) => !value)}>{playing ? <Pause size={13} /> : <Play size={13} />}</button>}
           <button type="button" data-claw-carousel-prev className={control} aria-label="Acciones anteriores" onClick={() => move(-1)}><ChevronLeft size={17} /></button>
@@ -205,9 +205,9 @@ function ClawQuickActions({ onAction }: { onAction: (prompt: string) => void }) 
                 return (
                   <button key={action.label} type="button" onClick={() => { if (Date.now() - lastSwipe.current > 350) onAction(action.prompt) }}
                     className="claw-refresh-action group flex min-w-0 items-center gap-2.5 rounded-2xl border border-soft bg-card-theme px-2.5 py-2 text-left transition focus-visible:outline-2 focus-visible:outline-violet-500"
-                    style={{ borderColor: action.accent + "24", backgroundImage: "linear-gradient(145deg, transparent, " + action.accent + "0b)" }}>
+                    style={{ borderColor: action.accent + "24", backgroundImage: "radial-gradient(ellipse at 100% 120%, " + action.accent + "38, transparent 66%), linear-gradient(145deg, #ffffffc9, " + action.accent + "26)" }}>
                     <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl" style={{ background: action.accent + "18", color: action.accent }}><Icon size={18} /></div>
-                    <div className="min-w-0"><p className="text-xs font-bold leading-tight text-main lg:text-sm">{action.label}</p><p className="mt-0.5 text-[10px] leading-snug text-muted2 lg:text-[11px]">{action.hint}</p></div>
+                    <div className="min-w-0"><p className="text-xs font-bold leading-tight text-main lg:text-sm">{action.label}</p><p className="mt-0.5 text-[10px] leading-snug text-muted2 lg:text-[11px]">{action.hint}</p></div><span className="claw-action-arrow" aria-hidden="true"><ArrowRight size={16}/></span>
                   </button>
                 )
               })}
@@ -785,6 +785,7 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
             </p>
           </div>
         </div>
+        {messages.length === 0 && <img src="/claw/mascot.svg" alt="" aria-hidden="true" className="claw-hero-bird" />}
         <span className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700 lg:inline-flex min-[2048px]:px-4 min-[2048px]:py-1.5 min-[2048px]:text-xs">
           <span aria-hidden="true" className="mr-1.5 inline-block h-2 w-2 rounded-full bg-emerald-500" /> Activo
         </span>
@@ -793,6 +794,7 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
       <div
         ref={transcriptRef}
         data-eduai-chat-scroll="true"
+        data-claw-empty={messages.length === 0 ? "true" : "false"}
         className="claw-refresh-transcript min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain bg-app/40 px-2.5 py-3 lg:space-y-4 lg:px-5 lg:py-5 min-[2048px]:space-y-5 min-[2048px]:px-8 min-[2048px]:py-7"
       >
         <div className="mx-auto w-full max-w-none space-y-3 lg:max-w-[980px] lg:space-y-4 min-[2048px]:max-w-[1280px] min-[2048px]:space-y-5">
@@ -805,6 +807,7 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
                   <Link key={item.href} href={item.href} prefetch={false} className="claw-refresh-shortcut inline-flex items-center gap-1.5 rounded-full border border-soft bg-card-theme px-3 py-1.5 text-xs font-medium text-sub focus-visible:outline-2 focus-visible:outline-violet-500"><item.icon size={14} />{item.label}<ArrowRight size={12} /></Link>
                 ))}
               </div>
+              <div className="claw-welcome-art" aria-hidden="true"><img src="/claw/workspace.svg" alt=""/><img src="/claw/mascot.svg" alt="" className="claw-art-bird"/></div>
             </div>
           )}
 
