@@ -1518,6 +1518,7 @@ export function MusicProvider({ children }: { children: React.ReactNode }) {
     const requests = chooseMixRequests(
       mixLearnedSongs, mixArtists, prior.slice(-4).map((track) => track.artist), 3, favoriteTracks, mixRequestedArtistsRef.current,
     );
+    for (const track of favoriteTracks) { if (track.youtubeVideoId) mixSeenRef.current.add(track.youtubeVideoId); mixSeenSongsRef.current.add(trackMixKey(track)); }
     mixRequestedArtistsRef.current = [...mixRequestedArtistsRef.current, ...requests.map(r => r.artist)].slice(-18);
     try {
       const response = await fetch("/api/music/mix", {
