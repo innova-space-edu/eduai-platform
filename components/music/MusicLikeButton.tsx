@@ -25,10 +25,10 @@ const SPARKS = [
 ] as const;
 
 const SIZE_CLASS = {
-  xs: "h-6 w-6",
-  sm: "h-8 w-8",
-  md: "h-9 w-9",
-  lg: "h-10 w-10",
+  xs: "h-7 w-7",
+  sm: "h-9 w-9",
+  md: "h-10 w-10",
+  lg: "h-11 w-11",
 } as const;
 
 export function MusicLikeButton({
@@ -90,7 +90,7 @@ export function MusicLikeButton({
       )}
       <span className={["eduai-like-icon relative z-10 inline-flex items-center justify-center", burst ? "eduai-like-pop" : ""].join(" ")} aria-hidden="true">
         <svg
-          className={size === "lg" ? "h-5 w-5" : size === "xs" ? "h-3.5 w-3.5" : "h-4 w-4"}
+          className={size === "lg" ? "h-7 w-7" : size === "md" ? "h-6 w-6" : size === "xs" ? "h-5 w-5" : "h-[22px] w-[22px]"}
           viewBox="0 0 24 24"
           fill="none"
           strokeWidth="2"
