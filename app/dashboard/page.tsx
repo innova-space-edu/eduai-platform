@@ -279,6 +279,52 @@ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-sta
   html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-hero-bird {height:112%;width:clamp(180px,19vw,310px);bottom:-5px;}
 }
 @media(max-width:640px){html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-send {min-width:0;}}
+
+/* V3: constrain the welcome layout to available height; decorative art never contributes intrinsic height. */
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh {min-height:0;overflow:hidden;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header {flex-shrink:0;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-transcript[data-claw-empty="true"] {min-height:0;flex:1 1 0%;overflow-y:auto;overflow-x:hidden;container-type:size;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-transcript[data-claw-empty="true"] > div {height:100%;min-height:0;display:flex;flex-direction:column;margin-block:0;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-transcript[data-claw-empty="true"] > div > .claw-refresh-start {flex:1 1 0%;min-height:min-content;min-width:0;display:flex;flex-direction:column;padding-bottom:0;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-start > section,html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-start > div:not(.claw-welcome-art) {flex:0 0 auto;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-footer {flex-shrink:0;position:relative;z-index:2;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-composer textarea {min-height:52px;}
+@media(min-width:1024px){
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header {min-height:clamp(82px,12vh,112px);padding:12px 28px;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header h1 {font-size:clamp(20px,1.8vw,30px);}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header > div:first-child > div:first-child {width:50px;height:50px;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-transcript[data-claw-empty="true"] {padding:12px 20px 0;overflow-y:auto;overflow-x:hidden;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-start {padding-top:4px;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-start h2 {font-size:clamp(19px,1.55vw,26px);}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action {min-height:clamp(76px,11vh,98px);padding:10px 12px;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-start > section [data-claw-carousel-viewport] {padding-bottom:4px;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art {flex:1 1 0%;height:auto;min-height:0;max-height:none;margin:6px auto 0;overflow:hidden;display:block;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art > img.claw-art-original {position:absolute;inset:0;margin:auto;width:100%;height:100%;max-width:480px;max-height:148px;object-fit:contain;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art::before {inset:auto 0 0;height:min(76%,180px);opacity:.75;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-hero-bird {width:240px;max-width:20%;height:100%;bottom:0;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-footer {padding-top:10px;padding-bottom:14px;}
+}
+/* Compact desktop and browser zoom: prioritize real controls over decoration. */
+@media(min-width:1024px) and (max-height:760px){
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header {min-height:76px;padding:8px 20px;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header > div:first-child > div:first-child {width:42px;height:42px;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action {min-height:72px;padding:7px 10px;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action > div:first-child {width:38px;height:38px;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-transcript[data-claw-empty="true"] {padding-top:6px;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-footer {padding:7px 16px 10px;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-composer {padding:7px;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-composer textarea {min-height:42px;}
+}
+/* If attachments, zoom or accessibility font sizes leave little space, allow essential controls to scroll. */
+@container (max-height:260px){
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art {display:none;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-start {flex:0 0 auto;}
+}
+@media(min-width:1024px) and (max-height:570px){
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-transcript[data-claw-empty="true"] {overflow-y:auto;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-transcript[data-claw-empty="true"] > div {height:auto;min-height:100%;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art {display:none;}
+}
 `}</style>
       <aside
         style={{ width: expanded ? "var(--sidebar-open)" : "var(--sidebar-closed)" }}
