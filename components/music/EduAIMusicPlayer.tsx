@@ -4452,7 +4452,7 @@ export default function EduAIMusicPlayer({
         .eduai-music-cyber .neon-catalog-slide:nth-child(2n) .neon-recent-card { border-color:#7772ffb0; }
         .eduai-music-cyber .neon-recent-card.is-active,.eduai-music-cyber .neon-recent-card:hover { transform:none;border-color:#5dffb2;box-shadow:inset 0 0 10px #39ffaf22,0 0 8px #39ffaf50; }
         .eduai-music-cyber .neon-recent-card > div:first-child { aspect-ratio:1.35;max-height:clamp(90px,16dvh,215px);border-radius:9px; }
-        .eduai-music-cyber .gaming-card-like { position:relative;align-self:flex-start;margin:3px 0 0;height:22px;width:24px;border:0;background:transparent;box-shadow:none; }
+        .eduai-music-cyber .gaming-card-like { position:relative;align-self:flex-start;margin:3px 0 0;height:30px;width:32px;border:0;background:transparent;box-shadow:none; }
         .eduai-music-cyber .neon-recent-meta { margin-top:2px;min-height:0; }
         .eduai-music-cyber .neon-recent-meta p:first-child { font-size:clamp(10px,.76vw,14px);line-height:1.3;font-weight:700;min-height:2.6em; }
         .eduai-music-cyber .neon-recent-meta p + p { margin-top:4px;font-size:clamp(9px,.7vw,12px);color:#a9d3e5; }
