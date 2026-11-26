@@ -785,7 +785,7 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
             </p>
           </div>
         </div>
-        {messages.length === 0 && <img src="/claw/mascot.svg" alt="" aria-hidden="true" className="claw-hero-bird" />}
+        {messages.length === 0 && <img src="/claw/mascot-original.svg" alt="" aria-hidden="true" className="claw-hero-bird" />}
         <span className="hidden rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] font-bold text-emerald-700 lg:inline-flex min-[2048px]:px-4 min-[2048px]:py-1.5 min-[2048px]:text-xs">
           <span aria-hidden="true" className="mr-1.5 inline-block h-2 w-2 rounded-full bg-emerald-500" /> Activo
         </span>
@@ -807,7 +807,7 @@ export default function ClawStudyConsole({ displayName = "Usuario", isAdmin = fa
                   <Link key={item.href} href={item.href} prefetch={false} className="claw-refresh-shortcut inline-flex items-center gap-1.5 rounded-full border border-soft bg-card-theme px-3 py-1.5 text-xs font-medium text-sub focus-visible:outline-2 focus-visible:outline-violet-500"><item.icon size={14} />{item.label}<ArrowRight size={12} /></Link>
                 ))}
               </div>
-              <div className="claw-welcome-art" aria-hidden="true"><img src="/claw/workspace.svg" alt=""/><img src="/claw/mascot.svg" alt="" className="claw-art-bird"/></div>
+              <div className="claw-welcome-art" aria-hidden="true"><img src="/claw/workspace-original.svg" alt="" className="claw-art-original"/></div>
             </div>
           )}
 
