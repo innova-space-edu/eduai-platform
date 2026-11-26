@@ -185,57 +185,84 @@ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) {
   background-color:#f7f7fc;
   background-image:radial-gradient(ellipse at 5% 5%,#eadcfb,transparent 52%),radial-gradient(ellipse at 94% 90%,#dcecff,transparent 55%),radial-gradient(ellipse at 15% 100%,#d6f4f5,transparent 45%);
 }
-html:not(.dark) .claw-refresh {border:0;background:transparent;box-shadow:none;gap:12px;overflow:visible;}
-html:not(.dark) .claw-refresh-header {
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh {border:0;background:transparent;box-shadow:none;gap:12px;overflow:visible;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header {
   position:relative;isolation:isolate;border:1px solid #ffffffde;border-radius:28px;
   background:radial-gradient(ellipse at 80% 130%,#8ee9df 0%,transparent 55%),radial-gradient(ellipse at 0% 130%,#c69af5 0%,transparent 40%),linear-gradient(110deg,#ead1fa,#c2c8f8 45%,#a7def5 76%,#b5f1e7);
   box-shadow:0 5px 20px #9c84d41a;overflow:hidden;
 }
-html:not(.dark) .claw-refresh-header::before {content:"";position:absolute;z-index:-1;inset:45% -10% -80% -8%;border-radius:50%;background:#ffffff3d;transform:rotate(-7deg);}
-html:not(.dark) .claw-refresh-header h1 {font-weight:900;color:#111629;letter-spacing:-.035em;}
-html:not(.dark) .claw-refresh-header p {color:#39445c;}
-html:not(.dark) .claw-refresh-header > span {position:relative;z-index:1;box-shadow:0 3px 12px #169e7d23;}
-html:not(.dark) .claw-refresh-transcript {border:1px solid #ffffffee;border-radius:28px 28px 0 0;background:linear-gradient(135deg,#f8f2ffb0,#f7faffba 52%,#e8f9f6b0);position:relative;}
-html:not(.dark) .claw-refresh-transcript[data-claw-empty="true"] {background:radial-gradient(ellipse at 5% 15%,#e8dcfa99,transparent 62%),radial-gradient(ellipse at 98% 65%,#d4f5f5bb,transparent 55%),linear-gradient(135deg,#f6f0ff,#f7fbff 60%,#fff2f7);}
-html:not(.dark) .claw-refresh-start {border:0;background:transparent;box-shadow:none;padding:12px;}
-html:not(.dark) .claw-refresh-start h2 {font-size:clamp(18px,1.65vw,30px);font-weight:850;letter-spacing:-.035em;color:#111629;}
-html:not(.dark) .claw-refresh-start h2 + p {font-size:clamp(11px,1vw,15px);color:#46516c;}
-html:not(.dark) .claw-sparkle {display:grid;place-items:center;width:46px;height:46px;flex:none;border-radius:50%;color:#8244eb;background:linear-gradient(135deg,#f3e6ff,#e7d7ff);box-shadow:inset 0 0 8px #ffffffb0;}
-html:not(.dark) .claw-refresh-action {min-height:96px;border:2px solid #ffffffdd!important;border-radius:24px;box-shadow:0 5px 12px #7f82c223,inset 0 0 12px #ffffff70;padding:12px;gap:12px;}
-html:not(.dark) .claw-refresh-action > div:first-child {width:48px;height:48px;border-radius:50%;}
-html:not(.dark) .claw-refresh-action > div:first-child svg {width:23px;height:23px;}
-html:not(.dark) .claw-refresh-action p:first-child {font-size:clamp(13px,1.15vw,19px);font-weight:800;color:#172033;}
-html:not(.dark) .claw-refresh-action p + p {font-size:clamp(11px,.93vw,14px);color:#34445b;}
-html:not(.dark) .claw-action-arrow {display:grid;place-items:center;margin-left:auto;flex:none;width:30px;height:30px;border-radius:50%;background:#ffffff88;color:#26344e;}
-html:not(.dark) .claw-refresh-shortcut {background:#ffffffcf;box-shadow:0 3px 9px #9183c01f;border-color:#e5ddfa;padding:7px 12px;}
-html:not(.dark) .claw-refresh-footer {margin-top:-12px;border:1px solid #ffffffee;border-top:0;border-radius:0 0 28px 28px;background:linear-gradient(100deg,#f5edfc,#f8fcff,#e5f7ff);padding-bottom:20px;}
-html:not(.dark) .claw-refresh-composer {border:2px solid transparent;background:linear-gradient(120deg,#f8f2ff,#fcfcfe 48%,#e7f6ff) padding-box,linear-gradient(110deg,#d8a2fc,#c1c9f9 48%,#62d5ee) border-box;box-shadow:0 0 0 5px #ffffff8a,0 5px 25px #a78bfa40;border-radius:28px;padding:12px;}
-html:not(.dark) .claw-refresh-send {background:linear-gradient(120deg,#a78bfa,#7939ea);box-shadow:0 4px 12px #8b5cf633;}
-html:not(.dark) .claw-welcome-art {display:none;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header::before {content:"";position:absolute;z-index:-1;inset:45% -10% -80% -8%;border-radius:50%;background:#ffffff3d;transform:rotate(-7deg);}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header h1 {font-weight:900;color:#111629;letter-spacing:-.035em;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header p {color:#39445c;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header > span {position:relative;z-index:1;box-shadow:0 3px 12px #169e7d23;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-transcript {border:1px solid #ffffffee;border-radius:28px 28px 0 0;background:linear-gradient(135deg,#f8f2ffb0,#f7faffba 52%,#e8f9f6b0);position:relative;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-transcript[data-claw-empty="true"] {background:radial-gradient(ellipse at 5% 15%,#e8dcfa99,transparent 62%),radial-gradient(ellipse at 98% 65%,#d4f5f5bb,transparent 55%),linear-gradient(135deg,#f6f0ff,#f7fbff 60%,#fff2f7);}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-start {border:0;background:transparent;box-shadow:none;padding:12px;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-start h2 {font-size:clamp(18px,1.65vw,30px);font-weight:850;letter-spacing:-.035em;color:#111629;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-start h2 + p {font-size:clamp(11px,1vw,15px);color:#46516c;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-sparkle {display:grid;place-items:center;width:46px;height:46px;flex:none;border-radius:50%;color:#8244eb;background:linear-gradient(135deg,#f3e6ff,#e7d7ff);box-shadow:inset 0 0 8px #ffffffb0;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action {min-height:96px;border:2px solid #ffffffdd!important;border-radius:24px;box-shadow:0 5px 12px #7f82c223,inset 0 0 12px #ffffff70;padding:12px;gap:12px;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action > div:first-child {width:48px;height:48px;border-radius:50%;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action > div:first-child svg {width:23px;height:23px;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action p:first-child {font-size:clamp(13px,1.15vw,19px);font-weight:800;color:#172033;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action p + p {font-size:clamp(11px,.93vw,14px);color:#34445b;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-action-arrow {display:grid;place-items:center;margin-left:auto;flex:none;width:30px;height:30px;border-radius:50%;background:#ffffff88;color:#26344e;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-shortcut {background:#ffffffcf;box-shadow:0 3px 9px #9183c01f;border-color:#e5ddfa;padding:7px 12px;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-footer {margin-top:-12px;border:1px solid #ffffffee;border-top:0;border-radius:0 0 28px 28px;background:linear-gradient(100deg,#f5edfc,#f8fcff,#e5f7ff);padding-bottom:20px;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-composer {border:2px solid transparent;background:linear-gradient(120deg,#f8f2ff,#fcfcfe 48%,#e7f6ff) padding-box,linear-gradient(110deg,#d8a2fc,#c1c9f9 48%,#62d5ee) border-box;box-shadow:0 0 0 5px #ffffff8a,0 5px 25px #a78bfa40;border-radius:28px;padding:12px;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-send {background:linear-gradient(120deg,#a78bfa,#7939ea);box-shadow:0 4px 12px #8b5cf633;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art {display:none;}
 @media(min-width: 1024px) {
-  html:not(.dark) .claw-refresh-header {min-height:112px;padding:18px 34px;}
-  html:not(.dark) .claw-refresh-header h1 {font-size:clamp(21px,2vw,34px);}
-  html:not(.dark) .claw-refresh-header > div:first-child {position:relative;z-index:1;max-width:65%;}
-  html:not(.dark) .claw-refresh-header > div:first-child > div:first-child {width:58px;height:58px;border-radius:50%;}
-  html:not(.dark) .claw-hero-bird {display:block;position:absolute;right:12%;bottom:-9px;width:clamp(115px,17vw,250px);height:113%;object-fit:contain;pointer-events:none;}
-  html:not(.dark) .claw-refresh-transcript > div,html:not(.dark) .claw-refresh-composer {max-width:1380px;}
-  html:not(.dark) .claw-refresh-start {padding:10px 18px;}
-  html:not(.dark) .claw-welcome-art {display:block;position:relative;height:clamp(100px,25vh,260px);margin:8px auto 0;isolation:isolate;overflow:hidden;}
-  html:not(.dark) .claw-welcome-art::before,html:not(.dark) .claw-welcome-art::after {content:"";position:absolute;z-index:-1;left:-12%;right:-12%;height:76%;bottom:-49%;border-radius:50% 50% 0 0;background:linear-gradient(100deg,#ebcffa,#d8d5fd,#dcf1ff,#fbe2e3);transform:rotate(-4deg);}
-  html:not(.dark) .claw-welcome-art::after {bottom:-59%;transform:rotate(5deg);opacity:.65;}
-  html:not(.dark) .claw-welcome-art > img:first-child {width:100%;height:100%;object-fit:contain;}
-  html:not(.dark) .claw-art-bird {position:absolute;left:55%;bottom:4%;width:18%;height:67%;object-fit:contain;filter:drop-shadow(0 5px 5px #7767a533);}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header {min-height:112px;padding:18px 34px;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header h1 {font-size:clamp(21px,2vw,34px);}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header > div:first-child {position:relative;z-index:1;max-width:65%;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header > div:first-child > div:first-child {width:58px;height:58px;border-radius:50%;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-hero-bird {display:block;position:absolute;right:12%;bottom:-9px;width:clamp(115px,17vw,250px);height:113%;object-fit:contain;pointer-events:none;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-transcript > div,html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-composer {max-width:1380px;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-start {padding:10px 18px;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art {display:block;position:relative;height:clamp(100px,25vh,260px);margin:8px auto 0;isolation:isolate;overflow:hidden;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art::before,html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art::after {content:"";position:absolute;z-index:-1;left:-12%;right:-12%;height:76%;bottom:-49%;border-radius:50% 50% 0 0;background:linear-gradient(100deg,#ebcffa,#d8d5fd,#dcf1ff,#fbe2e3);transform:rotate(-4deg);}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art::after {bottom:-59%;transform:rotate(5deg);opacity:.65;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art > img:first-child {width:100%;height:100%;object-fit:contain;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-art-bird {position:absolute;left:55%;bottom:4%;width:18%;height:67%;object-fit:contain;filter:drop-shadow(0 5px 5px #7767a533);}
 }
 @media(max-width: 640px) {
-  html:not(.dark) .claw-refresh {gap:7px;}
-  html:not(.dark) .claw-refresh-header {border-radius:18px;}
-  html:not(.dark) .claw-refresh-transcript {border-radius:18px 18px 0 0;}
-  html:not(.dark) .claw-refresh-footer {margin-top:-7px;border-radius:0 0 18px 18px;padding:8px;}
-  html:not(.dark) .claw-refresh-composer {border-radius:18px;padding:5px;}
-  html:not(.dark) .claw-refresh-action {min-height:76px;padding:8px;}
-  html:not(.dark) .claw-sparkle {width:34px;height:34px;}
-  html:not(.dark) .claw-action-arrow {display:none;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh {gap:7px;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header {border-radius:18px;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-transcript {border-radius:18px 18px 0 0;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-footer {margin-top:-7px;border-radius:0 0 18px 18px;padding:8px;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-composer {border-radius:18px;padding:5px;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action {min-height:76px;padding:8px;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-sparkle {width:34px;height:34px;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-action-arrow {display:none;}
 }
+
+/* Match approved proportions; overrides are scoped to this dashboard and light theme. */
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header {background:linear-gradient(108deg,#ead1fc 0%,#c4c5f8 42%,#a3dff6 70%,#a9f0e4 100%); min-height:104px;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header::before {inset:auto -6% -58% -6%;height:120%;transform:rotate(-4deg);background:linear-gradient(110deg,#c59af44d,#72c2f44d,#69dccc60);}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header::after {content:"";position:absolute;inset:auto -12% -70% -10%;height:120%;border-radius:50%;transform:rotate(5deg);background:linear-gradient(100deg,#f4dcff77,#d1edff77,#d3fff477);z-index:-1;pointer-events:none;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header h1 {font-weight:800;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header p {font-size:clamp(12px,.95vw,16px);}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-transcript[data-claw-empty="true"] {background:radial-gradient(ellipse at 4% 90%,#efdcfa,transparent 54%),radial-gradient(ellipse at 95% 22%,#def7f4,transparent 55%),linear-gradient(135deg,#f5f0fd,#f8fbff 60%,#f7eefe);}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-transcript[data-claw-empty="true"] > div {min-height:100%;display:flex;flex-direction:column;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-start {flex:1;display:flex;flex-direction:column;background:transparent;border:0;box-shadow:none;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-start h2 {font-weight:760;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action {position:relative;isolation:isolate;overflow:hidden;min-height:105px;box-shadow:0 7px 16px #8270c82b,inset 0 0 16px #ffffff9c;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action::after {content:"";position:absolute;z-index:-1;left:30%;right:-15%;bottom:-55%;height:75%;border-radius:50%;background:currentColor;opacity:.05;transform:rotate(-12deg);pointer-events:none;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action p:first-child {font-weight:740;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-footer {background:linear-gradient(110deg,#f5eefe,#f9fbff 48%,#e9f7fd);border-top:0;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-composer {background:linear-gradient(110deg,#f6eeff,#fcfcff 48%,#e6f8ff) padding-box,linear-gradient(100deg,#d19cf9,#d6c5ff 44%,#5fd3ee) border-box;box-shadow:0 0 0 5px #ffffff99,0 0 22px #b18bf33d,0 6px 20px #a3c9ef32;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-composer:focus-within {border-color:transparent;box-shadow:0 0 0 4px #ffffffb0,0 0 25px #8c8cf45e;}
+@media(min-width:1024px){
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-transcript > div,html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-composer {max-width: none;width:96%;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-start {padding:10px 12px 0;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art {flex:1;min-height:120px;max-height:320px;width:100%;margin:12px auto 0;overflow:visible;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art::before,html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art::after {inset:auto 0 0;height:56%;transform:none;border-radius:0;background:linear-gradient(105deg,#e9d5fa99,#d9defa88,#d8f3fb99,#fae3eb88);clip-path:polygon(0 60%,9% 33%,17% 26%,26% 42%,36% 64%,47% 48%,58% 20%,68% 30%,79% 53%,90% 20%,100% 0,100% 100%,0 100%);}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art::after {height:42%;opacity:.7;transform:scaleX(-1);}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art > img:first-child {max-height:100%;display:block;}
+ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-hero-bird {right:14%;height:108%;width:clamp(150px,19vw,300px);bottom:-4px;}
+}
+@media(max-width:1023px){html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header {min-height:0;} html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action {min-height:76px;}}
 `}</style>
       <aside
         style={{ width: expanded ? "var(--sidebar-open)" : "var(--sidebar-closed)" }}
