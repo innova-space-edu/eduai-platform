@@ -1767,7 +1767,6 @@ function BottomPlayer() {
       </div>
 
       <div className="hidden items-center justify-end gap-3 pr-6 xl:flex" style={{ width: 320 }}>
-        <CyberEqualizer active={music.playing} />
         <ListMusic className="h-4 w-4 text-slate-500" />
         <Volume2 className="h-4 w-4 text-slate-500" />
         <input
@@ -3157,7 +3156,6 @@ function NeonBottomPlayer() {
           </div>
 
           <div className="flex items-center justify-end gap-2">
-            <NeonSpectrum active={music.playing && !idle} bars={10} currentTime={music.currentTime} trackId={track.id} className="hidden h-7 w-14 2xl:flex" />
             <button type="button" onClick={toggleMute} className="neon-volume-button" aria-label={muted ? "Activar sonido" : "Silenciar"}>
               {muted ? <VolumeX className="h-4 w-4 text-cyan-200" /> : <Volume2 className="h-4 w-4 text-slate-400" />}
             </button>
