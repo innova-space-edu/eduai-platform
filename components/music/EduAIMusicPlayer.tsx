@@ -1950,6 +1950,8 @@ function NeonSpectrum({
 }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const { effective } = useContext(GamingLightingContext);
+  const timeRef = useRef(currentTime);
+  useEffect(() => { timeRef.current = currentTime; }, [currentTime]);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -1973,11 +1975,14 @@ function NeonSpectrum({
     );
     const bpm = 94 + (seed % 42);
     const startedAt = performance.now();
-    const baseTime = Math.max(0, currentTime);
+    const baseTime = Math.max(0, timeRef.current);
     let frame = 0;
+    let lastDraw = -Infinity;
 
     const tick = (now: number) => {
-      if (document.hidden) { frame = requestAnimationFrame(tick); return; }
+      if (document.hidden) { frame = 0; return; }
+      if (now - lastDraw < 1000 / 15) { frame = requestAnimationFrame(tick); return; }
+      lastDraw = now;
       const t = baseTime + (now - startedAt) / 1000;
       const beat = t * bpm / 60;
       const beatPhase = beat - Math.floor(beat);
@@ -2013,9 +2018,11 @@ function NeonSpectrum({
       frame = requestAnimationFrame(tick);
     };
 
-    frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
-  }, [active, bars, currentTime, trackId, effective]);
+    const sync = () => { if (frame) cancelAnimationFrame(frame); frame = document.hidden ? 0 : requestAnimationFrame(tick); };
+    document.addEventListener("visibilitychange", sync);
+    sync();
+    return () => { cancelAnimationFrame(frame); document.removeEventListener("visibilitychange", sync); };
+  }, [active, bars, trackId, effective]);
 
   return (
     <div ref={rootRef} className={cn("neon-spectrum flex items-end gap-[2px]", className)} aria-hidden="true">
@@ -2479,13 +2486,13 @@ function NeonMain({
 
   useEffect(() => {
     const scroller = catalogScrollerRef.current;
-    if (!scroller || music.view !== "search" || catalogTracks.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (!scroller || music.playing || music.view !== "search" || catalogTracks.length < 2 || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     scroller.scrollLeft = 0;
     let settleTimer: number | null = null;
 
     const advance = () => {
-      if (catalogPausedRef.current) return;
+      if (catalogPausedRef.current || document.hidden) return;
 
       const firstSlide = scroller.querySelector<HTMLElement>("[data-catalog-slide='true']");
       if (!firstSlide) return;
@@ -2510,7 +2517,7 @@ function NeonMain({
       window.clearInterval(interval);
       if (settleTimer !== null) window.clearTimeout(settleTimer);
     };
-  }, [catalogKey, catalogTracks.length, carouselTracks.length, music.view]);
+  }, [catalogKey, catalogTracks.length, carouselTracks.length, music.view, music.playing]);
 
   const runSearch = async () => {
     const term = music.onlineQuery.trim();
@@ -3311,7 +3318,7 @@ export default function EduAIMusicPlayer({
   const [spotifyOpen, setSpotifyOpen] = useState(false);
   const [selectedSpotifyEmbed, setSelectedSpotifyEmbed] = useState<SpotifyEmbedItem | null>(null);
   const setPendingTrackId = music.setPendingTrackId;
-  const [lighting, setLighting] = useState<GamingLighting>("dynamic");
+  const [lighting, setLighting] = useState<GamingLighting>("calm");
   const [reducedMotion, setReducedMotion] = useState(false);
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -4541,6 +4548,11 @@ export default function EduAIMusicPlayer({
           .eduai-music-cyber .neon-main[data-embedded-radio="true"] .gaming-table-section { flex:none;min-height:160px; }
           .eduai-music-cyber .neon-main[data-embedded-radio="true"] .gaming-song-list { overflow:visible;flex:none;max-height:none; }
         }
+        /* Audio-first rendering: keep neon palette while avoiding animated paint and backdrop compositing during playback. */
+        .eduai-music-cyber[data-playing="true"] :is(.neon-sidebar,.neon-main,.neon-right-panel,.neon-bottom-player,.neon-title-gradient,.neon-main-play,.gaming-original-art,.cyber-static-backdrop,.cyber-equalizer span) { animation:none !important; }
+        .eduai-music-cyber[data-playing="true"] :is(.neon-sidebar,.neon-main,.neon-right-panel,.neon-bottom-player,.neon-search,.gaming-card-like,.neon-track-header) { backdrop-filter:none !important; -webkit-backdrop-filter:none !important; }
+        .eduai-music-cyber[data-lighting="calm"] .neon-spectrum-bar { box-shadow:none; }
+        .eduai-music-cyber[data-playing="true"] .gaming-dock-waves { display:none; }
         @media (prefers-reduced-motion:reduce) {
           .eduai-music-cyber :is(.neon-sidebar,.neon-main,.neon-right-panel,.neon-bottom-player,.neon-title-gradient,.neon-main-play) { animation:none !important; }
         }
