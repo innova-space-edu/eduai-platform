@@ -86,7 +86,7 @@ export function inferredMixSong(track: EduMusicTrack, searchQuery = ""): MixSong
       } else if (query && normalizedTitle.startsWith(query + " ") && searchQuery.trim().length <= 85) {
         artist = searchQuery.trim();
         title = raw.slice(searchQuery.trim().length).replace(/^\s*[-–—:]\s*/, "").trim();
-      } else if ((topicChannel || normalizedTitle.length > 1) && validArtist(channel)) {
+      } else if (validArtist(channel) && (topicChannel || !/\b(?:lyrics?|letra|music channel|records|playlist|fan club|remix)\b/i.test(channel))) {
         artist = channel;
         title = raw;
       }
