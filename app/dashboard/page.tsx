@@ -263,6 +263,22 @@ html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-com
  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-hero-bird {right:14%;height:108%;width:clamp(150px,19vw,300px);bottom:-4px;}
 }
 @media(max-width:1023px){html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header {min-height:0;} html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-action {min-height:76px;}}
+
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header > div:first-child > div:first-child svg {width:27px;height:27px;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header > span {font-size:13px;padding:7px 17px;border-color:#a4e9d7;background:#edfff8;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-composer textarea {font-size:clamp(13px,1vw,16px);}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-composer textarea::placeholder {color:#68758b;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-send {min-width:96px;justify-content:center;font-size:14px;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-shortcut {font-size:13px;}
+html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-start > section {flex-shrink:0;}
+@media(min-width:1024px){
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art::before {inset:auto -2% 0;height:80%;background: url("data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201440%20220%22%20preserveAspectRatio%3D%22none%22%3E%3Cdefs%3E%3ClinearGradient%20id%3D%22a%22%3E%3Cstop%20stop-color%3D%22%23e5c9fa%22%20stop-opacity%3D%22.52%22%2F%3E%3Cstop%20offset%3D%22.5%22%20stop-color%3D%22%23ccd8fd%22%20stop-opacity%3D%22.48%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23e4cbfa%22%20stop-opacity%3D%22.50%22%2F%3E%3C%2FlinearGradient%3E%3ClinearGradient%20id%3D%22b%22%3E%3Cstop%20stop-color%3D%22%23e9d1fa%22%20stop-opacity%3D%22.58%22%2F%3E%3Cstop%20offset%3D%22.55%22%20stop-color%3D%22%23d8e8ff%22%20stop-opacity%3D%22.54%22%2F%3E%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23f7d9dc%22%20stop-opacity%3D%22.50%22%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Cpath%20d%3D%22M0%2095C170-10%20220%2045%20360%20105S550%20215%20700%20100%20890%2042%201020%20110%201210%2075%201440%200V220H0Z%22%20fill%3D%22url(%23a)%22%2F%3E%3Cpath%20d%3D%22M0%20146C170%2062%20275%20137%20420%20174S640%20103%20790%20150%20970%20205%201120%20126%201320%20184%201440%2097V220H0Z%22%20fill%3D%22url(%23b)%22%2F%3E%3C%2Fsvg%3E") center bottom / 100% 100% no-repeat;clip-path:none;border-radius:0;transform:none;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art::after {display:none;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-welcome-art > img.claw-art-original {position:relative;z-index:1;width:min(100%,840px);height:100%;margin:auto;object-fit:contain;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-header {min-height:116px;}
+  html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-hero-bird {height:112%;width:clamp(180px,19vw,310px);bottom:-5px;}
+}
+@media(max-width:640px){html:not(.dark) div:has(> style[data-eduai-dashboard-refresh]) .claw-refresh-send {min-width:0;}}
 `}</style>
       <aside
         style={{ width: expanded ? "var(--sidebar-open)" : "var(--sidebar-closed)" }}
