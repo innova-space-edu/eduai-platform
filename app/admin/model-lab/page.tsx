@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, FlaskConical, ShieldCheck, WifiOff } from "lucide-react";
+import { ArrowLeft, FlaskConical, ShieldCheck, Terminal, WifiOff } from "lucide-react";
 import LiteRTPrewarm from "@/components/admin/LiteRTPrewarm";
 import ModelLabWorkspace from "@/components/admin/ModelLabWorkspace";
 import styles from "./model-lab.module.css";
@@ -31,6 +31,11 @@ export default function AdminModelLabPage() {
             <p className="mt-1 text-xs text-slate-400">Modelos, entrenamiento y rendimiento organizados por sección.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
+            {process.env.EDUAI_DELL_TERMINAL_URL === "https://servidordebian.tailef3faa.ts.net:9443/" && (
+              <a href={process.env.EDUAI_DELL_TERMINAL_URL} target="_blank" rel="noopener noreferrer" title="Requiere Tailscale y autenticación independiente en Debian" className="inline-flex items-center gap-2 rounded-xl border border-violet-400/30 bg-violet-950/30 px-3 py-2 text-xs font-bold text-violet-100 hover:bg-violet-950/50">
+                <Terminal className="h-4 w-4" /> Dell Terminal
+              </a>
+            )}
             <Link href="/local-ai/offline" className="inline-flex items-center gap-2 rounded-xl border border-emerald-400/15 bg-emerald-950/20 px-3 py-2 text-xs font-bold text-emerald-100 hover:bg-emerald-950/30">
               <WifiOff className="h-4 w-4" /> Local offline
             </Link>
